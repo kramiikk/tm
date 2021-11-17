@@ -37,12 +37,8 @@ class SchedMod(loader.Module):
             await client(UpdateProfileRequest(first_name=firstname, last_name=lastname))
 
         scheduler = AsyncIOScheduler()
-<<<<<<< Updated upstream
-        scheduler.add_job(zaraz, CronTrigger.from_crontab('*/25 * * * *', timezone='Europe/Moscow'))
-=======
         scheduler.add_job(zaraz, CronTrigger.from_crontab('*/30 * * * *', timezone='Europe/Moscow'))
         scheduler.add_job(off, CronTrigger.from_crontab('*/3 * * * *', timezone='Europe/Moscow'))
->>>>>>> Stashed changes
         scheduler.start()
 
         asyncio.get_event_loop().run_forever()
