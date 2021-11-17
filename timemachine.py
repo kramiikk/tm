@@ -33,8 +33,7 @@ class SchedMod(loader.Module):
 
         async def off():
             firstname = "ʍօղɑɾϲհ 🔴(афк)"
-            lastname = " "
-            await client(UpdateProfileRequest(first_name=firstname, last_name=lastname))
+            await client(UpdateProfileRequest(first_name=firstname))
 
         scheduler = AsyncIOScheduler()
         scheduler.add_job(zaraz, CronTrigger.from_crontab('*/30 * * * *', timezone='Europe/Moscow'))
