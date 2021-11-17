@@ -3,6 +3,7 @@ import asyncio
 import logging
 import datetime
 import threading
+from asyncio import sleep
 from .. import loader, utils
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -23,10 +24,12 @@ class SchedMod(loader.Module):
         map = 707693258
 
         async def zaraz():
-            await client.send_message(map, 'заразить р')
+            for number in range (7):
+                await client.send_message(map, 'заразить р')
+                await sleep (13)
 
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(zaraz, CronTrigger.from_crontab('*/1 * * * *', timezone='Europe/Moscow'))
+        scheduler.add_job(zaraz, CronTrigger.from_crontab('*/25 * * * *', timezone='Europe/Moscow'))
         scheduler.start()
 
         asyncio.get_event_loop().run_forever()
