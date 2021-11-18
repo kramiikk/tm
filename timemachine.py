@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 @loader.tds
 class SchedMod(loader.Module):
-    """sched"""
-    strings = {'name': 'Sched'}
+    """Timemachine"""
+    strings = {'name': 'Timemachine'}
 
     async def client_ready(self, client, db):
         self.client = client
@@ -36,8 +36,8 @@ class SchedMod(loader.Module):
             await client(UpdateProfileRequest(first_name=firstname))
 
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(zaraz, CronTrigger.from_crontab('*/30 * * * *', timezone='Europe/Moscow'))
-        scheduler.add_job(off, CronTrigger.from_crontab('*/3 * * * *', timezone='Europe/Moscow'))
+        scheduler.add_job(zaraz, CronTrigger.from_crontab('*/30 * * * *', timezone='Asia/Almaty'))
+        scheduler.add_job(off, CronTrigger.from_crontab('*/3 * * * *', timezone='Asia/Almaty'))
         scheduler.start()
 
         asyncio.get_event_loop().run_forever()
