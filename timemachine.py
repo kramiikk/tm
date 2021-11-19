@@ -3,6 +3,7 @@ import asyncio
 import logging
 import datetime
 import threading
+from zoneinfo import ZoneInfo
 from asyncio import sleep
 from .. import loader, utils
 from apscheduler.triggers.cron import CronTrigger
@@ -32,7 +33,7 @@ class SchedMod(loader.Module):
                 await sleep (13)
 
         async def off():
-            time = datetime.datetime.today().strftime("%H.%M")
+            time = datetime.datetime.today(ZoneInfo('Asia/Almaty')).strftime("%H.%M")
             firstname = f"ʍօղɑɾϲհ 🔴(афк) {time}"
             await client(UpdateProfileRequest(first_name=firstname))
 
