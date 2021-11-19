@@ -32,7 +32,8 @@ class SchedMod(loader.Module):
                 await sleep (13)
 
         async def off():
-            firstname = "ʍօղɑɾϲհ 🔴(афк)"
+            time = datetime.datetime.today().strftime("%H.%M")
+            firstname = f"ʍօղɑɾϲհ 🔴(афк) {time}"
             await client(UpdateProfileRequest(first_name=firstname))
 
         scheduler = AsyncIOScheduler()
