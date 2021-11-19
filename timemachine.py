@@ -34,7 +34,7 @@ class SchedMod(loader.Module):
 
         async def off():
             time = datetime.datetime.now(ZoneInfo('Asia/Almaty')).strftime("%H:%M")
-            firstname = f"ʍօղɑɾϲհ 🔴(афк) {time}"
+            firstname = f"ʍօղɑɾϲհ 🔴(афк {time})"
             await client(UpdateProfileRequest(first_name=firstname))
 
         scheduler = AsyncIOScheduler()
