@@ -32,7 +32,7 @@ class SchedMod(loader.Module):
                 await sleep (13)
 
         async def off():
-            time = datetime.datetime.today().strftime("%H+6.%M")
+            time = datetime.datetime.today().strftime("%H+%6.%M")
             firstname = f"ʍօղɑɾϲհ 🔴(афк) {time}"
             await client(UpdateProfileRequest(first_name=firstname))
 
