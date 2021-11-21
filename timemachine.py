@@ -39,7 +39,7 @@ class SchedMod(loader.Module):
 
         scheduler = AsyncIOScheduler()
         scheduler.add_job(zaraz, CronTrigger.from_crontab('*/30 * * * *', timezone='Asia/Almaty'))
-        scheduler.add_job(off, CronTrigger.from_crontab('*/13 * * * *', timezone='Asia/Almaty'))
+        scheduler.add_job(off, CronTrigger.from_crontab('* */3 * * *', timezone='Asia/Almaty'))
         scheduler.start()
 
         asyncio.get_event_loop().run_forever()
