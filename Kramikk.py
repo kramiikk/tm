@@ -61,11 +61,11 @@ class KramikkMod(loader.Module):
                             min = int(time_j.group(2))
                             delta = timedelta(hours=hrs, minutes=min, seconds=n)
                         await message.client.send_message(chat, 'реанимировать жабу', schedule=delta)
-                        await message.client.send_message(chat, 'работа грабитель', schedule=delta + timedelta(seconds=13))
+                        await message.client.send_message(chat, 'работа крупье', schedule=delta + timedelta(seconds=13))
                         for number in range(2):
                             delta = delta + timedelta(hours=8)
                             await message.client.send_message(chat, 'реанимировать жабу', schedule=delta)
-                            await message.client.send_message(chat, 'работа грабитель', schedule=delta + timedelta(seconds=n))
+                            await message.client.send_message(chat, 'работа крупье', schedule=delta + timedelta(seconds=n))
                             await message.client.send_message(chat, 'завершить работу', schedule=delta + timedelta(hours=2, seconds=n+3))
                             await sleep(1)
                     else:
@@ -80,7 +80,7 @@ class KramikkMod(loader.Module):
                             await sleep(3)
                             await message.respond('реанимировать жабу')
                             await sleep(3)
-                            await message.respond('работа грабитель')
+                            await message.respond('работа крупье')
                             delta = timedelta(hours=2, seconds=n)
                             await message.client.send_message(chat, 'завершить работу', schedule=delta)
                         else:
@@ -89,7 +89,7 @@ class KramikkMod(loader.Module):
                         for number in range(2):
                             delta = delta + timedelta(hours=6, seconds=3)
                             await message.client.send_message(chat, 'реанимировать жабу', schedule=delta)
-                            await message.client.send_message(chat, 'работа грабитель', schedule=delta + timedelta(seconds=n))
+                            await message.client.send_message(chat, 'работа крупье', schedule=delta + timedelta(seconds=n))
                             await message.client.send_message(chat, 'завершить работу', schedule=delta + timedelta(hours=2, seconds=n+3))
                             await sleep(3)
                     if "покормить через" in response.text:
