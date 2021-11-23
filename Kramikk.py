@@ -1,23 +1,13 @@
-import os
-import re
-import time
-import random
-import asyncio
-import logging
-import datetime
-import requests
-import threading
-import io, inspect
-import urllib.parse
 from math import floor
 from asyncio import sleep
 from .. import loader, utils
 from datetime import timedelta
 from telethon.tl.types import Message
-from telethon import events, functions, types
+from telethon import events, functions, types, sync
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.errors.rpcerrorlist import UsernameOccupiedError
 from telethon.tl.functions.account import UpdateProfileRequest, UpdateUsernameRequest
+import asyncio, datetime, inspect, io, logging, os, threading, time, random, re, requests, urllib.parse
 
 #requires: urllib requests
 
@@ -30,57 +20,23 @@ def register(cb):
 class KramikkMod(loader.Module):
     """Алина, я люблю тебя!"""
     strings = {
-        'farmon': '<i>Запущен</i>',
-        'farmon_already': '<i>Уже запущено</i>',
-        'farmoff': '<i>❌Остановлен.\n☢️Надюпано:</i> <b>%coins% i¢</b>',
-        'iriska': 'farmiris',
         'name': 'Kramikk',
-        'no_args': 'нету аргументов!',
     }
-
-    def __init__(self):
-        self.iriska = self.strings['iriska']
 
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        self.myid = (await client.get_me()).id
-
-    
-    async def irisoncmd(self, message):
-        status = self.db.get(self.iriska, "status", False)
-        if status: return await message.edit(self.strings['farmon_already'])
-        self.db.set(self.iriska, "status", True)
-        await self.client.send_message(chat, "Фарма", schedule=timedelta(seconds=20))
-        await message.edit(self.strings['farmon'])
-
-    async def irisoffcmd(self, message):
-       self.db.set(self.iriska, 'status', False)
-       coins = self.db.get(self.iriska, 'coins', 0)
-       if coins: self.db.set(self.iriska, 'coins', 0)
-       await message.edit(self.strings['farmoff'].replace("%coins%", str(coins)))
+        self.me = await client.get_me()
+        self.status = db.get('Status', 'status', {})
 
     async def watcher(self, message):
-        bak = {1646740346, 1261343954, 1785723159, 1486632011, 1682801197, 1863720231, 1775420029, 1286303075}
+        bak = {1646740346, 1261343954, 1785723159, 1486632011, 1682801197, 1863720231, 1775420029, 1286303075, 1746686703, 1459363960, 1423368454}
         chat = message.chat_id
-        chatid = str(message.chat_id)
-        duel = self.db.get("Дуэлька", "duel", {})
-        lvl = False
-        me = await message.client.get_me()
-        n = 13
-        name = me.first_name
-        randelta = random.randint(n, n+13)
-        u = 0
-        x = 0
-        EK = {
-            -1001441941681,
-            -1001436786642,
-            -1001380664241,
-            -1001289617428,
-            -1001485617300,
-            -1001465870466,
-            -1001447960786}
-        KW = {-419726290, -1001543064221, -577735616, -1001493923839}
+        chatid= str(message.chat_id)
+        duel = self.db.get('Дуэлька', 'duel', {})
+        jb = "jaba"
+        name = self.me.first_name
+        randelta = random.randint(3, 21+1)
 
         if message.sender_id in {1124824021}:
             if "Сейчас выбирает ход: " + name in message.message:
@@ -90,109 +46,6 @@ class KramikkMod(loader.Module):
                 await message.respond('реанимировать жабу')
                 await sleep (3)
                 await message.respond('отправиться за картой')
-            if "позвать на тусу" in message.message:
-                await sleep(3)
-                await message.respond('реанимировать жабу')
-                await sleep(3)
-                await message.respond('жабу на тусу')
-            if "Тебе жаба," in message.message:
-                if chat in KW:
-                    async with self.client.conversation(message.chat_id) as conv:
-                        await sleep (3)
-                        response = conv.wait_event(events.NewMessage(incoming=True, from_users=1124824021, chats=message.chat_id))
-                        await message.respond('мой клан')
-                        response = await response
-                        if "Клан" in response.text:
-                            if "Пойти за картой" not in response.text:
-                                await sleep (3)
-                                await message.respond('отправиться за картой')
-                                await sleep (13)
-                                await message.respond('отправиться за картой')
-                                delta = timedelta(hours=8, seconds=n)
-                                await message.client.send_message(chat, 'отправиться за картой', schedule=delta)
-                                await message.client.send_message(chat, 'отправиться за картой', schedule=delta + timedelta(hours=8, seconds=13))
-
-        if message.sender_id in {830605725}:
-            if "[8🐝]" in message.message:
-                await message.click(0)
-            if "[4🐝]" in message.message:
-                await message.click(0)
-            if "[2☢️🐝, 2🔴🐝," in message.message:
-                await message.click(0)
-            if "Бзззз! С пасеки" in message.message:
-                await message.click(0)
-
-        if "лвл чек" in message.message:
-            async with self.client.conversation(message.chat_id) as conv:
-                await message.respond(f'Отправь урон и здоровье противника в первой атаке, в виде:\n\n.. 😏 ..\n\n(вместо точек вводить цифры)')
-                response = await conv.wait_event(events.NewMessage(incoming=True, outgoing=True, from_users=message.sender_id, chats=message.chat_id))
-                if "😏" in response.text:
-                    lvl = re.search('(\d+)\s😏\s(\d+)', response.text)
-                    if lvl:
-                        x = int(lvl.group(1))
-                        u = int(lvl.group(2))
-                        y = u + x
-                        res = ( y - 160 )*2
-                        if res > -1:
-                            if "😏" in response.text:
-                                args = f'~ {res} лвл'
-                        else:
-                            args = f'лвл не может быть отрицательным!!!\nпробуй заново, напиши:\n\nлвл чек'
-                        url = 'https://carbonnowsh.herokuapp.com/?code=' + urllib.parse.quote_plus(args).replace('%0A', '%250A').replace('%23', '%2523').replace('%2F', '%252f')
-                        logger.info('[Carbon]: Fetching url ' + url)
-                        await self.client.send_message(chat, file=requests.get(url).content, reply_to=response)
-                else:
-                    await message.reply(f'пробуй заново, напиши:\n\n<code>лвл чек</code>')
-
-        if message.sender_id in {me.id}:
-            if "огошечки" in message.message:
-                reply = await message.get_reply_message()
-                if reply:
-                    count = len(re.findall('^•', reply.text, re.MULTILINE))
-                    neys = re.findall('Уровень: (\d+)', reply.text)
-                    mnu = int(neys[0])
-                    for ney in neys:
-                        ney = int(ney)
-                        if ney < mnu:
-                            mnu = ney
-                    msu = 0
-                    for ney in neys:
-                        ney = int(ney)
-                        if ney > msu:
-                            msu = ney
-                    args = f'жаб: {count}\n\nмин уровень: {mnu}\nМакс уровень: {msu}'
-                    url = 'https://carbonnowsh.herokuapp.com/?code=' + urllib.parse.quote_plus(args).replace('%0A', '%250A').replace('%23', '%2523').replace('%2F', '%252f')
-                    logger.info('[Carbon]: Fetching url ' + url)
-                    await self.client.send_message(chat, file=requests.get(url).content, reply_to=reply)
-
-            if "тусач" in message.message:
-                reply = await message.get_reply_message()
-                if reply:
-                    count = len(re.findall('^\d', reply.text, re.MULTILINE))
-                    if count > 1:
-                        ui = count * 150
-                        args = f' ▄▀ ▄▀\n  ▀  ▀\n█▀▀▀▀▀█▄\n█░░░░░█ █\n▀▄▄▄▄▄▀▀\n\nдля этой тусы потратят {ui} букашек'
-                    else:
-                        args = f' ▄▀ ▄▀\n  ▀  ▀\n█▀▀▀▀▀█▄\n█░░░░░█ █\n▀▄▄▄▄▄▀▀\n\nвсего 1 тусит'
-                else:
-                    args = f' ▄▀ ▄▀\n  ▀  ▀\n█▀▀▀▀▀█▄\n█░░░░░█ █\n▀▄▄▄▄▄▀▀\n\nкапец никто не тусит'
-                url = 'https://carbonnowsh.herokuapp.com/?code=' + urllib.parse.quote_plus(args).replace('%0A', '%250A').replace('%23', '%2523').replace('%2F', '%252f')
-                logger.info('[Carbon]: Fetching url ' + url)
-                await self.client.send_message(chat, file=requests.get(url).content, reply_to=reply)
-
-            if "гонщик" in message.message:
-                reply = await message.get_reply_message()
-                if reply:
-                    count = int(len(re.findall('^🏆', reply.text, re.MULTILINE)))
-                    if count > 1:
-                        money = int(re.search('сумма ставки: (\d+) букашек', reply.text, re.IGNORECASE). group (1))
-                        gm = round((money * count) * 0.85)
-                        args = f'< в забеге участвуют {count} чувачка\nпобедитель получит {gm} букашек >\n\n     \   ^__^\n	      \  (oo)\_______\n         (__)\       )\/\n             ||----w||\n	             ||     ||'
-                    else:
-                        args = '🌕🌕🌕🌕🌕🌕🌕🌕🌕\n🌕🌗🌑🌑🌑🌑🌑🌓🌕\n🌕🌗🌑🌑🌑🌑🌑🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌗🌑🌑🌑🌑🌓🌕🌕\n🌕🌗🌑🌑🌑🌑🌕🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌕🌕🌕🌕🌕🌕🌕🌕'
-                    url = 'https://carbonnowsh.herokuapp.com/?code=' + urllib.parse.quote_plus(args).replace('%0A', '%250A').replace('%23', '%2523').replace('%2F', '%252f')
-                    logger.info('[Carbon]: Fetching url ' + url)
-                    await self.client.send_message(chat, file=requests.get(url).content, reply_to=reply)
 
         if chat in EK:
             if message.sender_id in bak:
@@ -459,49 +312,30 @@ class KramikkMod(loader.Module):
                         else:
                             await message.reply(f'отправить аптечки {apt}')
 
-        if message.chat_id in {707693258}:
-            status = self.db.get(self.iriska, 'status', False)
-            if not status: return
-            if "Фарма" in message.message:
-                return await self.client.send_message(chat, "Фарма", schedule=timedelta(minutes=random.randint(1, 20)))
-            if "НЕЗАЧЁТ!" in message.message:
-                args = [int(x) for x in message.text.split() if x.isnumeric()]
-                randelta = random.randint(20, 60)
-                if len(args) == 4: delta = timedelta(hours=args[1], minutes=args[2], seconds=args[3]+randelta)
-                elif len(args) == 3: delta = timedelta(minutes=args[1], seconds=args[2]+randelta)
-                elif len(args) == 2: delta = timedelta(seconds=args[1]+randelta)
-                else: return
-                sch = (await self.client(functions.messages.GetScheduledHistoryRequest(chat, 1488))).messages
-                await self.client(functions.messages.DeleteScheduledMessagesRequest(chat, id=[x.id for x in sch]))
-                return await self.client.send_message(chat, 'Фарма', schedule=delta)
-            if "ЗАЧЁТ" in message.message or 'УДАЧА' in message.message:
-                args = message.text.split()
-                for x in args:
-                    if x[0] == '+':
-                        return self.db.set(self.iriska, 'coins', self.db.get(self.iriska, 'coins', 0) + int(x[1:]))
+if chatid not in duel: return
 
-        if chatid not in duel: return
-        if message.sender_id in {1124824021}:
-            jaba = "❏ kramikk◬"
-            if "Вы бросили вызов на дуэль пользователю " + name in message.message:
-                await sleep (3)
-                await message.respond('дуэль принять')
-                await sleep (3)
-                await message.respond('дуэль старт')
-            if jaba + ", У вас ничья" in message.message:
-                await sleep (3)
-                await message.respond('РеанимироватЬ жабу')
-            elif "Победитель " + jaba in message.message:
-                return
-            elif "Победитель уже отыграл" in message.message:
-                await sleep (3)
-                await message.respond('Спасибо👊')
-            else:
-                if "Победитель" in message.message:
-                    await sleep (3)
-                    await message.respond('РеанимироватЬ жабу')
+if message.sender_id not in {self.me.id, 1124824021}:
+    if "РеанимироватЬ жабу" in message.message:
+        await sleep (1)
+        await message.reply('дуэль')
+
+if message.sender_id in {1124824021}:
+    if "Вы бросили вызов на дуэль пользователю " + name in message.message:
+        await sleep (1)
+        await message.respond('дуэль принять')
+        await sleep (1)
+        await message.respond('дуэль старт')
+
+    if self.status[jb] + ", У вас ничья" in message.message:
+        await sleep (1)
+        await message.respond('РеанимироватЬ жабу')
+
+    if "Победитель" in message.message:
+        if "Победитель " + self.status[jb] + "!!!" in message.message:
+            return
+        elif "Победитель уже отыграл" in message.message:
+            await sleep (1)
+            await message.respond('Спасибо😃😘 Не забудь деактивировать дуэльку!')
         else:
-            if message.sender_id not in {me.id, 1124824021}:
-                if "РеанимироватЬ жабу" in message.message:
-                    await sleep (3)
-                    await message.reply('дуэль')
+            await sleep (1)
+            await message.respond('РеанимироватЬ жабу')
