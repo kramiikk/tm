@@ -192,9 +192,9 @@ class KramikkMod(loader.Module):
             if "Победитель" in message.message:
                 if "Победитель " + self.status[jb] + "!!!" in message.message:
                     return
-                elif "Победитель уже отыграл" in message.message:
+                elif "Победитель " + self.status[jb] + "!!!\n❗️Победитель" in message.message:
                     await sleep (1)
-                    await message.respond('Спасибо😃😘 Не забудь деактивировать дуэльку!')
+                    await message.respond(f'{name} дуэлька')
                 else:
                     await sleep (1)
                     await message.respond('РеанимироватЬ жабу')
