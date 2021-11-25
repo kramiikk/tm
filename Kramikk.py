@@ -47,20 +47,20 @@ class KramikkMod(loader.Module):
                 await message.respond('реанимировать жабу')
                 await sleep (3)
                 await message.respond('отправиться за картой')
-            if "отыграл" or "pot" in message.message:
-                if "666!!!" or "6" in message.message:
+            if "Победитель уже отыграл" in message.message:
+                if "666!!!" in message.message:
                     a = "666 дуэлька"
-                if "dop!!!" or "d" in message.message:
+                if "dop!!!" in message.message:
                     a = "dop дуэлька"
-                if "Lav!!!" or "l" in message.message:
+                if "Lav!!!" in message.message:
                     a = "Laviin дуэлька"
-                if "⌘!!!" or "o" in message.message:
+                if "⌘!!!" in message.message:
                     a = "surgeon дуэлька"
-                if "Adi!!!" or "a" in message.message:
+                if "Adi!!!" in message.message:
                     a = "Adi дуэлька"
-                if "❏ kramikk◬!!!" or "m" in message.message:
+                if "❏ kramikk◬!!!" in message.message:
                     a = "ʍօղɑɾϲհ дуэлька"
-                if "⛩️!!!" or "k" in message.message:
+                if "⛩️!!!" in message.message:
                     a = "Kuat дуэлька"
                 await sleep (1)
                 await message.client.send_message(chat, a)
@@ -188,6 +188,23 @@ class KramikkMod(loader.Module):
                                 await message.reply('отправить аптечки 10')
                             else:
                                 await message.reply(f'отправить аптечки {apt}')
+            if "pot" in message.message:
+                if "6" in message.message:
+                    a = "666 дуэлька"
+                if "d" in message.message:
+                    a = "dop дуэлька"
+                if "l" in message.message:
+                    a = "Laviin дуэлька"
+                if "o" in message.message:
+                    a = "surgeon дуэлька"
+                if "a" in message.message:
+                    a = "Adi дуэлька"
+                if "m" in message.message:
+                    a = "ʍօղɑɾϲհ дуэлька"
+                if "k" in message.message:
+                    a = "Kuat дуэлька"
+                await sleep (1)
+                await message.client.send_message(chat, a)
 
         if chatid not in duel: return
 
