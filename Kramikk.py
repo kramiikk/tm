@@ -188,7 +188,7 @@ class KramikkMod(loader.Module):
                                 await message.reply('отправить аптечки 10')
                             else:
                                 await message.reply(f'отправить аптечки {apt}')
-            if "pot" in message.message:
+            if "muv" in message.message:
                 if "6" in message.message:
                     a = "666 дуэлька"
                 if "d" in message.message:
