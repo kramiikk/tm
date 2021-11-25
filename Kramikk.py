@@ -47,24 +47,6 @@ class KramikkMod(loader.Module):
                 await message.respond('реанимировать жабу')
                 await sleep (3)
                 await message.respond('отправиться за картой')
-            if self.me.id in {1222132115}:
-                if "Победитель уже отыграл" in message.message:
-                    if "666!!!" in message.message:
-                        a = "666 дуэлька"
-                    if "dop!!!" in message.message:
-                        a = "dop дуэлька"
-                    if "Lav!!!" in message.message:
-                        a = "Laviin дуэлька"
-                    if "⌘!!!" in message.message:
-                        a = "surgeon дуэлька"
-                    if "Adi!!!" in message.message:
-                        a = "Adi дуэлька"
-                    if "❏ kramikk◬!!!" in message.message:
-                        a = "ʍօղɑɾϲհ дуэлька"
-                    if "⛩️!!!" in message.message:
-                        a = "Kuat дуэлька"
-                    await sleep (1)
-                    await message.client.send_message(chat, a)
 
         if message.sender_id in bak:
             if "жаба дня" in message.message:
