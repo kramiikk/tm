@@ -193,7 +193,7 @@ class KramikkMod(loader.Module):
                 if self.status[jb] + "!!!" in message.message:
                     if "отыграл" in message.message:
                         await sleep (1)
-                        await message.respond(f'{name} дуэлька')
+                        await message.client.send_message(chat, f'{name} дуэлька')
                     else:
                         return
                 else:
