@@ -47,7 +47,7 @@ class KramikkMod(loader.Module):
                 await message.respond('реанимировать жабу')
                 await sleep (3)
                 await message.respond('отправиться за картой')
-            if self.me.id in {1124824021}:
+            if self.me.id in {1222132115}:
                 if "Победитель уже отыграл" in message.message:
                     if "666!!!" in message.message:
                         a = "666 дуэлька"
