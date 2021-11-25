@@ -191,18 +191,20 @@ class KramikkMod(loader.Module):
             if "bruh" in message.message:
                 if "6" in message.message:
                     a = "666 дуэлька"
-                if "d" in message.message:
-                    a = "dop дуэлька"
-                if "l" in message.message:
-                    a = "Laviin дуэлька"
-                if "o" in message.message:
-                    a = "surgeon дуэлька"
                 if "a" in message.message:
                     a = "Adi дуэлька"
-                if "m" in message.message:
-                    a = "ʍօղɑɾϲհ дуэлька"
+                if "d" in message.message:
+                    a = "dop дуэлька"
                 if "k" in message.message:
                     a = "Kuat дуэлька"
+                if "l" in message.message:
+                    a = "Laviin дуэлька"
+                if "m" in message.message:
+                    a = "ʍօղɑɾϲհ дуэлька"
+                if "o" in message.message:
+                    a = "surgeon дуэлька"
+                if "p" in message.message:
+                    a = "Обнять Победитель"
                 await sleep (1)
                 await message.client.send_message(chat, a)
 
