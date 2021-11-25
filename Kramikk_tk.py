@@ -195,6 +195,8 @@ class KramikkMod(loader.Module):
                     a = "666 дуэлька"
                 if "a" in message.message:
                     a = "Adi дуэлька"
+                if "c" in message.message:
+                    a = "Alu дуэлька"
                 if "d" in message.message:
                     a = "dop дуэлька"
                 if "k" in message.message:
@@ -207,8 +209,6 @@ class KramikkMod(loader.Module):
                     a = "surgeon дуэлька"
                 if "p" in message.message:
                     a = "Обнять Победитель"
-                if "c" in message.message:
-                    a = "Alu дуэлька"
                 await sleep (1)
                 await message.client.send_message(chat, a)
 
