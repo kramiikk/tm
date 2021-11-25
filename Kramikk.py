@@ -190,12 +190,12 @@ class KramikkMod(loader.Module):
                 await message.respond('РеанимироватЬ жабу')
 
             if "Победитель" in message.message:
-                if "Победитель " + self.status[jb] + "!!!" in message.message:
-                    return
-                elif "Победитель " + self.status[jb] + "!!!" in message.message:
+                if self.status[jb] + "!!!" in message.message:
                     if "отыграл" in message.message:
                         await sleep (1)
                         await message.respond(f'{name} дуэлька')
+                    else:
+                        return
                 else:
                     await sleep (1)
                     await message.respond('РеанимироватЬ жабу')
