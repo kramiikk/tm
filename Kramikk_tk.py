@@ -63,7 +63,7 @@ class KramikkMod(loader.Module):
                 if "⛩️!!!" in message.message:
                     a = "Kuat дуэлька"
                 await sleep (1)
-                await message.client.send_message(chat, a)
+                await message.respond(a)
 
         if message.sender_id in bak:
             if "жаба дня" in message.message:
