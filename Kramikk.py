@@ -126,12 +126,26 @@ class KramikkMod(loader.Module):
                 self.status[jb] = jaba
                 self.db.set('Status', 'status', self.status)
                 await message.respond(f'Имя жабы установлен: {jaba}\n го дуэли')
-            if name +  " инвентарь" in message.message:
+            if name + " напади" in message.message:
+                await message.respond("<b>реанимировать жабу</b>")
+                await sleep (3)
+                await message.respond('<b>напасть на клан</b>')
+            if name + " подземелье" in message.message:
+                await message.respond('<b>реанимировать жабу</b>')
+                await sleep (3)
+                await message.respond('<b>отправиться в золотое подземелье</b>')
+            if name + " с работы" in message.message:
+                await message.respond('<b>завершить работу</b>')
+            if name + " карта" in message.message:
+                await message.respond('<b>отправить карту</b>')
+            if name + " на тусу" in message.message:
+                await message.respond('<b>реанимировать жабу</b>')
+                await sleep (3)
+                await message.respond('<b>жабу на тусу</b>')
+            if name + " инвентарь" in message.message:
                 await message.respond("<b>мой инвентарь</b>")
             if name + " инфо" in message.message:
                 await message.respond('<b>жаба инфо</b>')
-            if name + " с работы" in message.message:
-                await message.respond('<b>завершить работу</b>')
             if message.sender_id not in {self.me.id}:
                 if "букашки мне😊" in message.message:
                     await sleep (randelta+13)
