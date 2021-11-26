@@ -137,7 +137,7 @@ class KramikkMod(loader.Module):
             if name + " с работы" in message.message:
                 await message.respond('<b>завершить работу</b>')
             if name + " карта" in message.message:
-                await message.respond('<b>отправить карту</b>')
+                await message.reply('<b>отправить карту</b>')
             if name + " на тусу" in message.message:
                 await message.respond('<b>реанимировать жабу</b>')
                 await sleep (3)
