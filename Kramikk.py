@@ -156,7 +156,7 @@ class KramikkMod(loader.Module):
                         response = await response
                         if 'Баланс букашек вашей' in response.text:
                             bug = int(re.search('жабы: (\d+)', response.text, re.IGNORECASE).group(1))
-                            if bug <100:
+                            if bug <51:
                                 await message.reply('осталось для похода')
                             else:
                                 while bug > 50049:
