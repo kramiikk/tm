@@ -126,6 +126,7 @@ class KramikkMod(loader.Module):
                 self.status[jb] = jaba
                 self.db.set('Status', 'status', self.status)
                 await message.respond(f'Имя жабы установлен: {jaba}\n го дуэли')
+                await message.respond('мой инвентарь')
             if name + " напади" in message.message:
                 await message.respond("<b>реанимировать жабу</b>")
                 await sleep (3)
