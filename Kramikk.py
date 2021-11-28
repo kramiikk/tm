@@ -402,46 +402,47 @@ class KramikkMod(loader.Module):
                 await message.respond('<b>реанимировать жабу</b>')
                 await sleep (3)
                 await message.respond('<b>жабу на тусу</b>')
-            if "букашки мне😊" in message.message:
-                await sleep (randelta)
-                async with message.client.conversation(chat) as conv:
-                    response = conv.wait_event(events.NewMessage(incoming=True, from_users=1124824021, chats=message.chat_id))
-                    await message.respond('мой баланс')
-                    response = await response
-                    if 'Баланс букашек вашей' in response.text:
-                        bug = int(re.search('жабы: (\d+)', response.text, re.IGNORECASE).group(1))
-                        if bug <50:
-                            await message.reply('осталось для похода')
-                        else:
-                            while bug > 50049:
-                                await message.reply('отправить букашки 50000')
-                                bug -= 50000
-                                await sleep(1)
-                            snt = bug-50
+            if message.sender_id not in {self.me.id}:
+                if "букашки мне😊" in message.message:
+                    await sleep (randelta)
+                    async with message.client.conversation(chat) as conv:
+                        response = conv.wait_event(events.NewMessage(incoming=True, from_users=1124824021, chats=message.chat_id))
+                        await message.respond('мой баланс')
+                        response = await response
+                        if 'Баланс букашек вашей' in response.text:
+                            bug = int(re.search('жабы: (\d+)', response.text, re.IGNORECASE).group(1))
+                            if bug <50:
+                                await message.reply('осталось для похода')
+                            else:
+                                while bug > 50049:
+                                    await message.reply('отправить букашки 50000')
+                                    bug -= 50000
+                                    await sleep(1)
+                                snt = bug-50
+                                await sleep (randelta)
+                                await message.reply(f'отправить букашки {snt}')
+                if "инвентарь мне😊" in message.message:
+                    await sleep (randelta)
+                    async with message.client.conversation(chat) as conv:
+                        response = conv.wait_event(events.NewMessage(incoming=True, from_users=1124824021, chats=message.chat_id))
+                        await message.respond('мой инвентарь')
+                        response = await response
+                        if 'Ваш инвентарь:' in response.text:
+                            cnd = int(re.search('Леденцы: (\d+)', response.text, re.IGNORECASE).group(1))
+                            apt = int(re.search('Аптечки: (\d+)', response.text, re.IGNORECASE).group(1))
                             await sleep (randelta)
-                            await message.reply(f'отправить букашки {snt}')
-            if "инвентарь мне😊" in message.message:
-                await sleep (randelta)
-                async with message.client.conversation(chat) as conv:
-                    response = conv.wait_event(events.NewMessage(incoming=True, from_users=1124824021, chats=message.chat_id))
-                    await message.respond('мой инвентарь')
-                    response = await response
-                    if 'Ваш инвентарь:' in response.text:
-                        cnd = int(re.search('Леденцы: (\d+)', response.text, re.IGNORECASE).group(1))
-                        apt = int(re.search('Аптечки: (\d+)', response.text, re.IGNORECASE).group(1))
-                        await sleep (randelta)
-                    if cnd > 0:
-                        while cnd > 49:
-                            await message.reply('отправить леденцы 50')
-                            cnd -= 50
+                        if cnd > 0:
+                            while cnd > 49:
+                                await message.reply('отправить леденцы 50')
+                                cnd -= 50
+                                await sleep(1)
+                            await message.reply(f'отправить леденцы {cnd}')
                             await sleep(1)
-                        await message.reply(f'отправить леденцы {cnd}')
-                        await sleep(1)
-                    if apt > 0:
-                        if apt > 9:
-                            await message.reply('отправить аптечки 10')
-                        else:
-                            await message.reply(f'отправить аптечки {apt}')
+                        if apt > 0:
+                            if apt > 9:
+                                await message.reply('отправить аптечки 10')
+                            else:
+                                await message.reply(f'отправить аптечки {apt}')
 
             if "огошечки" in message.message:
                 reply = await message.get_reply_message()
