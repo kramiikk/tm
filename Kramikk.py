@@ -261,14 +261,6 @@ class KramikkMod(loader.Module):
             name = "Оботи"
         if self.me.id in {1286303075}:
             name = "Лавин"
-        if self.me.id in {1775420029}:
-            name = "Адият"
-        if self.me.id in {1682801197}:
-            name = "666"
-        if self.me.id in {1646740346}:
-            name = "Куат"
-        if self.me.id in {1863720231}:
-            name = "Допинг"
         if self.me.id in {1785723159}:
             name = "Крамик"
         if self.me.id in {547639600}:
