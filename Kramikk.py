@@ -254,7 +254,7 @@ class KramikkMod(loader.Module):
         chatik = -1001441941681
         duel = self.db.get('Дуэлька', 'duel', {})
         jb = "jaba"
-        name = "жабич"
+        name = self.me.first_name 
         if self.me.id in {1261343954}:
             name = "Монарх"
         if self.me.id in {1486632011}:
