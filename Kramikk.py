@@ -209,19 +209,6 @@ class KramikkMod(loader.Module):
     async def nkctcmd(self, m):
         await m.edit('Доступные категории:\n' + '\n'.join(f'<code>{i}</code>' for i in types_of))
 
-    async def carboncmd(self, message):
-        args = utils.get_args_raw(message)
-        message = await utils.answer(message, self.strings('loading', message))
-        try:
-            message = message[0]
-        except:
-            pass
-        url = 'https://carbonnowsh.herokuapp.com/?code=' + urllib.parse.quote_plus(args).replace('%0A', '%250A').replace('%23', '%2523').replace('%2F', '%252f')
-        logger.info('[Carbon]: Fetching url ' + url)
-        await self.client.send_message(utils.get_chat_id(message), file=requests.get(url).content)
-        await message.delete()
-
-
     @loader.unrestricted
     async def owoifycmd(self, message):
         """OwOify text"""
@@ -254,7 +241,7 @@ class KramikkMod(loader.Module):
         chatik = -1001441941681
         duel = self.db.get('Дуэлька', 'duel', {})
         jb = "jaba"
-        name = self.me.first_name 
+        name = self.me.first_name
         if self.me.id in {1261343954}:
             name = "Монарх"
         if self.me.id in {1486632011}:
@@ -265,7 +252,11 @@ class KramikkMod(loader.Module):
             name = "Крамик"
         if self.me.id in {547639600}:
             name = "Нельс"
-        randelta = random.randint(7, 21+1)
+        rn = [5, 7, 9, 11, 13, 15, 17, 19, 21]
+        rn1 = [33, 36, 39, 42, 45, 48, 51]
+        aa = random.choice(rn)
+        bb = random.choice(rn1)
+        randelta = random.randint(aa, bb)
 
         if message.sender_id in {1124824021}:
             if "Сейчас выбирает ход: " + self.me.first_name in message.message:
@@ -443,36 +434,6 @@ class KramikkMod(loader.Module):
                                 await message.reply('отправить аптечки 10')
                             else:
                                 await message.reply(f'отправить аптечки {apt}')
-
-            if "огошечки" in message.message:
-                reply = await message.get_reply_message()
-                if reply:
-                    count = len(re.findall('^•', reply.text, re.MULTILINE))
-                    neys = re.findall('Уровень: (\d+)', reply.text)
-                    mnu = int(neys[0])
-                    for ney in neys:
-                        ney = int(ney)
-                        if ney < mnu:
-                            mnu = ney
-                    msu = 0
-                    for ney in neys:
-                        ney = int(ney)
-                        if ney > msu:
-                            msu = ney
-                    args = f'жаб: {count}\n\nмин уровень: {mnu}\nМакс уровень: {msu}'
-                    await message.reply(args)
-
-            if "гонщик" in message.message:
-                reply = await message.get_reply_message()
-                if reply:
-                    count = int(len(re.findall('^🏆', reply.text, re.MULTILINE)))
-                    if count > 1:
-                        money = int(re.search('сумма ставки: (\d+) букашек', reply.text, re.IGNORECASE). group (1))
-                        gm = round((money * count) * 0.85)
-                        args = f'< в забеге участвуют {count} чувачка\nпобедитель получит {gm} букашек >\n\n       \   ^__^\n        \  (oo)\_______\n           (__)\       )\/\n               ||----w||\n               ||     ||'
-                    else:
-                        args = '🌕🌕🌕🌕🌕🌕🌕🌕🌕\n🌕🌗🌑🌑🌑🌑🌑🌓🌕\n🌕🌗🌑🌑🌑🌑🌑🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌗🌑🌑🌑🌑🌓🌕🌕\n🌕🌗🌑🌑🌑🌑🌕🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌗🌑🌓🌕🌕🌕🌕🌕\n🌕🌕🌕🌕🌕🌕🌕🌕🌕'
-                    await message.reply(args)
 
         if chatid not in duel: return
 
