@@ -273,7 +273,7 @@ class KramikkMod(loader.Module):
             name = "Крамик"
         if self.me.id in {547639600}:
             name = "Нельс"
-        randelta = random.randint(3, 21+1)
+        randelta = random.randint(7, 21+1)
 
         if message.sender_id in {1124824021}:
             if "Сейчас выбирает ход: " + self.me.first_name in message.message:
