@@ -30,7 +30,6 @@ class KramikkMod(loader.Module):
         self.status = db.get('Status', 'status', {})
 
     async def watcher(self, message):
-        a = "жаба инфо"
         bak = {1222132115, 1646740346, 1261343954, 1785723159, 1486632011, 1682801197, 1863720231, 1775420029, 1286303075, 1746686703, 1459363960, 1423368454, 547639600}
         chat = message.chat_id
         chatid= str(chat)
@@ -47,25 +46,6 @@ class KramikkMod(loader.Module):
                 await message.respond('реанимировать жабу')
                 await sleep (3)
                 await message.respond('отправиться за картой')
-            if "Победитель уже отыграл" in message.message:
-                if "666!!!" in message.message:
-                    a = "666 дуэлька"
-                if "dop!!!" in message.message:
-                    a = "dop дуэлька"
-                if "Lav!!!" in message.message:
-                    a = "Laviin дуэлька"
-                if "⌘!!!" in message.message:
-                    a = "surgeon дуэлька"
-                if "Adi!!!" in message.message:
-                    a = "Adi дуэлька"
-                if "❏ kramikk◬!!!" in message.message:
-                    a = "ʍօղɑɾϲհ дуэлька"
-                if "⛩️!!!" in message.message:
-                    a = "Kuat дуэлька"
-                if "Alu!!!" in message.message:
-                    a = "Alu дуэлька"
-                await sleep (1)
-                await message.respond(a)
 
         if message.sender_id in bak:
             if "жаба дня" in message.message:
