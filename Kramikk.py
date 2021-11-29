@@ -134,127 +134,127 @@ class KramikkMod(loader.Module):
                 await sleep(3)
                 await message.respond("отправиться за картой")
 
-            if message.sender_id in bak:
-                if "жаба дня" in message.message:
-                    async with self.client.conversation(message.chat_id) as conv:
-                        await sleep(3)
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=message.chat_id,
-                            )
+        if message.sender_id in bak:
+            if "жаба дня" in message.message:
+                async with self.client.conversation(message.chat_id) as conv:
+                    await sleep(3)
+                    response = conv.wait_event(
+                        events.NewMessage(
+                            incoming=True,
+                            from_users=1124824021,
+                            chats=message.chat_id,
                         )
-                        await message.respond("жаба инфо")
-                        response = await response
-                        if "работу можно" in response.text:
-                            time_j = re.search(
-                                "будет через (\d+)ч:(\d+)м",
-                                response.text,
-                                re.IGNORECASE,
+                    )
+                    await message.respond("жаба инфо")
+                    response = await response
+                    if "работу можно" in response.text:
+                        time_j = re.search(
+                            "будет через (\d+)ч:(\d+)м",
+                            response.text,
+                            re.IGNORECASE,
+                        )
+                        if time_j:
+                            hrs = int(time_j.group(1))
+                            min = int(time_j.group(2))
+                            delta = timedelta(
+                                hours=hrs, minutes=min, seconds=randelta
                             )
-                            if time_j:
-                                hrs = int(time_j.group(1))
-                                min = int(time_j.group(2))
-                                delta = timedelta(
-                                    hours=hrs, minutes=min, seconds=randelta
-                                )
+                        await self.client.send_message(
+                            chat, "реанимировать жабу", schedule=delta
+                        )
+                        await self.client.send_message(
+                            chat,
+                            "работа грабитель",
+                            schedule=delta + timedelta(seconds=13),
+                        )
+                        for number in range(2):
+                            delta = delta + timedelta(hours=8)
                             await self.client.send_message(
                                 chat, "реанимировать жабу", schedule=delta
                             )
                             await self.client.send_message(
                                 chat,
                                 "работа грабитель",
-                                schedule=delta + timedelta(seconds=13),
+                                schedule=delta + timedelta(seconds=randelta),
                             )
-                            for number in range(2):
-                                delta = delta + timedelta(hours=8)
-                                await self.client.send_message(
-                                    chat, "реанимировать жабу", schedule=delta
-                                )
-                                await self.client.send_message(
-                                    chat,
-                                    "работа грабитель",
-                                    schedule=delta + timedelta(seconds=randelta),
-                                )
-                                await self.client.send_message(
-                                    chat,
-                                    "завершить работу",
-                                    schedule=delta
-                                    + timedelta(hours=2, seconds=randelta + 3),
-                                )
-                                await sleep(1)
-                        else:
-                            if "жабу можно через" in response.text:
-                                time_r = re.search(
-                                    "через (\d+) часов (\d+) минут",
-                                    response.text,
-                                    re.IGNORECASE,
-                                )
-                                if time_r:
-                                    hrs = int(time_r.group(1))
-                                    min = int(time_r.group(2))
-                                    delta = timedelta(
-                                        hours=hrs, minutes=min, seconds=randelta
-                                    )
-                                await self.client.send_message(
-                                    chat, "завершить работу", schedule=delta
-                                )
-                            elif "можно отправить" in response.text:
-                                await sleep(3)
-                                await message.respond("реанимировать жабу")
-                                await sleep(3)
-                                await message.respond("работа грабитель")
-                                delta = timedelta(hours=2, seconds=randelta)
-                                await self.client.send_message(
-                                    chat, "завершить работу", schedule=delta
-                                )
-                            else:
-                                await sleep(3)
-                                await message.respond("завершить работу")
-                            for number in range(2):
-                                delta = delta + timedelta(hours=6, seconds=3)
-                                await self.client.send_message(
-                                    chat, "реанимировать жабу", schedule=delta
-                                )
-                                await self.client.send_message(
-                                    chat,
-                                    "работа грабитель",
-                                    schedule=delta + timedelta(seconds=randelta),
-                                )
-                                await self.client.send_message(
-                                    chat,
-                                    "завершить работу",
-                                    schedule=delta
-                                    + timedelta(hours=2, seconds=randelta + 3),
-                                )
-                                await sleep(3)
-                        if "покормить через" in response.text:
-                            time_n = re.search(
-                                "покормить через (\d+)ч:(\d+)м",
+                            await self.client.send_message(
+                                chat,
+                                "завершить работу",
+                                schedule=delta
+                                + timedelta(hours=2, seconds=randelta + 3),
+                            )
+                            await sleep(1)
+                    else:
+                        if "жабу можно через" in response.text:
+                            time_r = re.search(
+                                "через (\d+) часов (\d+) минут",
                                 response.text,
                                 re.IGNORECASE,
                             )
-                            if time_n:
-                                hrs = int(time_n.group(1))
-                                min = int(time_n.group(2))
+                            if time_r:
+                                hrs = int(time_r.group(1))
+                                min = int(time_r.group(2))
                                 delta = timedelta(
                                     hours=hrs, minutes=min, seconds=randelta
                                 )
                             await self.client.send_message(
-                                chat, "покормить жабку", schedule=delta
+                                chat, "завершить работу", schedule=delta
+                            )
+                        elif "можно отправить" in response.text:
+                            await sleep(3)
+                            await message.respond("реанимировать жабу")
+                            await sleep(3)
+                            await message.respond("работа грабитель")
+                            delta = timedelta(hours=2, seconds=randelta)
+                            await self.client.send_message(
+                                chat, "завершить работу", schedule=delta
                             )
                         else:
-                            delta = timedelta(seconds=randelta)
+                            await sleep(3)
+                            await message.respond("завершить работу")
+                        for number in range(2):
+                            delta = delta + timedelta(hours=6, seconds=3)
                             await self.client.send_message(
-                                chat, "покормить жабку", schedule=delta
+                                chat, "реанимировать жабу", schedule=delta
                             )
-                        for number in range(1):
-                            delta = delta + timedelta(hours=12, seconds=3)
                             await self.client.send_message(
-                                chat, "покормить жабку", schedule=delta
+                                chat,
+                                "работа грабитель",
+                                schedule=delta + timedelta(seconds=randelta),
+                            )
+                            await self.client.send_message(
+                                chat,
+                                "завершить работу",
+                                schedule=delta
+                                + timedelta(hours=2, seconds=randelta + 3),
                             )
                             await sleep(3)
+                    if "покормить через" in response.text:
+                        time_n = re.search(
+                            "покормить через (\d+)ч:(\d+)м",
+                            response.text,
+                            re.IGNORECASE,
+                        )
+                        if time_n:
+                            hrs = int(time_n.group(1))
+                            min = int(time_n.group(2))
+                            delta = timedelta(
+                                hours=hrs, minutes=min, seconds=randelta
+                            )
+                        await self.client.send_message(
+                            chat, "покормить жабку", schedule=delta
+                        )
+                    else:
+                        delta = timedelta(seconds=randelta)
+                        await self.client.send_message(
+                            chat, "покормить жабку", schedule=delta
+                        )
+                    for number in range(1):
+                        delta = delta + timedelta(hours=12, seconds=3)
+                        await self.client.send_message(
+                            chat, "покормить жабку", schedule=delta
+                        )
+                        await sleep(3)
 
             if name + " дуэлька" in message.message:
                 if chatid in duel:
