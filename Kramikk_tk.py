@@ -259,20 +259,6 @@ class KramikkMod(loader.Module):
         bb = random.choice(rn1)
         randelta = random.randint(aa, bb)
 
-        if message.sender_id in {1124824021}:
-            if "Сейчас выбирает ход: " + self.me.first_name in message.message:
-                await message.click(0)
-            if "Господин " + self.me.first_name in message.message:
-                await sleep (3)
-                await message.respond('реанимировать жабу')
-                await sleep (3)
-                await message.respond('отправиться за картой')
-            if "позвать на тусу" in message.message:
-                await sleep(3)
-                await message.respond('реанимировать жабу')
-                await sleep(3)
-                await message.respond('жабу на тусу')
-
         if message.sender_id in {self.me.id}:
             if "общий инвентарь" in message.message:
                 cid = "clan"
