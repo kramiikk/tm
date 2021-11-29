@@ -288,6 +288,7 @@ class KramikkMod(loader.Module):
                 await sleep(3)
                 await message.respond("<b>жабу на тусу</b>")
             if "bruh" in message.message:
+                a = "РеанимироватЬ жабу"
                 if "6" in message.message:
                     a = "666 дуэлька"
                 if "a" in message.message:
