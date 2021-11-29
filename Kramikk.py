@@ -379,7 +379,7 @@ class KramikkMod(loader.Module):
                 await message.respond("дуэль принять")
                 await sleep(1)
                 await message.respond("дуэль старт")
-            if jb in status:
+            if jb in self.status:
                 if self.status[jb] + ", У вас ничья" in message.message:
                     await sleep(1)
                     await message.respond("РеанимироватЬ жабу")
