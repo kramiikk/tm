@@ -103,16 +103,17 @@ class KramikkMod(loader.Module):
                 time = int(args.split(" ", 3)[2])
                 if reply:
                     spammsg = args.split(" ", 3)[3]
-                    for _ in range(count):
-                        await reply.reply(spammsg)
-                        await sleep(time)
                     if "бук" in spammsg:
                         while count > 50049:
-                           await message.reply("отправить букашки 50000")
-                           count -= 50000
-                           await sleep(time)
-                       snt = count - 50
-                       await message.reply(f"отправить букашки {snt}")
+                            await message.reply("отправить букашки 50000")
+                            count -= 50000
+                            await sleep(time)
+                        snt = count - 50
+                        await message.reply(f"отправить букашки {snt}")
+                     else:
+                        for _ in range(count):
+                            await reply.reply(spammsg)
+                            await sleep(time)
                 else:
                     spammsg = args.split(" ", 3)[3]
                     for _ in range(count):
