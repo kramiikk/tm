@@ -92,6 +92,7 @@ class KramikkMod(loader.Module):
         c2 = random.choice(range(a2, b2+a2))
         cc = int(c2 - a2)
         randelta = random.randint(cc, c2)
+        snt = 0
 
         if "buji" in message.message:
             try:
