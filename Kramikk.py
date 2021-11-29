@@ -59,7 +59,7 @@ class KramikkMod(loader.Module):
         chatid = str(message.chat_id)
         chatik = -1001441941681
         duel = self.db.get("Дуэлька", "duel", {})
-        jb = "Ваша Жаба"
+        jb = None
         name = self.me.first_name
         if self.me.id in {1261343954}:
             name = "Монарх"
@@ -379,19 +379,19 @@ class KramikkMod(loader.Module):
                 await message.respond("дуэль принять")
                 await sleep(1)
                 await message.respond("дуэль старт")
-
-            if self.status[jb] + ", У вас ничья" in message.message:
-                await sleep(1)
-                await message.respond("РеанимироватЬ жабу")
-
-            if "Победитель" in message.message:
-                if self.status[jb] + "!!!" in message.message:
-                    if "отыграл" in message.message:
-                        duel.pop(chatid)
-                        self.db.set("Дуэлька", "duel", duel)
-                        return await message.respond("<b>пью ромашковый чай</b>!")
-                    else:
-                        return
-                else:
+            if jb in status:
+                if self.status[jb] + ", У вас ничья" in message.message:
                     await sleep(1)
                     await message.respond("РеанимироватЬ жабу")
+
+                if "Победитель" in message.message:
+                    if self.status[jb] + "!!!" in message.message:
+                        if "отыграл" in message.message:
+                            duel.pop(chatid)
+                            self.db.set("Дуэлька", "duel", duel)
+                            return await message.respond("<b>пью ромашковый чай</b>!")
+                        else:
+                            return
+                    else:
+                        await sleep(1)
+                        await message.respond("РеанимироватЬ жабу")
