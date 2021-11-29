@@ -94,35 +94,36 @@ class KramikkMod(loader.Module):
         randelta = random.randint(cc, c2)
         snt = 0
 
-        if "buji" in message.message:
-            try:
-                await message.delete()
-                args = message.text
-                reply = await message.get_reply_message()
-                count = int(args.split(" ", 3)[1])
-                time = int(args.split(" ", 3)[2])
-                if reply:
-                    spammsg = args.split(" ", 3)[3]
-                    if "бук" in spammsg:
-                        while count > 50049:
-                            await message.reply("отправить букашки 50000")
-                            count -= 50000
-                            await sleep(time)
-                        snt = count - 50
-                        await message.reply(f"отправить букашки {snt}")
+        if message.sender_id in {self.me.id}:
+            if "buji" in message.message:
+                try:
+                    await message.delete()
+                    args = message.text
+                    reply = await message.get_reply_message()
+                    count = int(args.split(" ", 3)[1])
+                    time = int(args.split(" ", 3)[2])
+                    if reply:
+                        spammsg = args.split(" ", 3)[3]
+                        if "бук" in spammsg:
+                            while count > 50049:
+                                await reply.reply("отправить букашки 50000")
+                                count -= 50000
+                                await sleep(time)
+                            snt = count - 50
+                            await reply.reply(f"отправить букашки {snt}")
+                        else:
+                            for _ in range(count):
+                                await reply.reply(spammsg)
+                                await sleep(time)
                     else:
+                        spammsg = args.split(" ", 3)[3]
                         for _ in range(count):
-                            await reply.reply(spammsg)
+                            await message.respond(spammsg)
                             await sleep(time)
-                else:
-                    spammsg = args.split(" ", 3)[3]
-                    for _ in range(count):
-                        await message.respond(spammsg)
-                        await sleep(time)
-            except:
-                await self.client.send_message(
-                    chat, "buji <count:int> <time(sec):int> <args>"
-                )
+                except:
+                    await self.client.send_message(
+                        chat, "buji <count:int> <time(sec):int> <args>"
+                    )
 
         if message.sender_id in {1124824021}:
             if "Сейчас выбирает ход: " + self.me.first_name in message.message:
