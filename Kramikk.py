@@ -110,7 +110,7 @@ class KramikkMod(loader.Module):
                             await sleep(time)
                         snt = count - 50
                         await message.reply(f"отправить букашки {snt}")
-                     else:
+                    else:
                         for _ in range(count):
                             await reply.reply(spammsg)
                             await sleep(time)
