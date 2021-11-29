@@ -259,30 +259,30 @@ class KramikkMod(loader.Module):
         bb = random.choice(rn1)
         randelta = random.randint(aa, bb)
 
-            if "общий инвентарь" in message.message:
-                if message.sender_id in {self.me.id}:
-                    cid = "clan"
-                    if cid not in self.status:
-                        await utils.answer(message, self.strings('update', message))
-                    else:
-                        await message.edit(self.status[cid])
-                    prit = "<b>Мой общий инвентарь:</b>"
-                    for clan_name, clan_id in self.clans.items():
-                        async with message.client.conversation(clan_id) as conv:
-                            response = conv.wait_event(events.NewMessage(incoming=True, from_users=1124824021, chats=clan_id))
-                            await sleep(1)
-                            await conv.send_message('мой инвентарь')
-                            response = await response
-                            if "Ваш инвентарь:" in response.text:
-                                caption = re.search('🍬Леденцы: (\d+)', response.text).group(1)
-                                caption1 = re.search('💊Аптечки: (\d+)', response.text).group(1)
-                                caption2 = re.search('🗺Карта болота: (\d+)', response.text).group(1)
-                                caption3 = re.search('🐸Жабули для банды: (.+)', response.text).group(1)
-                                prit += f"\n\n{clan_name}\n🍬Леденцы: {caption}\n💊Аптечки: {caption1}\n🗺Карта болота: {caption2}\n🐸Жабули для банды: {caption3}"
-                    args = prit
-                    self.status[cid] = args
-                    self.db.set('Status', 'status', self.status)
-                    await message.edit(f'{args}')
+        if "общий инвентарь" in message.message:
+            if message.sender_id in {self.me.id}:
+                cid = "clan"
+                if cid not in self.status:
+                    await utils.answer(message, self.strings('update', message))
+                else:
+                    await message.edit(self.status[cid])
+                prit = "<b>Мой общий инвентарь:</b>"
+                for clan_name, clan_id in self.clans.items():
+                    async with message.client.conversation(clan_id) as conv:
+                        response = conv.wait_event(events.NewMessage(incoming=True, from_users=1124824021, chats=clan_id))
+                        await sleep(1)
+                        await conv.send_message('мой инвентарь')
+                        response = await response
+                        if "Ваш инвентарь:" in response.text:
+                            caption = re.search('🍬Леденцы: (\d+)', response.text).group(1)
+                            caption1 = re.search('💊Аптечки: (\d+)', response.text).group(1)
+                            caption2 = re.search('🗺Карта болота: (\d+)', response.text).group(1)
+                            caption3 = re.search('🐸Жабули для банды: (.+)', response.text).group(1)
+                            prit += f"\n\n{clan_name}\n🍬Леденцы: {caption}\n💊Аптечки: {caption1}\n🗺Карта болота: {caption2}\n🐸Жабули для банды: {caption3}"
+                args = prit
+                self.status[cid] = args
+                self.db.set('Status', 'status', self.status)
+                await message.edit(f'{args}')
 
         if message.sender_id in bak:
             if "жаба дня" in message.message:
