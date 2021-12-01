@@ -548,7 +548,7 @@ class KramikkMod(loader.Module):
                             )
                             await self.client.send_message(
                                 chat,
-                                "работа грабитель",
+                                "поход в столовую",
                                 schedule=delta + timedelta(seconds=13),
                             )
                             for number in range(2):
@@ -558,7 +558,7 @@ class KramikkMod(loader.Module):
                                 )
                                 await self.client.send_message(
                                     chat,
-                                    "работа грабитель",
+                                    "поход в столовую",
                                     schedule=delta + timedelta(seconds=randelta),
                                 )
                                 await self.client.send_message(
@@ -585,7 +585,7 @@ class KramikkMod(loader.Module):
                                 )
                             elif "можно отправить" in response.text:
                                 await message.respond("реанимировать жабу")
-                                await message.respond("работа грабитель")
+                                await message.respond("поход в столовую")
                                 delta = timedelta(hours=2, seconds=randelta)
                                 await self.client.send_message(
                                     chat, "завершить работу", schedule=delta
@@ -599,7 +599,7 @@ class KramikkMod(loader.Module):
                                 )
                                 await self.client.send_message(
                                     chat,
-                                    "работа грабитель",
+                                    "поход в столовую",
                                     schedule=delta + timedelta(seconds=randelta),
                                 )
                                 await self.client.send_message(
