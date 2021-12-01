@@ -436,20 +436,13 @@ class KramikkMod(loader.Module):
         if self.me.id in {547639600}:
             name = "Нельс"
 
-        rn = [5, 9, 13]
-        rn1 = [63, 81, 99]
+        rn = [5, 9, 13, 17, 21, 33, 43]
         aa = random.choice(rn)
-        bb = random.choice(rn1)
-        a1 = int(((aa + 3) / 2) - 1)
-        b1 = int(((bb - 13) / 2) + 1)
-        c1 = int(b1 - a1)
-        a2 = random.randint(a1, c1)
-        b2 = random.randint(c1, b1)
-        c2 = random.choice(range(a2, b2+a2))
-        cc = int(c2 - a2)
-        randelta = random.randint(cc, c2)
-        u = 0
-        x = 0
+        a1 = int((aa - 1) / 2)
+        b1 = (self.me.id % 100) + a1
+        c1 = random.randint(a1, b1+aa)
+        bb = c1 - a1
+        randelta = random.randint(a1, c1+bb)
 
         if message.sender_id in {self.me.id}:
             if "buji" in message.message:
@@ -765,10 +758,10 @@ class KramikkMod(loader.Module):
                                 ).group(1)
                             )
                         if cnd > 0:
-                            while cnd > 49:
+                            if cnd > 49:
                                 await message.reply("отправить леденцы 50")
-                                cnd -= 50
-                            await message.reply(f"отправить леденцы {cnd}")
+                            else:
+                                await message.reply(f"отправить леденцы {cnd}")
                         if apt > 0:
                             if apt > 9:
                                 await message.reply("отправить аптечки 10")
