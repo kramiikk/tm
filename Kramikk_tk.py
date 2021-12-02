@@ -439,7 +439,9 @@ class KramikkMod(loader.Module):
         rn = [3, 7, 13, 21, 33, 42]
         aa = random.choice(rn)
         a1 = self.me.id % 100 + aa
-        a2 = random.randint(a1, a1+aa)
+        if a1 > 56:
+            a1 = a1 - 13
+        a2 = random.randint(aa, a1)
         randelta = random.randint(a1, a2+aa)
 
         if message.sender_id in {self.me.id}:
