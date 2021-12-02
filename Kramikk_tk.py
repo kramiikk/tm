@@ -457,9 +457,9 @@ class KramikkMod(loader.Module):
             a1 = a1 + 27
         a2 = random.randint(1, 131)
         if a2 > a1:
-            a2 = random.randint(a1, a2)
+            randelta = random.randint(a1, a2)
         else:
-            a2 = random.randint(3, aa)
+            randelta = random.randint(3, aa)
 
         if message.sender_id in {self.me.id}:
             if "buji" in message.message:
