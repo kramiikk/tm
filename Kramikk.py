@@ -440,7 +440,7 @@ class KramikkMod(loader.Module):
 
         rn = [7, 13, 21, 33, 42]
         aa = random.choice(rn)
-        if "взять жабу" in asyly:
+        if "взять жабу" in asly:
             aa = aa * 2
         elif "топ жаб" in asly:
             aa = aa + 13
