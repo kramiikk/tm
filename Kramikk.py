@@ -789,6 +789,7 @@ class KramikkMod(loader.Module):
             if "Сейчас выбирает ход: " + self.me.first_name in message.message:
                 await message.click(0)
             if "Господин " + self.me.first_name in message.message:
+                await sleep (randelta)
                 await message.respond("реанимировать жабу")
                 await message.respond("отправиться за картой")
 
