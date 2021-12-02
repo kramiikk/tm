@@ -520,6 +520,16 @@ class KramikkMod(loader.Module):
             if "жаба инфо" in message.message.casefold():
                 await sleep(randelta)
             if asly in message.message:
+                sch = (
+                    await self.client(
+                        functions.messages.GetScheduledHistoryRequest(chat, 0)
+                    )
+                ).messages
+                await self.client(
+                    functions.messages.DeleteScheduledMessagesRequest(
+                        chat, id=[x.id for x in sch]
+                    )
+                )
                 await sleep(randelta)
                 async with self.client.conversation(message.chat_id) as conv:
                     response = conv.wait_event(
