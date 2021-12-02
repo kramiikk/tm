@@ -635,9 +635,7 @@ class KramikkMod(loader.Module):
                         )
                     else:
                         delta = timedelta(hours=12, seconds=randelta)
-                        await self.client.send_message(
-                            chat, "покормить жабку", schedule=delta
-                        )
+                        await message.respond('покормить жабку')
                     for number in range(1):
                         delta = delta + timedelta(hours=12, seconds=3)
                         await self.client.send_message(
