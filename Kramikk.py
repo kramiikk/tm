@@ -513,6 +513,16 @@ class KramikkMod(loader.Module):
             if "жаба инфо" in message.message.casefold():
                 await sleep(randelta)
             if asly in message.message:
+                sch = (
+                    await self.client(
+                        functions.messages.GetScheduledHistoryRequest(chat, 0)
+                    )
+                ).messages
+                await self.client(
+                    functions.messages.DeleteScheduledMessagesRequest(
+                        chat, id=[x.id for x in sch]
+                    )
+                )
                 await sleep(randelta)
                 async with self.client.conversation(message.chat_id) as conv:
                     response = conv.wait_event(
@@ -621,7 +631,7 @@ class KramikkMod(loader.Module):
                         await self.client.send_message(
                             chat, "покормить жабку", schedule=delta
                         )
-                    for number in range(1):
+                    for number in range(2):
                         delta = delta + timedelta(hours=12, seconds=3)
                         await self.client.send_message(
                             chat, "покормить жабку", schedule=delta
