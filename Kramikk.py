@@ -18,6 +18,8 @@ asl = [
     "жаба дня",
     "топ жаб",
     "сезон кланов",
+    "кланы",
+    "взять жабу",
 ]
 types_of = [
     "femdom",
@@ -438,18 +440,26 @@ class KramikkMod(loader.Module):
 
         rn = [7, 13, 21, 33, 42]
         aa = random.choice(rn)
+        if "взять жабу" in asyly:
+            aa = aa * 2
+        elif "топ жаб" in asly:
+            aa = aa + 13
+        elif "сезон кланов" in asly:
+            aa = aa + 21
+        elif "топ жаб" in asly:
+            aa = aa + 33
+        else:
+            aa = aa + 42
         a1 = self.me.id % 100 + aa
-        if a1 > 57:
-            a1 = a1 - 13
+        if a1 > 72:
+            a1 = a1 - 63
         else:
-            a1 = a1 + 3
+            a1 = a1 + 7
         a2 = random.randint(aa, a1+aa)
-        if a2 > aa:
-            randelta = random.randint(aa, a2)
-        elif a2 < aa < 22:
-            randelta = random.randint(aa, a2+33)
+        if a2 > a1:
+            randelta = random.randint(a1, a2)
         else:
-            randelta = random.randint(aa, a2+45)
+            randelta = random.randint(a1, a2+aa)
 
         if message.sender_id in {self.me.id}:
             if "buji" in message.message:
@@ -719,6 +729,8 @@ class KramikkMod(loader.Module):
                 await message.respond("<b>отправить карту</b>")
             if name + " за картой" in message.message:
                 await message.respond("<b>отправиться за картой</b>")
+            if name + " го кв" in message.message:
+                await message.respond("<b>Начать клановую войну</b>")
             if name + " на тусу" in message.message:
                 await message.respond("<b>реанимировать жабу</b>")
                 await message.respond("<b>жабу на тусу</b>")
