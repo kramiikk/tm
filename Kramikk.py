@@ -441,25 +441,25 @@ class KramikkMod(loader.Module):
         rn = [7, 13, 21, 33, 42]
         aa = random.choice(rn)
         if "взять жабу" in asly:
-            aa = aa * 2
+            aa = aa * 3
         elif "топ жаб" in asly:
-            aa = aa + 13
+            aa = aa + 7
         elif "сезон кланов" in asly:
-            aa = aa + 21
+            aa = aa + 13
         elif "топ жаб" in asly:
+            aa = aa + 21
+        else:
             aa = aa + 33
-        else:
-            aa = aa + 42
         a1 = self.me.id % 100 + aa
-        if a1 > 72:
-            a1 = a1 - 63
+        if a1 > 81:
+            a1 = a1 - 42
         else:
-            a1 = a1 + 7
-        a2 = random.randint(aa, a1+aa)
+            a1 = a1 + 27
+        a2 = random.randint(1, 131)
         if a2 > a1:
-            randelta = random.randint(a1, a2)
+            a2 = random.randint(a1, a2)
         else:
-            randelta = random.randint(a1, a2+aa)
+            a2 = random.randint(3, aa)
 
         if message.sender_id in {self.me.id}:
             if "buji" in message.message:
