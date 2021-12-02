@@ -436,13 +436,11 @@ class KramikkMod(loader.Module):
         if self.me.id in {547639600}:
             name = "Нельс"
 
-        rn = [5, 9, 13, 17, 21, 33, 43]
+        rn = [3, 7, 13, 21, 33, 42]
         aa = random.choice(rn)
-        a1 = int((aa - 1) / 2)
-        b1 = (self.me.id % 100) + a1
-        c1 = random.randint(a1, b1+aa)
-        bb = c1 - a1
-        randelta = random.randint(a1, c1+bb)
+        a1 = self.me.id % 100 + aa
+        a2 = random.randint(a1, a1+aa)
+        randelta = random.randint(a1, a2+aa)
 
         if message.sender_id in {self.me.id}:
             if "buji" in message.message:
