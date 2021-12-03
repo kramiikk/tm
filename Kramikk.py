@@ -809,7 +809,6 @@ class KramikkMod(loader.Module):
 
         if message.sender_id not in {self.me.id, 1124824021}:
             if "РеанимироватЬ жабу" in message.message:
-                await sleep(randelta)
                 await message.reply("дуэль")
 
         if message.sender_id in {1124824021}:
@@ -817,14 +816,12 @@ class KramikkMod(loader.Module):
                 "Вы бросили вызов на дуэль пользователю " + self.me.first_name
                 in message.message
             ):
-                await sleep(randelta)
                 await message.respond("дуэль принять")
                 await sleep(randelta)
                 await message.respond("дуэль старт")
 
             if jb in self.status:
                 if self.status[jb] + ", У вас ничья" in message.message:
-                    await sleep(randelta)
                     await message.respond("РеанимироватЬ жабу")
 
                 if "Победитель" in message.message:
