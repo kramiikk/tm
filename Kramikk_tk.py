@@ -612,6 +612,7 @@ class KramikkMod(loader.Module):
                             )
                         else:
                             await message.respond("завершить работу")
+                            delts = timedelta(hours=6)
                         for number in range(2):
                             delta = delta + timedelta(hours=6, seconds=3)
                             await self.client.send_message(
