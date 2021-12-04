@@ -821,7 +821,7 @@ class KramikkMod(loader.Module):
                                 await message.reply(f"отправить аптечки {apt}")
 
         if message.sender_id in {1124824021}:
-            if "Сейчас выбирает ход: " + self.me.first_name in message.message:
+            if "Сейчас выбирает ход: " + self.me.first_name in message.message and message.mentioned:
                 await message.click(0)
             if "Господин " + self.me.first_name in message.message:
                 await message.respond("реанимировать жабу")
