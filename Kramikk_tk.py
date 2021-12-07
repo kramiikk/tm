@@ -1,3 +1,5 @@
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from math import floor
 from html import escape
 from random import choice
@@ -6,14 +8,10 @@ from .. import loader, utils
 from datetime import timedelta
 from urllib.parse import quote_plus
 from telethon.tl.types import Message
-from asyncio.exceptions import TimeoutError
-from apscheduler.triggers.cron import CronTrigger
 from telethon import events, functions, types, sync
 from telethon.tl.functions.users import GetFullUserRequest
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from telethon.errors.rpcerrorlist import UsernameOccupiedError
-from telethon.tl.functions.account import UpdateProfileRequest, UpdateUsernameRequest
-import asyncio, datetime, inspect, io, json, logging, os, time, random, re, requests
+
+
 
 #requires: apscheduler
 
