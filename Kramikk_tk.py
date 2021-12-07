@@ -1,19 +1,17 @@
+import random
+import logging
+from .. import loader, utils
+import datetime
+from telethon import functions
+from telethon.tl.types import Message
+from telethon import events
+import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from math import floor
-from html import escape
-from random import choice
-from asyncio import sleep
-from .. import loader, utils
+import re
 from datetime import timedelta
-from urllib.parse import quote_plus
-from telethon.tl.types import Message
-from telethon import events, functions, types, sync
-from telethon.tl.functions.users import GetFullUserRequest
 
-
-
-#requires: apscheduler
+# requires: apscheduler
 
 logger = logging.getLogger(__name__)
 
