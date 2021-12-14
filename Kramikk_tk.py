@@ -283,7 +283,7 @@ class KramikkMod(loader.Module):
             await utils.answer(message, "реанимировать жабу")
             await utils.answer(message, "отправиться за картой")
 
-        elif (message.message.startswith(name) or message.message.endswith('😉')) and message.sender_id in bak:
+        elif (message.message.startswith(name) or message.message.endswith('😉') and name in message.message) and message.sender_id in bak:
             if "?" in message.message:
                 uname = message.sender.first_name
                 words = re.findall(r"\w+", f"{uname} {message.message}")
