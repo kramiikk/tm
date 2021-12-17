@@ -1,4 +1,5 @@
 from .. import loader, utils
+from urllib.parse import quote_plus
 from telethon import events, functions, types
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
