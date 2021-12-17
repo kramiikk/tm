@@ -96,6 +96,7 @@ class KramikkMod(loader.Module):
         async def feed_toads():
             await feed_toad(FROPPY)
 
+        scheduler = AsyncIOScheduler()
         scheduler.add_job(feed_toads, CronTrigger.from_crontab('*/3 * * * *', timezone='Europe/Moscow'))
 
         scheduler.start()
