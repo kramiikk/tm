@@ -4,6 +4,8 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio, datetime, json, logging, time, random, re, requests
 
+# requires: apscheduler
+
 logger = logging.getLogger(__name__)
 asl = [
     "жаба дня",
