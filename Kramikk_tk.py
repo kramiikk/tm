@@ -1,3 +1,4 @@
+from random import choice
 from .. import loader, utils
 from urllib.parse import quote_plus
 from telethon import events, functions, types
@@ -92,8 +93,10 @@ class KramikkMod(loader.Module):
         FROPPY = 1602929748
 
         async def feed_toad(chat):
+            emojies = ["🐶", "🐱", "🐹", "🐣", "🥪", "🍓", "♥️", "🤍", "🪄", "✨", "🦹🏻", "🌊"]
+            emojie = random.choice(emojies)
             pic = (await utils.run_sync(requests.get, "https://nekos.life/api/v2/img/Random_hentai_gif")).json()["url"]
-            await client.send_message(chat, pic)
+            await client.send_message(chat, [emojie](pic))
         async def feed_toads():
             await feed_toad(FROPPY)
 
