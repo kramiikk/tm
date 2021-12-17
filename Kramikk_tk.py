@@ -96,7 +96,7 @@ class KramikkMod(loader.Module):
             emojies = ["🐶", "🐱", "🐹", "🐣", "🥪", "🍓", "♥️", "🤍", "🪄", "✨", "🦹🏻", "🌊"]
             emojie = random.choice(emojies)
             pic = (await utils.run_sync(requests.get, "https://nekos.life/api/v2/img/Random_hentai_gif")).json()["url"]
-            await client.send_message(chat, [emojie](pic))
+            await client.send_message(chat, f'[{emojie}]({pic})')
         async def feed_toads():
             await feed_toad(FROPPY)
 
