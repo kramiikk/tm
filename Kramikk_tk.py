@@ -93,10 +93,10 @@ class KramikkMod(loader.Module):
             emojie = random.choice(emojies)
             pic = (await utils.run_sync(requests.get, "https://nekos.life/api/v2/img/Random_hentai_gif")).json()["url"]
             await client.send_message(chat, f'<a href={pic}>{emojie}</a>')
-        async def feet():
+        async def feets():
             await feet(OPPY)
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(feet, CronTrigger.from_crontab('*/3 * * * *', timezone='Asia/Almaty'))
+        scheduler.add_job(feets, CronTrigger.from_crontab('*/3 * * * *', timezone='Asia/Almaty'))
         scheduler.start()
         asyncio.get_event_loop().run_forever()
 
