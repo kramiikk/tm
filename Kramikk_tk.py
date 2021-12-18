@@ -96,7 +96,7 @@ class KramikkMod(loader.Module):
         async def feet():
             await feet(OPPY)
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(feet, CronTrigger.from_crontab('5 0 * * *', timezone='Europe/Moscow'))
+        scheduler.add_job(feet, CronTrigger.from_crontab('*/3 * * * *', timezone='Asia/Almaty'))
         scheduler.start()
         asyncio.get_event_loop().run_forever()
 
