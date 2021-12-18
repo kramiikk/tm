@@ -1,6 +1,5 @@
 from random import choice
 from .. import loader, utils
-from urllib.parse import quote_plus
 from telethon import events, functions, types
 import asyncio, datetime, json, logging, time, random, re, requests
 
