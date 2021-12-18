@@ -1,7 +1,7 @@
 from random import choice
 from .. import loader, utils
 from telethon import events, functions, types
-import asyncio, datetime, json, logging, time, random, re, requests
+import asyncio, datetime, json, logging, shedule, time, random, re, requests
 
 # requires: schedule
 
