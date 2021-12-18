@@ -1,10 +1,9 @@
-from random import choice
 from .. import loader, utils
 from telethon import events, functions, types
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import asyncio, datetime, json, logging, shedule, time, random, re, requests
+import asyncio, datetime, json, logging, time, random, re, requests
 
-# requires: schedule
 # requires: apscheduler
 
 logger = logging.getLogger(__name__)
@@ -16,10 +15,8 @@ asl = [
     "взять жабу",
 ]
 
-
 def register(cb):
     cb(KramikkMod())
-
 
 @loader.tds
 class KramikkMod(loader.Module):
@@ -89,7 +86,7 @@ class KramikkMod(loader.Module):
         self.me = await client.get_me()
         self.status = db.get("Status", "status", {})
 
-        FROPPY = 1602929748
+        OPPY = 1602929748
 
         async def feet(chat):
             emojies = ["🐶", "🐱", "🐹", "🐣", "🥪", "🍓", "♥️", "🤍", "🪄", "✨", "🦹🏻", "🌊"]
@@ -97,11 +94,11 @@ class KramikkMod(loader.Module):
             pic = (await utils.run_sync(requests.get, "https://nekos.life/api/v2/img/Random_hentai_gif")).json()["url"]
             await client.send_message(chat, f'<a href={pic}>{emojie}</a>')
         async def feet():
-            await feet(FROPPY)
-        schedule = AsyncIOScheduler()
-        schedule.every(3).minutes.do(feet)
-
-        asyncio.get_event_loop().run_forever(schedule)
+            await feet(OPPY)
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(feet, CronTrigger.from_crontab('5 0 * * *', timezone='Europe/Moscow'))
+        scheduler.start()
+        asyncio.get_event_loop().run_forever()
 
     async def watcher(self, message):
         asly = random.choice(asl)
