@@ -6,7 +6,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio, datetime, json, logging, time, random, re, requests
 
-# requires: apscheduler
+# requires: apscheduler, schedule
 
 logger = logging.getLogger(__name__)
 asl = [
@@ -92,20 +92,18 @@ class KramikkMod(loader.Module):
 
         FROPPY = 1602929748
 
-        async def feed_toad(chat):
+        async def feet(chat):
             emojies = ["🐶", "🐱", "🐹", "🐣", "🥪", "🍓", "♥️", "🤍", "🪄", "✨", "🦹🏻", "🌊"]
             emojie = random.choice(emojies)
             pic = (await utils.run_sync(requests.get, "https://nekos.life/api/v2/img/Random_hentai_gif")).json()["url"]
             await client.send_message(chat, f'[{emojie}]({pic})')
-        async def feed_toads():
-            await feed_toad(FROPPY)
+        async def feet():
+            await feet(FROPPY)
+        schedule.every(3).minutes.do(feet)
 
-        scheduler = AsyncIOScheduler()
-        scheduler.add_job(feed_toads, CronTrigger.from_crontab('*/3 * * * *', timezone='Europe/Moscow'))
-
-        scheduler.start()
-
-        asyncio.get_event_loop().run_forever()
+        while True:
+            schedule.run_pending()
+            asyncio.sleep(1)
 
     async def watcher(self, message):
         asly = random.choice(asl)
