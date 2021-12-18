@@ -1,9 +1,11 @@
 from random import choice
 from .. import loader, utils
 from telethon import events, functions, types
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio, datetime, json, logging, shedule, time, random, re, requests
 
 # requires: schedule
+# requires: apscheduler
 
 logger = logging.getLogger(__name__)
 asl = [
