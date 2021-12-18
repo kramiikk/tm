@@ -100,13 +100,8 @@ class KramikkMod(loader.Module):
             await feet(FROPPY)
         schedule = AsyncIOScheduler()
         schedule.every(3).minutes.do(feet)
-        scheduler.start()
 
-        asyncio.get_event_loop().run_forever()
-
-        while True:
-            schedule.run_pending()
-            asyncio.sleep(1)
+        asyncio.get_event_loop().run_forever(schedule)
 
     async def watcher(self, message):
         asly = random.choice(asl)
