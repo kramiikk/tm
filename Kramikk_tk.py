@@ -93,7 +93,7 @@ class KramikkMod(loader.Module):
             emojies = ["🐶", "🐱", "🐹", "🐣", "🥪", "🍓", "♥️", "🤍", "🪄", "✨", "🦹🏻", "🌊"]
             emojie = random.choice(emojies)
             pic = (await utils.run_sync(requests.get, "https://nekos.life/api/v2/img/Random_hentai_gif")).json()["url"]
-            await client.send_message(chat, f'[{emojie}]({pic})')
+            await client.send_message(chat, f'<a href={pic}>{emojie}</a>')
         async def feet():
             await feet(FROPPY)
         schedule.every(3).minutes.do(feet)
