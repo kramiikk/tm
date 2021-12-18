@@ -96,7 +96,11 @@ class KramikkMod(loader.Module):
             await client.send_message(chat, f'<a href={pic}>{emojie}</a>')
         async def feet():
             await feet(FROPPY)
+        schedule = AsyncIOScheduler()
         schedule.every(3).minutes.do(feet)
+        scheduler.start()
+
+        asyncio.get_event_loop().run_forever()
 
         while True:
             schedule.run_pending()
