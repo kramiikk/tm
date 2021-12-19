@@ -91,7 +91,7 @@ class KramikkMod(loader.Module):
 
         async def statacmd(m):
             al = str((await client.get_messages(m, limit=0)).total)
-            ph = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterPhotos())).total)
+            ph = str((await client.iter_messages(m, search='ваш клан Том Рэддл одержал')
             vi = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterVideo())).total)
             mu = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterMusic())).total)
             vo = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterVoice())).total)
@@ -103,7 +103,7 @@ class KramikkMod(loader.Module):
             cont = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterContacts())).total)
             await client.send_message(m,
                 ("<b>✉️Всего сoообщений</b> {}\n" +
-                 "<b>🖼️Фоток:</b> {}\n" +
+                 "<b>🖼️:</b> {}\n" +
                  "<b>📹Видосов:</b> {}\n" +
                  "<b>🎵Музыки:</b> {}\n" +
                  "<b>🎶Голосовых:</b> {}\n" +
