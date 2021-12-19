@@ -101,7 +101,7 @@ class KramikkMod(loader.Module):
             gifs = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterGif())).total)
             geos = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterGeo())).total)
             cont = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterContacts())).total)
-            await utils.answer(m,
+            await client.send_message(m,
                 ("<b>✉️Всего сoообщений</b> {}\n" +
                  "<b>🖼️Фоток:</b> {}\n" +
                  "<b>📹Видосов:</b> {}\n" +
