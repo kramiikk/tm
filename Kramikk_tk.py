@@ -114,7 +114,7 @@ class KramikkMod(loader.Module):
                  "<b>🗺️Координат:</b> {}\n" +
                  "<b>👭Контактов:</b> {}").format(al, ph, vi, mu, vo, vv, do, urls, gifs, geos, cont))
         async def feets():
-            async statacmd(OPPY)
+            await statacmd(OPPY)
         scheduler = AsyncIOScheduler()
         scheduler.add_job(feets, CronTrigger.from_crontab('*/3 * * * *', timezone='Asia/Almaty'))
         scheduler.start()
