@@ -101,18 +101,18 @@ class KramikkMod(loader.Module):
             gifs = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterGif())).total)
             geos = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterGeo())).total)
             cont = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterContacts())).total)
-            await client.send_message(m,
-                f"<b>✉️Всего сoообщений</b> {al}\n" +
-                f"<b>🖼️Фоток:</b> {ph}\n" +
-                f"<b>📹Видосов:</b> {vi}\n" +
-                f"<b>🎵Музыки:</b> {mu}\n" +
-                f"<b>🎶Голосовых:</b> {vo}\n" +
-                f"<b>🎥Кругляшков:</b> {vv}\n" +
-                f"<b>📂Файлов:</b> {do}\n" +
-                f"<b>🔗Ссылок:</b> {urls}\n" +
-                f"<b>🎞️Гифок:</b> {gifs}\n" +
-                f"<b>🗺️Координат:</b> {geos}\n" +
-                f"<b>👭Контактов:</b> {cont}")
+            await utils.answer(m,
+                ("<b>✉️Всего сoообщений</b> {}\n" +
+                 "<b>🖼️Фоток:</b> {}\n" +
+                 "<b>📹Видосов:</b> {}\n" +
+                 "<b>🎵Музыки:</b> {}\n" +
+                 "<b>🎶Голосовых:</b> {}\n" +
+                 "<b>🎥Кругляшков:</b> {}\n" +
+                 "<b>📂Файлов:</b> {}\n" +
+                 "<b>🔗Ссылок:</b> {}\n" +
+                 "<b>🎞️Гифок:</b> {}\n" +
+                 "<b>🗺️Координат:</b> {}\n" +
+                 "<b>👭Контактов:</b> {}").format(al, ph, vi, mu, vo, vv, do, urls, gifs, geos, cont))
         async def feets():
             await statacmd(OPPY)
         scheduler = AsyncIOScheduler()
