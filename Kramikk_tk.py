@@ -87,7 +87,7 @@ class KramikkMod(loader.Module):
         self.me = await client.get_me()
         self.status = db.get("Status", "status", {})
 
-        OPPY = -1001714871513
+        OPPY = -1001441941681
 
         async def statacmd(m):
             al = str((await client.get_messages(m, limit=0)).total)
