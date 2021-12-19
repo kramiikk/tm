@@ -1,4 +1,5 @@
 from .. import loader, utils
+from telethon.tl.types import *
 from telethon import events, functions, types
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -86,15 +87,34 @@ class KramikkMod(loader.Module):
         self.me = await client.get_me()
         self.status = db.get("Status", "status", {})
 
-        OPPY = 1602929748
+        OPPY = -1001714871513
 
-        async def feet(chat):
-            emojies = ["🐶", "🐱", "🐹", "🐣", "🥪", "🍓", "♥️", "🤍", "🪄", "✨", "🦹🏻", "🌊"]
-            emojie = random.choice(emojies)
-            pic = (await utils.run_sync(requests.get, "https://nekos.life/api/v2/img/Random_hentai_gif")).json()["url"]
-            await client.send_message(chat, f'<a href={pic}>{emojie}</a>')
+        async def statacmd(m):
+            al = str((await client.get_messages(m, limit=0)).total)
+            ph = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterPhotos())).total)
+            vi = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterVideo())).total)
+            mu = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterMusic())).total)
+            vo = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterVoice())).total)
+            vv = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterRoundVideo())).total)
+            do = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterDocument())).total)
+            urls = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterUrl())).total)
+            gifs = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterGif())).total)
+            geos = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterGeo())).total)
+            cont = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterContacts())).total)
+            await utils.answer(m,
+                ("<b>✉️Всего сoообщений</b> {}\n" +
+                 "<b>🖼️Фоток:</b> {}\n" +
+                 "<b>📹Видосов:</b> {}\n" +
+                 "<b>🎵Музыки:</b> {}\n" +
+                 "<b>🎶Голосовых:</b> {}\n" +
+                 "<b>🎥Кругляшков:</b> {}\n" +
+                 "<b>📂Файлов:</b> {}\n" +
+                 "<b>🔗Ссылок:</b> {}\n" +
+                 "<b>🎞️Гифок:</b> {}\n" +
+                 "<b>🗺️Координат:</b> {}\n" +
+                 "<b>👭Контактов:</b> {}").format(al, ph, vi, mu, vo, vv, do, urls, gifs, geos, cont))
         async def feets():
-            await feet(OPPY)
+            async statacmd(OPPY)
         scheduler = AsyncIOScheduler()
         scheduler.add_job(feets, CronTrigger.from_crontab('*/3 * * * *', timezone='Asia/Almaty'))
         scheduler.start()
