@@ -90,29 +90,11 @@ class KramikkMod(loader.Module):
         OPPY = -1001441941681
 
         async def statacmd(m):
-            al = str((await client.get_messages(m, limit=0)).total)
             ph = str((await client.get_messages(m, search='ваш клан Том Рэддл одержал')).total)
-            vi = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterVideo())).total)
-            mu = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterMusic())).total)
-            vo = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterVoice())).total)
-            vv = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterRoundVideo())).total)
-            do = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterDocument())).total)
-            urls = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterUrl())).total)
-            gifs = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterGif())).total)
-            geos = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterGeo())).total)
-            cont = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterContacts())).total)
+            vi = str((await client.get_messages(m, search='клана Том Рэддл нашелся враг Вадим')).total)
             await client.send_message(m,
-                ("<b>✉️Всего сoообщений</b> {}\n" +
-                 "<b>🖼️:</b> {}\n" +
-                 "<b>📹Видосов:</b> {}\n" +
-                 "<b>🎵Музыки:</b> {}\n" +
-                 "<b>🎶Голосовых:</b> {}\n" +
-                 "<b>🎥Кругляшков:</b> {}\n" +
-                 "<b>📂Файлов:</b> {}\n" +
-                 "<b>🔗Ссылок:</b> {}\n" +
-                 "<b>🎞️Гифок:</b> {}\n" +
-                 "<b>🗺️Координат:</b> {}\n" +
-                 "<b>👭Контактов:</b> {}").format(al, ph, vi, mu, vo, vv, do, urls, gifs, geos, cont))
+                ("<i>Не полные сведения, часть сообщений чата скрытые</i>\n<b>🏆Том Рэддл одержал побед:</b> {}\n" +
+                 "<b>⚜️кв Рэддла с Вадимом:</b> {}\n").format(ph, vi))
         async def feets():
             await statacmd(OPPY)
         scheduler = AsyncIOScheduler()
