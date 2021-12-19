@@ -91,7 +91,7 @@ class KramikkMod(loader.Module):
 
         async def statacmd(m):
             al = str((await client.get_messages(m, limit=0)).total)
-            ph = str((await client.iter_messages(m, search='ваш клан Том Рэддл одержал')).total)
+            ph = str((await client.get_messages(m, search='ваш клан Том Рэддл одержал')).total)
             vi = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterVideo())).total)
             mu = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterMusic())).total)
             vo = str((await client.get_messages(m, limit=0, filter=InputMessagesFilterVoice())).total)
