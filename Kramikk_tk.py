@@ -514,18 +514,9 @@ class KramikkMod(loader.Module):
             message.message.startswith("Алло")
             and (message.sender_id in {1124824021} or message.sender_id in bak)
         ):
-            async with self.client.conversation(chat) as conv:
-                response = conv.wait_event(
-                    events.NewMessage(
-                        incoming=True,
-                        from_users=1124824021,
-                        chats=message.chat_id,
-                    )
-                )
-                response = await response
-                if "Для клана" in response.text:
+                if "Для клана" in message.message:
                     capt = re.search(
-                        "Для клана (.+) нашелся враг (.+), пора", response.text
+                        "Для клана (.+) нашелся враг (.+), пора", message.message
                     )
                     if capt:
                         mk = capt.group(1)
@@ -542,7 +533,7 @@ class KramikkMod(loader.Module):
             if "test" in message.message:
                 ch = await ch
                 ph = await self.client.get_messages(-1001441941681, from_user=449434040)
-                await utils.answer(ph, f'в чате{ch.title}\n{ph}')
+                await utils.answer(ph, f'в чате{ch.title}\n{ph.message}')
             else:
                 return
         elif (
