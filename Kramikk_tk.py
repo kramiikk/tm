@@ -445,13 +445,6 @@ class KramikkMod(loader.Module):
                             "скрафтить налапники из клюва цапли",
                         )
                     if "Банда: Отсутствует" in response.text:
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=message.chat_id,
-                            )
-                        )
                         await conv.send_message("взять жабу")
                         response = await response
                         if "У тебя уже есть" in response.text:
@@ -473,9 +466,7 @@ class KramikkMod(loader.Module):
                     )
                 duel.setdefault(chatid, {})
                 self.db.set("Дуэлька", "duel", duel)
-                async with self.client.conversation(
-                    message.chat_id
-                ) as conv:
+                async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
                             incoming=True,
@@ -539,42 +530,59 @@ class KramikkMod(loader.Module):
             message.message.startswith("Алло")
             and (message.sender_id in {1124824021} or message.sender_id in bak)
         ):
-            ph = await self.client.get_messages(-1001441941681, from_user=449434040)
-
-            if "Ольга" in message.message:
-                ch= await ch
-                await utils.answer(ph, f'Оляяя кв в чате{ch.title}, не спи!')
-                capt = re.search(
-                    "Для клана (.+) нашелся враг (.+), пора", message.text
-                )
-                if capt:
-                    mk = capt.group(1)
-                    ek = capt.group(2)
-                    war = f"{mk} против клана {ek}"
-                    return await self.client.send_message(
-                        -1001441941681, f"⚡️ Клан {war}"
+            async with self.client.conversation(chat) as conv:
+                response = conv.wait_event(
+                    events.NewMessage(
+                        incoming=True,
+                        from_users=1124824021,
+                        chats=message.chat_id,
                     )
-            else:
-                return
+                )
+                response = await response
+                if "Ольга" in message.message:
+                    ch = await ch
+                    ph = await self.client.get_messages(-1001441941681, from_user=449434040)
+                    await utils.answer(ph, f'Оляяя кв в чате{ch.title}, не спи!')
+                    capt = re.search(
+                        "Для клана (.+) нашелся враг (.+), пора", message.text
+                    )
+                    if capt:
+                        mk = capt.group(1)
+                        ek = capt.group(2)
+                        war = f"{mk} против клана {ek}"
+                        return await self.client.send_message(
+                            -1001441941681, f"⚡️ Клан {war}"
+                        )
+                else:
+                    return
         elif (
-            message.message.startswith("Мой клан")
+            message.message.lower().startswith(("мой клан"))
             and chat in ninja
         ):
-            if "Опыт" in message.message:
-                ch = await ch
-                klan = re.search(
-                    "Клан (.+):", message.text
-                ).group(1)
-                liga = re.search(
-                    "Лига: (.+)", message.text
-                ).group(1)
-                usil = re.search(
-                    "Усилитель: (.+)", message.text
-                ).group(1)
-                info = f"Чат: {ch.title}\nИмя: {message.sender.first_name}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
-                return await self.client.send_message(OPPY, info)
-            else:
-                return
+            async with self.client.conversation(chat) as conv:
+                response = conv.wait_event(
+                    events.NewMessage(
+                        incoming=True,
+                        from_users=1124824021,
+                        chats=message.chat_id,
+                    )
+                )
+                response = await response
+                if "Опыт" in message.message:
+                    ch = await ch
+                    klan = re.search(
+                        "Клан (.+):", message.text
+                    ).group(1)
+                    liga = re.search(
+                        "Лига: (.+)", message.text
+                    ).group(1)
+                    usil = re.search(
+                        "Усилитель: (.+)", message.text
+                    ).group(1)
+                    info = f"Чат: {ch.title}\nИмя: {message.sender.first_name}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
+                    return await self.client.send_message(OPPY, info)
+                else:
+                    return
         elif "букашки мне😊" in message.message and message.sender_id in bak:
             await asyncio.sleep(randelta)
             async with self.client.conversation(chat) as conv:
@@ -705,13 +713,6 @@ class KramikkMod(loader.Module):
                     else:
                         return
                 elif "Для входа в" in response.text:
-                    response = conv.wait_event(
-                        events.NewMessage(
-                            incoming=True,
-                            from_users=1124824021,
-                            chats=message.chat_id,
-                        )
-                    )
                     await conv.send_message("Моя жаба")
                     response = await response
                     if "Имя жабы:" in response.text:
@@ -740,13 +741,6 @@ class KramikkMod(loader.Module):
                     else:
                         return
                 else:
-                    response = conv.wait_event(
-                        events.NewMessage(
-                            incoming=True,
-                            from_users=1124824021,
-                            chats=message.chat_id,
-                        )
-                    )
                     await conv.send_message("жаба инфо")
                     response = await response
                     if "(Откормить через" in response.text:
@@ -862,13 +856,6 @@ class KramikkMod(loader.Module):
                                 await conv.send_message(
                                     "отправить жабенка на махач"
                                 )
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=message.chat_id,
-                            )
-                        )
                         await conv.send_message("война инфо")
                         response = await response
                         if "⚔️Состояние⚔️: Не" in response.text:
