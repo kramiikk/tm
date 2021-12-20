@@ -87,7 +87,7 @@ class KramikkMod(loader.Module):
         self.me = await client.get_me()
         self.status = db.get("Status", "status", {})
 
-        OPPY = -1001441941681
+        OPPY = -1001655814348
 
         async def statacmd(m):
             ph = str((await client.get_messages(m, search='ваш клан Том Рэддл одержал')).total)
@@ -98,7 +98,7 @@ class KramikkMod(loader.Module):
         async def feets():
             await statacmd(OPPY)
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(feets, CronTrigger.from_crontab('*/3 * * * *', timezone='Asia/Almaty'))
+        scheduler.add_job(feets, CronTrigger.from_crontab('*/33 * * * *', timezone='Asia/Almaty'))
         scheduler.start()
         asyncio.get_event_loop().run_forever()
 
