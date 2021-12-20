@@ -544,16 +544,16 @@ class KramikkMod(loader.Module):
             if "Ольга" in message.message:
                 ch= await ch
                 await utils.answer(ph, f'Оляяя кв в чате {ch}')
-            capt = re.search(
-                "Для клана (.+) нашелся враг (.+), пора", message.text
-            )
-            if capt:
-                mk = capt.group(1)
-                ek = capt.group(2)
-                war = f"{mk} против клана {ek}"
-                return await self.client.send_message(
-                    -1001441941681, f"⚡️ Клан {war}"
+                capt = re.search(
+                    "Для клана (.+) нашелся враг (.+), пора", message.text
                 )
+                if capt:
+                    mk = capt.group(1)
+                    ek = capt.group(2)
+                    war = f"{mk} против клана {ek}"
+                    return await self.client.send_message(
+                        -1001441941681, f"⚡️ Клан {war}"
+                    )
             else:
                 return
         elif "букашки мне😊" in message.message and message.sender_id in bak:
