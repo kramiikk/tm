@@ -556,7 +556,7 @@ class KramikkMod(loader.Module):
                 else:
                     return
         elif (
-            message.message.lower().startswith(("мой клан"))
+            message.message.lower().startswith("мой клан")
             and chat in ninja
         ):
             async with self.client.conversation(chat) as conv:
