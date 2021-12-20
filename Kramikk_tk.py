@@ -537,7 +537,7 @@ class KramikkMod(loader.Module):
                         return await utils.answer(message, mmsg)
         elif (
             message.message.startswith("Алло")
-            and message.sender_id in {1124824021}
+            and message.sender_id in bak
         ):
             ph = await self.client.get_messages(-1001441941681, from_user=449434040)
             
