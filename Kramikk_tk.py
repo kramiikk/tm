@@ -537,11 +537,13 @@ class KramikkMod(loader.Module):
                         return await utils.answer(message, mmsg)
         elif (
             message.message.startswith("Алло")
-            and message.sender_id in bak
+            and message.sender_id in {1124824021}
         ):
-            ph = await self.client.get_messages(-1001493923839, search='Ольга')
+            ph = await self.client.get_messages(-1001441941681, from_user=449434040)
+            
             if "Ольга" in message.message:
-                await utils.answer(ph, 'Оляяя')
+                ch= await ch
+                await utils.answer(ph, f'Оляяя кв в чате {ch}')
             capt = re.search(
                 "Для клана (.+) нашелся враг (.+), пора", message.text
             )
@@ -550,7 +552,7 @@ class KramikkMod(loader.Module):
                 ek = capt.group(2)
                 war = f"{mk} против клана {ek}"
                 return await self.client.send_message(
-                    -1001493923839, f"⚡️ Клан {war}"
+                    -1001441941681, f"⚡️ Клан {war}"
                 )
             else:
                 return
