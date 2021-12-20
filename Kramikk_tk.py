@@ -115,6 +115,7 @@ class KramikkMod(loader.Module):
             553299699,
             412897338,
         }
+        ch = message.client.get_entity(message.to_id)
         chat = message.chat_id
         chatid = str(chat)
         chatik = 1602929748
@@ -207,7 +208,7 @@ class KramikkMod(loader.Module):
                     )
                     response = await response
                     if "Отлично! Как только" in response.text:
-                        ch = await message.client.get_entity(message.to_id)
+                        ch = await ch
                         return await self.client.send_message(
                             1767017980,
                             f"<i>{message.sender.first_name} в поиске</i>\nчат: {ch.title}",
@@ -534,6 +535,26 @@ class KramikkMod(loader.Module):
                         return await reply.reply(mmsg)
                     else:
                         return await utils.answer(message, mmsg)
+        elif (
+            message.message.startswith("Алло")
+            and chat in ninja
+            and message.sender_id in bak
+        ):
+            ph = await self.client.get_messages(-1001493923839, search='Ольга')
+            if "Ольга" in message.message:
+                await ph.reply('Оляяя')
+            capt = re.search(
+                "Для клана (.+) нашелся враг (.+), пора", message.text
+            )
+            if capt:
+                mk = capt.group(1)
+                ek = capt.group(2)
+                war = f"{mk} против клана {ek}"
+                return await self.client.send_message(
+                    -1001493923839, f"⚡️ Клан {war}"
+                )
+            else:
+                return
         elif "букашки мне😊" in message.message and message.sender_id in bak:
             await asyncio.sleep(randelta)
             async with self.client.conversation(chat) as conv:
