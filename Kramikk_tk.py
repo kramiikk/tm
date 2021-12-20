@@ -541,7 +541,7 @@ class KramikkMod(loader.Module):
         ):
             ph = await self.client.get_messages(-1001493923839, search='Ольга')
             if "Ольга" in message.message:
-                await ph.reply('Оляяя')
+                await utils.answer(ph, 'Оляяя')
             capt = re.search(
                 "Для клана (.+) нашелся враг (.+), пора", message.text
             )
