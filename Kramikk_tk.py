@@ -122,6 +122,16 @@ class KramikkMod(loader.Module):
         duel = self.db.get("Дуэлька", "duel", {})
         EK = {}
         KW = {}
+        ninja = {
+            -1001380664241,
+            -1001441941681,
+            -1001289617428,
+            -1001436786642,
+            -1001465870466,
+            -1001447960786,
+            -1001290958283,
+            -1001485617300,
+        }
         nr = [11, 13, 17, 24, 33]
         rc = random.choice(nr)
         if "взять жабу" in asly:
@@ -154,16 +164,6 @@ class KramikkMod(loader.Module):
                 -1001465870466,
                 -1001169549362,
                 -1001543064221,
-            }
-            ninja = {
-                -1001380664241,
-                -1001441941681,
-                -1001289617428,
-                -1001436786642,
-                -1001465870466,
-                -1001447960786,
-                -1001290958283,
-                -1001485617300,
             }
             KW = {-419726290, -1001543064221, -577735616, -1001493923839}
             name = "Монарх"
@@ -537,13 +537,13 @@ class KramikkMod(loader.Module):
                         return await utils.answer(message, mmsg)
         elif (
             message.message.startswith("Алло")
-            and message.sender_id in bak
+            and (message.sender_id in {1124824021} or message.sender_id in bak)
         ):
             ph = await self.client.get_messages(-1001441941681, from_user=449434040)
-            
+
             if "Ольга" in message.message:
                 ch= await ch
-                await utils.answer(ph, f'Оляяя кв в чате {ch}')
+                await utils.answer(ph, f'Оляяя кв в чате{ch.title}, не спи!')
                 capt = re.search(
                     "Для клана (.+) нашелся враг (.+), пора", message.text
                 )
@@ -554,6 +554,25 @@ class KramikkMod(loader.Module):
                     return await self.client.send_message(
                         -1001441941681, f"⚡️ Клан {war}"
                     )
+            else:
+                return
+        elif (
+            message.message.startswith("Мой клан")
+            and chat in ninja
+        ):
+            if "Опыт" in message.message:
+                ch = await ch
+                klan = re.search(
+                    "Клан (.+):", message.text
+                ).group(1)
+                liga = re.search(
+                    "Лига: (.+)", message.text
+                ).group(1)
+                usil = re.search(
+                    "Усилитель: (.+)", message.text
+                ).group(1)
+                info = f"Чат: {ch.title}\nИмя: {message.sender.first_name}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
+                return await self.client.send_message(OPPY, info)
             else:
                 return
         elif "букашки мне😊" in message.message and message.sender_id in bak:
