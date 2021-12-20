@@ -539,12 +539,12 @@ class KramikkMod(loader.Module):
                     )
                 )
                 response = await response
-                if "Ольга" in message.message:
+                if "Ольга" in response.text:
                     ch = await ch
                     ph = await self.client.get_messages(-1001441941681, from_user=449434040)
                     await utils.answer(ph, f'Оляяя кв в чате{ch.title}, не спи!')
                     capt = re.search(
-                        "Для клана (.+) нашелся враг (.+), пора", message.text
+                        "Для клана (.+) нашелся враг (.+), пора", response.text
                     )
                     if capt:
                         mk = capt.group(1)
@@ -568,16 +568,16 @@ class KramikkMod(loader.Module):
                     )
                 )
                 response = await response
-                if "Опыт" in message.message:
+                if "Опыт" in response.text:
                     ch = await ch
                     klan = re.search(
-                        "Клан (.+):", message.text
+                        "Клан (.+):", response.text
                     ).group(1)
                     liga = re.search(
-                        "Лига: (.+)", message.text
+                        "Лига: (.+)", response.text
                     ).group(1)
                     usil = re.search(
-                        "Усилитель: (.+)", message.text
+                        "Усилитель: (.+)", response.text
                     ).group(1)
                     info = f"Чат: {ch.title}\nИмя: {message.sender.first_name}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
                     return await self.client.send_message(OPPY, info)
