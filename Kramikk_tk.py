@@ -537,7 +537,6 @@ class KramikkMod(loader.Module):
                         return await utils.answer(message, mmsg)
         elif (
             message.message.startswith("Алло")
-            and chat in ninja
             and message.sender_id in bak
         ):
             ph = await self.client.get_messages(-1001493923839, search='Ольга')
