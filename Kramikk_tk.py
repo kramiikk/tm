@@ -87,20 +87,20 @@ class KramikkMod(loader.Module):
         self.me = await client.get_me()
         self.status = db.get("Status", "status", {})
 
-        OPPY = -1001655814348
-
-        async def statacmd(m):
-            ph = str((await client.get_messages(m, search='ваш клан Том Рэддл одержал')).total)
-            vi = str((await client.get_messages(m, search='клана Том Рэддл нашелся враг Вадим')).total)
-            await client.send_message(m,
-                ("<i>Неполные сведения, часть сообщений чата скрытые</i>\n<b>🏆Том Рэддл одержал побед:</b> {}\n" +
-                 "<b>⚜️кв Рэддла с Вадимом:</b> {}\n").format(ph, vi))
-        async def feets():
-            await statacmd(OPPY)
-        scheduler = AsyncIOScheduler()
-        scheduler.add_job(feets, CronTrigger.from_crontab('*/33 * * * *', timezone='Asia/Almaty'))
-        scheduler.start()
-        asyncio.get_event_loop().run_forever()
+        # OPPY = -1001655814348
+        #
+        # async def statacmd(m):
+        #     ph = str((await client.get_messages(m, search='ваш клан Том Рэддл одержал')).total)
+        #     vi = str((await client.get_messages(m, search='клана Том Рэддл нашелся враг Вадим')).total)
+        #     await client.send_message(m,
+        #         ("<i>Неполные сведения, часть сообщений чата скрытые</i>\n<b>🏆Том Рэддл одержал побед:</b> {}\n" +
+        #          "<b>⚜️кв Рэддла с Вадимом:</b> {}\n").format(ph, vi))
+        # async def feets():
+        #     await statacmd(OPPY)
+        # scheduler = AsyncIOScheduler()
+        # scheduler.add_job(feets, CronTrigger.from_crontab('*/33 * * * *', timezone='Asia/Almaty'))
+        # scheduler.start()
+        # asyncio.get_event_loop().run_forever()
 
     async def watcher(self, message):
         asly = random.choice(asl)
