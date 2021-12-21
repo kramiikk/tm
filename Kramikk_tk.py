@@ -532,8 +532,8 @@ class KramikkMod(loader.Module):
         elif "stata kv" in message.message:
             if "test" in message.message:
                 ch = await ch
-                ph = await self.client.get_messages(-1001441941681, from_user=449434040)
-                await utils.answer(ph, f'в чате{ch.title}\n{ph.message}')
+                ph = await self.client.get_messages(1521550234, search="нелс🦎")
+                await utils.answer(ph, f'в чате{ch.title}')
             else:
                 return
         elif (
