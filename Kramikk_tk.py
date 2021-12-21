@@ -538,9 +538,9 @@ class KramikkMod(loader.Module):
             try:
                 ms = await m.client.get_messages(1521550234, search=mmsg, limit=100)
             except Exception as e:
-                return await m.respond(f"[Searcher] {str(e.args)}")
+                return await message.reply(f"[Searcher] {str(e.args)}")
             if ms.total == 0:
-                return await m.respond("[Searcher] Данных по запросу нет")
+                return await message.reply("[Searcher] Данных по запросу нет")
             for i in ms:
                 await i.forward_to(m.to_id)
         elif (
