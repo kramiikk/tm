@@ -536,13 +536,13 @@ class KramikkMod(loader.Module):
             mmsg = args.split(" ", 2)[2]
             ch = await ch
             try:
-                ms = await m.client.get_messages(1521550234, search=mmsg, limit=100)
+                ms = await self.client.get_messages(1521550234, search=mmsg, limit=100)
             except Exception as e:
                 return await message.reply(f"[Searcher] {str(e.args)}")
             if ms.total == 0:
                 return await message.reply("[Searcher] Данных по запросу нет")
             for i in ms:
-                await i.forward_to(m.to_id)
+                await i.forward_to(message.to_id)
         elif (
             message.message.lower().startswith("мой клан")
             and chat in ninja
