@@ -535,8 +535,8 @@ class KramikkMod(loader.Module):
             args = message.message
             mmsg = args.split(" ", 2)[2]
             ch = await ch
-            ph = await self.client.get_messages(1521550234, search="mmsg")
-            await utils.answer(ph, f'в чате {ch.title}\n\n{ph.text}')
+            async for m in client.iter_messages(1521550234, search="mmsg"):
+                await utils.answer(ph, f'в чате {ch.title}\n\n{m.text}')
         elif (
             message.message.lower().startswith("мой клан")
             and chat in ninja
