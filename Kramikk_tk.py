@@ -525,17 +525,18 @@ class KramikkMod(loader.Module):
                         return await self.client.send_message(
                             1521550234, f"⚡️ Клан {war}"
                         )
+                        ch = await ch
+                        ph = await self.client.get_messages(1521550234, search="нелс🦎")
                     else:
                         return
                 else:
                     return
         elif "stata kv" in message.message:
-            if "test" in message.message:
-                ch = await ch
-                ph = await self.client.get_messages(1521550234, search="нелс🦎")
-                await utils.answer(ph, f'в чате {ch.title}')
-            else:
-                return
+            args = message.message
+            mmsg = args.split(" ", 2)[2]
+            ch = await ch
+            ph = await self.client.get_messages(1521550234, search="mmsg")
+            await utils.answer(ph, f'в чате {ch.title}\n\n{ph}')
         elif (
             message.message.lower().startswith("мой клан")
             and chat in ninja
