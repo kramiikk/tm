@@ -503,7 +503,7 @@ class KramikkMod(loader.Module):
             for i in ms:
                 if "Чат:" in i.message:
                     klan = re.search(
-                        "Клан (.+):", i.message
+                        "Клан: (.+)", i.message
                     ).group(1)
                     liga = re.search(
                         "Лига: (.+)", i.message
