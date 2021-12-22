@@ -536,7 +536,7 @@ class KramikkMod(loader.Module):
             mmsg = args.split(" ", 2)[2]
             ch = await ch
             try:
-                ms = await self.client.get_messages(1521550234, search=mmsg, limit=100)
+                ms = await self.client.get_messages(1521550234, search=mmsg)
             except Exception as e:
                 return await message.reply(f"[Searcher] {str(e.args)}")
             if ms.total == 0:
