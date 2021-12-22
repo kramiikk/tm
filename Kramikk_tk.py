@@ -542,8 +542,12 @@ class KramikkMod(loader.Module):
             if ms.total == 0:
                 return await message.reply("[Searcher] Данных по запросу нет")
             for i in ms:
+                if "Рэддл" in i.message:
+                    await message.reply("1")
+                else:
+                    await message.reply("2")
                 #await i.forward_to(message.to_id)
-                await message.respond(i.message)
+               
         elif (
             message.message.lower().startswith("мой клан")
             and chat in ninja
