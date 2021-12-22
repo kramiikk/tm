@@ -526,7 +526,7 @@ class KramikkMod(loader.Module):
                             ).group(1)
                             return await self.client.send_message(
                                 1521550234,
-                                f"<i>{message.sender.first_name} в поиске</i>\nчат: {ch.title}\n{klan}\n{liga}\n{usil}\",
+                                f"<i>{message.sender.first_name} в поиске</i>\nчат: {ch.title}\n{klan}\n{liga}\n{usil}",
                             )
                 else:
                     return
