@@ -194,7 +194,7 @@ class KramikkMod(loader.Module):
                 if "Опыт" in response.text:
                     ch = await ch
                     klan = re.search(
-                        "Клан: (.+)", response.text
+                        "Клан (.+):", response.text
                     ).group(1)
                     liga = re.search(
                         "Лига: (.+)", response.text
