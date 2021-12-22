@@ -504,10 +504,30 @@ class KramikkMod(loader.Module):
                 response = await response
                 if "Отлично! Как только" in response.text:
                     ch = await ch
-                    return await self.client.send_message(
-                        1521550234,
-                        f"<i>{message.sender.first_name} в поиске</i>\nчат: {ch.title}",
-                    )
+                    mmsg = f"Чат: {ch.title}\nИмя: {message.sender.first_name}"
+                    try:
+                        ms = await self.client.get_messages(OPPY, search=mmsg)
+                    except Exception as e:
+                        return await self.client.send_message(
+                        1521550234, f"[Searcher] {str(e.args)}")
+                    if ms.total == 0:
+                        return await self.client.send_message(
+                        1521550234, "[Searcher] Данных по запросу нет")
+                    for i in ms:
+                        if "Чат:" in i.message:
+                            klan = re.search(
+                               "Клан (.+):", i.message
+                            ).group(1)
+                            liga = re.search(
+                                "Лига: (.+)", i.message
+                            ).group(1)
+                            usil = re.search(
+                                "Усилитель: (.+)", i.message
+                            ).group(1)
+                            return await self.client.send_message(
+                                1521550234,
+                                f"<i>{message.sender.first_name} в поиске</i>\nчат: {ch.title}\n{klan}\n{liga}\n{usil}\",
+                            )
                 else:
                     return
         elif (
@@ -536,7 +556,7 @@ class KramikkMod(loader.Module):
             mmsg = args.split(" ", 2)[2]
             ch = await ch
             try:
-                ms = await self.client.get_messages(1521550234, search=mmsg)
+                ms = await self.client.get_messages(OPPY, search=mmsg)
             except Exception as e:
                 return await message.reply(f"[Searcher] {str(e.args)}")
             if ms.total == 0:
