@@ -489,47 +489,29 @@ class KramikkMod(loader.Module):
                     else:
                         return await utils.answer(message, mmsg)
         elif (
-            message.message.startswith("Начать клановую")
-            or message.message.startswith("начать клановую")
-            or message.message.startswith("@tgtoadbot Начать клановую")
+            message.message.startswith("stata tv")
         ):
-            async with self.client.conversation(chat) as conv:
-                response = conv.wait_event(
-                    events.NewMessage(
-                        incoming=True,
-                        from_users=1124824021,
-                        chats=message.chat_id,
-                    )
-                )
-                response = await response
-                if "Отлично! Как только" in response.text:
-                    ch = await ch
-                    mmsg = f"Чат: {ch.title}\nИмя: {message.sender.first_name}"
-                    try:
-                        ms = await self.client.get_messages(OPPY, search=mmsg)
-                    except Exception as e:
-                        return await self.client.send_message(
-                        1521550234, f"[Searcher] {str(e.args)}")
-                    if ms.total == 0:
-                        return await self.client.send_message(
-                        1521550234, "[Searcher] Данных по запросу нет")
-                    for i in ms:
-                        if "Чат:" in i.message:
-                            klan = re.search(
-                               "Клан (.+):", i.message
-                            ).group(1)
-                            liga = re.search(
-                                "Лига: (.+)", i.message
-                            ).group(1)
-                            usil = re.search(
-                                "Усилитель: (.+)", i.message
-                            ).group(1)
-                            return await self.client.send_message(
-                                1521550234,
-                                f"<i>{message.sender.first_name} в поиске</i>\nчат: {ch.title}\n{klan}\n{liga}\n{usil}",
-                            )
-                        else:
-                            return
+            ch = await ch
+            mmsg = f"Чат: {ch.title}\nИмя: {message.sender.first_name}"
+            await message.reply(mmsg)
+            try:
+                ms = await self.client.get_messages(OPPY, search=mmsg)
+            except Exception as e:
+                return await self.client.send_message(1521550234, f"[Searcher] {str(e.args)}")
+            if ms.total == 0:
+                return await self.client.send_message(1521550234, "[Searcher] Данных по запросу нет")
+            for i in ms:
+                if "Чат:" in i.message:
+                    klan = re.search(
+                        "Клан (.+):", i.message
+                    ).group(1)
+                    liga = re.search(
+                        "Лига: (.+)", i.message
+                    ).group(1)
+                    usil = re.search(
+                        "Усилитель: (.+)", i.message
+                    ).group(1)
+                    return await self.client.send_message(1521550234, f"<i>{message.sender.first_name} в поиске</i>\nчат: {ch.title}\n{klan}\n{liga}\n{usil}",)
                 else:
                     return
         elif (
