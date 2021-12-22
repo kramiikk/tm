@@ -543,7 +543,7 @@ class KramikkMod(loader.Module):
                 return await message.reply("[Searcher] Данных по запросу нет")
             for i in ms:
                 #await i.forward_to(message.to_id)
-                await message.reply(i)
+                await message.respond(i.message)
         elif (
             message.message.lower().startswith("мой клан")
             and chat in ninja
