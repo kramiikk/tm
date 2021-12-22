@@ -492,7 +492,7 @@ class KramikkMod(loader.Module):
             message.message.startswith("stata tv")
         ):
             ch = await ch
-            mmsg = f"Чат: {ch.title}"
+            mmsg = f"Чат: {ch.title}\nИмя: {message.sender.first_name}"
             await message.reply(mmsg)
             try:
                 ms = await self.client.get_messages(OPPY, search=mmsg)
