@@ -528,6 +528,8 @@ class KramikkMod(loader.Module):
                                 1521550234,
                                 f"<i>{message.sender.first_name} в поиске</i>\nчат: {ch.title}\n{klan}\n{liga}\n{usil}",
                             )
+                        else:
+                            return
                 else:
                     return
         elif (
