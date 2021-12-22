@@ -575,7 +575,7 @@ class KramikkMod(loader.Module):
                     ).group(1)
                     usil = re.search(
                         "Усилитель: (.+)", response.text
-                    ).group(1)/
+                    ).group(1)
                     info = f"Чат: {ch.title}\nИмя: {message.sender.first_name}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
                     return await self.client.send_message(OPPY, info)
                 else:
