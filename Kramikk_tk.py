@@ -16,8 +16,10 @@ asl = [
     "взять жабу",
 ]
 
+
 def register(cb):
     cb(KramikkMod())
+
 
 @loader.tds
 class KramikkMod(loader.Module):
@@ -120,17 +122,12 @@ class KramikkMod(loader.Module):
                     response = await response
                     if "Опыт" in response.text:
                         ch = await ch
-                        klan = re.search(
-                            "Клан (.+):", response.text
-                        ).group(1)
-                        liga = re.search(
-                            "Лига: (.+)", response.text
-                        ).group(1)
-                        usil = re.search(
-                            "Усилитель: (.+)", response.text
-                        ).group(1)
+                        klan = re.search("Клан (.+):", response.text).group(1)
+                        liga = re.search("Лига: (.+)", response.text).group(1)
+                        usil = re.search("Усилитель: (.+)", response.text).group(1)
                         clj = re.search(
-                            "\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n", response.text
+                            "\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n",
+                            response.text,
                         )
                         if clj:
                             lid = clj.group(1)
@@ -157,29 +154,16 @@ class KramikkMod(loader.Module):
                     response = await response
                     if "Имя жабы:" in response.text:
                         ch = await ch
-                        imy = re.search(
-                            "Имя жабы: (.+)", response.text
-                        ).group(1)
-                        urv = re.search(
-                            "вашей жабы: (.+)", response.text
-                        ).group(1)
-                        cll = re.search(
-                            "Класс: (.+)", response.text
-                        ).group(1)
-                        syt = re.search(
-                            "Сытость: (.+)", response.text
-                        ).group(1)
-                        byk = re.search(
-                            "Букашки: (.+)", response.text
-                        ).group(1)
+                        imy = re.search("Имя жабы: (.+)", response.text).group(1)
+                        urv = re.search("вашей жабы: (.+)", response.text).group(1)
+                        cll = re.search("Класс: (.+)", response.text).group(1)
+                        syt = re.search("Сытость: (.+)", response.text).group(1)
+                        byk = re.search("Букашки: (.+)", response.text).group(1)
                         info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя жабы: {imy}\nУровень: {urv}\nСытость: {syt}\nКласс: {cll}\nБукашки: {byk}\nИмя: {message.sender.first_name}\nЧат: {ch.title}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
-            elif (
-                message.message.lower().startswith("война инфо")
-                and chat in ninja
-            ):
+            elif message.message.lower().startswith("война инфо") and chat in ninja:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
@@ -191,11 +175,12 @@ class KramikkMod(loader.Module):
                     response = await response
                     if "В клановой войне" in response.text:
                         ch = await ch
-                        cln = re.search(
-                            "Клан (.+)🛡", response.text
-                        ).group(1)
+                        cln = re.search("Клан (.+)🛡", response.text).group(1)
                         await self.client.send_message(OPPY, response.text)
-                        clw = re.search(r"\n\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$", response.text)
+                        clw = re.search(
+                            r"\n\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$",
+                            response.text,
+                        )
                         if clw:
                             ja0 = clw.group(1)
                             ja1 = clw.group(2)
@@ -225,14 +210,10 @@ class KramikkMod(loader.Module):
                             ).group(1)
                         )
                         if bug < 100:
-                            return await utils.answer(
-                                message, "осталось для похода"
-                            )
+                            return await utils.answer(message, "осталось для похода")
                         else:
                             while bug > 50049:
-                                await utils.answer(
-                                    message, "отправить букашки 50000"
-                                )
+                                await utils.answer(message, "отправить букашки 50000")
                                 bug -= 50000
                             snt = bug - 50
                             return await utils.answer(
@@ -240,7 +221,6 @@ class KramikkMod(loader.Module):
                             )
                     else:
                         return
-
             elif "инвентарь мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
@@ -266,13 +246,9 @@ class KramikkMod(loader.Module):
                         )
                         if cnd > 0:
                             if cnd > 49:
-                                await utils.answer(
-                                    message, "отправить леденцы 50"
-                                )
+                                await utils.answer(message, "отправить леденцы 50")
                             else:
-                                await utils.answer(
-                                    message, f"отправить леденцы {cnd}"
-                                )
+                                await utils.answer(message, f"отправить леденцы {cnd}")
                         if apt > 0:
                             if apt > 9:
                                 return await utils.answer(
@@ -317,18 +293,16 @@ class KramikkMod(loader.Module):
                         if time_n:
                             hrs = int(time_n.group(1))
                             min = int(time_n.group(2))
-                            delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
-                            await conv.send_message(
-                                "покормить жабку", schedule=delta
+                            delta = datetime.timedelta(
+                                hours=hrs, minutes=min, seconds=3
                             )
+                            await conv.send_message("покормить жабку", schedule=delta)
                     else:
                         delta = datetime.timedelta(hours=6, seconds=3)
                         await conv.send_message("покормить жабку")
                     for number in range(3):
                         delta = delta + datetime.timedelta(hours=6, seconds=3)
-                        await conv.send_message(
-                            "покормить жабку", schedule=delta
-                        )
+                        await conv.send_message("покормить жабку", schedule=delta)
                     if "работу можно" in response.text:
                         time_j = re.search(
                             "будет через (\d+)ч:(\d+)м",
@@ -338,7 +312,9 @@ class KramikkMod(loader.Module):
                         if time_j:
                             hrs = int(time_j.group(1))
                             min = int(time_j.group(2))
-                            delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
+                            delta = datetime.timedelta(
+                                hours=hrs, minutes=min, seconds=3
+                            )
                             await conv.send_message(
                                 "реанимировать жабу", schedule=delta
                             )
@@ -357,7 +333,8 @@ class KramikkMod(loader.Module):
                             )
                             await conv.send_message(
                                 "завершить работу",
-                                schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                                schedule=delta
+                                + datetime.timedelta(hours=2, seconds=13),
                             )
                     if "жабу можно через" in response.text:
                         time_r = re.search(
@@ -368,25 +345,21 @@ class KramikkMod(loader.Module):
                         if time_r:
                             hrs = int(time_r.group(1))
                             min = int(time_r.group(2))
-                            delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
-                            await conv.send_message(
-                                "завершить работу", schedule=delta
+                            delta = datetime.timedelta(
+                                hours=hrs, minutes=min, seconds=3
                             )
+                            await conv.send_message("завершить работу", schedule=delta)
                     elif "можно отправить" in response.text:
                         await conv.send_message("реанимировать жабу")
                         await conv.send_message("работа крупье")
                         delta = datetime.timedelta(hours=2, seconds=3)
-                        await conv.send_message(
-                            "завершить работу", schedule=delta
-                        )
+                        await conv.send_message("завершить работу", schedule=delta)
                     else:
                         await conv.send_message("завершить работу")
                         delta = datetime.timedelta(hours=6)
                     for number in range(2):
                         delta = delta + datetime.timedelta(hours=6, seconds=3)
-                        await conv.send_message(
-                            "реанимировать жабу", schedule=delta
-                        )
+                        await conv.send_message("реанимировать жабу", schedule=delta)
                         await conv.send_message(
                             "работа крупье",
                             schedule=delta + datetime.timedelta(seconds=3),
