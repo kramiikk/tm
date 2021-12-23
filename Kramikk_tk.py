@@ -194,9 +194,7 @@ class KramikkMod(loader.Module):
                         cln = re.search(
                             "Клан (.+)🛡", response.text
                         ).group(1)
-                       clw = re.search(
-                            "\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$", response.text
-                        )
+                        clw = re.search("\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$", response.text)
                         if clw:
                             ja0 = clw.group(1)
                             ja1 = clw.group(2)
