@@ -238,7 +238,7 @@ class KramikkMod(loader.Module):
                             "Букашки: (.+)", response.text
                         ).group(1)
                         info = f"Чат: {ch.title}\nid: {message.sender_id}\nИмя жабы: {imy}\nУровень: {urv}\nБукашки: {cll}\nСытость: {syt}\nБукашки: {byk}"
-                            return await self.client.send_message(OPPY, info)
+                        return await self.client.send_message(OPPY, info)
                     else:
                         return
             elif "букашки мне😊" in message.message and message.sender_id in bak:
