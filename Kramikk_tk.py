@@ -138,7 +138,7 @@ class KramikkMod(loader.Module):
                             ja2 = clj.group(3)
                             ja3 = clj.group(4)
                             ja4 = clj.group(5)
-                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\nКлан: {klan}\nЛид🐸: {lid}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
+                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\nЛид🐸: {lid}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
@@ -191,10 +191,19 @@ class KramikkMod(loader.Module):
                     response = await response
                     if "В клановой войне" in response.text:
                         ch = await ch
-                        cls = re.search(
-                            "\n(.+)\s\|\sАтаковал$", response.text
+                        cln = re.search(
+                            "Клан (.+)🛡", response.text
                         ).group(1)
-                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nСокланы: {cls}\nИмя: {message.sender.first_name}\nЧат: {ch.title}"
+                        cls = re.search(
+                            "\n(.+)\s\|\sАтаковал$\n(.+)\s\|\sАтаковал$\n(.+)\s\|\sАтаковал$\n(.+)\s\|\sАтаковал$\n(.+)\s\|\sАтаковал$", response.text
+                        )
+                        if cls:
+                            ja0 = cls.group(1)
+                            ja1 = cls.group(2)
+                            ja2 = cls.group(3)
+                            ja3 = cls.group(4)
+                            ja4 = cls.group(5)
+                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЧат: {ch.title}\n\nКлан: {cln}\n🐸: {ja0}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
