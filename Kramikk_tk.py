@@ -129,7 +129,16 @@ class KramikkMod(loader.Module):
                         usil = re.search(
                             "Усилитель: (.+)", response.text
                         ).group(1)
-                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nКлан: {klan}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}"
+                        clj = re.search(
+                            "\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n", response.text
+                        )
+                        if clj:
+                            lid = clj.group(1)
+                            ja1 = clj.group(2)
+                            ja2 = clj.group(3)
+                            ja3 = clj.group(4)
+                            ja4 = clj.group(5)
+                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\nКлан: {klan}\nЛид🐸: {lid}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
@@ -164,6 +173,28 @@ class KramikkMod(loader.Module):
                             "Букашки: (.+)", response.text
                         ).group(1)
                         info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя жабы: {imy}\nУровень: {urv}\nСытость: {syt}\nКласс: {cll}\nБукашки: {byk}\nИмя: {message.sender.first_name}\nЧат: {ch.title}"
+                        return await self.client.send_message(OPPY, info)
+                    else:
+                        return
+            elif (
+                message.message.lower().startswith("война инфо")
+                and chat in ninja
+            ):
+                async with self.client.conversation(chat) as conv:
+                    response = conv.wait_event(
+                        events.NewMessage(
+                            incoming=True,
+                            from_users=1124824021,
+                            chats=message.chat_id,
+                        )
+                    )
+                    response = await response
+                    if "В клановой войне" in response.text:
+                        ch = await ch
+                        cls = re.search(
+                            "\n(.+)\s\|\sАтаковал$", response.text
+                        ).group(1)
+                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nСокланы: {cls}\nИмя: {message.sender.first_name}\nЧат: {ch.title}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
