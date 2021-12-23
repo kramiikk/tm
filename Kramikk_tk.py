@@ -106,7 +106,7 @@ class KramikkMod(loader.Module):
             else:
                 randelta = random.randint(3, ac)
             if (
-                message.message.lower().startswith("мой клан")
+                message.message.lower().startswith(("мой клан", "@tgtoadbot мой клан"))
                 and chat in ninja
             ):
                 async with self.client.conversation(chat) as conv:
@@ -138,12 +138,12 @@ class KramikkMod(loader.Module):
                             ja2 = clj.group(3)
                             ja3 = clj.group(4)
                             ja4 = clj.group(5)
-                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\nЛид🐸: {lid}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
+                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n🐸(лид): {lid}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
             elif (
-                message.message.lower().startswith("моя жаба")
+                message.message.lower().startswith(("моя жаба", "@tgtoadbot моя жаба"))
                 and chat in ninja
             ):
                 async with self.client.conversation(chat) as conv:
@@ -195,7 +195,7 @@ class KramikkMod(loader.Module):
                             "Клан (.+)🛡", response.text
                         ).group(1)
                         cls = re.search(
-                            "\n(.+)\s\|\sАтаковал$\n(.+)\s\|\sАтаковал$\n(.+)\s\|\sАтаковал$\n(.+)\s\|\sАтаковал$\n(.+)\s\|\sАтаковал$", response.text
+                            "\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$", response.text
                         )
                         if cls:
                             ja0 = cls.group(1)
