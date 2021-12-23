@@ -214,7 +214,7 @@ class KramikkMod(loader.Module):
                         byk = re.search(
                             "Букашки: (.+)", response.text
                         ).group(1)
-                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nИмя жабы: {imy}\nЧат: {ch.title}\nУровень: {urv}\nСытость: {syt}\nКласс: {cll}\nБукашки: {byk}"
+                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nИмя жабы: {imy}\nУровень: {urv}\nСытость: {syt}\nКласс: {cll}\nБукашки: {byk}\nИмя: {message.sender.first_name}\nЧат: {ch.title}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
