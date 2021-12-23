@@ -1,5 +1,4 @@
 from .. import loader, utils
-from telethon.tl.types import *
 from telethon import events, functions, types
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
