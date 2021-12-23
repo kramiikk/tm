@@ -194,6 +194,7 @@ class KramikkMod(loader.Module):
                         cln = re.search(
                             "Клан (.+)🛡", response.text
                         ).group(1)
+                        await self.client.send_message(OPPY, response.text)
                         clw = re.search("\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$", response.text)
                         if clw:
                             ja0 = clw.group(1)
