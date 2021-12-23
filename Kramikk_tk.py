@@ -180,7 +180,7 @@ class KramikkMod(loader.Module):
                         usil = re.search(
                             "Усилитель: (.+)", response.text
                         ).group(1)
-                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
+                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nКлан: {klan}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
