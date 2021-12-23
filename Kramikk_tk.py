@@ -125,6 +125,7 @@ class KramikkMod(loader.Module):
                         klan = re.search("Клан (.+):", response.text).group(1)
                         liga = re.search("Лига: (.+)", response.text).group(1)
                         usil = re.search("Усилитель: (.+)", response.text).group(1)
+                        info = response.text
                         clj = re.search(
                             "\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n",
                             response.text,
@@ -135,7 +136,7 @@ class KramikkMod(loader.Module):
                             ja2 = clj.group(3)
                             ja3 = clj.group(4)
                             ja4 = clj.group(5)
-                        info = f"Chat id:{chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n🐸(лид): {lid}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
+                            info = f"Chat id:{chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n🐸(лид): {lid}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
@@ -176,7 +177,7 @@ class KramikkMod(loader.Module):
                     if "В клановой войне" in response.text:
                         ch = await ch
                         cln = re.search("Клан (.+)🛡", response.text).group(1)
-                        await self.client.send_message(OPPY, response.text)
+                        info = response.text
                         clw = re.search(
                             r"\n\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$",
                             response.text,
