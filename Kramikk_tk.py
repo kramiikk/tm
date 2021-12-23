@@ -204,7 +204,7 @@ class KramikkMod(loader.Module):
                           #  ja3 = clw.group(4)
                           #  ja4 = clw.group(5)
                         #info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЧат: {ch.title}\n\nКлан: {cln}\n🐸: {ja0}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
-                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЧат: {ch.title}\n\nКлан: {cln}"
+                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\n\nКлан: {cln}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
