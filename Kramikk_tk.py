@@ -157,29 +157,6 @@ class KramikkMod(loader.Module):
             else:
                 randelta = random.randint(3, ac)
             if (
-                message.message.startswith((name, f'@{self.me.username}'))
-                or name in message.message
-                and message.message.endswith("😉")
-            ) and message.sender_id in bak:
-                await asyncio.sleep(rc)
-                if "?" in message.message:
-                    words = re.findall(r"\w+", f"{message.message}")
-                    words_len = [words.__len__()] + [x.__len__() for x in words]
-                    i = words_len.__len__()
-                    while i > 1:
-                        i -= 1
-                        for x in range(i):
-                            words_len[x] = (
-                                words_len[x] + words_len[x + 1] - 9
-                                if words_len[x] + words_len[x + 1] > 9
-                                else words_len[x] + words_len[x + 1]
-                            )
-                    return await message.reply(
-                        self.strings["quest_answer"].replace(
-                            "%answer%", choice(self.answers[words_len[0]])
-                        )
-                    )
-            elif (
                 message.message.lower().startswith("мой клан")
                 and chat in ninja
             ):
@@ -237,7 +214,7 @@ class KramikkMod(loader.Module):
                         byk = re.search(
                             "Букашки: (.+)", response.text
                         ).group(1)
-                        info = f"Чат: {ch.title}\nid: {message.sender_id}\nИмя жабы: {imy}\nУровень: {urv}\nБукашки: {cll}\nСытость: {syt}\nБукашки: {byk}"
+                        info = f"Чат: {ch.title}\nid: {message.sender_id}\nИмя жабы: {imy}\nУровень: {urv}\nКласс: {cll}\nСытость: {syt}\nБукашки: {byk}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
