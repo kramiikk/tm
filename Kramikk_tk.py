@@ -194,16 +194,17 @@ class KramikkMod(loader.Module):
                         cln = re.search(
                             "Клан (.+)🛡", response.text
                         ).group(1)
-                        clw = re.search(
-                            "\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$", response.text
+                    #    clw = re.search(
+                          #  "\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$\n(.+)\s\|\s.+$", response.text
                         )
-                        if clw:
-                            ja0 = clw.group(1)
-                            ja1 = clw.group(2)
-                            ja2 = clw.group(3)
-                            ja3 = clw.group(4)
-                            ja4 = clw.group(5)
-                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЧат: {ch.title}\n\nКлан: {cln}\n🐸: {ja0}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
+                        #if clw:
+                          #  ja0 = clw.group(1)
+                           # ja1 = clw.group(2)
+                           # ja2 = clw.group(3)
+                          #  ja3 = clw.group(4)
+                          #  ja4 = clw.group(5)
+                        #info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЧат: {ch.title}\n\nКлан: {cln}\n🐸: {ja0}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
+                        info = f"{cln}""
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
