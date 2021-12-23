@@ -437,5 +437,5 @@ class KramikkMod(loader.Module):
                     return
             else:
                 return
-        except:
-            return
+        except Exception as e:
+            return await self.client.send_message(-1001655814348, f"[except] {e.args}")
