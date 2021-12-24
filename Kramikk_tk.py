@@ -286,9 +286,12 @@ class KramikkMod(loader.Module):
                     else:
                         return
             elif "xey u" in message.message:
-                m=await self.client.send_message(1655814348, f"<i>{message.sender.first_name} в поиске</i>")
+                tp = "rrr"
+                m=await self.client.send_message(1655814348, f"<i>{tp} в поиске</i>")
                 if "t" in message.text:
-                    await m.edit(f"<i>не в поиске</i>")
+                    await asyncio.sleep(3)
+                    tp += "\n\n\nzzz"
+                    await m.edit(tp)
             elif "букашки мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
