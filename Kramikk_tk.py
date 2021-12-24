@@ -258,14 +258,15 @@ class KramikkMod(loader.Module):
                     )
                     response = await response
                     if "Отлично! Как только" in response.text:
+                        await self.client.send_message(1655814348, f"<i>{message.sender.first_name} в поиске</i>")
                         ch = await ch
-                        mmsg = f"Чат: {ch.title}\nИмя: {message.sender.first_name}\nЛига:"
+                        mmsg = f"Chat id: {chat}\nUser id: {message.sender_id}\nЛига:"
                         try:
                             ms = await self.client.get_messages(1655814348, search=mmsg)
                         except Exception as e:
                             return await self.client.send_message(1655814348, f"{str(e.args)}")
                         if ms.total == 0:
-                            dnd = "\nданные по этому клану собираются"
+                            mmsg = "\nданные по этому клану собираются"
                         for i in ms:
                             if "Чат:" in i.message:
                                 klan = re.search(
@@ -284,6 +285,10 @@ class KramikkMod(loader.Module):
                         )
                     else:
                         return
+            elif "xey u" in message.message:
+                m=await self.client.send_message(1655814348, f"<i>{message.sender.first_name} в поиске</i>")
+                if "t" in message.text:
+                    await m.edit(f"<i>не в поиске</i>")
             elif "букашки мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
