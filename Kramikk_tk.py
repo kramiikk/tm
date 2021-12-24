@@ -193,7 +193,7 @@ class KramikkMod(loader.Module):
                             a7 = snr.group(8)
                             a8 = snr.group(9)
                             a9 = snr.group(10)
-                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЧат: {ch.title}\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
+                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЧат: {ch.title}\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
