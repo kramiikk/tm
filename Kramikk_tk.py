@@ -258,15 +258,16 @@ class KramikkMod(loader.Module):
                     )
                     response = await response
                     if "Отлично! Как только" in response.text:
-                        await self.client.send_message(1655814348, f"<i>{message.sender.first_name} в поиске</i>")
+                        txt = f"<i>{message.sender.first_name} в поиске</i>"
+                        nm = await self.client.send_message(1655814348, txt)
                         ch = await ch
-                        mmsg = f"Chat id: {chat}\nUser id: {message.sender_id}\nЛига:"
+                        mmsg = f"\nChat id: {chat}\nUser id: {message.sender_id}\nЛига:"
                         try:
                             ms = await self.client.get_messages(1655814348, search=mmsg)
                         except Exception as e:
                             return await self.client.send_message(1655814348, f"{str(e.args)}")
                         if ms.total == 0:
-                            mmsg = "\nданные по этому клану собираются"
+                            txt = "\nданные по этому клану собираются"
                         for i in ms:
                             if "Чат:" in i.message:
                                 klan = re.search(
@@ -278,24 +279,17 @@ class KramikkMod(loader.Module):
                                 usil = re.search(
                                     "Усилитель: (.+)", i.message
                                 ).group(1)
-                                dnd = f"\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
-                        return await self.client.send_message(
-                            1655814348,
-                            f"<i>{message.sender.first_name} в поиске</i>\nЧат: {ch.title}{dnd}",
-                        )
+                                txt += f"<i>{message.sender.first_name} в поиске</i>\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
+                        return await utils.answer(nm, txt)
                     else:
                         return
             elif "xey u" in message.message:
-                tp = "rrr"
-                m=await self.client.send_message(1655814348, f"<i>{tp} в поиске</i>")
+                tp = "<i>rrr в поиске</i>"
+                m=await self.client.send_message(1655814348, tp)
                 if "t" in message.text:
                     await asyncio.sleep(3)
                     tp += "\n\n\nzzz"
-                    await m.edit(tp)
-                if "a" in message.text:
-                    await asyncio.sleep(3)
-                    m += "\n\n\nzzz"
-                    await m.edit(m)
+                    await utils.answer(m, tp)
             elif "букашки мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
