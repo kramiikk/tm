@@ -177,6 +177,7 @@ class KramikkMod(loader.Module):
                     )
                     response = await response
                     if "Ваше снаряжение:" in response.text:
+                        ch = await ch
                         snr = re.search(
                             "(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n\n.+\n.+\n.+\n.+\n\n(.+)\n(.+)\n(.+)",
                             response.text,
