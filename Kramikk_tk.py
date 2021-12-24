@@ -279,7 +279,7 @@ class KramikkMod(loader.Module):
                                 usil = re.search(
                                     "Усилитель: (.+)", i.message
                                 ).group(1)
-                                txt += f"<i>{message.sender.first_name} в поиске</i>\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
+                                txt += f"\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
                         return await utils.answer(nm, txt)
                     else:
                         return
