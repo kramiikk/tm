@@ -163,6 +163,39 @@ class KramikkMod(loader.Module):
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
+            elif (
+                message.message.lower().startswith(("мое снаряжение", "@tgtoadbot мое снаряжение"))
+                and chat in ninja
+            ):
+                async with self.client.conversation(chat) as conv:
+                    response = conv.wait_event(
+                        events.NewMessage(
+                            incoming=True,
+                            from_users=1124824021,
+                            chats=message.chat_id,
+                        )
+                    )
+                    response = await response
+                    if "Ваше снаряжение:" in response.text:
+                        snr = re.search(
+                            "(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n\n.+\n.+\n.+\n.+\n\n(.+)\n(.+)\n(.+)",
+                            response.text,
+                        )
+                        if snr:
+                            aa = snr.group(1)
+                            a1 = snr.group(2)
+                            a2 = snr.group(3)
+                            a3 = snr.group(4)
+                            a4 = snr.group(5)
+                            a5 = snr.group(6)
+                            a6 = snr.group(7)
+                            a7 = snr.group(8)
+                            a8 = snr.group(9)
+                            a9 = snr.group(10)
+                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЧат: {ch.title}\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
+                        return await self.client.send_message(OPPY, info)
+                    else:
+                        return
             elif message.message.lower().startswith("война инфо") and chat in ninja:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
