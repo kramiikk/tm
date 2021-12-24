@@ -292,6 +292,10 @@ class KramikkMod(loader.Module):
                     await asyncio.sleep(3)
                     tp += "\n\n\nzzz"
                     await m.edit(tp)
+                if "a" in message.text:
+                    await asyncio.sleep(3)
+                    m += "\n\n\nzzz"
+                    await m.edit(m)
             elif "букашки мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
