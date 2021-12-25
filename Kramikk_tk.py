@@ -267,7 +267,7 @@ class KramikkMod(loader.Module):
                         except Exception as e:
                             return await self.client.send_message(1655814348, f"{str(e.args)}")
                         if ms.total == 0:
-                            txt = "\nданные по этому клану собираются"
+                            txt += f"\{mmsg}\nданные по этому клану собираются"
                         for i in ms:
                             if "Чат:" in i.message:
                                 klan = re.search(
