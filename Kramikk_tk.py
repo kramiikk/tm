@@ -261,10 +261,10 @@ class KramikkMod(loader.Module):
                         txt = f"<i>{message.sender.first_name} в поиске</i>"
                         nm = await self.client.send_message(1655814348, txt)
                         ch = await ch
-                        src = 
-                        mmsg = f"\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига:"
+                        src = f"Чат: {ch.title}\nИмя: {message.sender.first_name}\nЛига:"
+                        mmsg = f"\nЧат: {ch.title}\nИмя: {message.sender.first_name}"
                         try:
-                            ms = await self.client.get_messages(1655814348, search=mmsg)
+                            ms = await self.client.get_messages(1655814348, search=src)
                         except Exception as e:
                             return await self.client.send_message(1655814348, f"{str(e.args)}")
                         if ms.total == 0:
