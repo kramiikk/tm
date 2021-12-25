@@ -131,11 +131,91 @@ class KramikkMod(loader.Module):
                         )
                         if clj:
                             lid = clj.group(1)
+                            src = f"Chat id: {chat}\nИмя жабы: {lid}"
+                            ms = await self.client.get_messages(1655814348, search=src)
+                            if ms.total == 0:
+                                urv0 = "~"
+                                cll0 = "~"
+                            else:
+                                for i in ms:
+                                    lid = re.search(
+                                        "Имя: (.+)", i.message
+                                    ).group(1)
+                                    urv0 = re.search(
+                                        "Уровень: (.+)", i.message
+                                    ).group(1)
+                                    cll0 = re.search(
+                                        "Класс: (.+)", i.message
+                                    ).group(1)
                             ja1 = clj.group(2)
+                            src = f"Chat id: {chat}\nИмя жабы: {ja1}"
+                            ms = await self.client.get_messages(1655814348, search=src)
+                            if ms.total == 0:
+                                urv1 = "~"
+                                cll1 = "~"
+                            else:
+                                for i in ms:
+                                    ja1 = re.search(
+                                        "Имя: (.+)", i.message
+                                    ).group(1)
+                                    urv1 = re.search(
+                                        "Уровень: (.+)", i.message
+                                    ).group(1)
+                                    cll1 = re.search(
+                                        "Класс: (.+)", i.message
+                                    ).group(1)
                             ja2 = clj.group(3)
+                            src = f"Chat id: {chat}\nИмя жабы: {ja2}"
+                            ms = await self.client.get_messages(1655814348, search=src)
+                            if ms.total == 0:
+                                urv2 = "~"
+                                cll2 = "~"
+                            else:
+                                for i in ms:
+                                    ja2 = re.search(
+                                        "Имя: (.+)", i.message
+                                    ).group(1)
+                                    urv2 = re.search(
+                                        "Уровень: (.+)", i.message
+                                    ).group(1)
+                                    cll2 = re.search(
+                                        "Класс: (.+)", i.message
+                                    ).group(1)
                             ja3 = clj.group(4)
+                            src = f"Chat id: {chat}\nИмя жабы: {ja3}"
+                            ms = await self.client.get_messages(1655814348, search=src)
+                            if ms.total == 0:
+                                urv3 = "~"
+                                cll3 = "~"
+                            else:
+                                for i in ms:
+                                    ja3 = re.search(
+                                        "Имя: (.+)", i.message
+                                    ).group(1)
+                                    urv3 = re.search(
+                                        "Уровень: (.+)", i.message
+                                    ).group(1)
+                                    cll3 = re.search(
+                                        "Класс: (.+)", i.message
+                                    ).group(1)
                             ja4 = clj.group(5)
-                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n🐸(лид): {lid}\n🐸: {ja1}\n🐸: {ja2}\n🐸: {ja3}\n🐸: {ja4}"
+                            src = f"Chat id: {chat}\nИмя жабы: {ja4}"
+                            ms = await self.client.get_messages(1655814348, search=src)
+                            if ms.total == 0:
+                                urv4 = "~"
+                                cll4 = "~"
+                            else:
+                                for i in ms:
+                                    ja4 = re.search(
+                                        "Имя: (.+)", i.message
+                                    ).group(1)
+                                    urv4 = re.search(
+                                        "Уровень: (.+)", i.message
+                                    ).group(1)
+                                    cll4 = re.search(
+                                        "Класс: (.+)", i.message
+                                    ).group(1)
+                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n(лид): {lid}:\n{urv0} лвл {cll0}\n{ja1}:\n{urv1} лвл {cll1}\n{ja2}:\n{urv2} лвл {cll2}\n{ja3}:\n{urv3} лвл {cll3}\n{ja4}:\n{urv4} лвл {cll4}"
                         return await self.client.send_message(OPPY, info)
                     else:
                         return
