@@ -266,8 +266,18 @@ class KramikkMod(loader.Module):
                         ms = await self.client.get_messages(1655814348, search=src)
                         if ms.total == 0:
                             txt += f"\n{mmsg}\nданные по этому клану собираются"
-                            src = f"Chat id: {chat}\nUser id: {message.sender_id}\nКлан:"
-                            ms = await self.client.get_messages(1655814348, search=src)
+                            src = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя жабы:"
+                            ms2 = await self.client.get_messages(1655814348, search=src)
+                            for i in ms2:
+                                jbn = re.search(
+                                    "Имя жабы: (.+)", i.message
+                                ).group(1)
+                            src = f"Chat id: {chat}\nКлан: {jbn}"
+                            ms3 = await self.client.get_messages(1655814348, search=src)
+                            for i in ms3:
+                                klan = re.search(
+                                    "Клан: (.+)", i.message
+                                ).group(1)
                         for i in ms:
                             klan = re.search(
                                 "Клан: (.+)", i.message
