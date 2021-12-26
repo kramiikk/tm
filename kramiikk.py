@@ -137,6 +137,8 @@ class kramiikkMod(loader.Module):
                 ac = rc + 21
             else:
                 ac = rc + 33
+            if chat in {-1001441941681}:
+                rc = 0.3
             ai = self.me.id % 100 + ac
             if ai > 81:
                 ai -= 42
@@ -311,15 +313,12 @@ class kramiikkMod(loader.Module):
             elif self.me.id in {1785723159}:
                 name = "крамик"
                 EK = {-1001441941681}
-                rc = 0.3
             elif self.me.id in {547639600}:
                 name = "нельс"
                 EK = {-1001441941681}
-                rc = 0.3
             elif self.me.id in {980699009}:
                 name = "лена"
                 EK = {-1001441941681}
-                rc = 0.3
             elif self.me.id in {1423368454}:
                 name = "len"
             elif self.me.id in {1682801197}:
