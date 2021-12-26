@@ -26,7 +26,7 @@ def register(cb):
 
 
 @loader.tds
-class KramikkMod(loader.Module):
+class kramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
 
     answers = {
