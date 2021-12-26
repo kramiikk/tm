@@ -22,7 +22,7 @@ asl = [
 
 
 def register(cb):
-    cb(KramikkMod())
+    cb(kramiikkMod())
 
 
 @loader.tds
