@@ -204,7 +204,7 @@ class kramiikkMod(loader.Module):
                         response = await response
                         if "Отлично! Как только" in response.text:
                             ch = await ch
-                            mmsg = f"Чат: {ch.title}\nИмя: {message.sender.first_name}\nЛига:"
+                            mmsg = f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
                             try:
                                 ms = await self.client.get_messages(1655814348, search=mmsg)
                             except Exception as e:
