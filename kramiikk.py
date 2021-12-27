@@ -203,30 +203,44 @@ class kramiikkMod(loader.Module):
                         )
                         response = await response
                         if "Отлично! Как только" in response.text:
+                            txt = f"<i>{message.sender.first_name} в поиске</i>"
+                            nm = await self.client.send_message(1655814348, txt)
                             ch = await ch
-                            mmsg = f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
-                            try:
-                                ms = await self.client.get_messages(1655814348, search=mmsg)
-                            except Exception as e:
-                                return await self.client.send_message(1655814348, f"{str(e.args)}")
+                            txt += f"\nЧат: {ch.title}\nданные по этому клану собираются"
+                            await utils.answer(nm, txt)
+                            src = f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
+                            ms = await self.client.get_messages(1655814348, search=src)
                             if ms.total == 0:
-                                dnd = "\nданные по этому клану собираются"
+                                return
                             for i in ms:
-                                if "Чат:" in i.message:
-                                    klan = re.search(
-                                        "Клан: (.+)", i.message
-                                    ).group(1)
+                                klan = re.search(
+                                    "Клан: (.+)", i.message
+                                ).group(1)
+                                if "Усилитель:" in i.message:
                                     liga = re.search(
                                         "Лига: (.+)", i.message
                                     ).group(1)
                                     usil = re.search(
                                         "Усилитель: (.+)", i.message
                                     ).group(1)
-                                    dnd = f"\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
-                            return await self.client.send_message(
-                                1767017980,
-                                f"<i>{message.sender.first_name} в поиске</i>\nЧат: {ch.title}{dnd}",
-                            )
+                            src = f"Топ 35 кланов {klan}"
+                            ms = await self.client.get_messages(1441941681, search=src)
+                            if ms.total == 0:
+                                tdd = "" 
+                            else:
+                                for i in ms:
+                                    ligz = re.search(
+                                        "Топ 35 кланов (.+) сезона", i.message
+                                    ).group(1)
+                                    mest = re.search(
+                                        "(.+). 🛡(.+) \| {klan}", i.message
+                                    )
+                                    if mest:
+                                        mest1 = mest.group(1)
+                                        mest2 = mest.group(2)
+                                tdd = f"\nСезон: {ligz}\nМесто: {mest1}\nПобед: {mest2}"
+                            txt += f"\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}\n\n{tdd}"
+                            return await utils.answer(nm, txt)
                         else:
                             return
                 elif "[8🐝]" in message.message and message.sender_id in {830605725}:
