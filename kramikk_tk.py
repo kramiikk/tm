@@ -381,14 +381,6 @@ class KramikkMod(loader.Module):
                         return await utils.answer(nm, txt)
                     else:
                         return
-            elif "xey u" in message.message:
-                args = message.message
-                reply = await message.get_reply_message()
-                m=await client.get_entity(args)
-                if reply:
-                    return await reply.reply(f"{m}")
-                else:
-                    return await utils.answer(message, f"{m}")
             elif "букашки мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
