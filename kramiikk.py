@@ -204,7 +204,7 @@ class kramiikkMod(loader.Module):
                         response = await response
                         if "Отлично! Как только" in response.text:
                             txt = f"<i>{message.sender.first_name} в поиске</i>"
-                            nm = await self.client.send_message(1655814348, txt)
+                            nm = await self.client.send_message(1767017980, txt)
                             ch = await ch
                             txt += (
                                 f"\nЧат: {ch.title}\nданные по этому клану собираются"
@@ -230,7 +230,7 @@ class kramiikkMod(loader.Module):
                                     ligz = re.search(
                                         "Топ 35 кланов (.+) сезона", i.message
                                     ).group(1)
-                                    mest = re.search("(.+). 🛡(.+) \| {klan}", i.message)
+                                    mest = re.search(f"(.+). 🛡(.+) \| {klan}", i.message)
                                     if mest:
                                         mest1 = mest.group(1)
                                         mest2 = mest.group(2)
