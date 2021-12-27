@@ -206,35 +206,31 @@ class kramiikkMod(loader.Module):
                             txt = f"<i>{message.sender.first_name} в поиске</i>"
                             nm = await self.client.send_message(1655814348, txt)
                             ch = await ch
-                            txt += f"\nЧат: {ch.title}\nданные по этому клану собираются"
+                            txt += (
+                                f"\nЧат: {ch.title}\nданные по этому клану собираются"
+                            )
                             await utils.answer(nm, txt)
                             src = f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
                             ms = await self.client.get_messages(1655814348, search=src)
                             if ms.total == 0:
                                 return
                             for i in ms:
-                                klan = re.search(
-                                    "Клан: (.+)", i.message
-                                ).group(1)
+                                klan = re.search("Клан: (.+)", i.message).group(1)
                                 if "Усилитель:" in i.message:
-                                    liga = re.search(
-                                        "Лига: (.+)", i.message
-                                    ).group(1)
+                                    liga = re.search("Лига: (.+)", i.message).group(1)
                                     usil = re.search(
                                         "Усилитель: (.+)", i.message
                                     ).group(1)
                             src = f"Топ 35 кланов {klan}"
                             ms = await self.client.get_messages(1441941681, search=src)
                             if ms.total == 0:
-                                tdd = "" 
+                                tdd = ""
                             else:
                                 for i in ms:
                                     ligz = re.search(
                                         "Топ 35 кланов (.+) сезона", i.message
                                     ).group(1)
-                                    mest = re.search(
-                                        "(.+). 🛡(.+) \| {klan}", i.message
-                                    )
+                                    mest = re.search("(.+). 🛡(.+) \| {klan}", i.message)
                                     if mest:
                                         mest1 = mest.group(1)
                                         mest2 = mest.group(2)
@@ -259,12 +255,10 @@ class kramiikkMod(loader.Module):
                     return await self.client.send_message(
                         chat,
                         "Фарма",
-                        schedule=datetime.timedelta(
-                            minutes=random.randint(1, 20)),
+                        schedule=datetime.timedelta(minutes=random.randint(1, 20)),
                     )
                 elif "НЕЗАЧЁТ!" in message.message and chat in {707693258}:
-                    args = [int(x)
-                            for x in message.text.split() if x.isnumeric()]
+                    args = [int(x) for x in message.text.split() if x.isnumeric()]
                     randelta = random.randint(20, 60)
                     if len(args) == 4:
                         delta = datetime.timedelta(
@@ -280,8 +274,7 @@ class kramiikkMod(loader.Module):
                         pass
                     sch = (
                         await self.client(
-                            functions.messages.GetScheduledHistoryRequest(
-                                chat, 1488)
+                            functions.messages.GetScheduledHistoryRequest(chat, 1488)
                         )
                     ).messages
                     await self.client(
@@ -363,8 +356,7 @@ class kramiikkMod(loader.Module):
                 await asyncio.sleep(rc)
                 return await message.respond("отправиться за картой")
             elif (
-                message.message.lower().startswith(
-                    (name, f"@{self.me.username}"))
+                message.message.lower().startswith((name, f"@{self.me.username}"))
                 or name in message.message
                 and message.message.endswith("😉")
             ) and message.sender_id in bak:
@@ -374,8 +366,7 @@ class kramiikkMod(loader.Module):
                 count = args.split(" ", 2)[1]
                 if "?" in message.message:
                     words = re.findall(r"\w+", f"{message.message}")
-                    words_len = [words.__len__()] + [x.__len__()
-                                                     for x in words]
+                    words_len = [words.__len__()] + [x.__len__() for x in words]
                     i = words_len.__len__()
                     while i > 1:
                         i -= 1
@@ -387,8 +378,7 @@ class kramiikkMod(loader.Module):
                             )
                     return await message.reply(
                         self.strings["quest_answer"].replace(
-                            "%answer%", random.choice(
-                                self.answers[words_len[0]])
+                            "%answer%", random.choice(self.answers[words_len[0]])
                         )
                     )
                 elif "~" in message.message:
@@ -520,8 +510,7 @@ class kramiikkMod(loader.Module):
                         await conv.send_message("моя жаба")
                         response = await response
                         if "Имя жабы:" in response.text:
-                            jaba = re.search("Имя жабы: (.+)",
-                                             response.text).group(1)
+                            jaba = re.search("Имя жабы: (.+)", response.text).group(1)
                             self.status["Имя Жабы"] = jaba
                             self.db.set("Status", "status", self.status)
                             return await conv.send_message("РеанимироватЬ жабу")
@@ -745,8 +734,7 @@ class kramiikkMod(loader.Module):
                                 )
                                 await conv.send_message(
                                     "Отправиться в золотое подземелье",
-                                    schedule=delta +
-                                    datetime.timedelta(seconds=13),
+                                    schedule=delta + datetime.timedelta(seconds=13),
                                 )
                             await conv.send_message("Моя семья")
                             response = await response
@@ -901,8 +889,7 @@ class kramiikkMod(loader.Module):
                             )
                             await conv.send_message(
                                 "работа крупье",
-                                schedule=delta +
-                                datetime.timedelta(seconds=13),
+                                schedule=delta + datetime.timedelta(seconds=13),
                             )
                         for number in range(2):
                             delta = delta + datetime.timedelta(hours=8)
@@ -911,8 +898,7 @@ class kramiikkMod(loader.Module):
                             )
                             await conv.send_message(
                                 "работа крупье",
-                                schedule=delta +
-                                datetime.timedelta(seconds=13),
+                                schedule=delta + datetime.timedelta(seconds=13),
                             )
                             await conv.send_message(
                                 "завершить работу",
@@ -949,8 +935,7 @@ class kramiikkMod(loader.Module):
                         )
                         await conv.send_message(
                             "завершить работу",
-                            schedule=delta +
-                            datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
             else:
                 pass
