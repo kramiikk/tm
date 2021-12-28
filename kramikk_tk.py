@@ -395,7 +395,7 @@ class KramikkMod(loader.Module):
                 await utils.answer(nm, txt)
            
             elif "букашки мне😊" in message.message and message.sender_id in bak:
-                await asyncio.sleep(randelta)== 
+                await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
