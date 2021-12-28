@@ -162,33 +162,7 @@ class kramiikkMod(loader.Module):
                 }
                 KW = {-419726290, -1001543064221, -577735616, -1001493923839}
                 name = "монарх"
-                if "лвл чек" in message.message and message.sender_id in bak:
-                    x = int(message.message.split(" ", 3)[2])
-                    u = int(message.message.split(" ", 3)[3])
-                    y = ((x + u) - 160) * 2
-                    if y > -1:
-                        res = f"<b>~ {y} лвл</b>"
-                    else:
-                        res = f"<b>лвл не может быть отрицательным!!!\nпробуй заново, напиши:\n\n<code>лвл чек 160 90</code></b>"
-                    return await utils.answer(message, res)
-                elif (
-                    message.message.startswith("Алло")
-                    and chat in ninja
-                    and message.sender_id in {1124824021}
-                ):
-                    capt = re.search(
-                        "Для клана (.+) нашелся враг (.+), пора", message.text
-                    )
-                    if capt:
-                        mk = capt.group(1)
-                        ek = capt.group(2)
-                        war = f"{mk} против клана {ek}"
-                        return await self.client.send_message(
-                            1767017980, f"⚡️ Клан {war}"
-                        )
-                    else:
-                        return
-                elif (
+                if (
                     message.message.lower().startswith(
                         ("начать клановую", "@tgtoadbot начать клановую")
                     )
@@ -203,11 +177,11 @@ class kramiikkMod(loader.Module):
                         )
                         response = await response
                         if "Отлично! Как только" in response.text:
-                            txt = f"<i>{message.sender.first_name} в поиске</i>"
+                            txt = f"<i>{message.sender.first_name} в поиске"
                             nm = await self.client.send_message(1767017980, txt)
                             ch = await ch
                             txt += (
-                                f"\nЧат: {ch.title}\nданные по этому клану собираются"
+                                f"\nЧат: <i>{ch.title}</i>"
                             )
                             await utils.answer(nm, txt)
                             src = f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
@@ -216,11 +190,10 @@ class kramiikkMod(loader.Module):
                                 return
                             for i in ms:
                                 klan = re.search("Клан: (.+)", i.message).group(1)
-                                if "Усилитель:" in i.message:
-                                    liga = re.search("Лига: (.+)", i.message).group(1)
-                                    usil = re.search(
-                                        "Усилитель: (.+)", i.message
-                                    ).group(1)
+                                liga = re.search("Лига: (.+)", i.message).group(1)
+                                usil = re.search(
+                                    "Усилитель: (.+)", i.message
+                                ).group(1)
                             src = f"Топ 35 кланов {klan}"
                             ms = await self.client.get_messages(1441941681, search=src)
                             if ms.total == 0:
@@ -235,10 +208,36 @@ class kramiikkMod(loader.Module):
                                         mest1 = mest.group(1)
                                         mest2 = mest.group(2)
                                 tdd = f"\nСезон: {ligz}\nМесто: {mest1}\nПобед: {mest2}"
-                            txt += f"\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}\n\n{tdd}"
+                            txt += f"\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}\n\n{tdd}"
                             return await utils.answer(nm, txt)
                         else:
                             return
+                elif (
+                    message.message.startswith("Алло")
+                    and chat in ninja
+                    and message.sender_id in {1124824021}
+                ):
+                    capt = re.search(
+                        "..... (.+) ....... .... (.+), ....", message.text
+                    )
+                    if capt:
+                        mk = capt.group(1)
+                        ek = capt.group(2)
+                        war = f"{mk} против клана {ek}"
+                        return await self.client.send_message(
+                            1767017980, f"⚡️ Клан {war}"
+                        )
+                    else:
+                        return
+                elif "лвл чек" in message.message and message.sender_id in bak:
+                    x = int(message.message.split(" ", 3)[2])
+                    u = int(message.message.split(" ", 3)[3])
+                    y = ((x + u) - 160) * 2
+                    if y > -1:
+                        res = f"<b>~ {y} лвл</b>"
+                    else:
+                        res = f"<b>лвл не может быть отрицательным!!!\nпробуй заново, напиши:\n\n<code>лвл чек 160 90</code></b>"
+                    return await utils.answer(message, res)
                 elif "[8🐝]" in message.message and message.sender_id in {830605725}:
                     return await message.click(0)
                 elif "[4🐝]" in message.message and message.sender_id in {830605725}:
@@ -364,7 +363,7 @@ class kramiikkMod(loader.Module):
                 args = message.message
                 reply = await message.get_reply_message()
                 count = args.split(" ", 2)[1]
-                if "?" in message.message:
+                if message.message.endswith("?"):
                     words = re.findall(r"\w+", f"{message.message}")
                     words_len = [words.__len__()] + [x.__len__() for x in words]
                     i = words_len.__len__()

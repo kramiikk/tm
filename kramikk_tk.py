@@ -312,15 +312,22 @@ class KramikkMod(loader.Module):
                 and message.sender_id in {1124824021}
             ):
                 capt = re.search(
-                    "Для клана (.+) нашелся враг (.+), пора", message.text
+                    "..... (.+) ....... .... (.+), .... .+\n(.+), (.+), (.+), (.+), (.+)", message.text
                 )
                 if capt:
                     mk = capt.group(1)
                     ek = capt.group(2)
+                    ja4 = capt.group(3)
+                    ja3 = capt.group(4)
+                    ja2 = capt.group(5)
+                    ja1 = capt.group(6)
+                    ja0 = capt.group(7)
                     war = f"{mk} против клана {ek}"
-                    return await self.client.send_message(
+                    m = await self.client.send_message(
                         1655814348, f"⚡️ Клан {war}"
                     )
+                    war += f"\n<b>Клан {mk}</b>\n{ja0}\n{ja1}\n{ja2}\n{ja3}\n{ja4}"
+                    return await utils.answer(m, war)
                 else:
                     return
             elif (
@@ -381,17 +388,13 @@ class KramikkMod(loader.Module):
                     else:
                         return
             elif "testo" in message.message:
-                txt = f"<i>{message.sender.first_name} в поиске</i>"
-                nm = await self.client.send_message(1655814348, txt)
-                txt += (
-                    f"\nЧат\nданные по этому клану собираются"
-                )
-                await utils.answer(nm, txt)
-                await asyncio.sleep(3)
-                txt -= (
-                    f"\nданные по этому клану собираются"
-                )
-                await utils.answer(nm, txt)
+                args = message.message
+                reply = await message.get_reply_message()
+                mmsg = args.split(" ", 2)[2]
+                if reply:
+                    return await reply.reply(mmsg)
+                else:
+                    return await utils.answer(message, mmsg)
            
             elif "букашки мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
