@@ -381,8 +381,21 @@ class KramikkMod(loader.Module):
                         return await utils.answer(nm, txt)
                     else:
                         return
+            elif "testo" in message.message:
+                txt = f"<i>{message.sender.first_name} в поиске</i>"
+                nm = await self.client.send_message(1655814348, txt)
+                txt += (
+                    f"\nЧат\nданные по этому клану собираются"
+                )
+                await utils.answer(nm, txt)
+                await asyncio.sleep(3)
+                txt -= (
+                    f"\nданные по этому клану собираются"
+                )
+                await utils.answer(nm, txt)
+           
             elif "букашки мне😊" in message.message and message.sender_id in bak:
-                await asyncio.sleep(randelta)
+                await asyncio.sleep(randelta)== 
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
