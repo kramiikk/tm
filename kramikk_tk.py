@@ -312,7 +312,7 @@ class KramikkMod(loader.Module):
                 and message.sender_id in {1124824021}
             ):
                 capt = re.search(
-                    "..... (.+) ....... .... (.+), .... .+\n(.+), (.+), (.+), (.+), (.+)", message.text
+                    "клана (.+) нашелся враг (.+), пора .+\n(.+), (.+), (.+), (.+), (.+)", message.text
                 )
                 if capt:
                     mk = capt.group(1)
