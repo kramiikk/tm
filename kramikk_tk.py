@@ -345,7 +345,6 @@ class KramikkMod(loader.Module):
                         mmsg = f"\nЧат: {ch.title}\nИмя: {message.sender.first_name}"
                         ms = await self.client.get_messages(1655814348, search=src)
                         if ms.total == 0:
-                            txt += f"\n{mmsg}\nданные по этому клану собираются"
                             src = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя жабы:"
                             ms2 = await self.client.get_messages(1655814348, search=src)
                             for i in ms2:
