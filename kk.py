@@ -599,15 +599,15 @@ class kramiikkMod(loader.Module):
                     await self.client.send_message(
                         1001714871513, f"{count} {mmsg} {chat}"
                     )
-                    async with self.client.conversation(message.chat_id) as conv:
+                    async with self.client.conversation(count) as conv:
                         response = conv.wait_event(
                             events.NewMessage(
                                 incoming=True,
                                 from_users=1124824021,
-                                chats=message.chat_id,
+                                chats=count,
                             )
                         )
-                        await conv.send_message(count, mmsg)
+                        await conv.send_message(mmsg)
                         response = await response
                         await message.reply(response.message)
                 elif "напади" in message.message:
