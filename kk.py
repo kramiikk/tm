@@ -1,12 +1,8 @@
 import asyncio
 import datetime
-import json
 import logging
 import random
 import re
-import time
-
-import requests
 from telethon import events, functions, types
 
 from .. import loader, utils
@@ -178,10 +174,8 @@ class kramiikkMod(loader.Module):
                 and message.mentioned
                 and message.sender_id in {1124824021}
             ):
-                await message.click(1)
                 await message.respond("реанимировать жабу")
-                await asyncio.sleep(rc)
-                return await message.respond("отправиться за картой")
+                return await message.click(1)
             elif (
                 message.message.lower().startswith(asly)
                 and chat in elj
@@ -289,7 +283,7 @@ class kramiikkMod(loader.Module):
                             await conv.send_message("откормить жабку")
                             delta = datetime.timedelta(hours=4, seconds=3)
                             await conv.send_message("откормить жабку", schedule=delta)
-                        for number in range(4):
+                        for i in range(4):
                             delta = delta + datetime.timedelta(hours=4)
                             await conv.send_message("откормить жабку", schedule=delta)
                         if "В подземелье можно" in response.text:
@@ -447,7 +441,7 @@ class kramiikkMod(loader.Module):
                     else:
                         delta = datetime.timedelta(hours=6, seconds=3)
                         await conv.send_message("покормить жабку")
-                    for number in range(3):
+                    for i in range(3):
                         delta = delta + datetime.timedelta(hours=6, seconds=3)
                         await conv.send_message("покормить жабку", schedule=delta)
                     if "работу можно" in response.text:
@@ -469,7 +463,7 @@ class kramiikkMod(loader.Module):
                                 "работа крупье",
                                 schedule=delta + datetime.timedelta(seconds=13),
                             )
-                        for number in range(2):
+                        for i in range(2):
                             delta = delta + datetime.timedelta(hours=8)
                             await conv.send_message(
                                 "реанимировать жабу", schedule=delta
@@ -504,7 +498,7 @@ class kramiikkMod(loader.Module):
                     else:
                         await conv.send_message("завершить работу")
                         delta = datetime.timedelta(hours=6)
-                    for number in range(2):
+                    for i in range(2):
                         delta = delta + datetime.timedelta(hours=6, seconds=3)
                         await conv.send_message("реанимировать жабу", schedule=delta)
                         await conv.send_message(
