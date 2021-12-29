@@ -163,20 +163,18 @@ class kramiikkMod(loader.Module):
                         txt = f"<i>{message.sender.first_name} в поиске"
                         nm = await client.send_message(1767017980, txt)
                         ch = await ch
-                        txt += (
-                            f"\nЧат: <i>{ch.title}</i>"
-                        )
+                        txt += f"\nЧат: <i>{ch.title}</i>"
                         await utils.answer(nm, txt)
-                        src = f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
+                        src = (
+                            f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
+                        )
                         ms = await client.get_messages(1655814348, search=src)
                         if ms.total == 0:
                             return
                         for i in ms:
                             klan = re.search("Клан: (.+)", i.message).group(1)
                             liga = re.search("Лига: (.+)", i.message).group(1)
-                            usil = re.search(
-                                "Усилитель: (.+)", i.message
-                            ).group(1)
+                            usil = re.search("Усилитель: (.+)", i.message).group(1)
                         src = f"Топ 35 кланов {klan}"
                         ms = await client.get_messages(1441941681, search=src)
                         if ms.total == 0:
@@ -191,7 +189,9 @@ class kramiikkMod(loader.Module):
                                     mest1 = mest.group(1)
                                     mest2 = mest.group(2)
                             tdd = f"\nСезон: {ligz}\nМесто: {mest1}\nПобед: {mest2}"
-                        txt += f"\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}\n\n{tdd}"
+                        txt += (
+                            f"\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}\n\n{tdd}"
+                        )
                         return await utils.answer(nm, txt)
                     else:
                         return
@@ -200,16 +200,12 @@ class kramiikkMod(loader.Module):
                 and chat in self.ninja
                 and message.sender_id in {1124824021}
             ):
-                capt = re.search(
-                    "клана (.+) нашелся враг (.+), пора", message.text
-                )
+                capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
                 if capt:
                     mk = capt.group(1)
                     ek = capt.group(2)
                     war = f"{mk} против клана {ek}"
-                    return await client.send_message(
-                        1767017980, f"⚡️ Клан {war}"
-                    )
+                    return await client.send_message(1767017980, f"⚡️ Клан {war}")
                 else:
                     return
             elif (
@@ -228,9 +224,7 @@ class kramiikkMod(loader.Module):
             ):
                 await asyncio.sleep(randelta)
                 sch = (
-                    await client(
-                        functions.messages.GetScheduledHistoryRequest(chat, 0)
-                    )
+                    await client(functions.messages.GetScheduledHistoryRequest(chat, 0))
                 ).messages
                 await client(
                     functions.messages.DeleteScheduledMessagesRequest(
@@ -445,12 +439,13 @@ class kramiikkMod(loader.Module):
                                 )
                             else:
                                 return
-            elif message.message.lower().startswith(asly) and message.sender_id in self.bak:
+            elif (
+                message.message.lower().startswith(asly)
+                and message.sender_id in self.bak
+            ):
                 await asyncio.sleep(randelta)
                 sch = (
-                    await client(
-                        functions.messages.GetScheduledHistoryRequest(chat, 0)
-                    )
+                    await client(functions.messages.GetScheduledHistoryRequest(chat, 0))
                 ).messages
                 await client(
                     functions.messages.DeleteScheduledMessagesRequest(
@@ -596,9 +591,7 @@ class kramiikkMod(loader.Module):
                     if count.isnumeric():
                         count = int(args.split(" ", 4)[3])
                     mmsg = args.split(" ", 4)[4]
-                    await client.send_message(
-                        1001714871513, f"{count} {mmsg} {chat}"
-                    )
+                    await client.send_message(1001714871513, f"{count} {mmsg} {chat}")
                     async with client.conversation(count) as conv:
                         response = conv.wait_event(
                             events.NewMessage(
@@ -822,9 +815,7 @@ class kramiikkMod(loader.Module):
                 return await message.click(0)
             elif "[4🐝]" in message.message and message.sender_id in {830605725}:
                 return await message.click(0)
-            elif "[2☢️🐝, 2🔴🐝," in message.message and message.sender_id in {
-                830605725
-            }:
+            elif "[2☢️🐝, 2🔴🐝," in message.message and message.sender_id in {830605725}:
                 return await message.click(0)
             elif "Бзззз! С пасеки" in message.message and message.sender_id in {
                 830605725
@@ -844,9 +835,7 @@ class kramiikkMod(loader.Module):
                         hours=args[1], minutes=args[2], seconds=args[3] + 13
                     )
                 elif len(args) == 3:
-                    delta = datetime.timedelta(
-                        minutes=args[1], seconds=args[2] + 13
-                    )
+                    delta = datetime.timedelta(minutes=args[1], seconds=args[2] + 13)
                 elif len(args) == 2:
                     delta = datetime.timedelta(seconds=args[1] + 13)
                 else:
