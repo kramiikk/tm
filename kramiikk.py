@@ -50,11 +50,6 @@ class kramiikkMod(loader.Module):
     async def watcher(self, message):
         try:
             asly = random.choice(asl)
-            chat = message.chat_id
-            chatid = str(chat)
-            duel = self.db.get("Дуэлька", "duel", {})
-            elj = {}
-            klw = {}
             rc = random.choice(nr)
             if "взять жабу" in asly:
                 ac = rc * 3
@@ -76,6 +71,11 @@ class kramiikkMod(loader.Module):
                 randelta = random.randint(ai, ar)
             else:
                 randelta = random.randint(1, ac)
+            chat = message.chat_id
+            chatid = str(chat)
+            duel = self.db.get("Дуэлька", "duel", {})
+            elj = {}
+            klw = {}
             if self.me.id in {1486632011}:
                 name = "оботи"
                 elj = {
