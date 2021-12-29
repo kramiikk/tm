@@ -1,10 +1,12 @@
-from .. import loader, utils
-from telethon import events, functions, types
-from apscheduler.triggers.cron import CronTrigger
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import asyncio, datetime, json, logging, time, random, re, requests
+import asyncio
+import datetime
+import logging
+import random
+import re
 
-# requires: apscheduler
+from telethon import events, functions, types
+
+from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 asl = [
@@ -138,15 +140,11 @@ class KramikkMod(loader.Module):
                                 cll0 = "~"
                             else:
                                 for i in ms:
-                                    lid = re.search(
-                                        "Имя: (.+)", i.message
-                                    ).group(1)
-                                    urv0 = re.search(
-                                        "Уровень: (.+)", i.message
-                                    ).group(1)
-                                    cll0 = re.search(
-                                        "Класс: (.+)", i.message
-                                    ).group(1)
+                                    lid = re.search("Имя: (.+)", i.message).group(1)
+                                    urv0 = re.search("Уровень: (.+)", i.message).group(
+                                        1
+                                    )
+                                    cll0 = re.search("Класс: (.+)", i.message).group(1)
                             ja1 = clj.group(2)
                             src = f"Chat id: {chat}\nИмя жабы: {ja1}"
                             ms = await self.client.get_messages(1655814348, search=src)
@@ -155,15 +153,11 @@ class KramikkMod(loader.Module):
                                 cll1 = "~"
                             else:
                                 for i in ms:
-                                    ja1 = re.search(
-                                        "Имя: (.+)", i.message
-                                    ).group(1)
-                                    urv1 = re.search(
-                                        "Уровень: (.+)", i.message
-                                    ).group(1)
-                                    cll1 = re.search(
-                                        "Класс: (.+)", i.message
-                                    ).group(1)
+                                    ja1 = re.search("Имя: (.+)", i.message).group(1)
+                                    urv1 = re.search("Уровень: (.+)", i.message).group(
+                                        1
+                                    )
+                                    cll1 = re.search("Класс: (.+)", i.message).group(1)
                             ja2 = clj.group(3)
                             src = f"Chat id: {chat}\nИмя жабы: {ja2}"
                             ms = await self.client.get_messages(1655814348, search=src)
@@ -172,15 +166,11 @@ class KramikkMod(loader.Module):
                                 cll2 = "~"
                             else:
                                 for i in ms:
-                                    ja2 = re.search(
-                                        "Имя: (.+)", i.message
-                                    ).group(1)
-                                    urv2 = re.search(
-                                        "Уровень: (.+)", i.message
-                                    ).group(1)
-                                    cll2 = re.search(
-                                        "Класс: (.+)", i.message
-                                    ).group(1)
+                                    ja2 = re.search("Имя: (.+)", i.message).group(1)
+                                    urv2 = re.search("Уровень: (.+)", i.message).group(
+                                        1
+                                    )
+                                    cll2 = re.search("Класс: (.+)", i.message).group(1)
                             ja3 = clj.group(4)
                             src = f"Chat id: {chat}\nИмя жабы: {ja3}"
                             ms = await self.client.get_messages(1655814348, search=src)
@@ -189,15 +179,11 @@ class KramikkMod(loader.Module):
                                 cll3 = "~"
                             else:
                                 for i in ms:
-                                    ja3 = re.search(
-                                        "Имя: (.+)", i.message
-                                    ).group(1)
-                                    urv3 = re.search(
-                                        "Уровень: (.+)", i.message
-                                    ).group(1)
-                                    cll3 = re.search(
-                                        "Класс: (.+)", i.message
-                                    ).group(1)
+                                    ja3 = re.search("Имя: (.+)", i.message).group(1)
+                                    urv3 = re.search("Уровень: (.+)", i.message).group(
+                                        1
+                                    )
+                                    cll3 = re.search("Класс: (.+)", i.message).group(1)
                             ja4 = clj.group(5)
                             src = f"Chat id: {chat}\nИмя жабы: {ja4}"
                             ms = await self.client.get_messages(1655814348, search=src)
@@ -206,15 +192,11 @@ class KramikkMod(loader.Module):
                                 cll4 = "~"
                             else:
                                 for i in ms:
-                                    ja4 = re.search(
-                                        "Имя: (.+)", i.message
-                                    ).group(1)
-                                    urv4 = re.search(
-                                        "Уровень: (.+)", i.message
-                                    ).group(1)
-                                    cll4 = re.search(
-                                        "Класс: (.+)", i.message
-                                    ).group(1)
+                                    ja4 = re.search("Имя: (.+)", i.message).group(1)
+                                    urv4 = re.search("Уровень: (.+)", i.message).group(
+                                        1
+                                    )
+                                    cll4 = re.search("Класс: (.+)", i.message).group(1)
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n(лид): {lid}:\n{urv0} лвл {cll0}\n{ja1}:\n{urv1} лвл {cll1}\n{ja2}:\n{urv2} лвл {cll2}\n{ja3}:\n{urv3} лвл {cll3}\n{ja4}:\n{urv4} лвл {cll4}"
                         return await self.client.send_message(OPPY, info)
                     else:
@@ -244,7 +226,9 @@ class KramikkMod(loader.Module):
                     else:
                         return
             elif (
-                message.message.lower().startswith(("мое снаряжение", "@tgtoadbot мое снаряжение"))
+                message.message.lower().startswith(
+                    ("мое снаряжение", "@tgtoadbot мое снаряжение")
+                )
                 and chat in ninja
             ):
                 async with self.client.conversation(chat) as conv:
@@ -312,7 +296,8 @@ class KramikkMod(loader.Module):
                 and message.sender_id in {1124824021}
             ):
                 capt = re.search(
-                    "клана (.+) нашелся враг (.+), пора .+\n(.+), (.+), (.+), (.+), (.+)", message.text
+                    "клана (.+) нашелся враг (.+), пора .+\n(.+), (.+), (.+), (.+), (.+)",
+                    message.text,
                 )
                 if capt:
                     mk = capt.group(1)
@@ -323,9 +308,7 @@ class KramikkMod(loader.Module):
                     ja1 = capt.group(6)
                     ja0 = capt.group(7)
                     war = f"{mk} против клана {ek}"
-                    m = await self.client.send_message(
-                        1655814348, f"⚡️ Клан {war}"
-                    )
+                    m = await self.client.send_message(1655814348, f"⚡️ Клан {war}")
                     war += f"\n<b>Клан {mk}</b>\n{ja0}\n{ja1}\n{ja2}\n{ja3}\n{ja4}"
                     return await utils.answer(m, war)
                 else:
@@ -348,54 +331,41 @@ class KramikkMod(loader.Module):
                         txt = f"<i>{message.sender.first_name} в поиске</i>"
                         nm = await self.client.send_message(1655814348, txt)
                         ch = await ch
-                        src = f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
+                        src = (
+                            f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
+                        )
                         mmsg = f"\nЧат: {ch.title}\nИмя: {message.sender.first_name}"
                         ms = await self.client.get_messages(1655814348, search=src)
                         if ms.total == 0:
                             src = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя жабы:"
                             ms2 = await self.client.get_messages(1655814348, search=src)
                             for i in ms2:
-                                jbn = re.search(
-                                    "Имя жабы: (.+)", i.message
-                                ).group(1)
+                                jbn = re.search("Имя жабы: (.+)", i.message).group(1)
                             src = f"Chat id: {chat}\nКлан: {jbn}"
                             ms3 = await self.client.get_messages(1655814348, search=src)
                             for i in ms3:
-                                klan = re.search(
-                                    "Клан: (.+)", i.message
-                                ).group(1)
+                                klan = re.search("Клан: (.+)", i.message).group(1)
                         for i in ms:
-                            klan = re.search(
-                                "Клан: (.+)", i.message
-                            ).group(1)
+                            klan = re.search("Клан: (.+)", i.message).group(1)
                             if "Усилитель:" in i.message:
-                                liga = re.search(
-                                    "Лига: (.+)", i.message
-                                ).group(1)
-                                usil = re.search(
-                                    "Усилитель: (.+)", i.message
-                                ).group(1)
+                                liga = re.search("Лига: (.+)", i.message).group(1)
+                                usil = re.search("Усилитель: (.+)", i.message).group(1)
                                 txt += f"\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
                             else:
                                 src = f"Топ 35 кланов {klan}"
-                                ms1 = await self.client.get_messages(1441941681, search=src)
+                                ms1 = await self.client.get_messages(
+                                    1441941681, search=src
+                                )
                                 for i in ms1:
                                     liga = re.search(
                                         "Топ 35 кланов (.+) сезона", i.message
                                     ).group(1)
-                                    txt += f"\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}"
+                                    txt += (
+                                        f"\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}"
+                                    )
                         return await utils.answer(nm, txt)
                     else:
                         return
-            elif "testo" in message.message:
-                args = message.message
-                reply = await message.get_reply_message()
-                mmsg = args.split(" ", 2)[2]
-                if reply:
-                    return await reply.reply(mmsg)
-                else:
-                    return await utils.answer(message, mmsg)
-           
             elif "букашки мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
