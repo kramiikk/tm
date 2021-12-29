@@ -3,7 +3,6 @@ import datetime
 import logging
 import random
 import re
-
 from telethon import events, functions, types
 
 from .. import loader, utils
@@ -70,11 +69,7 @@ class KramikkMod(loader.Module):
             ch = message.client.get_entity(message.to_id)
             chat = message.chat_id
             chatid = str(chat)
-            chatik = 1602929748
             duel = self.db.get("Дуэлька", "duel", {})
-            EK = {}
-            KW = {}
-            name = self.me.first_name
             ninja = {
                 -1001380664241,
                 -1001441941681,
@@ -334,7 +329,6 @@ class KramikkMod(loader.Module):
                         src = (
                             f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
                         )
-                        mmsg = f"\nЧат: {ch.title}\nИмя: {message.sender.first_name}"
                         ms = await self.client.get_messages(1655814348, search=src)
                         if ms.total == 0:
                             src = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя жабы:"
