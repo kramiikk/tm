@@ -60,6 +60,12 @@ def register(cb):
 @loader.tds
 class kramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
+    answers = {
+        0: ("Ответ тебе известен", "Ты знаешь лучше меня!", "Ответ убил!.."),
+        1: ("Да, но есть помехи", "Может быть", "Вероятно", "Возможно", "Наверняка"),
+        2: ("Есть помехи...", "Вряд ли", "Что-то помешает", "Маловероятно"),
+        3: ("Нет, но пока", "Скоро!", "Жди!", "Пока нет"),
+    }
     strings = {
         "name": "kramiikk",
         "quest_answer": "<i>%answer%</i>",
@@ -68,12 +74,6 @@ class kramiikkMod(loader.Module):
         self.name = self.strings["name"]
 
     async def client_ready(self, client, db):
-        answers = {
-            0: ("Ответ тебе известен", "Ты знаешь лучше меня!", "Ответ убил!.."),
-            1: ("Да, но есть помехи", "Может быть", "Вероятно", "Возможно", "Наверняка"),
-            2: ("Есть помехи...", "Вряд ли", "Что-то помешает", "Маловероятно"),
-            3: ("Нет, но пока", "Скоро!", "Жди!", "Пока нет"),
-        }
         self.client = client
         self.db = db
         self.me = await client.get_me()
@@ -547,7 +547,7 @@ class kramiikkMod(loader.Module):
                             )
                     return await message.reply(
                         self.strings["quest_answer"].replace(
-                            "%answer%", random.choice(answers[words_len[0]])
+                            "%answer%", random.choice(self.answers[words_len[0]])
                         )
                     )
                 elif "напиши в " in message.message:
