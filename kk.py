@@ -19,6 +19,7 @@ asl = [
     "кланы",
     "взять жабу",
 ]
+nr = [11, 13, 17, 24, 33]
 
 
 def register(cb):
@@ -116,7 +117,6 @@ class kramiikkMod(loader.Module):
     async def watcher(self, message):
         try:
             asly = random.choice(asl)
-            nr = [11, 13, 17, 24, 33]
             rc = random.choice(nr)
             if "взять жабу" in asly:
                 ac = rc * 3
