@@ -67,15 +67,15 @@ class kramiikkMod(loader.Module):
             else:
                 ac = rc + 33
             ai = self.me.id % 100 + ac
-            if ai > 81:
+            if ai > 56:
                 ai -= 42
             else:
-                ai += 27
-            ar = random.randint(1, 131)
+                ai += 9
+            ar = random.randint(rc, ac)
             if ar > ai:
                 randelta = random.randint(ai, ar)
             else:
-                randelta = random.randint(3, ac)
+                randelta = random.randint(1, ac)
             if self.me.id in {1486632011}:
                 name = "оботи"
                 elj = {
