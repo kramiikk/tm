@@ -19,96 +19,61 @@ asl = [
     "кланы",
     "взять жабу",
 ]
+bak = [
+    1709411724,
+    1261343954,
+    1785723159,
+    1486632011,
+    1863720231,
+    547639600,
+    449434040,
+    388412512,
+    553299699,
+    412897338,
+]
+elj = [
+    -1001441941681,
+    -1001436786642,
+    -1001380664241,
+    -1001289617428,
+    -1001485617300,
+    -1001465870466,
+    -1001169549362,
+    -1001543064221,
+]
+klw = [-419726290, -1001543064221, -577735616, -1001493923839]
+ninja = [
+    -1001380664241,
+    -1001441941681,
+    -1001289617428,
+    -1001436786642,
+    -1001465870466,
+    -1001447960786,
+    -1001290958283,
+    -1001485617300,
+]
 nr = [11, 13, 17, 24, 33]
-
 
 def register(cb):
     cb(kramiikkMod())
 
-
 @loader.tds
 class kramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
-
-    answers = {
-        0: ("Ответ тебе известен", "Ты знаешь лучше меня!", "Ответ убил!.."),
-        1: ("Да, но есть помехи", "Может быть", "Вероятно", "Возможно", "Наверняка"),
-        2: ("Есть помехи...", "Вряд ли", "Что-то помешает", "Маловероятно"),
-        3: ("Нет, но пока", "Скоро!", "Жди!", "Пока нет"),
-    }
     strings = {
         "name": "kramiikk",
         "quest_answer": "<i>%answer%</i>",
     }
-    bak = {
-        1709411724,
-        1261343954,
-        1785723159,
-        1486632011,
-        1863720231,
-        547639600,
-        449434040,
-        388412512,
-        553299699,
-        412897338,
-    }
-    farms = {
-        "Багoboty": -1001380664241,
-        "Том Рэддл": -1001441941681,
-        "Манулы и Зайчатки": -1001289617428,
-        "Жаботорт": -1001436786642,
-        ".": -1001409792751,
-        "жабки нэлс(платон)": -1001165420047,
-        "Дирижабль": -1001264330106,
-        "Сказочный донатер": -1001648008859,
-        "Листик": -1001685708710,
-        "Жабы аферисты Крам и бабушка": -421815520,
-        "Хэлло Вин!": -1001426018704,
-        "Танцы по средам": -1001481051409,
-        "IELTS": -1001492669520,
-        "Домик в болоте": -1001520533176,
-        "Космос нас ждет": -1001460270560,
-        "Forbidden Frog": -1001511984124,
-        "Vitoad": -1001771130958,
-        "Курсы вышивания": -1001760342148,
-        "Золотая жаба": -1001787904496,
-        "LSDtoads": -1001493923839,
-        "Цыганка": -1001714871513,
-        "жабы лена": -1001419547228,
-        "Жабочка": -1001666737591,
-        "AstroFrog": -1001575042525,
-        "Консилиум жаб": -1001777552705,
-        "Жабьи монстрики": -1001427000422,
-        "Жабы Вероны": -1001256439407,
-        "Жабьи специи": -1001499700136,
-        "Болотозавр": -1001624280659,
-    }
-    EK = {
-        -1001441941681,
-        -1001436786642,
-        -1001380664241,
-        -1001289617428,
-        -1001485617300,
-        -1001465870466,
-        -1001169549362,
-        -1001543064221,
-    }
-    KW = {-419726290, -1001543064221, -577735616, -1001493923839}
-    ninja = {
-        -1001380664241,
-        -1001441941681,
-        -1001289617428,
-        -1001436786642,
-        -1001465870466,
-        -1001447960786,
-        -1001290958283,
-        -1001485617300,
-    }
-
     def __init__(self):
         self.name = self.strings["name"]
 
     async def client_ready(self, client, db):
+        answers = {
+            0: ("Ответ тебе известен", "Ты знаешь лучше меня!", "Ответ убил!.."),
+            1: ("Да, но есть помехи", "Может быть", "Вероятно", "Возможно", "Наверняка"),
+            2: ("Есть помехи...", "Вряд ли", "Что-то помешает", "Маловероятно"),
+            3: ("Нет, но пока", "Скоро!", "Жди!", "Пока нет"),
+        }
         self.client = client
         self.db = db
         self.me = await client.get_me()
@@ -139,7 +104,7 @@ class kramiikkMod(loader.Module):
             else:
                 randelta = random.randint(1, ac)
             chat = message.chat_id
-            if chat in self.EK:
+            if chat in elj:
                 rc = 0.3
             ch = self.client.get_entity(message.to_id)
             chatid = str(chat)
@@ -149,7 +114,7 @@ class kramiikkMod(loader.Module):
                 message.message.lower().startswith(
                     ("начать клановую", "@tgtoadbot начать клановую")
                 )
-            ) and chat in self.ninja:
+            ) and chat in ninja:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
@@ -197,7 +162,7 @@ class kramiikkMod(loader.Module):
                         return
             elif (
                 message.message.startswith("Алло")
-                and chat in self.ninja
+                and chat in ninja
                 and message.sender_id in {1124824021}
             ):
                 capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
@@ -219,8 +184,8 @@ class kramiikkMod(loader.Module):
                 return await message.respond("отправиться за картой")
             elif (
                 message.message.lower().startswith(asly)
-                and chat in self.EK
-                and message.sender_id in self.bak
+                and chat in elj
+                and message.sender_id in bak
             ):
                 await asyncio.sleep(randelta)
                 sch = (
@@ -408,7 +373,7 @@ class kramiikkMod(loader.Module):
                             await conv.send_message("война инфо")
                             response = await response
                             if "⚔️Состояние⚔️: Не" in response.text:
-                                if message.chat_id in self.KW:
+                                if message.chat_id in klw:
                                     return await conv.send_message(
                                         "начать клановую войну"
                                     )
@@ -443,7 +408,7 @@ class kramiikkMod(loader.Module):
                                 return
             elif (
                 message.message.lower().startswith(asly)
-                and message.sender_id in self.bak
+                and message.sender_id in bak
             ):
                 await asyncio.sleep(randelta)
                 sch = (
@@ -550,7 +515,7 @@ class kramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-            elif "лвл чек" in message.message and message.sender_id in self.bak:
+            elif "лвл чек" in message.message and message.sender_id in bak:
                 x = int(message.message.split(" ", 3)[2])
                 u = int(message.message.split(" ", 3)[3])
                 y = ((x + u) - 160) * 2
@@ -563,7 +528,7 @@ class kramiikkMod(loader.Module):
                 message.message.lower().startswith((name, f"@{self.me.username}"))
                 or name in message.message
                 and message.message.endswith("😉")
-            ) and message.sender_id in self.bak:
+            ) and message.sender_id in bak:
                 await asyncio.sleep(rc)
                 args = message.message
                 reply = await message.get_reply_message()
@@ -582,14 +547,9 @@ class kramiikkMod(loader.Module):
                             )
                     return await message.reply(
                         self.strings["quest_answer"].replace(
-                            "%answer%", random.choice(self.answers[words_len[0]])
+                            "%answer%", random.choice(answers[words_len[0]])
                         )
                     )
-                elif "~" in message.message:
-                    mmsg = args.split(" ", 2)[2]
-                    await utils.answer(message, "поехали")
-                    for farm_name, farm_id in self.farms.items():
-                        await self.client.send_message(farm_id, mmsg)
                 elif "напиши в " in message.message:
                     count = args.split(" ", 4)[3]
                     if count.isnumeric():
@@ -746,7 +706,7 @@ class kramiikkMod(loader.Module):
                         return await reply.reply(mmsg)
                     else:
                         return await utils.answer(message, mmsg)
-            elif "букашки мне😊" in message.message and message.sender_id in self.bak:
+            elif "букашки мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -776,7 +736,7 @@ class kramiikkMod(loader.Module):
                             )
                     else:
                         return
-            elif "инвентарь мне😊" in message.message and message.sender_id in self.bak:
+            elif "инвентарь мне😊" in message.message and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -817,6 +777,42 @@ class kramiikkMod(loader.Module):
                             return
                     else:
                         return
+            elif chatid in duel and message.sender_id not in {self.me.id, 1124824021}:
+                if "РеанимироватЬ жабу" in message.message:
+                    await asyncio.sleep(rc)
+                    return await utils.answer(message, "дуэль")
+                else:
+                    return
+            elif chatid in duel and message.sender_id in {1124824021}:
+                if (
+                    f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
+                    in message.message
+                ):
+                    await asyncio.sleep(rc)
+                    await message.respond("дуэль принять")
+                    await asyncio.sleep(rc)
+                    return await message.respond("дуэль старт")
+                elif "Имя Жабы" in self.status:
+                    if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
+                        await asyncio.sleep(rc)
+                        return await message.respond("РеанимироватЬ жабу")
+                    elif "Победитель" in message.message:
+                        if (
+                            self.status["Имя Жабы"] in message.message
+                            and "отыграл" in message.message
+                        ):
+                            duel.pop(chatid)
+                            self.db.set("Дуэлька", "duel", duel)
+                            await utils.answer(message, "<b>пью ромашковый чай</b>!")
+                        elif self.status["Имя Жабы"] not in message.message:
+                            await asyncio.sleep(rc)
+                            await utils.answer(message, "РеанимироватЬ жабу")
+                        else:
+                            return
+                    else:
+                        return
+                else:
+                    return
             elif "[8🐝]" in message.message and message.sender_id in {830605725}:
                 return await message.click(0)
             elif "[4🐝]" in message.message and message.sender_id in {830605725}:
@@ -857,42 +853,6 @@ class kramiikkMod(loader.Module):
                     )
                 )
                 return await self.client.send_message(chat, "Фарма", schedule=delta)
-            elif chatid in duel and message.sender_id not in {self.me.id, 1124824021}:
-                if "РеанимироватЬ жабу" in message.message:
-                    await asyncio.sleep(rc)
-                    return await utils.answer(message, "дуэль")
-                else:
-                    return
-            elif chatid in duel and message.sender_id in {1124824021}:
-                if (
-                    f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
-                    in message.message
-                ):
-                    await asyncio.sleep(rc)
-                    await message.respond("дуэль принять")
-                    await asyncio.sleep(rc)
-                    return await message.respond("дуэль старт")
-                elif "Имя Жабы" in self.status:
-                    if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
-                        await asyncio.sleep(rc)
-                        return await message.respond("РеанимироватЬ жабу")
-                    elif "Победитель" in message.message:
-                        if (
-                            self.status["Имя Жабы"] in message.message
-                            and "отыграл" in message.message
-                        ):
-                            duel.pop(chatid)
-                            self.db.set("Дуэлька", "duel", duel)
-                            await utils.answer(message, "<b>пью ромашковый чай</b>!")
-                        elif self.status["Имя Жабы"] not in message.message:
-                            await asyncio.sleep(rc)
-                            await utils.answer(message, "РеанимироватЬ жабу")
-                        else:
-                            return
-                    else:
-                        return
-                else:
-                    return
             else:
                 return
         except:
