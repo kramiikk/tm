@@ -120,7 +120,8 @@ class KramikkMod(loader.Module):
                         ch = await ch
                         klan = re.search("Клан (.+):", response.text).group(1)
                         liga = re.search("Лига: (.+)", response.text).group(1)
-                        usil = re.search("Усилитель: (.+)", response.text).group(1)
+                        usil = re.search("Усилитель: (.+)",
+                                         response.text).group(1)
                         info = response.text
                         clj = re.search(
                             "\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n",
@@ -135,11 +136,13 @@ class KramikkMod(loader.Module):
                                 cll0 = "~"
                             else:
                                 for i in ms:
-                                    lid = re.search("Имя: (.+)", i.message).group(1)
+                                    lid = re.search(
+                                        "Имя: (.+)", i.message).group(1)
                                     urv0 = re.search("Уровень: (.+)", i.message).group(
                                         1
                                     )
-                                    cll0 = re.search("Класс: (.+)", i.message).group(1)
+                                    cll0 = re.search(
+                                        "Класс: (.+)", i.message).group(1)
                             ja1 = clj.group(2)
                             src = f"Chat id: {chat}\nИмя жабы: {ja1}"
                             ms = await self.client.get_messages(1655814348, search=src)
@@ -148,11 +151,13 @@ class KramikkMod(loader.Module):
                                 cll1 = "~"
                             else:
                                 for i in ms:
-                                    ja1 = re.search("Имя: (.+)", i.message).group(1)
+                                    ja1 = re.search(
+                                        "Имя: (.+)", i.message).group(1)
                                     urv1 = re.search("Уровень: (.+)", i.message).group(
                                         1
                                     )
-                                    cll1 = re.search("Класс: (.+)", i.message).group(1)
+                                    cll1 = re.search(
+                                        "Класс: (.+)", i.message).group(1)
                             ja2 = clj.group(3)
                             src = f"Chat id: {chat}\nИмя жабы: {ja2}"
                             ms = await self.client.get_messages(1655814348, search=src)
@@ -161,11 +166,13 @@ class KramikkMod(loader.Module):
                                 cll2 = "~"
                             else:
                                 for i in ms:
-                                    ja2 = re.search("Имя: (.+)", i.message).group(1)
+                                    ja2 = re.search(
+                                        "Имя: (.+)", i.message).group(1)
                                     urv2 = re.search("Уровень: (.+)", i.message).group(
                                         1
                                     )
-                                    cll2 = re.search("Класс: (.+)", i.message).group(1)
+                                    cll2 = re.search(
+                                        "Класс: (.+)", i.message).group(1)
                             ja3 = clj.group(4)
                             src = f"Chat id: {chat}\nИмя жабы: {ja3}"
                             ms = await self.client.get_messages(1655814348, search=src)
@@ -174,11 +181,13 @@ class KramikkMod(loader.Module):
                                 cll3 = "~"
                             else:
                                 for i in ms:
-                                    ja3 = re.search("Имя: (.+)", i.message).group(1)
+                                    ja3 = re.search(
+                                        "Имя: (.+)", i.message).group(1)
                                     urv3 = re.search("Уровень: (.+)", i.message).group(
                                         1
                                     )
-                                    cll3 = re.search("Класс: (.+)", i.message).group(1)
+                                    cll3 = re.search(
+                                        "Класс: (.+)", i.message).group(1)
                             ja4 = clj.group(5)
                             src = f"Chat id: {chat}\nИмя жабы: {ja4}"
                             ms = await self.client.get_messages(1655814348, search=src)
@@ -187,11 +196,13 @@ class KramikkMod(loader.Module):
                                 cll4 = "~"
                             else:
                                 for i in ms:
-                                    ja4 = re.search("Имя: (.+)", i.message).group(1)
+                                    ja4 = re.search(
+                                        "Имя: (.+)", i.message).group(1)
                                     urv4 = re.search("Уровень: (.+)", i.message).group(
                                         1
                                     )
-                                    cll4 = re.search("Класс: (.+)", i.message).group(1)
+                                    cll4 = re.search(
+                                        "Класс: (.+)", i.message).group(1)
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЧат: {ch.title}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n(лид): {lid}:\n{urv0} лвл {cll0}\n{ja1}:\n{urv1} лвл {cll1}\n{ja2}:\n{urv2} лвл {cll2}\n{ja3}:\n{urv3} лвл {cll3}\n{ja4}:\n{urv4} лвл {cll4}"
                         return await self.client.send_message(OPPY, info)
                     else:
@@ -211,11 +222,15 @@ class KramikkMod(loader.Module):
                     response = await response
                     if "Имя жабы:" in response.text:
                         ch = await ch
-                        imy = re.search("Имя жабы: (.+)", response.text).group(1)
-                        urv = re.search("вашей жабы: (.+)", response.text).group(1)
+                        imy = re.search("Имя жабы: (.+)",
+                                        response.text).group(1)
+                        urv = re.search("вашей жабы: (.+)",
+                                        response.text).group(1)
                         cll = re.search("Класс: (.+)", response.text).group(1)
-                        syt = re.search("Сытость: (.+)", response.text).group(1)
-                        byk = re.search("Букашки: (.+)", response.text).group(1)
+                        syt = re.search("Сытость: (.+)",
+                                        response.text).group(1)
+                        byk = re.search("Букашки: (.+)",
+                                        response.text).group(1)
                         info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя жабы: {imy}\nУровень: {urv}\nСытость: {syt}\nКласс: {cll}\nБукашки: {byk}\nИмя: {message.sender.first_name}\nЧат: {ch.title}"
                         return await self.client.send_message(OPPY, info)
                     else:
@@ -269,7 +284,8 @@ class KramikkMod(loader.Module):
                     if "В клановой войне" in response.text:
                         ch = await ch
                         cln = re.search("Клан (.+)🛡", response.text).group(1)
-                        cln1 = re.search("войне с (.+)$", response.text).group(1)
+                        cln1 = re.search(
+                            "войне с (.+)$", response.text).group(1)
                         info = response.text
                         clw = re.search(
                             "\|.+\n\n(.+) \|.+\n(.+) \|.+\n(.+) \|.+\n(.+) \|.+\n(.+) \|",
@@ -334,16 +350,20 @@ class KramikkMod(loader.Module):
                             src = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя жабы:"
                             ms2 = await self.client.get_messages(1655814348, search=src)
                             for i in ms2:
-                                jbn = re.search("Имя жабы: (.+)", i.message).group(1)
+                                jbn = re.search(
+                                    "Имя жабы: (.+)", i.message).group(1)
                             src = f"Chat id: {chat}\nКлан: {jbn}"
                             ms3 = await self.client.get_messages(1655814348, search=src)
                             for i in ms3:
-                                klan = re.search("Клан: (.+)", i.message).group(1)
+                                klan = re.search(
+                                    "Клан: (.+)", i.message).group(1)
                         for i in ms:
                             klan = re.search("Клан: (.+)", i.message).group(1)
                             if "Усилитель:" in i.message:
-                                liga = re.search("Лига: (.+)", i.message).group(1)
-                                usil = re.search("Усилитель: (.+)", i.message).group(1)
+                                liga = re.search(
+                                    "Лига: (.+)", i.message).group(1)
+                                usil = re.search(
+                                    "Усилитель: (.+)", i.message).group(1)
                                 txt += f"\nЧат: {ch.title}\nКлан: {klan}\nЛига: {liga}\nУсилитель: {usil}"
                             else:
                                 src = f"Топ 35 кланов {klan}"
@@ -489,7 +509,8 @@ class KramikkMod(loader.Module):
                             )
                             await conv.send_message(
                                 "работа крупье",
-                                schedule=delta + datetime.timedelta(seconds=13),
+                                schedule=delta +
+                                datetime.timedelta(seconds=13),
                             )
                         for number in range(2):
                             delta = delta + datetime.timedelta(hours=8)
@@ -498,7 +519,8 @@ class KramikkMod(loader.Module):
                             )
                             await conv.send_message(
                                 "работа крупье",
-                                schedule=delta + datetime.timedelta(seconds=13),
+                                schedule=delta +
+                                datetime.timedelta(seconds=13),
                             )
                             await conv.send_message(
                                 "завершить работу",
@@ -535,7 +557,8 @@ class KramikkMod(loader.Module):
                         )
                         await conv.send_message(
                             "завершить работу",
-                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta +
+                            datetime.timedelta(hours=2, seconds=13),
                         )
             else:
                 pass
