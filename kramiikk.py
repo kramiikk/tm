@@ -253,7 +253,7 @@ class kramiikkMod(loader.Module):
                             await conv.send_message("откормить жабку")
                             delta = datetime.timedelta(hours=4, seconds=3)
                             await conv.send_message("откормить жабку", schedule=delta)
-                        for number in range(4):
+                        for i in range(4):
                             delta = delta + datetime.timedelta(hours=4)
                             await conv.send_message("откормить жабку", schedule=delta)
                         if "В подземелье можно" in response.text:
@@ -411,7 +411,7 @@ class kramiikkMod(loader.Module):
                     else:
                         delta = datetime.timedelta(hours=6, seconds=3)
                         await conv.send_message("покормить жабку")
-                    for number in range(3):
+                    for i in range(3):
                         delta = delta + datetime.timedelta(hours=6, seconds=3)
                         await conv.send_message("покормить жабку", schedule=delta)
                     if "работу можно" in response.text:
@@ -433,7 +433,7 @@ class kramiikkMod(loader.Module):
                                 "работа крупье",
                                 schedule=delta + datetime.timedelta(seconds=13),
                             )
-                        for number in range(2):
+                        for i in range(2):
                             delta = delta + datetime.timedelta(hours=8)
                             await conv.send_message(
                                 "реанимировать жабу", schedule=delta
@@ -468,7 +468,7 @@ class kramiikkMod(loader.Module):
                     else:
                         await conv.send_message("завершить работу")
                         delta = datetime.timedelta(hours=6)
-                    for number in range(2):
+                    for i in range(2):
                         delta = delta + datetime.timedelta(hours=6, seconds=3)
                         await conv.send_message("реанимировать жабу", schedule=delta)
                         await conv.send_message(
@@ -488,24 +488,7 @@ class kramiikkMod(loader.Module):
                 args = message.message
                 reply = await message.get_reply_message()
                 count = args.split(" ", 2)[1]
-                if message.message.endswith("?"):
-                    words = re.findall(r"\w+", f"{message.message}")
-                    words_len = [words.__len__()] + [x.__len__() for x in words]
-                    i = words_len.__len__()
-                    while i > 1:
-                        i -= 1
-                        for x in range(i):
-                            words_len[x] = (
-                                words_len[x] + words_len[x + 1] - 3
-                                if words_len[x] + words_len[x + 1] > 3
-                                else words_len[x] + words_len[x + 1]
-                            )
-                    return await message.reply(
-                        self.strings["quest_answer"].replace(
-                            "%answer%", random.choice(self.answers[words_len[0]])
-                        )
-                    )
-                elif "напиши в " in message.message:
+                if "напиши в " in message.message:
                     count = args.split(" ", 4)[3]
                     if count.isnumeric():
                         count = int(args.split(" ", 4)[3])
