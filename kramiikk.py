@@ -66,8 +66,6 @@ class kramiikkMod(loader.Module):
                 ac = rc + 21
             else:
                 ac = rc + 33
-            if chat in {-1001441941681}:
-                rc = 0.3
             ai = self.me.id % 100 + ac
             if ai > 81:
                 ai -= 42
@@ -139,6 +137,8 @@ class kramiikkMod(loader.Module):
                 name = "кира"
             else:
                 name = self.me.first_name
+            if chat in elj:
+                rc = 0.3
             if (
                 f"Сейчас выбирает ход: {self.me.first_name}" in message.message
                 and message.mentioned
