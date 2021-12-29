@@ -140,7 +140,7 @@ class kramiikkMod(loader.Module):
                 randelta = random.randint(1, ac)
             if chat in EK:
                 rc = 0.3
-            ch = self.client.get_entity(message.to_id)
+            ch = client.get_entity(message.to_id)
             chat = message.chat_id
             chatid = str(chat)
             duel = self.db.get("Дуэлька", "duel", {})
@@ -150,7 +150,7 @@ class kramiikkMod(loader.Module):
                     ("начать клановую", "@tgtoadbot начать клановую")
                 )
             ) and chat in self.ninja:
-                async with self.client.conversation(chat) as conv:
+                async with client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
                             incoming=True,
@@ -161,14 +161,14 @@ class kramiikkMod(loader.Module):
                     response = await response
                     if "Отлично! Как только" in response.text:
                         txt = f"<i>{message.sender.first_name} в поиске"
-                        nm = await self.client.send_message(1767017980, txt)
+                        nm = await client.send_message(1767017980, txt)
                         ch = await ch
                         txt += (
                             f"\nЧат: <i>{ch.title}</i>"
                         )
                         await utils.answer(nm, txt)
                         src = f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
-                        ms = await self.client.get_messages(1655814348, search=src)
+                        ms = await client.get_messages(1655814348, search=src)
                         if ms.total == 0:
                             return
                         for i in ms:
@@ -178,7 +178,7 @@ class kramiikkMod(loader.Module):
                                 "Усилитель: (.+)", i.message
                             ).group(1)
                         src = f"Топ 35 кланов {klan}"
-                        ms = await self.client.get_messages(1441941681, search=src)
+                        ms = await client.get_messages(1441941681, search=src)
                         if ms.total == 0:
                             tdd = ""
                         else:
@@ -207,7 +207,7 @@ class kramiikkMod(loader.Module):
                     mk = capt.group(1)
                     ek = capt.group(2)
                     war = f"{mk} против клана {ek}"
-                    return await self.client.send_message(
+                    return await client.send_message(
                         1767017980, f"⚡️ Клан {war}"
                     )
                 else:
@@ -228,16 +228,16 @@ class kramiikkMod(loader.Module):
             ):
                 await asyncio.sleep(randelta)
                 sch = (
-                    await self.client(
+                    await client(
                         functions.messages.GetScheduledHistoryRequest(chat, 0)
                     )
                 ).messages
-                await self.client(
+                await client(
                     functions.messages.DeleteScheduledMessagesRequest(
                         chat, id=[x.id for x in sch]
                     )
                 )
-                async with self.client.conversation(message.chat_id) as conv:
+                async with client.conversation(message.chat_id) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
                             incoming=True,
@@ -448,16 +448,16 @@ class kramiikkMod(loader.Module):
             elif message.message.lower().startswith(asly) and message.sender_id in self.bak:
                 await asyncio.sleep(randelta)
                 sch = (
-                    await self.client(
+                    await client(
                         functions.messages.GetScheduledHistoryRequest(chat, 0)
                     )
                 ).messages
-                await self.client(
+                await client(
                     functions.messages.DeleteScheduledMessagesRequest(
                         chat, id=[x.id for x in sch]
                     )
                 )
-                async with self.client.conversation(message.chat_id) as conv:
+                async with client.conversation(message.chat_id) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
                             incoming=True,
@@ -590,16 +590,16 @@ class kramiikkMod(loader.Module):
                     mmsg = args.split(" ", 2)[2]
                     await utils.answer(message, "поехали")
                     for farm_name, farm_id in self.farms.items():
-                        await self.client.send_message(farm_id, mmsg)
+                        await client.send_message(farm_id, mmsg)
                 elif "напиши в " in message.message:
                     count = args.split(" ", 4)[3]
                     if count.isnumeric():
                         count = int(args.split(" ", 4)[3])
                     mmsg = args.split(" ", 4)[4]
-                    await self.client.send_message(
+                    await client.send_message(
                         1001714871513, f"{count} {mmsg} {chat}"
                     )
-                    async with self.client.conversation(count) as conv:
+                    async with client.conversation(count) as conv:
                         response = conv.wait_event(
                             events.NewMessage(
                                 incoming=True,
@@ -611,7 +611,7 @@ class kramiikkMod(loader.Module):
                         response = await response
                         await message.reply(response.message)
                 elif "напади" in message.message:
-                    async with self.client.conversation(chat) as conv:
+                    async with client.conversation(chat) as conv:
                         response = conv.wait_event(
                             events.NewMessage(
                                 incoming=True,
@@ -632,7 +632,7 @@ class kramiikkMod(loader.Module):
                         else:
                             return
                 elif "подземелье" in message.message:
-                    async with self.client.conversation(chat) as conv:
+                    async with client.conversation(chat) as conv:
                         response = conv.wait_event(
                             events.NewMessage(
                                 incoming=True,
@@ -666,7 +666,7 @@ class kramiikkMod(loader.Module):
                 elif "го кв" in message.message:
                     await message.respond("начать клановую войну")
                 elif "снаряжение" in message.message:
-                    async with self.client.conversation(chat) as conv:
+                    async with client.conversation(chat) as conv:
                         response = conv.wait_event(
                             events.NewMessage(
                                 incoming=True,
@@ -710,7 +710,7 @@ class kramiikkMod(loader.Module):
                         return await utils.answer(message, "<b>пью ромашковый чай</b>!")
                     duel.setdefault(chatid, {})
                     self.db.set("Дуэлька", "duel", duel)
-                    async with self.client.conversation(message.chat_id) as conv:
+                    async with client.conversation(message.chat_id) as conv:
                         response = conv.wait_event(
                             events.NewMessage(
                                 incoming=True,
@@ -739,7 +739,7 @@ class kramiikkMod(loader.Module):
                     mmsg = args.split(" ", 3)[3]
                     time = int(args.split(" ", 3)[2])
                     for _ in range(count):
-                        await self.client.send_message(chat, mmsg)
+                        await client.send_message(chat, mmsg)
                         await asyncio.sleep(time)
                 else:
                     mmsg = args.split(" ", 2)[2]
@@ -749,7 +749,7 @@ class kramiikkMod(loader.Module):
                         return await utils.answer(message, mmsg)
             elif "букашки мне😊" in message.message and message.sender_id in self.bak:
                 await asyncio.sleep(randelta)
-                async with self.client.conversation(chat) as conv:
+                async with client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
                             incoming=True,
@@ -779,7 +779,7 @@ class kramiikkMod(loader.Module):
                         return
             elif "инвентарь мне😊" in message.message and message.sender_id in self.bak:
                 await asyncio.sleep(randelta)
-                async with self.client.conversation(chat) as conv:
+                async with client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
                             incoming=True,
@@ -831,7 +831,7 @@ class kramiikkMod(loader.Module):
             }:
                 return await message.click(0)
             elif "Фарма" in message.message and chat in {707693258}:
-                return await self.client.send_message(
+                return await client.send_message(
                     chat,
                     "Фарма",
                     schedule=datetime.timedelta(minutes=random.randint(1, 20)),
@@ -852,16 +852,16 @@ class kramiikkMod(loader.Module):
                 else:
                     pass
                 sch = (
-                    await self.client(
+                    await client(
                         functions.messages.GetScheduledHistoryRequest(chat, 1488)
                     )
                 ).messages
-                await self.client(
+                await client(
                     functions.messages.DeleteScheduledMessagesRequest(
                         chat, id=[x.id for x in sch]
                     )
                 )
-                return await self.client.send_message(chat, "Фарма", schedule=delta)
+                return await client.send_message(chat, "Фарма", schedule=delta)
             elif chatid in duel and message.sender_id not in {self.me.id, 1124824021}:
                 if "РеанимироватЬ жабу" in message.message:
                     await asyncio.sleep(rc)
