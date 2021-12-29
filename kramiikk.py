@@ -3,7 +3,7 @@ import datetime
 import logging
 import random
 import re
-from telethon import events, functions
+from telethon import events, functions, types
 
 from .. import loader, utils
 
@@ -27,6 +27,7 @@ bak = [
     553299699,
     412897338,
 ]
+
 nr = [11, 13, 17, 24, 33]
 
 def register(cb):
@@ -38,6 +39,7 @@ class kramiikkMod(loader.Module):
     strings = {
         "name": "kramiikk",
     }
+
     def __init__(self):
         self.name = self.strings["name"]
 
@@ -72,8 +74,6 @@ class kramiikkMod(loader.Module):
             else:
                 randelta = random.randint(1, ac)
             chat = message.chat_id
-            chatid = str(chat)
-            duel = self.db.get("Дуэлька", "duel", {})
             elj = {}
             klw = {}
             if self.me.id in {1486632011}:
@@ -139,6 +139,8 @@ class kramiikkMod(loader.Module):
                 name = self.me.first_name
             if chat in elj:
                 rc = 0.3
+            chatid = str(chat)
+            duel = self.db.get("Дуэлька", "duel", {})
             if (
                 f"Сейчас выбирает ход: {self.me.first_name}" in message.message
                 and message.mentioned
@@ -755,3 +757,4 @@ class kramiikkMod(loader.Module):
                 return
         except:
             return
+
