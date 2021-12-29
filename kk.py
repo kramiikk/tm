@@ -149,7 +149,7 @@ class kramiikkMod(loader.Module):
                 message.message.lower().startswith(
                     ("начать клановую", "@tgtoadbot начать клановую")
                 )
-            ) and chat in ninja:
+            ) and chat in self.ninja:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
@@ -197,7 +197,7 @@ class kramiikkMod(loader.Module):
                         return
             elif (
                 message.message.startswith("Алло")
-                and chat in ninja
+                and chat in self.ninja
                 and message.sender_id in {1124824021}
             ):
                 capt = re.search(
@@ -223,8 +223,8 @@ class kramiikkMod(loader.Module):
                 return await message.respond("отправиться за картой")
             elif (
                 message.message.lower().startswith(asly)
-                and chat in EK
-                and message.sender_id in bak
+                and chat in self.EK
+                and message.sender_id in self.bak
             ):
                 await asyncio.sleep(randelta)
                 sch = (
@@ -412,7 +412,7 @@ class kramiikkMod(loader.Module):
                             await conv.send_message("война инфо")
                             response = await response
                             if "⚔️Состояние⚔️: Не" in response.text:
-                                if message.chat_id in KW:
+                                if message.chat_id in self.KW:
                                     return await conv.send_message(
                                         "начать клановую войну"
                                     )
@@ -445,7 +445,7 @@ class kramiikkMod(loader.Module):
                                 )
                             else:
                                 return
-            elif message.message.lower().startswith(asly) and message.sender_id in bak:
+            elif message.message.lower().startswith(asly) and message.sender_id in self.bak:
                 await asyncio.sleep(randelta)
                 sch = (
                     await self.client(
@@ -551,7 +551,7 @@ class kramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-            elif "лвл чек" in message.message and message.sender_id in bak:
+            elif "лвл чек" in message.message and message.sender_id in self.bak:
                 x = int(message.message.split(" ", 3)[2])
                 u = int(message.message.split(" ", 3)[3])
                 y = ((x + u) - 160) * 2
@@ -564,7 +564,7 @@ class kramiikkMod(loader.Module):
                 message.message.lower().startswith((name, f"@{self.me.username}"))
                 or name in message.message
                 and message.message.endswith("😉")
-            ) and message.sender_id in bak:
+            ) and message.sender_id in self.bak:
                 await asyncio.sleep(rc)
                 args = message.message
                 reply = await message.get_reply_message()
@@ -747,7 +747,7 @@ class kramiikkMod(loader.Module):
                         return await reply.reply(mmsg)
                     else:
                         return await utils.answer(message, mmsg)
-            elif "букашки мне😊" in message.message and message.sender_id in bak:
+            elif "букашки мне😊" in message.message and message.sender_id in self.bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -777,7 +777,7 @@ class kramiikkMod(loader.Module):
                             )
                     else:
                         return
-            elif "инвентарь мне😊" in message.message and message.sender_id in bak:
+            elif "инвентарь мне😊" in message.message and message.sender_id in self.bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
