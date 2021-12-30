@@ -252,20 +252,25 @@ class KramikkMod(loader.Module):
                 and message.sender_id in {1124824021}
             ):
                 capt = re.search(
-                    "клана (.+) нашелся враг (.+), пора .+\n(.+), (.+), (.+), (.+), (.+)",
+                    "клана (.+) нашелся враг (.+), пора .+\n(<.+?(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>)",
                     message.text,
                 )
                 if capt:
-                    mk = capt.group(1)
-                    ek = capt.group(2)
-                    ja0 = capt.group(7)
-                    ja1 = capt.group(6)
-                    ja2 = capt.group(5)
-                    ja3 = capt.group(4)
+                    id0 = capt.group(12)
+                    ja0 = capt.group(11)
+                    id1 = capt.group(10)
+                    ja1 = capt.group(9)
+                    id2 = capt.group(8)
+                    ja2 = capt.group(7)
+                    id3 = capt.group(6)
+                    ja3 = capt.group(5)
+                    id4 = capt.group(4)
                     ja4 = capt.group(3)
+                    ek = capt.group(2)
+                    mk = capt.group(1)
                     war = f"{mk} против клана {ek}"
                     m = await self.client.send_message(1655814348, f"⚡️ Клан {war}")
-                    war += f"\n<b>Клан {mk}</b>\n{ja0}\n{ja1}\n{ja2}\n{ja3}\n{ja4}"
+                    war += f"\nChat id: {chat}\n<b>Клан {mk}</b>\n{ja0} {id0}\n{ja1} {id1}\n{ja2} {id2}\n{ja3} {id3}\n{ja4} {id4}"
                     return await utils.answer(m, war)
                 else:
                     return
