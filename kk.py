@@ -509,19 +509,19 @@ class kramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-            elif "лвл чек" in message.message and message.sender_id in bak:
+            elif message.message.lower().startswith("лвл чек") and message.sender_id in bak:
                 x = int(message.message.split(" ", 3)[2])
                 u = int(message.message.split(" ", 3)[3])
                 y = ((x + u) - 160) * 2
                 if y > -1:
                     res = f"<b>~ {y} лвл</b>"
                 else:
-                    res = f"<b>лвл не может быть отрицательным!!!\nпробуй заново, напиши:\n\n<code>лвл чек 160 90</code></b>"
+                    return
                 return await utils.answer(message, res)
             elif (
                 message.message.lower().startswith((name, f"@{self.me.username}"))
-                or name in message.message
-                and message.message.endswith("😉")
+                or (name in message.message
+                and message.message.endswith("😉"))
             ) and message.sender_id in bak:
                 await asyncio.sleep(rc)
                 args = message.message
@@ -700,7 +700,7 @@ class kramiikkMod(loader.Module):
                         return await reply.reply(mmsg)
                     else:
                         return await utils.answer(message, mmsg)
-            elif "букашки мне😊" in message.message and message.sender_id in bak:
+            elif message.message.lower().startswith("букашки мне😊") and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -730,7 +730,7 @@ class kramiikkMod(loader.Module):
                             )
                     else:
                         return
-            elif "инвентарь мне😊" in message.message and message.sender_id in bak:
+            elif message.message.lower().startswith("инвентарь мне😊") and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
