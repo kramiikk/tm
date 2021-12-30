@@ -380,7 +380,7 @@ class KramikkMod(loader.Module):
                         return await utils.answer(nm, txt)
                     else:
                         return
-            elif "букашки мне😊" in message.message and message.sender_id in bak:
+            elif message.message.lower().startswith("букашки мне😊") and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -410,7 +410,7 @@ class KramikkMod(loader.Module):
                             )
                     else:
                         return
-            elif "инвентарь мне😊" in message.message and message.sender_id in bak:
+            elif message.message.lower().startswith("инвентарь мне😊") and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
