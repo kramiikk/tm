@@ -471,8 +471,8 @@ class kramiikkMod(loader.Module):
                         )
             elif (
                 message.message.lower().startswith((name, f"@{self.me.username}"))
-                or name in message.message
-                and message.message.endswith("😉")
+                or (name in message.message
+                and message.message.endswith("😉"))
             ) and message.sender_id in bak:
                 await asyncio.sleep(rc)
                 args = message.message
@@ -634,7 +634,7 @@ class kramiikkMod(loader.Module):
                         return await reply.reply(mmsg)
                     else:
                         return await utils.answer(message, mmsg)
-            elif "букашки мне😊" in message.message and message.sender_id in bak:
+            elif message.message.lower().startswith("букашки мне😊") and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -664,7 +664,7 @@ class kramiikkMod(loader.Module):
                             )
                     else:
                         return
-            elif "инвентарь мне😊" in message.message and message.sender_id in bak:
+            elif message.message.lower().startswith("инвентарь мне😊") and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
