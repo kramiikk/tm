@@ -121,36 +121,42 @@ class kramiikkMod(loader.Module):
                     )
                     response = await response
                     if "Отлично! Как только" in response.text:
-                        txt = f"<i>{message.sender.first_name} в поиске"
-                        nm = await self.client.send_message(1767017980, txt)
-                        ch = await ch
-                        txt += f"\nЧат: <i>{ch.title}</i>"
-                        await utils.answer(nm, txt)
                         src = (
                             f"Chat id: {chat} {message.sender_id} Клан:"
                         )
                         ms = await self.client.get_messages(1655814348, search=src)
                         if ms.total == 0:
-                            return
+                            return await self.client.send_message(1655814348, f"<i>В поиске {message.sender.first_name}</i>")
                         for i in ms:
                             klan = re.search("Клан: (.+)", i.message).group(1)
+                            if "Усилитель:" in i.message:
+                                liga = re.search(
+                                    "Лига: (.+)", i.message).group(1)
+                                usil = re.search(
+                                    "Усилитель: (.+)", i.message).group(1)
+                                lif = f"\n{liga}\nУсилитель: {usil}"
+                            else:
+                                src = f"Топ 35 кланов {klan}"
+                                ms1 = await self.client.get_messages(
+                                    1441941681, search=src
+                                )
+                                for i in ms1:
+                                    liga = re.search(
+                                        "Топ 35 кланов (.+) сезона", i.message
+                                    ).group(1)
+                                    lif = f"\n{liga}"
+                        txt = f"В поиске {klan}{lif}"
+                        nm = await self.client.send_message(1767017980, txt)
                         src = f"Топ 35 кланов {klan}"
                         ms = await self.client.get_messages(1441941681, search=src)
                         if ms.total == 0:
-                            tdd = ""
+                            txt += "\nНет в списке сезона"
                         else:
                             for i in ms:
                                 ligz = re.search(
                                     "Топ 35 кланов (.+) сезона", i.message
                                 ).group(1)
-                                mest = re.search(f"(.+). 🛡(.+) \| {klan}", i.message)
-                                if mest:
-                                    mest1 = mest.group(1)
-                                    mest2 = mest.group(2)
-                            tdd = f"\nСезон: {ligz}\nМесто: {mest1}\nПобед: {mest2}"
-                        txt += (
-                            f"\nКлан: {klan}\n\n{tdd}"
-                        )
+                            txt += f"\n{ligz}"
                         return await utils.answer(nm, txt)
                     else:
                         return
@@ -163,8 +169,25 @@ class kramiikkMod(loader.Module):
                 if capt:
                     mk = capt.group(1)
                     ek = capt.group(2)
-                    war = f"{mk} против клана {ek}"
-                    return await self.client.send_message(1767017980, f"⚡️ Клан {war}")
+                    txt = f"⚡️{mk} VS {ek}"
+                    nm = await self.client.send_message(1767017980, txt)
+                    src = f"Chat id: {chat} {message.sender_id} Клан:"
+                    ms = await self.client.get_messages(1441941681, search=src)
+                    if ms.total == 0:
+                        sez = "---"
+                    else:
+                        for i in ms
+                            if "Топ 35" in i.message:
+                                ligz = re.search(
+                                    "Топ 35 кланов (.+) сезона", i.message
+                                ).group(1)
+                                sez = f"\n{ligz}"
+                            else:
+                                liga = re.search(
+                                    "Лига: (.+)", i.message).group(1)
+                                sez = f"\n{liga}"
+                    txt += f"\nЛига: {sez}"
+                    return await utils.answer(nm, txt)
                 else:
                     return
             elif (
