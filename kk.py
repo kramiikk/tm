@@ -127,7 +127,7 @@ class kramiikkMod(loader.Module):
                         txt += f"\nЧат: <i>{ch.title}</i>"
                         await utils.answer(nm, txt)
                         src = (
-                            f"Chat id: {chat}\nUser id: {message.sender_id}\nУсилитель:"
+                            f"Chat id: {chat}\nUser id: {message.sender_id}"
                         )
                         ms = await self.client.get_messages(1655814348, search=src)
                         if ms.total == 0:
