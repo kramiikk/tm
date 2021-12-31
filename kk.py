@@ -176,7 +176,7 @@ class kramiikkMod(loader.Module):
                     if ms.total == 0:
                         sez = "---"
                     else:
-                        for i in ms
+                        for i in ms:
                             if "Топ 35" in i.message:
                                 ligz = re.search(
                                     "Топ 35 кланов (.+) сезона", i.message
