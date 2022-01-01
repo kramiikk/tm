@@ -158,7 +158,7 @@ class kramiikkMod(loader.Module):
                 if capt:
                     mk = capt.group(1)
                     ek = capt.group(2)
-                    txt = f"⚡️{mk} VS {ek}"
+                    txt = f"⚡️{mk} |VS| {ek}"
                     nm = await self.client.send_message(1767017980, txt)
                     src = f"Chat id: {chat} {message.sender_id} Клан:"
                     ms = await self.client.get_messages(1655814348, search=src)
