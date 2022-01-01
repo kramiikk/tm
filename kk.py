@@ -134,7 +134,7 @@ class kramiikkMod(loader.Module):
                                     "Лига: (.+)", i.message).group(1)
                                 usil = re.search(
                                     "Усилитель: (.+)", i.message).group(1)
-                                lif = f"\n{liga}\nУсилитель: {usil}"
+                                lif = f"\nЛига: {liga}\nУсилитель: {usil}"
                             else:
                                 src = f"Топ 35 кланов {klan}"
                                 ms1 = await self.client.get_messages(
@@ -144,7 +144,7 @@ class kramiikkMod(loader.Module):
                                     liga = re.search(
                                         "Топ 35 кланов (.+) сезона", i.message
                                     ).group(1)
-                                    lif = f"\n{liga}"
+                                    lif = f"\nЛига: {liga}"
                         txt = f"В поиске {klan}{lif}"
                         nm = await self.client.send_message(1767017980, txt)
                     else:
