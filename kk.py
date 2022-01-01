@@ -138,7 +138,7 @@ class kramiikkMod(loader.Module):
                             else:
                                 src = f"Топ 35 кланов {klan}"
                                 ms1 = await self.client.get_messages(
-                                    1441941681, search=src
+                                    1782816965, search=src
                                 )
                                 for i in ms1:
                                     liga = re.search(
@@ -169,7 +169,7 @@ class kramiikkMod(loader.Module):
                             klan = re.search("Клан: (.+)", i.message).group(1)
                             src = f"Топ 35 кланов {klan}"
                             ms1 = await self.client.get_messages(
-                                1441941681, search=src
+                                1782816965, search=src
                             )
                             if ms.total == 0:
                                 src = (
