@@ -93,7 +93,7 @@ class kramiikkMod(loader.Module):
                 randelta = random.randint(rc+ac , 60)
             else:
                 randelta = random.randint(3, rc+ac)
-            chat in elj:
+            if chat in elj:
                 rc = 0.3
             chat = message.chat_id
             chatid = str(chat)
