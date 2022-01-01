@@ -164,14 +164,12 @@ class kramiikkMod(loader.Module):
                         ms1 = await self.client.get_messages(1655814348, search=src)
                         for i in ms1:
                             liga = re.search("Лига: (.+)", i.message).group(1)
-                        sez = f"\n{liga}"
                     else:
                         for i in ms:
                             liga = re.search(
                                 "Топ 35 кланов (.+) лиге", i.message
                             ).group(1)
-                        sez = f"\n{liga}"
-                    txt += f"\nЛига: {sez}"
+                    txt += f"\nЛига: {liga}"
                     return await utils.answer(nm, txt)
                 else:
                     return
