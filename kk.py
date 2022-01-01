@@ -78,6 +78,10 @@ class kramiikkMod(loader.Module):
     async def watcher(self, message):
         try:
             asly = random.choice(asl)
+            chat = message.chat_id
+            chatid = str(chat)
+            duel = self.db.get("Дуэлька", "duel", {})
+            name = "монарх"
             rc = random.choice(nr)
             if "взять жабу" in asly:
                 ac = 3
@@ -89,16 +93,12 @@ class kramiikkMod(loader.Module):
                 ac = 21
             else:
                 ac = 33 
-            if 13 > rс:
-                randelta = random.randint(rc+ac , 60)
+            if 21 > rс:
+                randelta = random.randint(rc+ac , 42)
             else:
-                randelta = random.randint(3, rc+ac)
+                randelta = random.randint(3, rc)
             if chat in elj:
                 rc = 0.3
-            chat = message.chat_id
-            chatid = str(chat)
-            duel = self.db.get("Дуэлька", "duel", {})
-            name = "монарх"
             if (
                 message.message.lower().startswith(
                     ("начать клановую", "@tgtoadbot начать клановую")
