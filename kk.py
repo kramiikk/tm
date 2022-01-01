@@ -98,7 +98,7 @@ class kramiikkMod(loader.Module):
                 ac = 21
             else:
                 ac = 33
-            if 21 > rс:
+            if 21 > rc:
                 randelta = random.randint(rc + ac, 42)
             else:
                 randelta = random.randint(3, rc)
