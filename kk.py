@@ -147,17 +147,6 @@ class kramiikkMod(loader.Module):
                                     lif = f"\n{liga}"
                         txt = f"В поиске {klan}{lif}"
                         nm = await self.client.send_message(1767017980, txt)
-                        src = f"Топ 35 кланов {klan}"
-                        ms = await self.client.get_messages(1441941681, search=src)
-                        if ms.total == 0:
-                            txt += "\nНет в списке сезона"
-                        else:
-                            for i in ms:
-                                ligz = re.search(
-                                    "Топ 35 кланов (.+) сезона", i.message
-                                ).group(1)
-                            txt += f"\n{ligz}"
-                        return await utils.answer(nm, txt)
                     else:
                         return
             elif (
