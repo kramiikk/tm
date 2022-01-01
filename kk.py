@@ -99,7 +99,6 @@ class kramiikkMod(loader.Module):
         try:
             asly = random.choice(asl)
             chat = message.chat_id
-            chatid = str(chat)
             duel = self.db.get("Дуэлька", "duel", {})
             name = "монарх"
             rh = random.choice(nr)
@@ -660,11 +659,11 @@ class kramiikkMod(loader.Module):
                         else:
                             return
                 elif "дуэлька" in message.message:
-                    if chatid in duel:
-                        duel.pop(chatid)
+                    if chat in duel:
+                        duel.pop(chat)
                         self.db.set("Дуэлька", "duel", duel)
                         return await utils.answer(message, "<b>пью ромашковый чай</b>!")
-                    duel.setdefault(chatid, {})
+                    duel.setdefault(chat, {})
                     self.db.set("Дуэлька", "duel", duel)
                     async with self.client.conversation(message.chat_id) as conv:
                         response = conv.wait_event(
@@ -780,13 +779,13 @@ class kramiikkMod(loader.Module):
                             return
                     else:
                         return
-            elif chatid in duel and message.sender_id not in {self.me.id, 1124824021}:
+            elif chat in duel and message.sender_id not in {self.me.id, 1124824021}:
                 if "РеанимироватЬ жабу" in message.message:
                     await asyncio.sleep(rd)
                     return await utils.answer(message, "дуэль")
                 else:
                     return
-            elif chatid in duel and message.sender_id in {1124824021}:
+            elif chat in duel and message.sender_id in {1124824021}:
                 if (
                     f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
                     in message.message
@@ -804,7 +803,7 @@ class kramiikkMod(loader.Module):
                             self.status["Имя Жабы"] in message.message
                             and "отыграл" in message.message
                         ):
-                            duel.pop(chatid)
+                            duel.pop(chat)
                             self.db.set("Дуэлька", "duel", duel)
                             await utils.answer(message, "<b>пью ромашковый чай</b>!")
                         elif self.status["Имя Жабы"] not in message.message:
