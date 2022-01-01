@@ -130,10 +130,10 @@ class kramiikkMod(loader.Module):
                                 lif = f"\nЛига: {liga}\nУсилитель: {usil}"
                             else:
                                 src = f"Топ 35 кланов {klan}"
-                                ms1 = await self.client.get_messages(
+                                ms = await self.client.get_messages(
                                     1782816965, search=src
                                 )
-                                for i in ms1:
+                                for i in ms:
                                     liga = re.search(
                                         "Топ 35 кланов (.+) сезона", i.message
                                     ).group(1)
@@ -167,7 +167,7 @@ class kramiikkMod(loader.Module):
                                 "Лига: (.+)", i.message).group(1)
                         sez = f"\n{liga}"
                     else:
-                        for i in ms1:
+                        for i in ms:
                             liga = re.search(
                                 "Топ 35 кланов (.+) сезона", i.message
                             ).group(1)
