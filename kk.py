@@ -166,6 +166,7 @@ class kramiikkMod(loader.Module):
                         sez = "---"
                     else:
                         for i in ms:
+                            klan = re.search("Клан: (.+)", i.message).group(1)
                             if "Топ 35" in i.message:
                                 ligz = re.search(
                                     "Топ 35 кланов (.+) сезона", i.message
