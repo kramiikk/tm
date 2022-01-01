@@ -158,7 +158,7 @@ class kramiikkMod(loader.Module):
                 if capt:
                     mk = capt.group(1)
                     ek = capt.group(2)
-                    txt = f"⚡️{mk} |VS| {ek}"
+                    txt = f"⚡️{mk} <b>VS</b> {ek}"
                     nm = await self.client.send_message(1767017980, txt)
                     src = f"Chat id: {chat} {message.sender_id} Клан:"
                     ms = await self.client.get_messages(1655814348, search=src)
@@ -171,12 +171,12 @@ class kramiikkMod(loader.Module):
                             ms1 = await self.client.get_messages(
                                 1782816965, search=src
                             )
-                            if ms.total == 0:
+                            if ms1.total == 0:
                                 src = (
                                     f"Chat id: {chat} {message.sender_id} Лига:"
                                 )
-                                ms = await self.client.get_messages(1655814348, search=src)
-                                for i in ms1:
+                                ms2 = await self.client.get_messages(1655814348, search=src)
+                                for i in ms2:
                                     liga = re.search(
                                         "Лига: (.+)", i.message).group(1)
                                     sez = f"\n{liga}"
