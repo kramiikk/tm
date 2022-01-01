@@ -3,6 +3,7 @@ import datetime
 import logging
 import random
 import re
+
 from telethon import events, functions, types
 
 from .. import loader, utils
@@ -50,12 +51,15 @@ ninja = [
 ]
 nr = [11, 13, 17, 24, 33]
 
+
 def register(cb):
     cb(kramiikkMod())
+
 
 @loader.tds
 class kramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
+
     answers = {
         0: ("Ответ тебе известен", "Ты знаешь лучше меня!", "Ответ убил!.."),
         1: ("Да, но есть помехи", "Может быть", "Вероятно", "Возможно", "Наверняка"),
@@ -66,6 +70,7 @@ class kramiikkMod(loader.Module):
         "name": "kramiikk",
         "quest_answer": "<i>%answer%</i>",
     }
+
     def __init__(self):
         self.name = self.strings["name"]
 
@@ -92,9 +97,9 @@ class kramiikkMod(loader.Module):
             elif "кланы" in asly:
                 ac = 21
             else:
-                ac = 33 
+                ac = 33
             if 21 > rс:
-                randelta = random.randint(rc+ac , 42)
+                randelta = random.randint(rc + ac, 42)
             else:
                 randelta = random.randint(3, rc)
             if chat in elj:
@@ -114,19 +119,18 @@ class kramiikkMod(loader.Module):
                     )
                     response = await response
                     if "Отлично! Как только" in response.text:
-                        src = (
-                            f"Chat id: {chat} {message.sender_id} Клан:"
-                        )
+                        src = f"Chat id: {chat} {message.sender_id} Клан:"
                         ms = await self.client.get_messages(1655814348, search=src)
                         if ms.total == 0:
-                            return await self.client.send_message(1767017980, f"<i>В поиске {message.sender.first_name}</i>")
+                            return await self.client.send_message(
+                                1767017980,
+                                f"<i>В поиске {message.sender.first_name}</i>",
+                            )
                         for i in ms:
                             klan = re.search("Клан: (.+)", i.message).group(1)
                             if "Усилитель:" in i.message:
-                                liga = re.search(
-                                    "Лига: (.+)", i.message).group(1)
-                                usil = re.search(
-                                    "Усилитель: (.+)", i.message).group(1)
+                                liga = re.search("Лига: (.+)", i.message).group(1)
+                                usil = re.search("Усилитель: (.+)", i.message).group(1)
                                 lif = f"\nЛига: {liga}\nУсилитель: {usil}"
                             else:
                                 src = f"Топ 35 кланов {klan}"
@@ -154,17 +158,12 @@ class kramiikkMod(loader.Module):
                     txt = f"⚡️{mk} <b>VS</b> {ek}"
                     nm = await self.client.send_message(1767017980, txt)
                     src = f"Топ 35 кланов {mk}"
-                    ms = await self.client.get_messages(
-                        1782816965, search=src
-                    )
+                    ms = await self.client.get_messages(1782816965, search=src)
                     if ms.total == 0:
-                        src = (
-                            f"{chat} {mk} Лига:"
-                        )
+                        src = f"{chat} {mk} Лига:"
                         ms1 = await self.client.get_messages(1655814348, search=src)
                         for i in ms1:
-                            liga = re.search(
-                                "Лига: (.+)", i.message).group(1)
+                            liga = re.search("Лига: (.+)", i.message).group(1)
                         sez = f"\n{liga}"
                     else:
                         for i in ms:
@@ -407,10 +406,7 @@ class kramiikkMod(loader.Module):
                                 )
                             else:
                                 return
-            elif (
-                message.message.lower().startswith(asly)
-                and message.sender_id in bak
-            ):
+            elif message.message.lower().startswith(asly) and message.sender_id in bak:
                 await asyncio.sleep(randelta)
                 sch = (
                     await self.client(
@@ -516,7 +512,10 @@ class kramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-            elif message.message.lower().startswith("лвл чек") and message.sender_id in bak:
+            elif (
+                message.message.lower().startswith("лвл чек")
+                and message.sender_id in bak
+            ):
                 x = int(message.message.split(" ", 3)[2])
                 u = int(message.message.split(" ", 3)[3])
                 y = ((x + u) - 160) * 2
@@ -527,8 +526,7 @@ class kramiikkMod(loader.Module):
                 return await utils.answer(message, res)
             elif (
                 message.message.lower().startswith((name, f"@{self.me.username}"))
-                or (name in message.message
-                and message.message.endswith("😉"))
+                or (name in message.message and message.message.endswith("😉"))
             ) and message.sender_id in bak:
                 await asyncio.sleep(rc)
                 args = message.message
@@ -707,7 +705,10 @@ class kramiikkMod(loader.Module):
                         return await reply.reply(mmsg)
                     else:
                         return await utils.answer(message, mmsg)
-            elif message.message.lower().startswith("букашки мне😊") and message.sender_id in bak:
+            elif (
+                message.message.lower().startswith("букашки мне😊")
+                and message.sender_id in bak
+            ):
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -737,7 +738,10 @@ class kramiikkMod(loader.Module):
                             )
                     else:
                         return
-            elif message.message.lower().startswith("инвентарь мне😊") and message.sender_id in bak:
+            elif (
+                message.message.lower().startswith("инвентарь мне😊")
+                and message.sender_id in bak
+            ):
                 await asyncio.sleep(randelta)
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
