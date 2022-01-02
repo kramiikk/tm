@@ -4,7 +4,7 @@ import logging
 import random
 import re
 
-from telethon import events, functions, types
+from telethon import events, functions
 
 from .. import loader, utils
 
@@ -179,10 +179,7 @@ class kramiikkMod(loader.Module):
             ):
                 await message.respond("реанимировать жабу")
                 return await message.click(1)
-            elif (
-                message.message.lower().startswith(asly)
-                and message.sender_id in bak
-            ):
+            elif message.message.lower().startswith(asly) and message.sender_id in bak:
                 await asyncio.sleep(rd)
                 sch = (
                     await self.client(
@@ -285,10 +282,14 @@ class kramiikkMod(loader.Module):
                             else:
                                 await conv.send_message("откормить жабку")
                                 delta = datetime.timedelta(hours=4, seconds=3)
-                                await conv.send_message("откормить жабку", schedule=delta)
+                                await conv.send_message(
+                                    "откормить жабку", schedule=delta
+                                )
                             for i in range(4):
                                 delta = delta + datetime.timedelta(hours=4)
-                                await conv.send_message("откормить жабку", schedule=delta)
+                                await conv.send_message(
+                                    "откормить жабку", schedule=delta
+                                )
                             if "В подземелье можно" in response.text:
                                 dng_s = re.search(
                                     "подземелье можно через (\d+)ч. (\d+)м.",
@@ -426,7 +427,9 @@ class kramiikkMod(loader.Module):
                                 delta = datetime.timedelta(
                                     hours=hrs, minutes=min, seconds=3
                                 )
-                                await conv.send_message("покормить жабку", schedule=delta)
+                                await conv.send_message(
+                                    "покормить жабку", schedule=delta
+                                )
                         else:
                             delta = datetime.timedelta(hours=6, seconds=3)
                             await conv.send_message("покормить жабку")
@@ -478,7 +481,9 @@ class kramiikkMod(loader.Module):
                                 delta = datetime.timedelta(
                                     hours=hrs, minutes=min, seconds=3
                                 )
-                                await conv.send_message("завершить работу", schedule=delta)
+                                await conv.send_message(
+                                    "завершить работу", schedule=delta
+                                )
                         elif "можно отправить" in response.text:
                             await conv.send_message("реанимировать жабу")
                             await conv.send_message("работа крупье")
@@ -489,14 +494,17 @@ class kramiikkMod(loader.Module):
                             delta = datetime.timedelta(hours=6)
                         for i in range(2):
                             delta = delta + datetime.timedelta(hours=6, seconds=3)
-                            await conv.send_message("реанимировать жабу", schedule=delta)
+                            await conv.send_message(
+                                "реанимировать жабу", schedule=delta
+                            )
                             await conv.send_message(
                                 "работа крупье",
                                 schedule=delta + datetime.timedelta(seconds=3),
                             )
                             await conv.send_message(
                                 "завершить работу",
-                                schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                                schedule=delta
+                                + datetime.timedelta(hours=2, seconds=13),
                             )
             elif (
                 message.message.lower().startswith("лвл чек")
