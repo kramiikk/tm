@@ -814,12 +814,6 @@ class kramiikkMod(loader.Module):
                 830605725
             }:
                 return await message.click(0)
-            elif "Фарма" in message.message and chat in {707693258}:
-                return await self.client.send_message(
-                    chat,
-                    "Фарма",
-                    schedule=datetime.timedelta(minutes=random.randint(1, 20)),
-                )
             elif "НЕЗАЧЁТ!" in message.message and chat in {707693258}:
                 args = [int(x) for x in message.text.split() if x.isnumeric()]
                 rd = random.randint(20, 60)
