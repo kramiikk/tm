@@ -103,78 +103,43 @@ class kramiikkMod(loader.Module):
             name = "монарх"
             rh = random.choice(nr)
             rd = random.randint(rh, 13)
-            if chat in duel:
-                if message.sender_id not in {self.me.id, 1124824021}:
-                    if "РеанимироватЬ жабу" in message.message:
-                        await asyncio.sleep(rd)
-                        return await utils.answer(message, "дуэль")
-                elif message.sender_id in {1124824021}:
-                    if (
-                        f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
-                        in message.message
-                    ):
-                        await asyncio.sleep(rd)
-                        await message.respond("дуэль принять")
-                        await asyncio.sleep(rd)
-                        return await message.respond("дуэль старт")
-                    elif "Имя Жабы" in self.status:
-                        if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
-                            await asyncio.sleep(rd)
-                            return await message.respond("РеанимироватЬ жабу")
-                        elif "Победитель" in message.message:
-                            if (
-                                self.status["Имя Жабы"] in message.message
-                                and "отыграл" in message.message
-                            ):
-                                duel.pop(chat)
-                                self.db.set("Дуэлька", "duel", duel)
-                                await utils.answer(
-                                    message, "<b>пью ромашковый чай</b>!"
-                                )
-                            elif self.status["Имя Жабы"] not in message.message:
-                                await asyncio.sleep(rd)
-                                await utils.answer(message, "РеанимироватЬ жабу")
-            if chat in ninja:
-                if message.message.lower().startswith(
-                    ("начать клановую", "@tgtoadbot начать клановую")
-                ):
-                    async with self.client.conversation(chat) as conv:
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=message.chat_id,
-                            )
-                        )
-                        response = await response
-                        if "Отлично! Как только" in response.text:
-                            src = f"Chat id: {chat} {message.sender_id} Клан:"
-                            ms = await self.client.get_messages(1655814348, search=src)
-                            if ms.total == 0:
-                                return await self.client.send_message(
-                                    1767017980,
-                                    f"<i>В поиске {message.sender.first_name}</i>",
-                                )
+            if message.sender_id in {1124824021}:
+                if message.message.startswith("Алло") and chat in ninja:
+                    capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
+                    if capt:
+                        mk = capt.group(1)
+                        ek = capt.group(2)
+                        txt = f"⚡️{mk} <b>VS</b> {ek}"
+                        nm = await self.client.send_message(1767017980, txt)
+                        src = f"Топ 35 кланов {mk}"
+                        ms = await self.client.get_messages(1782816965, search=src)
+                        if ms.total == 0:
+                            src = f"{chat} {mk} Лига:"
+                            ms1 = await self.client.get_messages(1655814348, search=src)
+                            for i in ms1:
+                                liga = re.search("Лига: (.+)", i.message).group(1)
+                        else:
                             for i in ms:
-                                klan = re.search("Клан: (.+)", i.message).group(1)
-                                if "Усилитель:" in i.message:
-                                    liga = re.search("Лига: (.+)", i.message).group(1)
-                                    usil = re.search(
-                                        "Усилитель: (.+)", i.message
-                                    ).group(1)
-                                    lif = f"\nЛига: {liga}\nУсилитель: {usil}"
-                                else:
-                                    src = f"Топ 35 кланов {klan}"
-                                    ms = await self.client.get_messages(
-                                        1782816965, search=src
-                                    )
-                                    for i in ms:
-                                        liga = re.search(
-                                            "Топ 35 кланов (.+) лиге", i.message
-                                        ).group(1)
-                                        lif = f"\nЛига: {liga}"
-                            txt = f"В поиске {klan}{lif}"
-                            nm = await self.client.send_message(1767017980, txt)
+                                liga = re.search(
+                                    "Топ 35 кланов (.+) лиге", i.message
+                                ).group(1)
+                        txt += f"\nЛига: {liga}"
+                        return await utils.answer(nm, txt)
+                elif (
+                    f"Сейчас выбирает ход: {self.me.first_name}" in message.message
+                    and message.mentioned
+                ):
+                    await message.respond("реанимировать жабу")
+                    return await message.click(1)
+            if message.sender_id in {830605725}:
+                if "[8🐝]" in message.message:
+                    return await message.click(0)
+                elif "[4🐝]" in message.message:
+                    return await message.click(0)
+                elif "[2☢️🐝, 2🔴🐝," in message.message:
+                    return await message.click(0)
+                elif "Бзззз! С пасеки" in message.message:
+                    return await message.click(0)
             if message.sender_id in bak:
                 if message.message.lower().startswith(asly):
                     await asyncio.sleep(rd)
@@ -500,6 +465,64 @@ class kramiikkMod(loader.Module):
                                     schedule=delta
                                     + datetime.timedelta(hours=2, seconds=13),
                                 )
+            if chat in {707693258}:
+                if "НЕЗАЧЁТ!" in message.message:
+                    args = [int(x) for x in message.text.split() if x.isnumeric()]
+                    rd = random.randint(20, 60)
+                    if len(args) == 4:
+                        delta = datetime.timedelta(
+                            hours=args[1], minutes=args[2], seconds=args[3] + 13
+                        )
+                    elif len(args) == 3:
+                        delta = datetime.timedelta(
+                            minutes=args[1], seconds=args[2] + 13
+                        )
+                    elif len(args) == 2:
+                        delta = datetime.timedelta(seconds=args[1] + 13)
+                    for i in range(3):
+                        delta = delta + datetime.timedelta(seconds=13)
+                        await self.client.send_message(chat, "Фарма", schedule=delta)
+            if chat in ninja:
+                if message.message.lower().startswith(
+                    ("начать клановую", "@tgtoadbot начать клановую")
+                ):
+                    async with self.client.conversation(chat) as conv:
+                        response = conv.wait_event(
+                            events.NewMessage(
+                                incoming=True,
+                                from_users=1124824021,
+                                chats=message.chat_id,
+                            )
+                        )
+                        response = await response
+                        if "Отлично! Как только" in response.text:
+                            src = f"Chat id: {chat} {message.sender_id} Клан:"
+                            ms = await self.client.get_messages(1655814348, search=src)
+                            if ms.total == 0:
+                                return await self.client.send_message(
+                                    1767017980,
+                                    f"<i>В поиске {message.sender.first_name}</i>",
+                                )
+                            for i in ms:
+                                klan = re.search("Клан: (.+)", i.message).group(1)
+                                if "Усилитель:" in i.message:
+                                    liga = re.search("Лига: (.+)", i.message).group(1)
+                                    usil = re.search(
+                                        "Усилитель: (.+)", i.message
+                                    ).group(1)
+                                    lif = f"\nЛига: {liga}\nУсилитель: {usil}"
+                                else:
+                                    src = f"Топ 35 кланов {klan}"
+                                    ms = await self.client.get_messages(
+                                        1782816965, search=src
+                                    )
+                                    for i in ms:
+                                        liga = re.search(
+                                            "Топ 35 кланов (.+) лиге", i.message
+                                        ).group(1)
+                                        lif = f"\nЛига: {liga}"
+                            txt = f"В поиске {klan}{lif}"
+                            nm = await self.client.send_message(1767017980, txt)
                 elif message.message.lower().startswith("лвл чек"):
                     x = int(message.message.split(" ", 3)[2])
                     u = int(message.message.split(" ", 3)[3])
@@ -755,59 +778,36 @@ class kramiikkMod(loader.Module):
                                     return await utils.answer(
                                         message, f"отправить аптечки {apt}"
                                     )
-            if message.sender_id in {1124824021}:
-                if message.message.startswith("Алло") and chat in ninja:
-                    capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
-                    if capt:
-                        mk = capt.group(1)
-                        ek = capt.group(2)
-                        txt = f"⚡️{mk} <b>VS</b> {ek}"
-                        nm = await self.client.send_message(1767017980, txt)
-                        src = f"Топ 35 кланов {mk}"
-                        ms = await self.client.get_messages(1782816965, search=src)
-                        if ms.total == 0:
-                            src = f"{chat} {mk} Лига:"
-                            ms1 = await self.client.get_messages(1655814348, search=src)
-                            for i in ms1:
-                                liga = re.search("Лига: (.+)", i.message).group(1)
-                        else:
-                            for i in ms:
-                                liga = re.search(
-                                    "Топ 35 кланов (.+) лиге", i.message
-                                ).group(1)
-                        txt += f"\nЛига: {liga}"
-                        return await utils.answer(nm, txt)
-                elif (
-                    f"Сейчас выбирает ход: {self.me.first_name}" in message.message
-                    and message.mentioned
-                ):
-                    await message.respond("реанимировать жабу")
-                    return await message.click(1)
-            if message.sender_id in {830605725}:
-                if "[8🐝]" in message.message:
-                    return await message.click(0)
-                elif "[4🐝]" in message.message:
-                    return await message.click(0)
-                elif "[2☢️🐝, 2🔴🐝," in message.message:
-                    return await message.click(0)
-                elif "Бзззз! С пасеки" in message.message:
-                    return await message.click(0)
-            if chat in {707693258}:
-                if "НЕЗАЧЁТ!" in message.message:
-                    args = [int(x) for x in message.text.split() if x.isnumeric()]
-                    rd = random.randint(20, 60)
-                    if len(args) == 4:
-                        delta = datetime.timedelta(
-                            hours=args[1], minutes=args[2], seconds=args[3] + 13
-                        )
-                    elif len(args) == 3:
-                        delta = datetime.timedelta(
-                            minutes=args[1], seconds=args[2] + 13
-                        )
-                    elif len(args) == 2:
-                        delta = datetime.timedelta(seconds=args[1] + 13)
-                    for i in range(3):
-                        delta = delta + datetime.timedelta(seconds=13)
-                        await self.client.send_message(chat, "Фарма", schedule=delta)
+            if chat in duel:
+                if message.sender_id not in {self.me.id, 1124824021}:
+                    if "РеанимироватЬ жабу" in message.message:
+                        await asyncio.sleep(rd)
+                        return await utils.answer(message, "дуэль")
+                elif message.sender_id in {1124824021}:
+                    if (
+                        f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
+                        in message.message
+                    ):
+                        await asyncio.sleep(rd)
+                        await message.respond("дуэль принять")
+                        await asyncio.sleep(rd)
+                        return await message.respond("дуэль старт")
+                    elif "Имя Жабы" in self.status:
+                        if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
+                            await asyncio.sleep(rd)
+                            return await message.respond("РеанимироватЬ жабу")
+                        elif "Победитель" in message.message:
+                            if (
+                                self.status["Имя Жабы"] in message.message
+                                and "отыграл" in message.message
+                            ):
+                                duel.pop(chat)
+                                self.db.set("Дуэлька", "duel", duel)
+                                await utils.answer(
+                                    message, "<b>пью ромашковый чай</b>!"
+                                )
+                            elif self.status["Имя Жабы"] not in message.message:
+                                await asyncio.sleep(rd)
+                                await utils.answer(message, "РеанимироватЬ жабу")
         except:
             return
