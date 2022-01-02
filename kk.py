@@ -108,8 +108,6 @@ class kramiikkMod(loader.Module):
                     if "РеанимироватЬ жабу" in message.message:
                         await asyncio.sleep(rd)
                         return await utils.answer(message, "дуэль")
-                    else:
-                        return
                 elif message.sender_id in {1124824021}:
                     if (
                         f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
@@ -136,12 +134,6 @@ class kramiikkMod(loader.Module):
                             elif self.status["Имя Жабы"] not in message.message:
                                 await asyncio.sleep(rd)
                                 await utils.answer(message, "РеанимироватЬ жабу")
-                            else:
-                                return
-                        else:
-                            return
-                else:
-                    return
             if chat in ninja:
                 if message.message.lower().startswith(
                     ("начать клановую", "@tgtoadbot начать клановую")
@@ -183,10 +175,6 @@ class kramiikkMod(loader.Module):
                                         lif = f"\nЛига: {liga}"
                             txt = f"В поиске {klan}{lif}"
                             nm = await self.client.send_message(1767017980, txt)
-                        else:
-                            return
-                else:
-                    return
             if message.sender_id in bak:
                 if message.message.lower().startswith(asly):
                     await asyncio.sleep(rd)
@@ -233,8 +221,6 @@ class kramiikkMod(loader.Module):
                                     if count > 2:
                                         await asyncio.sleep(rd)
                                         return await conv.send_message("рейд старт")
-                                else:
-                                    return
                             elif "Для входа в" in response.text:
                                 await conv.send_message("Моя жаба")
                                 response = await response
@@ -259,10 +245,6 @@ class kramiikkMod(loader.Module):
                                             return await conv.send_message(
                                                 f"использовать леденцы {led}"
                                             )
-                                    else:
-                                        return
-                                else:
-                                    return
                             else:
                                 await conv.send_message("жаба инфо")
                                 response = conv.wait_event(
@@ -385,8 +367,6 @@ class kramiikkMod(loader.Module):
                                             return await conv.send_message(
                                                 "начать клановую войну"
                                             )
-                                    else:
-                                        return
                                 else:
                                     dng_s = re.search(
                                         "жабу можно через (\d+) часов (\d+) минут",
@@ -414,8 +394,6 @@ class kramiikkMod(loader.Module):
                                                 minutes=45, seconds=13
                                             ),
                                         )
-                                    else:
-                                        return
                     else:
                         async with self.client.conversation(message.chat_id) as conv:
                             response = conv.wait_event(
@@ -528,8 +506,6 @@ class kramiikkMod(loader.Module):
                     y = ((x + u) - 160) * 2
                     if y > -1:
                         res = f"<b>~ {y} лвл</b>"
-                    else:
-                        return
                     return await utils.answer(message, res)
                 elif message.message.lower().startswith(
                     (name, f"@{self.me.username}")
@@ -593,8 +569,6 @@ class kramiikkMod(loader.Module):
                                 await conv.send_message("выйти из подземелья")
                                 await conv.send_message("реанимировать жабу")
                                 return await conv.send_message("напасть на клан")
-                            else:
-                                return
                     elif "подземелье" in message.message:
                         async with self.client.conversation(chat) as conv:
                             response = conv.wait_event(
@@ -623,8 +597,6 @@ class kramiikkMod(loader.Module):
                                 return await conv.send_message(
                                     "<b>отправиться в золотое подземелье</b>",
                                 )
-                            else:
-                                return
                     elif "туса" in message.message:
                         await message.respond("жабу на тусу")
                     elif "го кв" in message.message:
@@ -666,8 +638,6 @@ class kramiikkMod(loader.Module):
                                         "взять жабу",
                                         schedule=datetime.timedelta(hours=2),
                                     )
-                            else:
-                                return
                     elif "дуэлька" in message.message:
                         if chat in duel:
                             duel.pop(chat)
@@ -694,8 +664,6 @@ class kramiikkMod(loader.Module):
                                 self.status["Имя Жабы"] = jaba
                                 self.db.set("Status", "status", self.status)
                                 return await conv.send_message("РеанимироватЬ жабу")
-                            else:
-                                return
                     elif count.isnumeric() and reply:
                         count = int(args.split(" ", 3)[1])
                         mmsg = args.split(" ", 3)[3]
@@ -748,8 +716,6 @@ class kramiikkMod(loader.Module):
                                 return await utils.answer(
                                     message, f"отправить букашки {snt}"
                                 )
-                        else:
-                            return
                 elif message.message.lower().startswith("инвентарь мне😊"):
                     await asyncio.sleep(rd)
                     async with self.client.conversation(chat) as conv:
@@ -789,12 +755,6 @@ class kramiikkMod(loader.Module):
                                     return await utils.answer(
                                         message, f"отправить аптечки {apt}"
                                     )
-                            else:
-                                return
-                        else:
-                            return
-                else:
-                    return
             if message.sender_id in {1124824021}:
                 if message.message.startswith("Алло") and chat in ninja:
                     capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
@@ -817,16 +777,12 @@ class kramiikkMod(loader.Module):
                                 ).group(1)
                         txt += f"\nЛига: {liga}"
                         return await utils.answer(nm, txt)
-                    else:
-                        return
                 elif (
                     f"Сейчас выбирает ход: {self.me.first_name}" in message.message
                     and message.mentioned
                 ):
                     await message.respond("реанимировать жабу")
                     return await message.click(1)
-                else:
-                    return
             if message.sender_id in {830605725}:
                 if "[8🐝]" in message.message:
                     return await message.click(0)
@@ -836,8 +792,6 @@ class kramiikkMod(loader.Module):
                     return await message.click(0)
                 elif "Бзззз! С пасеки" in message.message:
                     return await message.click(0)
-                else:
-                    return
             if chat in {707693258}:
                 if "НЕЗАЧЁТ!" in message.message:
                     args = [int(x) for x in message.text.split() if x.isnumeric()]
@@ -857,9 +811,5 @@ class kramiikkMod(loader.Module):
                     for i in range(3):
                         delta = delta + datetime.timedelta(seconds=13)
                         await self.client.send_message(chat, "Фарма", schedule=delta)
-                else:
-                    return
-            else:
-                return
         except:
             return
