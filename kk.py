@@ -795,7 +795,7 @@ class kramiikkMod(loader.Module):
                             return
                 else:
                     return
-            elif message.sender_id in {1124824021}:
+            if message.sender_id in {1124824021}:
                 if message.message.startswith("Алло") and chat in ninja:
                     capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
                     if capt:
@@ -827,7 +827,7 @@ class kramiikkMod(loader.Module):
                     return await message.click(1)
                 else:
                     return
-            elif message.sender_id in {830605725}:
+            if message.sender_id in {830605725}:
                 if "[8🐝]" in message.message:
                     return await message.click(0)
                 elif "[4🐝]" in message.message:
@@ -838,7 +838,7 @@ class kramiikkMod(loader.Module):
                     return await message.click(0)
                 else:
                     return
-            elif chat in {707693258}:
+            if chat in {707693258}:
                 if "НЕЗАЧЁТ!" in message.message:
                     args = [int(x) for x in message.text.split() if x.isnumeric()]
                     rd = random.randint(20, 60)
