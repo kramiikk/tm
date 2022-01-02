@@ -854,7 +854,11 @@ class kramiikkMod(loader.Module):
                         delta = datetime.timedelta(seconds=args[1] + 13)
                     else:
                         pass
-                    return await self.client.send_message(chat, "Фарма", schedule=delta)
+                    for i in range(3):
+                        delta = delta + datetime.timedelta(seconds=13)
+                        await self.client.send_message(
+                            chat, "Фарма", schedule=delta
+                        )
                 else:
                     return
             else:
