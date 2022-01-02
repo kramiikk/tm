@@ -806,8 +806,6 @@ class kramiikkMod(loader.Module):
                         )
                     elif len(args) == 2:
                         delta = datetime.timedelta(seconds=args[1] + 13)
-                    else:
-                        pass
                     for i in range(3):
                         delta = delta + datetime.timedelta(seconds=13)
                         await self.client.send_message(chat, "Фарма", schedule=delta)
