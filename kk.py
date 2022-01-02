@@ -103,6 +103,45 @@ class kramiikkMod(loader.Module):
             name = "монарх"
             rh = random.choice(nr)
             rd = random.randint(rh, 13)
+            if chat in duel:
+                if message.sender_id not in {self.me.id, 1124824021}:
+                    if "РеанимироватЬ жабу" in message.message:
+                        await asyncio.sleep(rd)
+                        return await utils.answer(message, "дуэль")
+                    else:
+                        return
+                elif message.sender_id in {1124824021}:
+                    if (
+                        f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
+                        in message.message
+                    ):
+                        await asyncio.sleep(rd)
+                        await message.respond("дуэль принять")
+                        await asyncio.sleep(rd)
+                        return await message.respond("дуэль старт")
+                    elif "Имя Жабы" in self.status:
+                        if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
+                            await asyncio.sleep(rd)
+                            return await message.respond("РеанимироватЬ жабу")
+                        elif "Победитель" in message.message:
+                            if (
+                                self.status["Имя Жабы"] in message.message
+                                and "отыграл" in message.message
+                            ):
+                                duel.pop(chat)
+                                self.db.set("Дуэлька", "duel", duel)
+                                await utils.answer(
+                                    message, "<b>пью ромашковый чай</b>!"
+                                )
+                            elif self.status["Имя Жабы"] not in message.message:
+                                await asyncio.sleep(rd)
+                                await utils.answer(message, "РеанимироватЬ жабу")
+                            else:
+                                return
+                        else:
+                            return
+                else:
+                    return
             if chat in ninja:
                 if message.message.lower().startswith(
                     ("начать клановую", "@tgtoadbot начать клановую")
@@ -148,39 +187,7 @@ class kramiikkMod(loader.Module):
                             return
                 else:
                     return
-            elif message.sender_id in {1124824021}:
-                if message.message.startswith("Алло") and chat in ninja:
-                    capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
-                    if capt:
-                        mk = capt.group(1)
-                        ek = capt.group(2)
-                        txt = f"⚡️{mk} <b>VS</b> {ek}"
-                        nm = await self.client.send_message(1767017980, txt)
-                        src = f"Топ 35 кланов {mk}"
-                        ms = await self.client.get_messages(1782816965, search=src)
-                        if ms.total == 0:
-                            src = f"{chat} {mk} Лига:"
-                            ms1 = await self.client.get_messages(1655814348, search=src)
-                            for i in ms1:
-                                liga = re.search("Лига: (.+)", i.message).group(1)
-                        else:
-                            for i in ms:
-                                liga = re.search(
-                                    "Топ 35 кланов (.+) лиге", i.message
-                                ).group(1)
-                        txt += f"\nЛига: {liga}"
-                        return await utils.answer(nm, txt)
-                    else:
-                        return
-                elif (
-                    f"Сейчас выбирает ход: {self.me.first_name}" in message.message
-                    and message.mentioned
-                ):
-                    await message.respond("реанимировать жабу")
-                    return await message.click(1)
-                else:
-                    return
-            elif message.sender_id in bak:
+            if message.sender_id in bak:
                 if message.message.lower().startswith(asly):
                     await asyncio.sleep(rd)
                     sch = (
@@ -788,43 +795,36 @@ class kramiikkMod(loader.Module):
                             return
                 else:
                     return
-            elif chat in duel:
-                if message.sender_id not in {self.me.id, 1124824021}:
-                    if "РеанимироватЬ жабу" in message.message:
-                        await asyncio.sleep(rd)
-                        return await utils.answer(message, "дуэль")
+            elif message.sender_id in {1124824021}:
+                if message.message.startswith("Алло") and chat in ninja:
+                    capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
+                    if capt:
+                        mk = capt.group(1)
+                        ek = capt.group(2)
+                        txt = f"⚡️{mk} <b>VS</b> {ek}"
+                        nm = await self.client.send_message(1767017980, txt)
+                        src = f"Топ 35 кланов {mk}"
+                        ms = await self.client.get_messages(1782816965, search=src)
+                        if ms.total == 0:
+                            src = f"{chat} {mk} Лига:"
+                            ms1 = await self.client.get_messages(1655814348, search=src)
+                            for i in ms1:
+                                liga = re.search("Лига: (.+)", i.message).group(1)
+                        else:
+                            for i in ms:
+                                liga = re.search(
+                                    "Топ 35 кланов (.+) лиге", i.message
+                                ).group(1)
+                        txt += f"\nЛига: {liga}"
+                        return await utils.answer(nm, txt)
                     else:
                         return
-                elif message.sender_id in {1124824021}:
-                    if (
-                        f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
-                        in message.message
-                    ):
-                        await asyncio.sleep(rd)
-                        await message.respond("дуэль принять")
-                        await asyncio.sleep(rd)
-                        return await message.respond("дуэль старт")
-                    elif "Имя Жабы" in self.status:
-                        if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
-                            await asyncio.sleep(rd)
-                            return await message.respond("РеанимироватЬ жабу")
-                        elif "Победитель" in message.message:
-                            if (
-                                self.status["Имя Жабы"] in message.message
-                                and "отыграл" in message.message
-                            ):
-                                duel.pop(chat)
-                                self.db.set("Дуэлька", "duel", duel)
-                                await utils.answer(
-                                    message, "<b>пью ромашковый чай</b>!"
-                                )
-                            elif self.status["Имя Жабы"] not in message.message:
-                                await asyncio.sleep(rd)
-                                await utils.answer(message, "РеанимироватЬ жабу")
-                            else:
-                                return
-                        else:
-                            return
+                elif (
+                    f"Сейчас выбирает ход: {self.me.first_name}" in message.message
+                    and message.mentioned
+                ):
+                    await message.respond("реанимировать жабу")
+                    return await message.click(1)
                 else:
                     return
             elif message.sender_id in {830605725}:
