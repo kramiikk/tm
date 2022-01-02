@@ -833,16 +833,6 @@ class kramiikkMod(loader.Module):
                     delta = datetime.timedelta(seconds=args[1] + 13)
                 else:
                     pass
-                sch = (
-                    await self.client(
-                        functions.messages.GetScheduledHistoryRequest(chat, 1488)
-                    )
-                ).messages
-                await self.client(
-                    functions.messages.DeleteScheduledMessagesRequest(
-                        chat, id=[x.id for x in sch]
-                    )
-                )
                 return await self.client.send_message(chat, "Фарма", schedule=delta)
             else:
                 return
