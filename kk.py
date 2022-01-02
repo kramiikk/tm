@@ -89,6 +89,7 @@ class kramiikkMod(loader.Module):
         self.db = db
         self.me = await client.get_me()
         self.status = db.get("Status", "status", {})
+        self.duel = db.get("Дуэлька", "duel", {})
 
     async def watcher(self, message):
         """.
@@ -97,11 +98,10 @@ class kramiikkMod(loader.Module):
 
         """
         try:
-            asly = random.choice(asl)
-            chat = message.chat_id
-            duel = self.db.get("Дуэлька", "duel", {})
             name = "монарх"
             rh = random.choice(nr)
+            chat = message.chat_id
+            asly = random.choice(asl)
             rd = random.randint(rh, 13)
             if message.sender_id in {1124824021}:
                 if message.message.startswith("Алло") and chat in ninja:
@@ -482,6 +482,37 @@ class kramiikkMod(loader.Module):
                     for i in range(3):
                         delta = delta + datetime.timedelta(seconds=13)
                         await self.client.send_message(chat, "Фарма", schedule=delta)
+            if chat in self.duel:
+                if message.sender_id not in {self.me.id, 1124824021}:
+                    if "РеанимироватЬ жабу" in message.message:
+                        await asyncio.sleep(rd)
+                        return await utils.answer(message, "дуэль")
+                elif message.sender_id in {1124824021}:
+                    if (
+                        f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
+                        in message.message
+                    ):
+                        await asyncio.sleep(rd)
+                        await message.respond("дуэль принять")
+                        await asyncio.sleep(rd)
+                        return await message.respond("дуэль старт")
+                    elif "Имя Жабы" in self.status:
+                        if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
+                            await asyncio.sleep(rd)
+                            return await message.respond("РеанимироватЬ жабу")
+                        elif "Победитель" in message.message:
+                            if (
+                                self.status["Имя Жабы"] in message.message
+                                and "отыграл" in message.message
+                            ):
+                                self.duel.pop(chat)
+                                self.db.set("Дуэлька", "duel", self.duel)
+                                await utils.answer(
+                                    message, "<b>пью ромашковый чай</b>!"
+                                )
+                            elif self.status["Имя Жабы"] not in message.message:
+                                await asyncio.sleep(rd)
+                                await utils.answer(message, "РеанимироватЬ жабу")
             if chat in ninja:
                 if message.message.lower().startswith(
                     ("начать клановую", "@tgtoadbot начать клановую")
@@ -662,14 +693,14 @@ class kramiikkMod(loader.Module):
                                         schedule=datetime.timedelta(hours=2),
                                     )
                     elif "дуэлька" in message.message:
-                        if chat in duel:
-                            duel.pop(chat)
-                            self.db.set("Дуэлька", "duel", duel)
+                        if chat in self.duel:
+                            self.duel.pop(chat)
+                            self.db.set("Дуэлька", "duel", self.duel)
                             return await utils.answer(
                                 message, "<b>пью ромашковый чай</b>!"
                             )
-                        duel.setdefault(chat, {})
-                        self.db.set("Дуэлька", "duel", duel)
+                        self.duel.setdefault(chat, {})
+                        self.db.set("Дуэлька", "duel", self.duel)
                         async with self.client.conversation(message.chat_id) as conv:
                             response = conv.wait_event(
                                 events.NewMessage(
@@ -778,36 +809,5 @@ class kramiikkMod(loader.Module):
                                     return await utils.answer(
                                         message, f"отправить аптечки {apt}"
                                     )
-            if chat in duel:
-                if message.sender_id not in {self.me.id, 1124824021}:
-                    if "РеанимироватЬ жабу" in message.message:
-                        await asyncio.sleep(rd)
-                        return await utils.answer(message, "дуэль")
-                elif message.sender_id in {1124824021}:
-                    if (
-                        f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
-                        in message.message
-                    ):
-                        await asyncio.sleep(rd)
-                        await message.respond("дуэль принять")
-                        await asyncio.sleep(rd)
-                        return await message.respond("дуэль старт")
-                    elif "Имя Жабы" in self.status:
-                        if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
-                            await asyncio.sleep(rd)
-                            return await message.respond("РеанимироватЬ жабу")
-                        elif "Победитель" in message.message:
-                            if (
-                                self.status["Имя Жабы"] in message.message
-                                and "отыграл" in message.message
-                            ):
-                                duel.pop(chat)
-                                self.db.set("Дуэлька", "duel", duel)
-                                await utils.answer(
-                                    message, "<b>пью ромашковый чай</b>!"
-                                )
-                            elif self.status["Имя Жабы"] not in message.message:
-                                await asyncio.sleep(rd)
-                                await utils.answer(message, "РеанимироватЬ жабу")
         except:
             return
