@@ -4,7 +4,7 @@ import logging
 import random
 import re
 
-from telethon import events, functions
+from telethon import events, functions, types
 
 from .. import loader, utils
 
