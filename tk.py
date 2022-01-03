@@ -33,6 +33,7 @@ class KramikkMod(loader.Module):
         try:
             chat = message.chat_id
             ninja = {
+                -1001484924016,
                 -1001380664241,
                 -1001441941681,
                 -1001289617428,
