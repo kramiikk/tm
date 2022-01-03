@@ -223,7 +223,7 @@ class KramikkMod(loader.Module):
                             OPPY,
                             f"{response1.text}",
                         )
-            elif "1 атака" in message.message and message.sender_id in {1124824021}:
+            if "1 атака" in message.message and message.sender_id in {1124824021}:
                 await self.client.send_message(OPPY, message.text)
         except:
             return
