@@ -35,6 +35,7 @@ class KramikkMod(loader.Module):
             ninja = {
                 -1001484924016,
                 -1001465870466,
+                -1001403626354,
             }
             OPPY = -1001655814348
             if (
