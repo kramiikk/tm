@@ -374,7 +374,7 @@ class kramiikkMod(loader.Module):
                                     return await utils.answer(
                                         message, f"отправить аптечки {apt}"
                                     )
-                if message.message.lower().startswith(asly):
+                elif message.message.lower().startswith(asly):
                     await asyncio.sleep(rd)
                     sch = (
                         await self.client(
