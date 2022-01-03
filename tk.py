@@ -67,24 +67,24 @@ class KramikkMod(loader.Module):
                                 "Топ 35 кланов (.+) лиге", i.message
                             ).group(1)
                     txt += f"\nЛига: {liga}"
-                    return await utils.answer(nm, txt)
-                capt = re.search(
+                    await utils.answer(nm, txt)
+                apt = re.search(
                     "клана (.+) нашелся враг (.+), пора .+\n(<.+?(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>)",
                     message.text,
                 )
-                if capt:
-                    id0 = capt.group(12)
-                    ja0 = capt.group(11)
-                    id1 = capt.group(10)
-                    ja1 = capt.group(9)
-                    id2 = capt.group(8)
-                    ja2 = capt.group(7)
-                    id3 = capt.group(6)
-                    ja3 = capt.group(5)
-                    id4 = capt.group(4)
-                    ja4 = capt.group(3)
-                    ek = capt.group(2)
-                    mk = capt.group(1)
+                if apt:
+                    id0 = apt.group(12)
+                    ja0 = apt.group(11)
+                    id1 = apt.group(10)
+                    ja1 = apt.group(9)
+                    id2 = apt.group(8)
+                    ja2 = apt.group(7)
+                    id3 = apt.group(6)
+                    ja3 = apt.group(5)
+                    id4 = apt.group(4)
+                    ja4 = apt.group(3)
+                    ek = apt.group(2)
+                    mk = apt.group(1)
                     war = f"{mk} против клана {ek}"
                     m = await self.client.send_message(1655814348, f"⚡️ Клан {war}")
                     war += f"\nChat id: {chat}\n<b>Клан: {mk}</b>\n{ja0} {id0}\n{ja1} {id1}\n{ja2} {id2}\n{ja3} {id3}\n{ja4} {id4}"
