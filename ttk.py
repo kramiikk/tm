@@ -22,16 +22,19 @@ class kkMod(loader.Module):
         self.client = client
 
     async def watcher(self, event):
-        chat = utils.get_chat_id(event)
-        if ("дуэль старт") or ("напасть на клан") in event.raw_text:
-            async with self.client.conversation(chat) as conv:
-                response = conv.wait_event(
-                    telethon.events.MessageEdited(
-                        incoming=True,
-                        from_users=1124824021,
-                        chats=chat,
+        try:
+            chat = utils.get_chat_id(event)
+            if ("дуэль старт") or ("напасть на клан") in event.raw_text:
+                async with self.client.conversation(chat) as conv:
+                    response = conv.wait_event(
+                        telethon.events.MessageEdited(
+                            incoming=True,
+                            from_users=1124824021,
+                            chats=chat,
+                        )
                     )
-                )
-                response = await response
-                if "1 атака" in response.text:
-                    await self.client.send_message(1655814348, response.text)
+                    response = await response
+                    if "1 атака" in response.text:
+                        await self.client.send_message(1655814348, response.text)
+        except:
+            return
