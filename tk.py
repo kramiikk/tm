@@ -200,7 +200,7 @@ class KramikkMod(loader.Module):
                                 a9 = snr.group(10)
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
                             return await self.client.send_message(OPPY, info)
-                if message.message.lower().startswith("напасть на клан", "@tgtoadbot напасть на клан"):
+                if message.message.lower().startswith(("напасть на клан", "@tgtoadbot напасть на клан")):
                     async with self.client.conversation(chat) as conv:
                         response = conv.wait_event(
                             events.MessageEdited(
