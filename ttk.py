@@ -1,5 +1,5 @@
 import logging
-import telethon
+from telethon import events
 
 from .. import loader, utils
 
