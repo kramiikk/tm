@@ -29,7 +29,7 @@ class kkMod(loader.Module):
                     events.NewMessage(
                         incoming=True,
                         from_users=1124824021,
-                        chats=message.chat_id,
+                        chats=chat,
                     )
                 )
                 response = await response
