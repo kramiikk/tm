@@ -212,7 +212,7 @@ class KramikkMod(loader.Module):
                         response = await response
                         if "1 атака" in response.text:
                             jbb = re.search('Жаба (.+):', response.text).group(1)
-                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jbb}\n{message.sender.first_name}\n{response.text}"
+                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jbb}\n\n{response.text}"
                             return await self.client.send_message(OPPY, info)
         except:
             return
