@@ -83,7 +83,7 @@ class KramikkMod(loader.Module):
                         m = await self.client.send_message(1655814348, f"⚡️ Клан {war}")
                         war += f"\nChat id: {chat}\n<b>Клан: {mk}</b>\n{ja0} {id0}\n{ja1} {id1}\n{ja2} {id2}\n{ja3} {id3}\n{ja4} {id4}"
                         return await utils.answer(m, war)
-                elif message.message.lower().startswith(
+                if message.message.lower().startswith(
                     ("начать клановую", "@tgtoadbot начать клановую")
                 ):
                     async with self.client.conversation(chat) as conv:
@@ -123,7 +123,7 @@ class KramikkMod(loader.Module):
                                         lif = f"\nЛига: {liga}"
                             txt = f"В поиске {klan}{lif}"
                             nm = await self.client.send_message(1767017980, txt)
-                elif message.message.lower().startswith(
+                if message.message.lower().startswith(
                     ("мой клан", "@tgtoadbot мой клан")
                 ):
                     async with self.client.conversation(chat) as conv:
@@ -152,7 +152,7 @@ class KramikkMod(loader.Module):
                                 ja4 = clj.group(5)
                                 info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n(лид): {lid}\n{ja1}\n{ja2}\n{ja3}:\n{ja4}"
                             return await self.client.send_message(OPPY, info)
-                elif message.message.lower().startswith(
+                if message.message.lower().startswith(
                     ("моя жаба", "@tgtoadbot моя жаба")
                 ):
                     async with self.client.conversation(chat) as conv:
@@ -170,7 +170,7 @@ class KramikkMod(loader.Module):
                             cll = re.search("Класс: (.+)", response.text).group(1)
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {imy}\nУровень: {urv}\nКласс: {cll}\n{message.sender.first_name}"
                             return await self.client.send_message(OPPY, info)
-                elif message.message.lower().startswith(
+                if message.message.lower().startswith(
                     ("мое снаряжение", "@tgtoadbot мое снаряжение")
                 ):
                     async with self.client.conversation(chat) as conv:
@@ -200,30 +200,19 @@ class KramikkMod(loader.Module):
                                 a9 = snr.group(10)
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
                             return await self.client.send_message(OPPY, info)
-            if message.message.lower().startswith(
-                ("дуэль старт", "@tgtoadbot дуэль старт")
-            ):
+            if message.message.lower().startswith("напасть на клан", "@tgtoadbot напасть на клан"):
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
-                        events.NewMessage(
+                        events.MessageEdited(
                             incoming=True,
                             from_users=1124824021,
                             chats=message.chat_id,
                         )
                     )
                     response = await response
-                    response1 = await response
-                    if "У вас ничья" in response1.text:
-                        await self.client.send_message(
-                            OPPY,
-                            f"{response1.text}",
-                        )
-                    elif "Победитель" in response1.text:
-                        await self.client.send_message(
-                            OPPY,
-                            f"{response1.text}",
-                        )
-            if "1 атака" in message.message and message.sender_id in {1124824021}:
-                await self.client.send_message(OPPY, message.text)
+                    if "1 атака" in response.text:
+                        jbb = re.search('Жаба (.+):', response.text).group(1)
+                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jbb}\n{message.sender.first_name}"
+                        return await self.client.send_message(OPPY, info)
         except:
             return
