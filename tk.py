@@ -200,19 +200,19 @@ class KramikkMod(loader.Module):
                                 a9 = snr.group(10)
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
                             return await self.client.send_message(OPPY, info)
-            if message.message.lower().startswith("напасть на клан", "@tgtoadbot напасть на клан"):
-                async with self.client.conversation(chat) as conv:
-                    response = conv.wait_event(
-                        events.MessageEdited(
-                            incoming=True,
-                            from_users=1124824021,
-                            chats=message.chat_id,
+                if message.message.lower().startswith("напасть на клан", "@tgtoadbot напасть на клан"):
+                    async with self.client.conversation(chat) as conv:
+                        response = conv.wait_event(
+                            events.MessageEdited(
+                                incoming=True,
+                                from_users=1124824021,
+                                chats=chat,
+                            )
                         )
-                    )
-                    response = await response
-                    if "1 атака" in response.text:
-                        jbb = re.search('Жаба (.+):', response.text).group(1)
-                        info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jbb}\n{message.sender.first_name}\n{response.text}"
-                        return await self.client.send_message(OPPY, info)
+                        response = await response
+                        if "1 атака" in response.text:
+                            jbb = re.search('Жаба (.+):', response.text).group(1)
+                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jbb}\n{message.sender.first_name}\n{response.text}"
+                            return await self.client.send_message(OPPY, info)
         except:
             return
