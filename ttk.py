@@ -1,5 +1,5 @@
 import logging
-from telethon import events
+from telethon
 
 from .. import loader, utils
 
@@ -26,7 +26,7 @@ class kkMod(loader.Module):
         if ("дуэль старт") or ("напасть на клан") in event.raw_text:
             async with self.client.conversation(chat) as conv:
                 response = conv.wait_event(
-                    events.NewMessage(
+                    telethon.events.MessageEdited(
                         incoming=True,
                         from_users=1124824021,
                         chats=chat,
