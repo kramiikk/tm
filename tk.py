@@ -211,8 +211,21 @@ class KramikkMod(loader.Module):
                         )
                         response = await response
                         if "1 атака" in response.text:
-                            jbb = re.search('Жаба (.+):', response.text).group(1)
-                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jbb}\n\n{response.text}"
+                            jbb = re.search('а (.+):\n.+: (.+) \n.+\n.+: (\d+)\n\n.+а (.+):\n.+: (.+) \n.+\n.+: (\d+)$', response.text)
+                            if jbb:
+                                jn = jbb.group(1)
+                                ur = jbb.group(2)
+                                zd = jbb.group(3)
+                                jn1 = jbb.group(4)
+                                ur1 = jbb.group(5)
+                                zd1 = jbb.group(6)
+                                x = int(ur)
+                                u = int(zd)
+                                y = ((x + u) - 160) * 2
+                                x1 = int(ur1)
+                                u1 = int(zd1)
+                                y1 = ((x1 + u1) - 160) * 2
+                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jn}\nУровень: ~{y}\n\nЖаба противника: {jn1}\nУровень: ~{y1}\n{response.text}"
                             return await self.client.send_message(OPPY, info)
         except:
             return
