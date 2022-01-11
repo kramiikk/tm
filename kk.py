@@ -150,7 +150,7 @@ class kramiikkMod(loader.Module):
                                 "%answer%", random.choice(self.answers[words_len[0]])
                             )
                         )
-                    elif "напиши в " in message.message:
+                    elif "напиши в" in message.message:
                         count = args.split(" ", 4)[3]
                         if count.isnumeric():
                             count = int(args.split(" ", 4)[3])
@@ -167,6 +167,30 @@ class kramiikkMod(loader.Module):
                                 )
                             )
                             await conv.send_message(mmsg)
+                            response = await response
+                            await message.reply(response.message)
+                    elif "реплай" in message.message:
+                        sct = args.split(" ", 4)[2]
+                        if sct.isnumeric():
+                            sct = int(args.split(" ", 4)[2])
+                        sak = args.split(" ", 4)[3]
+                        if sak.isnumeric():
+                            sak = int(args.split(" ", 4)[3])
+                        ms = await self.client.iter_messages(sct, from_user=sak)
+                        if ms.total == 0:
+                            await message.reply("nope")
+                        mmsg = args.split(" ", 4)[4]
+                        await self.client.send_message(
+                            sct, mmsg, reply_to=ms
+                        )
+                        async with self.client.conversation(count) as conv:
+                            response = conv.wait_event(
+                                events.NewMessage(
+                                    incoming=True,
+                                    from_users=1124824021,
+                                    chats=count,
+                                )
+                            )
                             response = await response
                             await message.reply(response.message)
                     elif "напади" in message.message:
