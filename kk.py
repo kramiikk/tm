@@ -176,7 +176,7 @@ class kramiikkMod(loader.Module):
                         sak = args.split(" ", 4)[3]
                         if sak.isnumeric():
                             sak = int(args.split(" ", 4)[3])
-                        ms = await self.client.iter_messages(sct, from_user=sak)
+                        ms = await self.client.get_messages(sct, from_user=sak)
                         if ms.total == 0:
                             await message.reply("nope")
                         mmsg = args.split(" ", 4)[4]
