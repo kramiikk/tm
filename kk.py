@@ -176,13 +176,9 @@ class kramiikkMod(loader.Module):
                         sak = args.split(" ", 4)[3]
                         if sak.isnumeric():
                             sak = int(args.split(" ", 4)[3])
-                        ms = await self.client.get_messages(sct, from_user=sak)
-                        if ms.total == 0:
-                            await message.reply("nope")
+                        ms = await self.client.get_messages(sct, ids=sak)
                         mmsg = args.split(" ", 4)[4]
-                        await ms.reply(
-                            mmsg
-                        )
+                        await ms.reply(mmsg)
                     elif "напади" in message.message:
                         async with self.client.conversation(chat) as conv:
                             response = conv.wait_event(
