@@ -135,7 +135,8 @@ class kramiikkMod(loader.Module):
                     count = args.split(" ", 2)[1]
                     if message.message.endswith("?"):
                         words = re.findall(r"\w+", f"{message.message}")
-                        words_len = [words.__len__()] + [x.__len__() for x in words]
+                        words_len = [words.__len__()] + [x.__len__()
+                                                         for x in words]
                         i = words_len.__len__()
                         while i > 1:
                             i -= 1
@@ -147,7 +148,8 @@ class kramiikkMod(loader.Module):
                                 )
                         return await message.reply(
                             self.strings["quest_answer"].replace(
-                                "%answer%", random.choice(self.answers[words_len[0]])
+                                "%answer%", random.choice(
+                                    self.answers[words_len[0]])
                             )
                         )
                     elif "напиши в" in message.message:
@@ -388,7 +390,8 @@ class kramiikkMod(loader.Module):
                     await asyncio.sleep(rd)
                     sch = (
                         await self.client(
-                            functions.messages.GetScheduledHistoryRequest(chat, 0)
+                            functions.messages.GetScheduledHistoryRequest(
+                                chat, 0)
                         )
                     ).messages
                     await self.client(
@@ -480,7 +483,8 @@ class kramiikkMod(loader.Module):
                                         )
                                 else:
                                     await conv.send_message("откормить жабку")
-                                    delta = datetime.timedelta(hours=4, seconds=3)
+                                    delta = datetime.timedelta(
+                                        hours=4, seconds=3)
                                     await conv.send_message(
                                         "откормить жабку", schedule=delta
                                     )
@@ -632,7 +636,8 @@ class kramiikkMod(loader.Module):
                                 delta = datetime.timedelta(hours=6, seconds=3)
                                 await conv.send_message("покормить жабку")
                             for i in range(3):
-                                delta = delta + datetime.timedelta(hours=6, seconds=3)
+                                delta = delta + \
+                                    datetime.timedelta(hours=6, seconds=3)
                                 await conv.send_message(
                                     "покормить жабку", schedule=delta
                                 )
@@ -653,7 +658,8 @@ class kramiikkMod(loader.Module):
                                     )
                                     await conv.send_message(
                                         "работа крупье",
-                                        schedule=delta + datetime.timedelta(seconds=13),
+                                        schedule=delta +
+                                        datetime.timedelta(seconds=13),
                                     )
                                 for i in range(2):
                                     delta = delta + datetime.timedelta(hours=8)
@@ -662,7 +668,8 @@ class kramiikkMod(loader.Module):
                                     )
                                     await conv.send_message(
                                         "работа крупье",
-                                        schedule=delta + datetime.timedelta(seconds=13),
+                                        schedule=delta +
+                                        datetime.timedelta(seconds=13),
                                     )
                                     await conv.send_message(
                                         "завершить работу",
@@ -695,13 +702,15 @@ class kramiikkMod(loader.Module):
                                 await conv.send_message("завершить работу")
                                 delta = datetime.timedelta(hours=6)
                             for i in range(2):
-                                delta = delta + datetime.timedelta(hours=6, seconds=3)
+                                delta = delta + \
+                                    datetime.timedelta(hours=6, seconds=3)
                                 await conv.send_message(
                                     "реанимировать жабу", schedule=delta
                                 )
                                 await conv.send_message(
                                     "работа крупье",
-                                    schedule=delta + datetime.timedelta(seconds=3),
+                                    schedule=delta +
+                                    datetime.timedelta(seconds=3),
                                 )
                                 await conv.send_message(
                                     "завершить работу",
@@ -710,7 +719,8 @@ class kramiikkMod(loader.Module):
                                 )
             if chat in {707693258}:
                 if "НЕЗАЧЁТ!" in message.message:
-                    args = [int(x) for x in message.text.split() if x.isnumeric()]
+                    args = [int(x)
+                            for x in message.text.split() if x.isnumeric()]
                     rd = random.randint(20, 60)
                     if len(args) == 4:
                         delta = datetime.timedelta(
@@ -760,7 +770,8 @@ class kramiikkMod(loader.Module):
                 if message.message.startswith("Алло") and message.sender_id in {
                     1124824021
                 }:
-                    capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
+                    capt = re.search(
+                        "клана (.+) нашелся враг (.+), пора", message.text)
                     if capt:
                         mk = capt.group(1)
                         ek = capt.group(2)
@@ -772,7 +783,8 @@ class kramiikkMod(loader.Module):
                             src = f"{chat} {mk} Лига:"
                             ms1 = await self.client.get_messages(1655814348, search=src)
                             for i in ms1:
-                                liga = re.search("Лига: (.+)", i.message).group(1)
+                                liga = re.search(
+                                    "Лига: (.+)", i.message).group(1)
                         else:
                             for i in ms:
                                 liga = re.search(
@@ -801,9 +813,11 @@ class kramiikkMod(loader.Module):
                                     f"<i>В поиске {message.sender.first_name}</i>",
                                 )
                             for i in ms:
-                                klan = re.search("Клан: (.+)", i.message).group(1)
+                                klan = re.search(
+                                    "Клан: (.+)", i.message).group(1)
                                 if "Усилитель:" in i.message:
-                                    liga = re.search("Лига: (.+)", i.message).group(1)
+                                    liga = re.search(
+                                        "Лига: (.+)", i.message).group(1)
                                     usil = re.search(
                                         "Усилитель: (.+)", i.message
                                     ).group(1)
