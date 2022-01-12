@@ -180,8 +180,8 @@ class kramiikkMod(loader.Module):
                         if ms.total == 0:
                             await message.reply("nope")
                         mmsg = args.split(" ", 4)[4]
-                        await self.client.send_message(
-                            sct, mmsg, reply_to=ms
+                        await ms.reply(
+                            mmsg
                         )
                     elif "напади" in message.message:
                         async with self.client.conversation(chat) as conv:
