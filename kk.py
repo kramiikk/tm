@@ -411,6 +411,9 @@ class kramiikkMod(loader.Module):
                         except TimeoutError:
                             return
                 elif "захват топа" in message.message:
+                    args = message.message
+                    reply = await message.get_reply_message()
+                    szn = args.split(" ", 2)[2]
                     async with self.client.conversation(chat) as conv:
                         try:
                             response = conv.wait_event(
@@ -420,7 +423,7 @@ class kramiikkMod(loader.Module):
                                     chats=chat,
                                 )
                             )
-                            await conv.send_message('сезон кланов золото')
+                            await conv.send_message(f'сезон кланов {szn}')
                             response = await response
                             result = re.findall(
                                 '(\d+)\. 🛡(\d+) \| (.*)', response.text)
