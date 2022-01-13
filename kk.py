@@ -191,15 +191,16 @@ class kramiikkMod(loader.Module):
                             )
                             await conv.send_message('сезон кланов золото')
                             response = await response
-                            result = re.findall('(\d+)\. 🛡(\d+) \| (.*)', response.text)
+                            result = re.findall(
+                                '(\d+)\. 🛡(\d+) \| (.*)', response.text)
                             for item in result:
-                                src = f"{item[2]} Chat id:"
+                                src = f"{item[2]} Усилитель:"
                                 ms = await self.client.get_messages(1655814348, search=src)
                                 if ms.total != 0:
-                                    a="<i>Цель захвачена</i>"
+                                    a = "<i>Цель захвачена</i>"
                                 else:
-                                    a="<i>кто это...</i>"
-                                await message.reply(f'{item[0]} {item[1]} {item[2]} {a}')
+                                    a = "<i>кто это...</i>"
+                            await message.reply(f'{item[0]} {item[1]} {item[2]} {a}')
                     elif "напади" in message.message:
                         async with self.client.conversation(chat) as conv:
                             response = conv.wait_event(
