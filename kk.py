@@ -433,7 +433,7 @@ class kramiikkMod(loader.Module):
                                 else:
                                     a = "<i>🌚Кто это...</i>"
                                 rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
-                            return await conv.send_message(rep)
+                            return await response.reply(rep)
                         except TimeoutError:
                             return
                 elif message.message.lower().startswith(asly):
