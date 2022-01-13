@@ -429,7 +429,7 @@ class kramiikkMod(loader.Module):
                                 src = f"{item[2]} Усилитель:"
                                 ms = await self.client.get_messages(1655814348, search=src)
                                 if ms.total != 0:
-                                    a = "<i>😈Цель захвачена</i>"
+                                    a = "<i>😈Захвачен</i>"
                                 else:
                                     a = "<i>🌚Кто это...</i>"
                                 rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
