@@ -193,6 +193,7 @@ class kramiikkMod(loader.Module):
                             response = await response
                             result = re.findall(
                                 '(\d+)\. 🛡(\d+) \| (.*)', response.text)
+                            rep="Оп оп оп"
                             for item in result:
                                 src = f"{item[2]} Усилитель:"
                                 ms = await self.client.get_messages(1655814348, search=src)
@@ -200,7 +201,8 @@ class kramiikkMod(loader.Module):
                                     a = "<i>Цель захвачена</i>"
                                 else:
                                     a = "<i>кто это...</i>"
-                            await message.reply(f'{item[0]} {item[1]} {item[2]} {a}')
+                                rep += f"\n{item[0]} {item[1]} {item[2]} {a}"
+                            await message.reply(rep)
                     elif "напади" in message.message:
                         async with self.client.conversation(chat) as conv:
                             response = conv.wait_event(
