@@ -193,7 +193,7 @@ class kramiikkMod(loader.Module):
                             response = await response
                             result = re.findall(
                                 '(\d+)\. 🛡(\d+) \| (.*)', response.text)
-                            rep="🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
+                            rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
                             for item in result:
                                 src = f"{item[2]} Усилитель:"
                                 ms = await self.client.get_messages(1655814348, search=src)
