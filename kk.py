@@ -410,7 +410,7 @@ class kramiikkMod(loader.Module):
                                         )
                         except TimeoutError:
                             return
-                elif message.message.lower().startswith("захват топа"):
+                elif "захват топа" in message.message:
                     async with self.client.conversation(chat) as conv:
                         try:
                             response = conv.wait_event(
