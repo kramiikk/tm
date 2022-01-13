@@ -193,15 +193,15 @@ class kramiikkMod(loader.Module):
                             response = await response
                             result = re.findall(
                                 '(\d+)\. 🛡(\d+) \| (.*)', response.text)
-                            rep="Оп оп оп"
+                            rep="🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
                             for item in result:
                                 src = f"{item[2]} Усилитель:"
                                 ms = await self.client.get_messages(1655814348, search=src)
                                 if ms.total != 0:
-                                    a = "<i>Цель захвачена</i>"
+                                    a = "<i>😈Цель захвачена</i>"
                                 else:
-                                    a = "<i>кто это...</i>"
-                                rep += f"\n{item[0]} {item[1]} {item[2]} {a}"
+                                    a = "<i>🌚Кто это...</i>"
+                                rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
                             await message.reply(rep)
                     elif "напади" in message.message:
                         async with self.client.conversation(chat) as conv:
