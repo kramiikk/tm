@@ -219,9 +219,9 @@ class DelMsgMod(loader.Module):
         '''Случайная фраза капа.'''
         await event.edit('<b>\u2060</b>')
         while True:
-            a = какаша(await event.client.get_messages(1441941681, 1000))
+            a = какаша(await event.client.get_messages(1484466468, 1000))
             if not a.entities:
-                await event.edit(f'<b>{a.text}</b>')
+                await event.edit(f'<b>{a}</b>')
                 break
 
     async def watcher(self, message):
