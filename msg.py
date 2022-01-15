@@ -1,14 +1,39 @@
 import random
 from asyncio import sleep
+from random import choice as какаша
 
 from .. import loader, utils
 
 
+def register(cb):
+    cb(DelMsgMod())
+
+
+@loader.tds
 class DelMsgMod(loader.Module):
     strings = {"name": "DelMsg"}
 
+    async def client_ready(self, client, db):
+        self.me = await client.get_me()
+        self.client = client
+        self.db = db
+
+    async def echocmd(self, message):
+        """Активировать/деактивировать Echo."""
+        echos = self.db.get("Echo", "chats", [])
+        chatid = str(message.chat_id)
+
+        if chatid not in echos:
+            echos.append(chatid)
+            self.db.set("Echo", "chats", echos)
+            return await message.edit("<b>[Echo Mode]</b> Активирован в этом чате!")
+
+        echos.remove(chatid)
+        self.db.set("Echo", "chats", echos)
+        return await message.edit("<b>[Echo Mode]</b> Деактивирован в этом чате!")
+
     async def delmsgcmd(self, message):
-        msg = [msg async for msg in message.client.iter_messages(message.chat_id, from_user="me")]
+        msg = [msg async for msg in self.client.iter_messages(message.chat_id, from_user="me")]
         if utils.get_args_raw(message):
             args = int(utils.get_args_raw(message))
         else:
@@ -38,7 +63,7 @@ class DelMsgMod(loader.Module):
                            "йцукенгшщзхъфывапролджэячсмитьбю. ?!,-:;7"
                            ))
         txte = txt.translate(txtnorm)
-        await message.client.send_message("me", txte)
+        await self.client.send_message("me", txte)
 
     async def emojicmd(self, message):
         args = utils.get_args_raw(message)
@@ -57,8 +82,8 @@ class DelMsgMod(loader.Module):
         await message.edit(t)
 
     async def shipcmd(self, message):
-        user1 = random.choice([i for i in await message.client.get_participants(message.to_id)])
-        user2 = random.choice([i for i in await message.client.get_participants(message.to_id)])
+        user1 = random.choice([i for i in await self.client.get_participants(message.to_id)])
+        user2 = random.choice([i for i in await self.client.get_participants(message.to_id)])
         rand1 = message.edit(
             f"<a href=tg://user?id={user1.id}>{user1.first_name}</a> и <a href=tg://user?id={user2.id}>{user2.first_name}</a> любите друг друга!\nМур-Мур😻")
         rand2 = message.edit(
@@ -85,10 +110,16 @@ class DelMsgMod(loader.Module):
         self.truefalse = False
         await message.edit("<b>Punto Off.</b>")
 
+    @loader.owner
+    async def lovecmd(self, message):
+        for love in ["Я", "ᅠ", "Т", "Е", "Б", "Я", "ᅠ", "Л", "Ю", "Б", "Л", "Ю", "😘", "❤️", "Я ТЕБЯ ЛЮБЛЮ😘❤️"]:
+            await message.edit(love)
+            await sleep(0.5)
+
     async def watcher(self, message):
         await sleep(0.1)
         if self.truefalse == True:
-            me = (await message.client.get_me())
+            me = (await self.client.get_me())
             if message.sender_id == me.id:
                 text = message.text.lower()
                 txtnorm = dict(zip(map(ord,
@@ -184,12 +215,30 @@ class DelMsgMod(loader.Module):
             await message.reply("Заразить +\n\n<b>Следующая команда будет произведена через 1 час.\n\nIrisBot by @CREATIVE_tg1</b>")
             await sleep(3600)
 
+    async def kapcmd(self, event):
+        '''Случайная фраза капа.'''
+        await event.edit('<b>\u2060</b>')
+        while True:
+            a = какаша(await event.client.get_messages(1441941681, 1000))
+            if not a.entities:
+                await event.edit(f'<b>{a.text}</b>')
+                break
+
     async def watcher(self, message):
-        me = (await message.client.get_me())
-        if message.sender_id == me.id:
+        echos = self.db.get("Echo", "chats", [])
+        chatid = str(message.chat_id)
+
+        if message.sender_id == self.me.id:
             if message.text.lower() == "ирисфарм стоп":
                 self.farm = False
                 await message.reply("<b>Ирисфарм остановлен.</b>")
             if message.text.lower() == "ирисвирус стоп":
                 self.virys = False
                 await message.reply("<b>Ирисвирус остановлен.</b>")
+
+        if chatid not in str(echos):
+            return
+        if message.sender_id == self.me.id:
+            return
+
+        await self.client.send_message(int(chatid), message, reply_to=await self.get_reply_message() or message)
