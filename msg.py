@@ -221,7 +221,7 @@ class DelMsgMod(loader.Module):
         while True:
             a = какаша(await event.client.get_messages(1484466468, 1000))
             if not a.entities:
-                await event.edit(f'<b>{a}</b>')
+                await event.edit(f'<b>{a.message}</b>')
                 break
 
     async def watcher(self, message):
