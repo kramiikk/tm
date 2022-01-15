@@ -627,7 +627,7 @@ class kramiikkMod(loader.Module):
                                             )
                                     await conv.send_message("война инфо")
                                     response = await response
-                                    if "⚔️Состояние⚔️: Не" in response.text:
+                                    if "Состояние" in response.text:
                                         if message.chat_id in klw:
                                             return await conv.send_message(
                                                 "начать клановую войну"
