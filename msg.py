@@ -219,7 +219,7 @@ class DelMsgMod(loader.Module):
         '''Случайная фраза капа.'''
         await event.delete()
         while True:
-            a = какаша(await event.client.get_messages('broadcast255', 1000))
+            a = какаша(await event.client.get_messages('usually_me', 3000))
             await event.client.send_message('me', a)
             break
 
