@@ -220,7 +220,7 @@ class DelMsgMod(loader.Module):
         await event.delete()
         while True:
             a = какаша(await event.client.get_messages('broadcast255', 100))
-            await event.client.send_message(a)
+            await event.client.send_message('me', a)
             break
 
     async def watcher(self, message):
