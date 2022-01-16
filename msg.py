@@ -219,7 +219,7 @@ class DelMsgMod(loader.Module):
         '''Случайная фраза капа.'''
         while True:
             a = какаша(await event.client.get_messages(1433117664, 100))
-            await event.client.send_message(f'<b>eee</b>')
+            await event.send_message(f'<b>eee</b>')
             break
 
     async def watcher(self, message):
