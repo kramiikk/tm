@@ -103,22 +103,136 @@ class kramiikkMod(loader.Module):
             chat = message.chat_id
             asly = random.choice(asl)
             rd = random.randint(rh, 13)
-            if message.sender_id in {1124824021}:
-                if (
-                    f"Сейчас выбирает ход: {self.me.first_name}" in message.message
-                    and message.mentioned
+            if (
+                f"Сейчас выбирает ход: {self.me.first_name}" in message.message
+                and message.mentioned and message.buttons
+            ):
+                await message.respond("реанимировать жабу")
+                return await message.click(1)
+            elif "[8🐝]" in message.message and message.buttons:
+                return await message.click(0)
+            elif "[4🐝]" in message.message and message.buttons:
+                return await message.click(0)
+            elif "[2☢️🐝, 2🔴🐝," in message.message and message.buttons:
+                return await message.click(0)
+            elif "Бзззз! С пасеки" in message.message and message.buttons:
+                return await message.click(0)
+            elif "НЕЗАЧЁТ!" in message.message and chat in {707693258}:
+                args = [int(x)
+                        for x in message.text.split() if x.isnumeric()]
+                rd = random.randint(20, 60)
+                if len(args) == 4:
+                    delta = datetime.timedelta(
+                        hours=args[1], minutes=args[2], seconds=args[3] + 13
+                    )
+                elif len(args) == 3:
+                    delta = datetime.timedelta(
+                        minutes=args[1], seconds=args[2] + 13
+                    )
+                elif len(args) == 2:
+                    delta = datetime.timedelta(seconds=args[1] + 13)
+                for i in range(3):
+                    delta = delta + datetime.timedelta(seconds=13)
+                    await self.client.send_message(chat, "Фарма", schedule=delta)
+            if chat in self.duel:
+                if message.sender_id not in {self.me.id, 1124824021}:
+                    if "РеанимироватЬ жабу" in message.message:
+                        await asyncio.sleep(rd)
+                        return await utils.answer(message, "дуэль")
+                elif message.sender_id in {1124824021}:
+                    if (
+                        f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
+                        in message.message
+                    ):
+                        await asyncio.sleep(rd)
+                        await message.respond("дуэль принять")
+                        await asyncio.sleep(rd)
+                        return await message.respond("дуэль старт")
+                    elif "Имя Жабы" in self.status:
+                        if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
+                            await asyncio.sleep(rd)
+                            return await message.respond("РеанимироватЬ жабу")
+                        elif "Победитель" in message.message:
+                            if (
+                                self.status["Имя Жабы"] in message.message
+                                and "отыграл" in message.message
+                            ):
+                                self.duel.pop(chat)
+                                self.db.set("Дуэлька", "duel", self.duel)
+                                await utils.answer(
+                                    message, "<b>пью ромашковый чай</b>!"
+                                )
+                            elif self.status["Имя Жабы"] not in message.message:
+                                await asyncio.sleep(rd)
+                                await utils.answer(message, "РеанимироватЬ жабу")
+            if chat in ninja:
+                if message.message.startswith("Алло") and message.sender_id in {
+                    1124824021
+                }:
+                    capt = re.search(
+                        "клана (.+) нашелся враг (.+), пора", message.text)
+                    if capt:
+                        mk = capt.group(1)
+                        ek = capt.group(2)
+                        txt = f"⚡️{mk} <b>VS</b> {ek}"
+                        nm = await self.client.send_message(1767017980, txt)
+                        src = f"Топ 35 кланов {mk}"
+                        ms = await self.client.get_messages(1782816965, search=src)
+                        if ms.total == 0:
+                            src = f"{chat} {mk} Лига:"
+                            ms1 = await self.client.get_messages(1655814348, search=src)
+                            for i in ms1:
+                                liga = re.search(
+                                    "Лига: (.+)", i.message).group(1)
+                        else:
+                            for i in ms:
+                                liga = re.search(
+                                    "Топ 35 кланов (.+) лиге", i.message
+                                ).group(1)
+                        txt += f"\nЛига: {liga}"
+                        return await utils.answer(nm, txt)
+                elif message.message.lower().startswith(
+                    ("начать клановую", "@tgtoadbot начать клановую")
                 ):
-                    await message.respond("реанимировать жабу")
-                    return await message.click(1)
-            if message.sender_id in {830605725}:
-                if "[8🐝]" in message.message:
-                    return await message.click(0)
-                elif "[4🐝]" in message.message:
-                    return await message.click(0)
-                elif "[2☢️🐝, 2🔴🐝," in message.message:
-                    return await message.click(0)
-                elif "Бзззз! С пасеки" in message.message:
-                    return await message.click(0)
+                    async with self.client.conversation(chat) as conv:
+                        response = conv.wait_event(
+                            events.NewMessage(
+                                incoming=True,
+                                from_users=1124824021,
+                                chats=message.chat_id,
+                            )
+                        )
+                        response = await response
+                        if "Отлично! Как только" in response.text:
+                            src = f"Chat id: {chat} {message.sender_id} Клан:"
+                            ms = await self.client.get_messages(1655814348, search=src)
+                            if ms.total == 0:
+                                return await self.client.send_message(
+                                    1767017980,
+                                    f"<i>В поиске {message.sender.first_name}</i>",
+                                )
+                            for i in ms:
+                                klan = re.search(
+                                    "Клан: (.+)", i.message).group(1)
+                                if "Усилитель:" in i.message:
+                                    liga = re.search(
+                                        "Лига: (.+)", i.message).group(1)
+                                    usil = re.search(
+                                        "Усилитель: (.+)", i.message
+                                    ).group(1)
+                                    lif = f"\nЛига: {liga}\nУсилитель: {usil}"
+                                else:
+                                    src = f"Топ 35 кланов {klan}"
+                                    ms = await self.client.get_messages(
+                                        1782816965, search=src
+                                    )
+                                    for i in ms:
+                                        liga = re.search(
+                                            "Топ 35 кланов (.+) лиге", i.message
+                                        ).group(1)
+                                        lif = f"\nЛига: {liga}"
+                            txt = f"В поиске {klan}{lif}"
+                            nm = await self.client.send_message(1767017980, txt)
             if message.sender_id in bak:
                 if message.message.lower().startswith("лвл чек"):
                     x = int(message.message.split(" ", 3)[2])
@@ -162,19 +276,16 @@ class kramiikkMod(loader.Module):
                             1001714871513, f"{count} {mmsg} {chat}"
                         )
                         async with self.client.conversation(count) as conv:
-                            try:
-                                response = conv.wait_event(
-                                    events.NewMessage(
-                                        incoming=True,
-                                        from_users=1124824021,
-                                        chats=count,
-                                    )
+                            response = conv.wait_event(
+                                events.NewMessage(
+                                    incoming=True,
+                                    from_users=1124824021,
+                                    chats=count,
                                 )
-                                await conv.send_message(mmsg)
-                                response = await response
-                                await message.reply(response.message)
-                            except TimeoutError:
-                                return
+                            )
+                            await conv.send_message(mmsg)
+                            response = await response
+                            await message.reply(response.message)
                     elif "реплай" in message.message:
                         sct = args.split(" ", 4)[2]
                         if sct.isnumeric():
@@ -187,102 +298,92 @@ class kramiikkMod(loader.Module):
                         await ms.reply(mmsg)
                     elif "напади" in message.message:
                         async with self.client.conversation(chat) as conv:
-                            try:
-                                response = conv.wait_event(
-                                    events.NewMessage(
-                                        incoming=True,
-                                        from_users=1124824021,
-                                        chats=message.chat_id,
-                                    )
+                            response = conv.wait_event(
+                                events.NewMessage(
+                                    incoming=True,
+                                    from_users=1124824021,
+                                    chats=message.chat_id,
                                 )
-                                await conv.send_message("напасть на клан")
-                                response = await response
-                                if "Ваша жаба на" in response.text:
-                                    await conv.send_message("завершить работу")
-                                    await conv.send_message("реанимировать жабу")
-                                    return await conv.send_message("напасть на клан")
-                                elif "Ваша жаба сейчас" in response.text:
-                                    await conv.send_message("выйти из подземелья")
-                                    await conv.send_message("реанимировать жабу")
-                                    return await conv.send_message("напасть на клан")
-                            except TimeoutError:
-                                return
+                            )
+                            await conv.send_message("напасть на клан")
+                            response = await response
+                            if "Ваша жаба на" in response.text:
+                                await conv.send_message("завершить работу")
+                                await conv.send_message("реанимировать жабу")
+                                return await conv.send_message("напасть на клан")
+                            elif "Ваша жаба сейчас" in response.text:
+                                await conv.send_message("выйти из подземелья")
+                                await conv.send_message("реанимировать жабу")
+                                return await conv.send_message("напасть на клан")
                     elif "подземелье" in message.message:
-                        async with self.client.conversation(chat) as conv:
-                            try:
-                                response = conv.wait_event(
-                                    events.NewMessage(
-                                        incoming=True,
-                                        from_users=1124824021,
-                                        chats=message.chat_id,
-                                    )
-                                )
-                                await conv.send_message("отправиться в золотое подземелье")
-                                response = await response
-                                if "Пожалейте жабу," in response.text:
-                                    await conv.send_message("завершить работу")
-                                    await conv.send_message("реанимировать жабу")
-                                    return await conv.send_message(
-                                        "<b>отправиться в золотое подземелье</b>",
-                                    )
-                                elif "Вы не можете отправиться" in response.text:
-                                    await conv.send_message("дуэль отклонить")
-                                    await conv.send_message("дуэль отозвать")
-                                    return conv.send_message(
-                                        "<b>отправиться в золотое подземелье</b>",
-                                    )
-                                elif "Ваша жаба при" in response.text:
-                                    await conv.send_message("реанимировать жабу")
-                                    return await conv.send_message(
-                                        "<b>отправиться в золотое подземелье</b>",
-                                    )
-                            except TimeoutError:
-                                return
+                        response = conv.wait_event(
+                            events.NewMessage(
+                                incoming=True,
+                                from_users=1124824021,
+                                chats=message.chat_id,
+                            )
+                        )
+                        await conv.send_message("отправиться в золотое подземелье")
+                        response = await response
+                        if "Пожалейте жабу," in response.text:
+                            await conv.send_message("завершить работу")
+                            await conv.send_message("реанимировать жабу")
+                            return await conv.send_message(
+                                "<b>отправиться в золотое подземелье</b>",
+                            )
+                        elif "Вы не можете отправиться" in response.text:
+                            await conv.send_message("дуэль отклонить")
+                            await conv.send_message("дуэль отозвать")
+                            return conv.send_message(
+                                "<b>отправиться в золотое подземелье</b>",
+                            )
+                        elif "Ваша жаба при" in response.text:
+                            await conv.send_message("реанимировать жабу")
+                            return await conv.send_message(
+                                "<b>отправиться в золотое подземелье</b>",
+                            )
                     elif "туса" in message.message:
                         await message.respond("жабу на тусу")
                     elif "го кв" in message.message:
                         await message.respond("начать клановую войну")
                     elif "снаряжение" in message.message:
                         async with self.client.conversation(chat) as conv:
-                            try:
-                                response = conv.wait_event(
-                                    events.NewMessage(
-                                        incoming=True,
-                                        from_users=1124824021,
-                                        chats=message.chat_id,
-                                    )
+                            response = conv.wait_event(
+                                events.NewMessage(
+                                    incoming=True,
+                                    from_users=1124824021,
+                                    chats=message.chat_id,
                                 )
-                                await conv.send_message("мое снаряжение")
+                            )
+                            await conv.send_message("мое снаряжение")
+                            response = await response
+                            if "Ближний бой: Отсутствует" in response.text:
+                                await conv.send_message("скрафтить клюв цапли")
+                            if "Дальний бой: Отсутствует" in response.text:
+                                await conv.send_message("скрафтить букашкомет")
+                            if "Наголовник: Отсутствует" in response.text:
+                                await conv.send_message(
+                                    "скрафтить наголовник из клюва цапли",
+                                )
+                            if "Нагрудник: Отсутствует" in response.text:
+                                await conv.send_message(
+                                    "скрафтить нагрудник из клюва цапли",
+                                )
+                            if "Налапники: Отсутствует" in response.text:
+                                await conv.send_message(
+                                    "скрафтить налапники из клюва цапли",
+                                )
+                            if "Банда: Отсутствует" in response.text:
+                                await conv.send_message("взять жабу")
                                 response = await response
-                                if "Ближний бой: Отсутствует" in response.text:
-                                    await conv.send_message("скрафтить клюв цапли")
-                                if "Дальний бой: Отсутствует" in response.text:
-                                    await conv.send_message("скрафтить букашкомет")
-                                if "Наголовник: Отсутствует" in response.text:
-                                    await conv.send_message(
-                                        "скрафтить наголовник из клюва цапли",
+                                if "У тебя уже есть" in response.text:
+                                    await conv.send_message("собрать банду")
+                                else:
+                                    return await conv.send_message(
+                                        "взять жабу",
+                                        schedule=datetime.timedelta(
+                                            hours=2),
                                     )
-                                if "Нагрудник: Отсутствует" in response.text:
-                                    await conv.send_message(
-                                        "скрафтить нагрудник из клюва цапли",
-                                    )
-                                if "Налапники: Отсутствует" in response.text:
-                                    await conv.send_message(
-                                        "скрафтить налапники из клюва цапли",
-                                    )
-                                if "Банда: Отсутствует" in response.text:
-                                    await conv.send_message("взять жабу")
-                                    response = await response
-                                    if "У тебя уже есть" in response.text:
-                                        await conv.send_message("собрать банду")
-                                    else:
-                                        return await conv.send_message(
-                                            "взять жабу",
-                                            schedule=datetime.timedelta(
-                                                hours=2),
-                                        )
-                            except TimeoutError:
-                                return
                     elif "дуэлька" in message.message:
                         if chat in self.duel:
                             self.duel.pop(chat)
@@ -293,26 +394,23 @@ class kramiikkMod(loader.Module):
                         self.duel.setdefault(chat, {})
                         self.db.set("Дуэлька", "duel", self.duel)
                         async with self.client.conversation(message.chat_id) as conv:
-                            try:
-                                response = conv.wait_event(
-                                    events.NewMessage(
-                                        incoming=True,
-                                        from_users=1124824021,
-                                        chats=message.chat_id,
-                                    )
+                            response = conv.wait_event(
+                                events.NewMessage(
+                                    incoming=True,
+                                    from_users=1124824021,
+                                    chats=message.chat_id,
                                 )
-                                await conv.send_message("моя жаба")
-                                response = await response
-                                if "Имя жабы:" in response.text:
-                                    jaba = re.search("Имя жабы: (.+)", response.text).group(
-                                        1
-                                    )
-                                    self.status["Имя Жабы"] = jaba
-                                    self.db.set(
-                                        "Status", "status", self.status)
-                                    return await conv.send_message("РеанимироватЬ жабу")
-                            except TimeoutError:
-                                return
+                            )
+                            await conv.send_message("моя жаба")
+                            response = await response
+                            if "Имя жабы:" in response.text:
+                                jaba = re.search("Имя жабы: (.+)", response.text).group(
+                                    1
+                                )
+                                self.status["Имя Жабы"] = jaba
+                                self.db.set(
+                                    "Status", "status", self.status)
+                                return await conv.send_message("РеанимироватЬ жабу")
                     elif count.isnumeric() and reply:
                         count = int(args.split(" ", 3)[1])
                         mmsg = args.split(" ", 3)[3]
@@ -336,109 +434,100 @@ class kramiikkMod(loader.Module):
                 elif message.message.lower().startswith("букашки мне😊"):
                     await asyncio.sleep(rd)
                     async with self.client.conversation(chat) as conv:
-                        try:
-                            response = conv.wait_event(
-                                events.NewMessage(
-                                    incoming=True,
-                                    from_users=1124824021,
-                                    chats=message.chat_id,
-                                )
+                        response = conv.wait_event(
+                            events.NewMessage(
+                                incoming=True,
+                                from_users=1124824021,
+                                chats=message.chat_id,
                             )
-                            await conv.send_message("мой баланс")
-                            response = await response
-                            if "Баланс букашек вашей" in response.text:
-                                bug = int(
-                                    re.search(
-                                        "жабы: (\d+)", response.text, re.IGNORECASE
-                                    ).group(1)
+                        )
+                        await conv.send_message("мой баланс")
+                        response = await response
+                        if "Баланс букашек вашей" in response.text:
+                            bug = int(
+                                re.search(
+                                    "жабы: (\d+)", response.text, re.IGNORECASE
+                                ).group(1)
+                            )
+                            if bug < 100:
+                                return await utils.answer(
+                                    message, "осталось для похода"
                                 )
-                                if bug < 100:
-                                    return await utils.answer(
-                                        message, "осталось для похода"
+                            else:
+                                while bug > 50049:
+                                    await utils.answer(
+                                        message, "отправить букашки 50000"
                                     )
-                                else:
-                                    while bug > 50049:
-                                        await utils.answer(
-                                            message, "отправить букашки 50000"
-                                        )
-                                        bug -= 50000
-                                    snt = bug - 50
-                                    return await utils.answer(
-                                        message, f"отправить букашки {snt}"
-                                    )
-                        except TimeoutError:
-                            return
+                                    bug -= 50000
+                                snt = bug - 50
+                                return await utils.answer(
+                                    message, f"отправить букашки {snt}"
+                                )
                 elif message.message.lower().startswith("инвентарь мне😊"):
                     await asyncio.sleep(rd)
                     async with self.client.conversation(chat) as conv:
-                        try:
-                            response = conv.wait_event(
-                                events.NewMessage(
-                                    incoming=True,
-                                    from_users=1124824021,
-                                    chats=message.chat_id,
-                                )
+                        response = conv.wait_event(
+                            events.NewMessage(
+                                incoming=True,
+                                from_users=1124824021,
+                                chats=message.chat_id,
                             )
-                            await conv.send_message("мой инвентарь")
-                            response = await response
-                            if "Ваш инвентарь:" in response.text:
-                                cnd = int(
-                                    re.search(
-                                        "Леденцы: (\d+)", response.text, re.IGNORECASE
-                                    ).group(1)
-                                )
-                                apt = int(
-                                    re.search(
-                                        "Аптечки: (\d+)", response.text, re.IGNORECASE
-                                    ).group(1)
-                                )
-                                if cnd > 0:
-                                    if cnd > 49:
-                                        await utils.answer(message, "отправить леденцы 50")
-                                    else:
-                                        await utils.answer(
-                                            message, f"отправить леденцы {cnd}"
-                                        )
-                                if apt > 0:
-                                    if apt > 9:
-                                        return await utils.answer(
-                                            message, "отправить аптечки 10"
-                                        )
-                                    else:
-                                        return await utils.answer(
-                                            message, f"отправить аптечки {apt}"
-                                        )
-                        except TimeoutError:
-                            return
+                        )
+                        await conv.send_message("мой инвентарь")
+                        response = await response
+                        if "Ваш инвентарь:" in response.text:
+                            cnd = int(
+                                re.search(
+                                    "Леденцы: (\d+)", response.text, re.IGNORECASE
+                                ).group(1)
+                            )
+                            apt = int(
+                                re.search(
+                                    "Аптечки: (\d+)", response.text, re.IGNORECASE
+                                ).group(1)
+                            )
+                            if cnd > 0:
+                                if cnd > 49:
+                                    await utils.answer(message, "отправить леденцы 50")
+                                else:
+                                    await utils.answer(
+                                        message, f"отправить леденцы {cnd}"
+                                    )
+                            if apt > 0:
+                                if apt > 9:
+                                    return await utils.answer(
+                                        message, "отправить аптечки 10"
+                                    )
+                                else:
+                                    return await utils.answer(
+                                        message, f"отправить аптечки {apt}"
+                                    )
                 elif "захват топа" in message.message:
                     args = message.message
                     reply = await message.get_reply_message()
                     szn = args.split(" ", 2)[2]
                     async with self.client.conversation(chat) as conv:
-                        try:
-                            response = conv.wait_event(
-                                events.NewMessage(
-                                    incoming=True,
-                                    from_users=1124824021,
-                                    chats=chat,
-                                )
+                        response = conv.wait_event(
+                            events.NewMessage(
+                                incoming=True,
+                                from_users=1124824021,
+                                chats=chat,
                             )
-                            await conv.send_message(f'сезон кланов {szn}')
-                            response = await response
-                            result = re.findall(
-                                '(\d+)\. 🛡(\d+) \| (.*)', response.text)
-                            rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
-                            for item in result:
-                                src = f"{item[2]} Усилитель:"
-                                ms = await self.client.get_messages(1655814348, search=src)
-                                if ms.total != 0:
-                                    a = "<i>😈Захвачен</i>"
-                                else:
-                                    a = "<i>🌚Кто это...</i>"
-                                rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
-                            return await response.reply(rep)
-                        except TimeoutError:
-                            return
+                        )
+                        await conv.send_message(f'сезон кланов {szn}')
+                        response = await response
+                        result = re.findall(
+                            '(\d+)\. 🛡(\d+) \| (.*)', response.text)
+                        rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
+                        for item in result:
+                            src = f"{item[2]} Усилитель:"
+                            ms = await self.client.get_messages(1655814348, search=src)
+                            if ms.total != 0:
+                                a = "<i>😈Захвачен</i>"
+                            else:
+                                a = "<i>🌚Кто это...</i>"
+                            rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
+                        return await response.reply(rep)
                 elif message.message.lower().startswith(asly):
                     await asyncio.sleep(rd)
                     sch = (
@@ -661,201 +750,6 @@ class kramiikkMod(loader.Module):
                                         )
                     else:
                         async with self.client.conversation(message.chat_id) as conv:
-                            try:
-                                response = conv.wait_event(
-                                    events.NewMessage(
-                                        incoming=True,
-                                        from_users=1124824021,
-                                        chats=message.chat_id,
-                                    )
-                                )
-                                await conv.send_message("жаба инфо")
-                                response = await response
-                                if "покормить через" in response.text:
-                                    time_n = re.search(
-                                        "покормить через (\d+)ч:(\d+)м",
-                                        response.text,
-                                        re.IGNORECASE,
-                                    )
-                                    if time_n:
-                                        hrs = int(time_n.group(1))
-                                        min = int(time_n.group(2))
-                                        delta = datetime.timedelta(
-                                            hours=hrs, minutes=min, seconds=3
-                                        )
-                                        await conv.send_message(
-                                            "покормить жабку", schedule=delta
-                                        )
-                                else:
-                                    delta = datetime.timedelta(
-                                        hours=6, seconds=3)
-                                    await conv.send_message("покормить жабку")
-                                for i in range(3):
-                                    delta = delta + \
-                                        datetime.timedelta(hours=6, seconds=3)
-                                    await conv.send_message(
-                                        "покормить жабку", schedule=delta
-                                    )
-                                if "работу можно" in response.text:
-                                    time_j = re.search(
-                                        "будет через (\d+)ч:(\d+)м",
-                                        response.text,
-                                        re.IGNORECASE,
-                                    )
-                                    if time_j:
-                                        hrs = int(time_j.group(1))
-                                        min = int(time_j.group(2))
-                                        delta = datetime.timedelta(
-                                            hours=hrs, minutes=min, seconds=3
-                                        )
-                                        await conv.send_message(
-                                            "реанимировать жабу", schedule=delta
-                                        )
-                                        await conv.send_message(
-                                            "работа крупье",
-                                            schedule=delta +
-                                            datetime.timedelta(seconds=13),
-                                        )
-                                    for i in range(2):
-                                        delta = delta + \
-                                            datetime.timedelta(hours=8)
-                                        await conv.send_message(
-                                            "реанимировать жабу", schedule=delta
-                                        )
-                                        await conv.send_message(
-                                            "работа крупье",
-                                            schedule=delta +
-                                            datetime.timedelta(seconds=13),
-                                        )
-                                        await conv.send_message(
-                                            "завершить работу",
-                                            schedule=delta
-                                            + datetime.timedelta(hours=2, seconds=13),
-                                        )
-                                if "жабу можно через" in response.text:
-                                    time_r = re.search(
-                                        "через (\d+) часов (\d+) минут",
-                                        response.text,
-                                        re.IGNORECASE,
-                                    )
-                                    if time_r:
-                                        hrs = int(time_r.group(1))
-                                        min = int(time_r.group(2))
-                                        delta = datetime.timedelta(
-                                            hours=hrs, minutes=min, seconds=3
-                                        )
-                                        await conv.send_message(
-                                            "завершить работу", schedule=delta
-                                        )
-                                elif "можно отправить" in response.text:
-                                    await conv.send_message("реанимировать жабу")
-                                    await conv.send_message("работа крупье")
-                                    delta = datetime.timedelta(
-                                        hours=2, seconds=3)
-                                    await conv.send_message(
-                                        "завершить работу", schedule=delta
-                                    )
-                                else:
-                                    await conv.send_message("завершить работу")
-                                    delta = datetime.timedelta(hours=6)
-                                for i in range(2):
-                                    delta = delta + \
-                                        datetime.timedelta(hours=6, seconds=3)
-                                    await conv.send_message(
-                                        "реанимировать жабу", schedule=delta
-                                    )
-                                    await conv.send_message(
-                                        "работа крупье",
-                                        schedule=delta +
-                                        datetime.timedelta(seconds=3),
-                                    )
-                                    await conv.send_message(
-                                        "завершить работу",
-                                        schedule=delta
-                                        + datetime.timedelta(hours=2, seconds=13),
-                                    )
-                            except TimeoutError:
-                                return
-            if chat in {707693258}:
-                if "НЕЗАЧЁТ!" in message.message:
-                    args = [int(x)
-                            for x in message.text.split() if x.isnumeric()]
-                    rd = random.randint(20, 60)
-                    if len(args) == 4:
-                        delta = datetime.timedelta(
-                            hours=args[1], minutes=args[2], seconds=args[3] + 13
-                        )
-                    elif len(args) == 3:
-                        delta = datetime.timedelta(
-                            minutes=args[1], seconds=args[2] + 13
-                        )
-                    elif len(args) == 2:
-                        delta = datetime.timedelta(seconds=args[1] + 13)
-                    for i in range(3):
-                        delta = delta + datetime.timedelta(seconds=13)
-                        await self.client.send_message(chat, "Фарма", schedule=delta)
-            if chat in self.duel:
-                if message.sender_id not in {self.me.id, 1124824021}:
-                    if "РеанимироватЬ жабу" in message.message:
-                        await asyncio.sleep(rd)
-                        return await utils.answer(message, "дуэль")
-                elif message.sender_id in {1124824021}:
-                    if (
-                        f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
-                        in message.message
-                    ):
-                        await asyncio.sleep(rd)
-                        await message.respond("дуэль принять")
-                        await asyncio.sleep(rd)
-                        return await message.respond("дуэль старт")
-                    elif "Имя Жабы" in self.status:
-                        if f"{self.status['Имя Жабы']}, У вас ничья" in message.message:
-                            await asyncio.sleep(rd)
-                            return await message.respond("РеанимироватЬ жабу")
-                        elif "Победитель" in message.message:
-                            if (
-                                self.status["Имя Жабы"] in message.message
-                                and "отыграл" in message.message
-                            ):
-                                self.duel.pop(chat)
-                                self.db.set("Дуэлька", "duel", self.duel)
-                                await utils.answer(
-                                    message, "<b>пью ромашковый чай</b>!"
-                                )
-                            elif self.status["Имя Жабы"] not in message.message:
-                                await asyncio.sleep(rd)
-                                await utils.answer(message, "РеанимироватЬ жабу")
-            if chat in ninja:
-                if message.message.startswith("Алло") and message.sender_id in {
-                    1124824021
-                }:
-                    capt = re.search(
-                        "клана (.+) нашелся враг (.+), пора", message.text)
-                    if capt:
-                        mk = capt.group(1)
-                        ek = capt.group(2)
-                        txt = f"⚡️{mk} <b>VS</b> {ek}"
-                        nm = await self.client.send_message(1767017980, txt)
-                        src = f"Топ 35 кланов {mk}"
-                        ms = await self.client.get_messages(1782816965, search=src)
-                        if ms.total == 0:
-                            src = f"{chat} {mk} Лига:"
-                            ms1 = await self.client.get_messages(1655814348, search=src)
-                            for i in ms1:
-                                liga = re.search(
-                                    "Лига: (.+)", i.message).group(1)
-                        else:
-                            for i in ms:
-                                liga = re.search(
-                                    "Топ 35 кланов (.+) лиге", i.message
-                                ).group(1)
-                        txt += f"\nЛига: {liga}"
-                        return await utils.answer(nm, txt)
-                elif message.message.lower().startswith(
-                    ("начать клановую", "@tgtoadbot начать клановую")
-                ):
-                    async with self.client.conversation(chat) as conv:
-                        try:
                             response = conv.wait_event(
                                 events.NewMessage(
                                     incoming=True,
@@ -863,38 +757,111 @@ class kramiikkMod(loader.Module):
                                     chats=message.chat_id,
                                 )
                             )
+                            await conv.send_message("жаба инфо")
                             response = await response
-                            if "Отлично! Как только" in response.text:
-                                src = f"Chat id: {chat} {message.sender_id} Клан:"
-                                ms = await self.client.get_messages(1655814348, search=src)
-                                if ms.total == 0:
-                                    return await self.client.send_message(
-                                        1767017980,
-                                        f"<i>В поиске {message.sender.first_name}</i>",
+                            if "покормить через" in response.text:
+                                time_n = re.search(
+                                    "покормить через (\d+)ч:(\d+)м",
+                                    response.text,
+                                    re.IGNORECASE,
+                                )
+                                if time_n:
+                                    hrs = int(time_n.group(1))
+                                    min = int(time_n.group(2))
+                                    delta = datetime.timedelta(
+                                        hours=hrs, minutes=min, seconds=3
                                     )
-                                for i in ms:
-                                    klan = re.search(
-                                        "Клан: (.+)", i.message).group(1)
-                                    if "Усилитель:" in i.message:
-                                        liga = re.search(
-                                            "Лига: (.+)", i.message).group(1)
-                                        usil = re.search(
-                                            "Усилитель: (.+)", i.message
-                                        ).group(1)
-                                        lif = f"\nЛига: {liga}\nУсилитель: {usil}"
-                                    else:
-                                        src = f"Топ 35 кланов {klan}"
-                                        ms = await self.client.get_messages(
-                                            1782816965, search=src
-                                        )
-                                        for i in ms:
-                                            liga = re.search(
-                                                "Топ 35 кланов (.+) лиге", i.message
-                                            ).group(1)
-                                            lif = f"\nЛига: {liga}"
-                                txt = f"В поиске {klan}{lif}"
-                                nm = await self.client.send_message(1767017980, txt)
-                        except TimeoutError:
-                            return
+                                    await conv.send_message(
+                                        "покормить жабку", schedule=delta
+                                    )
+                            else:
+                                delta = datetime.timedelta(
+                                    hours=6, seconds=3)
+                                await conv.send_message("покормить жабку")
+                            for i in range(3):
+                                delta = delta + \
+                                    datetime.timedelta(hours=6, seconds=3)
+                                await conv.send_message(
+                                    "покормить жабку", schedule=delta
+                                )
+                            if "работу можно" in response.text:
+                                time_j = re.search(
+                                    "будет через (\d+)ч:(\d+)м",
+                                    response.text,
+                                    re.IGNORECASE,
+                                )
+                                if time_j:
+                                    hrs = int(time_j.group(1))
+                                    min = int(time_j.group(2))
+                                    delta = datetime.timedelta(
+                                        hours=hrs, minutes=min, seconds=3
+                                    )
+                                    await conv.send_message(
+                                        "реанимировать жабу", schedule=delta
+                                    )
+                                    await conv.send_message(
+                                        "работа крупье",
+                                        schedule=delta +
+                                        datetime.timedelta(seconds=13),
+                                    )
+                                for i in range(2):
+                                    delta = delta + \
+                                        datetime.timedelta(hours=8)
+                                    await conv.send_message(
+                                        "реанимировать жабу", schedule=delta
+                                    )
+                                    await conv.send_message(
+                                        "работа крупье",
+                                        schedule=delta +
+                                        datetime.timedelta(seconds=13),
+                                    )
+                                    await conv.send_message(
+                                        "завершить работу",
+                                        schedule=delta
+                                        + datetime.timedelta(hours=2, seconds=13),
+                                    )
+                            if "жабу можно через" in response.text:
+                                time_r = re.search(
+                                    "через (\d+) часов (\d+) минут",
+                                    response.text,
+                                    re.IGNORECASE,
+                                )
+                                if time_r:
+                                    hrs = int(time_r.group(1))
+                                    min = int(time_r.group(2))
+                                    delta = datetime.timedelta(
+                                        hours=hrs, minutes=min, seconds=3
+                                    )
+                                    await conv.send_message(
+                                        "завершить работу", schedule=delta
+                                    )
+                            elif "можно отправить" in response.text:
+                                await conv.send_message("реанимировать жабу")
+                                await conv.send_message("работа крупье")
+                                delta = datetime.timedelta(
+                                    hours=2, seconds=3)
+                                await conv.send_message(
+                                    "завершить работу", schedule=delta
+                                )
+                            else:
+                                await conv.send_message("завершить работу")
+                                delta = datetime.timedelta(hours=6)
+                            for i in range(2):
+                                delta = delta + \
+                                    datetime.timedelta(hours=6, seconds=3)
+                                await conv.send_message(
+                                    "реанимировать жабу", schedule=delta
+                                )
+                                await conv.send_message(
+                                    "работа крупье",
+                                    schedule=delta +
+                                    datetime.timedelta(seconds=3),
+                                )
+                                await conv.send_message(
+                                    "завершить работу",
+                                    schedule=delta
+                                    + datetime.timedelta(hours=2, seconds=13),
+                                )
+            await self.client.conversation(conv).cancel_all()
         except:
             return

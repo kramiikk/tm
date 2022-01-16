@@ -227,17 +227,7 @@ class DelMsgMod(loader.Module):
         echos = self.db.get("Echo", "chats", [])
         chatid = str(message.chat_id)
 
-        if message.sender_id == self.me.id:
-            if message.text.lower() == "ирисфарм стоп":
-                self.farm = False
-                await message.reply("<b>Ирисфарм остановлен.</b>")
-            if message.text.lower() == "ирисвирус стоп":
-                self.virys = False
-                await message.reply("<b>Ирисвирус остановлен.</b>")
-
-        if chatid not in str(echos):
-            return
-        if message.sender_id == self.me.id:
+        if chatid not in str(echos) or message.sender_id == self.me.id:
             return
 
         await self.client.send_message(int(chatid), message, reply_to=await self.get_reply_message() or message)
