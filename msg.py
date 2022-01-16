@@ -217,9 +217,10 @@ class DelMsgMod(loader.Module):
 
     async def kapcmd(self, event):
         '''Случайная фраза капа.'''
+        await event.delete()
         while True:
             a = какаша(await event.client.get_messages('broadcast255', 100))
-            await self.client.send_message(1655814348, a)
+            await event.client.send_message(a)
             break
 
     async def watcher(self, message):
