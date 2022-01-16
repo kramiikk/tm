@@ -217,7 +217,6 @@ class DelMsgMod(loader.Module):
 
     async def kapcmd(self, event):
         '''Случайная фраза капа.'''
-        await event.edit('<b>\u2060</b>')
         while True:
             a = какаша(await event.client.get_messages(1433117664, 100))
             await event.respondl(f'<b>{a.message}</b>')
