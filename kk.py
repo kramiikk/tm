@@ -272,7 +272,7 @@ class kramiikkMod(loader.Module):
                                 )
                     elif "элька" in message.message:
                         while True:
-                            a = faust(await self.client.get_messages("usually_me", 3000))
+                            a = faust(await self.client.get_messages("gf022", 3000))
                             await self.client.send_message(chat, a)
                             break
                     elif "дуэлька" in message.message:
