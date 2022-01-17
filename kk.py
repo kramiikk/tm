@@ -319,32 +319,34 @@ class kramiikkMod(loader.Module):
                                 return await conv.send_message("напасть на клан")
                         return await self.client.conversation(conv).cancel_all()
                     elif "подземелье" in message.message:
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=chat,
+                        async with self.client.conversation(chat) as conv:
+                            response = conv.wait_event(
+                                events.NewMessage(
+                                    incoming=True,
+                                    from_users=1124824021,
+                                    chats=chat,
+                                )
                             )
-                        )
-                        await conv.send_message("отправиться в золотое подземелье")
-                        response = await response
-                        if "Пожалейте жабу," in response.text:
-                            await conv.send_message("завершить работу")
-                            await conv.send_message("реанимировать жабу")
-                            return await conv.send_message(
-                                "<b>отправиться в золотое подземелье</b>",
-                            )
-                        elif "Вы не можете отправиться" in response.text:
-                            await conv.send_message("дуэль отклонить")
-                            await conv.send_message("дуэль отозвать")
-                            return conv.send_message(
-                                "<b>отправиться в золотое подземелье</b>",
-                            )
-                        elif "Ваша жаба при" in response.text:
-                            await conv.send_message("реанимировать жабу")
-                            return await conv.send_message(
-                                "<b>отправиться в золотое подземелье</b>",
-                            )
+                            await conv.send_message("отправиться в золотое подземелье")
+                            response = await response
+                            if "Пожалейте жабу," in response.text:
+                                await conv.send_message("завершить работу")
+                                await conv.send_message("реанимировать жабу")
+                                return await conv.send_message(
+                                    "<b>отправиться в золотое подземелье</b>",
+                                )
+                            elif "Вы не можете отправиться" in response.text:
+                                await conv.send_message("дуэль отклонить")
+                                await conv.send_message("дуэль отозвать")
+                                return conv.send_message(
+                                    "<b>отправиться в золотое подземелье</b>",
+                                )
+                            elif "Ваша жаба при" in response.text:
+                                await conv.send_message("реанимировать жабу")
+                                return await conv.send_message(
+                                    "<b>отправиться в золотое подземелье</b>",
+                                )
+                        return await self.client.conversation(conv).cancel_all()
                     elif "туса" in message.message:
                         await message.respond("жабу на тусу")
                     elif "го кв" in message.message:
