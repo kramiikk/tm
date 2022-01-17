@@ -96,12 +96,12 @@ class kramiikkMod(loader.Module):
         ----------
 
         """
+        asly = random.choice(asl)
+        chat = message.chat_id
+        name = "монарх"
+        rh = random.choice(nr)
+        rd = random.randint(rh, 13)
         try:
-            name = "монарх"
-            rh = random.choice(nr)
-            chat = message.chat_id
-            asly = random.choice(asl)
-            rd = random.randint(rh, 13)
             if (
                 f"Сейчас выбирает ход: {self.me.first_name}" in message.message
                 and message.mentioned
@@ -840,4 +840,4 @@ class kramiikkMod(loader.Module):
             else:
                 return
         except Exception as e:
-            return await self.client.send_message("me", f"{e.args}")
+            return await self.client.send_message("me", f"{chat} {e.args}")
