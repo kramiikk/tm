@@ -5,7 +5,6 @@ import random
 import re
 
 from telethon import events, functions
-from random import choice as faust
 
 from .. import loader, utils
 
@@ -270,9 +269,9 @@ class kramiikkMod(loader.Module):
                                     "взять жабу",
                                     schedule=datetime.timedelta(hours=2),
                                 )
-                    elif "элька" in message.message:
+                    elif "дька" in message.message:
                         while True:
-                            a = faust(await self.client.get_messages("gf022", 3000))
+                            a = random.choice(await self.client.get_messages("gf022", 3000))
                             await self.client.send_message(chat, a)
                             break
                     elif "дуэлька" in message.message:
