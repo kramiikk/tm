@@ -199,7 +199,7 @@ class kramiikkMod(loader.Module):
                             events.NewMessage(
                                 incoming=True,
                                 from_users=1124824021,
-                                chats=message.chat_id,
+                                chats=chat,
                             )
                         )
                         response = await response
@@ -232,7 +232,8 @@ class kramiikkMod(loader.Module):
                                         ).group(1)
                                         lif = f"\nЛига: {liga}"
                             txt = f"В поиске {klan}{lif}"
-                            nm = await self.client.send_message(1767017980, txt)
+                            await self.client.send_message(1767017980, txt)
+                    return await self.client.conversation(conv).cancel_all()
             if message.sender_id in bak:
                 if message.message.lower().startswith("лвл чек"):
                     x = int(message.message.split(" ", 3)[2])
@@ -286,6 +287,7 @@ class kramiikkMod(loader.Module):
                             await conv.send_message(mmsg)
                             response = await response
                             await message.reply(response.message)
+                        return await self.client.conversation(conv).cancel_all()
                     elif "реплай" in message.message:
                         sct = args.split(" ", 4)[2]
                         if sct.isnumeric():
@@ -302,7 +304,7 @@ class kramiikkMod(loader.Module):
                                 events.NewMessage(
                                     incoming=True,
                                     from_users=1124824021,
-                                    chats=message.chat_id,
+                                    chats=chat,
                                 )
                             )
                             await conv.send_message("напасть на клан")
@@ -315,12 +317,13 @@ class kramiikkMod(loader.Module):
                                 await conv.send_message("выйти из подземелья")
                                 await conv.send_message("реанимировать жабу")
                                 return await conv.send_message("напасть на клан")
+                        return await self.client.conversation(conv).cancel_all()
                     elif "подземелье" in message.message:
                         response = conv.wait_event(
                             events.NewMessage(
                                 incoming=True,
                                 from_users=1124824021,
-                                chats=message.chat_id,
+                                chats=chat,
                             )
                         )
                         await conv.send_message("отправиться в золотое подземелье")
@@ -352,7 +355,7 @@ class kramiikkMod(loader.Module):
                                 events.NewMessage(
                                     incoming=True,
                                     from_users=1124824021,
-                                    chats=message.chat_id,
+                                    chats=chat,
                                 )
                             )
                             await conv.send_message("мое снаряжение")
@@ -384,6 +387,7 @@ class kramiikkMod(loader.Module):
                                         schedule=datetime.timedelta(
                                             hours=2),
                                     )
+                        return await self.client.conversation(conv).cancel_all()
                     elif "дуэлька" in message.message:
                         if chat in self.duel:
                             self.duel.pop(chat)
@@ -393,12 +397,12 @@ class kramiikkMod(loader.Module):
                             )
                         self.duel.setdefault(chat, {})
                         self.db.set("Дуэлька", "duel", self.duel)
-                        async with self.client.conversation(message.chat_id) as conv:
+                        async with self.client.conversation(chat) as conv:
                             response = conv.wait_event(
                                 events.NewMessage(
                                     incoming=True,
                                     from_users=1124824021,
-                                    chats=message.chat_id,
+                                    chats=chat,
                                 )
                             )
                             await conv.send_message("моя жаба")
@@ -411,6 +415,7 @@ class kramiikkMod(loader.Module):
                                 self.db.set(
                                     "Status", "status", self.status)
                                 return await conv.send_message("РеанимироватЬ жабу")
+                        return await self.client.conversation(conv).cancel_all()
                     elif count.isnumeric() and reply:
                         count = int(args.split(" ", 3)[1])
                         mmsg = args.split(" ", 3)[3]
@@ -438,7 +443,7 @@ class kramiikkMod(loader.Module):
                             events.NewMessage(
                                 incoming=True,
                                 from_users=1124824021,
-                                chats=message.chat_id,
+                                chats=chat,
                             )
                         )
                         await conv.send_message("мой баланс")
@@ -463,6 +468,7 @@ class kramiikkMod(loader.Module):
                                 return await utils.answer(
                                     message, f"отправить букашки {snt}"
                                 )
+                    return await self.client.conversation(conv).cancel_all()
                 elif message.message.lower().startswith("инвентарь мне😊"):
                     await asyncio.sleep(rd)
                     async with self.client.conversation(chat) as conv:
@@ -470,7 +476,7 @@ class kramiikkMod(loader.Module):
                             events.NewMessage(
                                 incoming=True,
                                 from_users=1124824021,
-                                chats=message.chat_id,
+                                chats=chat,
                             )
                         )
                         await conv.send_message("мой инвентарь")
@@ -502,6 +508,7 @@ class kramiikkMod(loader.Module):
                                     return await utils.answer(
                                         message, f"отправить аптечки {apt}"
                                     )
+                    return await self.client.conversation(conv).cancel_all()
                 elif "захват топа" in message.message:
                     args = message.message
                     reply = await message.get_reply_message()
@@ -528,6 +535,7 @@ class kramiikkMod(loader.Module):
                                 a = "<i>🌚Кто это...</i>"
                             rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
                         return await response.reply(rep)
+                    return await self.client.conversation(conv).cancel_all()
                 elif message.message.lower().startswith(asly):
                     await asyncio.sleep(rd)
                     sch = (
@@ -542,12 +550,12 @@ class kramiikkMod(loader.Module):
                         )
                     )
                     if chat in elj:
-                        async with self.client.conversation(message.chat_id) as conv:
+                        async with self.client.conversation(chat) as conv:
                             response = conv.wait_event(
                                 events.NewMessage(
                                     incoming=True,
                                     from_users=1124824021,
-                                    chats=message.chat_id,
+                                    chats=chat,
                                 )
                             )
                             await conv.send_message("Отправиться в золотое подземелье")
@@ -557,7 +565,7 @@ class kramiikkMod(loader.Module):
                                     events.NewMessage(
                                         incoming=True,
                                         from_users=1124824021,
-                                        chats=message.chat_id,
+                                        chats=chat,
                                     )
                                 )
                                 await conv.send_message("рейд инфо")
@@ -604,7 +612,7 @@ class kramiikkMod(loader.Module):
                                     events.NewMessage(
                                         incoming=True,
                                         from_users=1124824021,
-                                        chats=message.chat_id,
+                                        chats=chat,
                                     )
                                 )
                                 response = await response
@@ -717,7 +725,7 @@ class kramiikkMod(loader.Module):
                                     await conv.send_message("война инфо")
                                     response = await response
                                     if "Состояние" in response.text:
-                                        if message.chat_id in klw:
+                                        if chat in klw:
                                             return await conv.send_message(
                                                 "начать клановую войну"
                                             )
@@ -748,13 +756,14 @@ class kramiikkMod(loader.Module):
                                                 minutes=45, seconds=13
                                             ),
                                         )
+                        return await self.client.conversation(conv).cancel_all()
                     else:
-                        async with self.client.conversation(message.chat_id) as conv:
+                        async with self.client.conversation(chat) as conv:
                             response = conv.wait_event(
                                 events.NewMessage(
                                     incoming=True,
                                     from_users=1124824021,
-                                    chats=message.chat_id,
+                                    chats=chat,
                                 )
                             )
                             await conv.send_message("жаба инфо")
@@ -862,6 +871,6 @@ class kramiikkMod(loader.Module):
                                     schedule=delta
                                     + datetime.timedelta(hours=2, seconds=13),
                                 )
-            await self.client.conversation(conv).cancel_all()
+                        return await self.client.conversation(conv).cancel_all()
         except:
             return
