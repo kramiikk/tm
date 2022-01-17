@@ -3,7 +3,6 @@ import datetime
 import logging
 import random
 import re
-from asyncio.exceptions import TimeoutError
 
 from telethon import events, functions
 
