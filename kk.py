@@ -870,4 +870,4 @@ class kramiikkMod(loader.Module):
             else:
                 return
         except Exception as e:
-            return await self.client.send_message('me', e.args)
+            return await self.client.send_message('me', f'{e.args}')
