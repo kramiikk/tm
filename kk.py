@@ -313,7 +313,7 @@ class kramiikkMod(loader.Module):
                             else:
                                 a = "<i>🌚Кто это...</i>"
                             rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
-                        return await response.reply(rep)
+                        await response.reply(rep)
                     elif "напади" in message.message:
                         response = conv.wait_event(
                             events.NewMessage(
@@ -405,7 +405,7 @@ class kramiikkMod(loader.Module):
                             self.duel.pop(chat)
                             self.db.set("Дуэлька", "duel", self.duel)
                             await self.client.conversation(conv).cancel_all()
-                            return await utils.answer(
+                            await utils.answer(
                                 message, "<b>пью ромашковый чай</b>!"
                             )
                         self.duel.setdefault(chat, {})
@@ -562,7 +562,7 @@ class kramiikkMod(loader.Module):
                                 )
                                 if count > 2:
                                     await asyncio.sleep(rd)
-                                    return await conv.send_message("рейд старт")
+                                    await conv.send_message("рейд старт")
                         elif "Для входа в" in response.text:
                             await conv.send_message("Моя жаба")
                             response = await response
@@ -584,7 +584,7 @@ class kramiikkMod(loader.Module):
                                 if nas < 500:
                                     led = int((500 - nas) / 25)
                                     if led > 0:
-                                        return await conv.send_message(
+                                        await conv.send_message(
                                             f"использовать леденцы {led}"
                                         )
                         else:
@@ -708,7 +708,7 @@ class kramiikkMod(loader.Module):
                                 response = await response
                                 if "Состояние" in response.text:
                                     if chat in klw:
-                                        return await conv.send_message(
+                                        await conv.send_message(
                                             "начать клановую войну"
                                         )
                             else:
@@ -731,7 +731,7 @@ class kramiikkMod(loader.Module):
                                         schedule=delta
                                         + datetime.timedelta(minutes=25, seconds=3),
                                     )
-                                    return await conv.send_message(
+                                    await conv.send_message(
                                         "Отправиться в золотое подземелье",
                                         schedule=delta
                                         + datetime.timedelta(
