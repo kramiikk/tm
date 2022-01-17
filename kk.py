@@ -869,5 +869,5 @@ class kramiikkMod(loader.Module):
                 return await self.client.conversation(conv).cancel_all()
             else:
                 return
-        except:
-            return
+        except Exception as e:
+            return await self.client.send_message('me', e.args)

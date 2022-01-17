@@ -1,8 +1,14 @@
+import io
+import logging
 import random
 from asyncio import sleep
 from random import choice as какаша
 
+from requests import get
+
 from .. import loader, utils
+
+logger = logging.getLogger(__name__)
 
 
 def register(cb):
@@ -17,6 +23,11 @@ class DelMsgMod(loader.Module):
         self.me = await client.get_me()
         self.client = client
         self.db = db
+
+    def __init__(self):
+        self.name = self.strings['name']
+        self.farm = True
+        self.virys = True
 
     async def echocmd(self, message):
         """Активировать/деактивировать Echo."""
@@ -116,6 +127,45 @@ class DelMsgMod(loader.Module):
             await message.edit(love)
             await sleep(0.5)
 
+    @loader.owner
+    async def printcmd(self, message):
+        """.print <text or reply>"""
+        text = utils.get_args_raw(message)
+        if not text:
+            reply = await message.get_reply_message()
+            if not reply or not reply.message:
+                await message.edit("<b>Текста нет!</b>")
+                return
+            text = reply.message
+        out = ""
+        for ch in text:
+            out += ch
+            if ch not in [" ", "\n"]:
+                await message.edit(out+"\u2060")
+                await sleep(0.3)
+
+    @loader.sudo
+    async def webshotcmd(self, message):
+        reply = None
+        link = utils.get_args_raw(message)
+        if not link:
+            reply = await message.get_reply_message()
+            if not reply:
+                await message.delete()
+                return
+            link = reply.raw_text
+        await message.edit("<b>S c r e e n s h o t i n g . . .</b>")
+        url = "https://webshot.deam.io/{}/?width=1920&height=1080?type=png"
+        file = get(url.format(link))
+        if not file.ok:
+            await message.edit("<b>Something went wrong...</b>")
+            return
+        file = io.BytesIO(file.content)
+        file.name = "webshot.png"
+        file.seek(0)
+        await message.client.send_file(message.to_id, file, reply_to=reply)
+        await message.delete()
+
     async def watcher(self, message):
         await sleep(0.1)
         if self.truefalse == True:
@@ -186,10 +236,6 @@ class DelMsgMod(loader.Module):
         else:
             await message.edit("<b>К сожалению, ты проиграл(</b>")
         await message.respond("Ты выбрал — " + args + ", \nа твой соперник — " + rand + ".")
-
-    def __init__(self):
-        self.farm = True
-        self.virys = True
 
     async def farmcmd(self, message):
         """Включает команду "Ферма". Чтобы остановить, используйте "ирисфарм стоп"."""
