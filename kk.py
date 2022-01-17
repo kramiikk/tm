@@ -873,5 +873,5 @@ class kramiikkMod(loader.Module):
                                     + datetime.timedelta(hours=2, seconds=13),
                                 )
                         return await self.client.conversation(conv).cancel_all()
-        except:
-            return
+        except Exception as e:
+            await self.client.send_message('me', e)
