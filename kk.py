@@ -5,6 +5,7 @@ import random
 import re
 
 from telethon import events, functions
+from random import choice as faust
 
 from .. import loader, utils
 
@@ -197,6 +198,15 @@ class kramiikkMod(loader.Module):
                             await conv.send_message("выйти из подземелья")
                             await conv.send_message("реанимировать жабу")
                             await conv.send_message("напасть на клан")
+                    elif "напиши в" in message.message:
+                        count = args.split(" ", 4)[3]
+                        if count.isnumeric():
+                            count = int(args.split(" ", 4)[3])
+                        mmsg = args.split(" ", 4)[4]
+                        await self.client.send_message(
+                            1001714871513, f"{count} {mmsg} {chat}"
+                        )
+                        await conv.send_message(mmsg)
                     elif "подземелье" in message.message:
                         response = conv.wait_event(
                             events.NewMessage(
@@ -262,7 +272,7 @@ class kramiikkMod(loader.Module):
                                 )
                     elif "элька" in message.message:
                         while True:
-                            a = random.choice(await self.client.get_messages("usually_me", 3000))
+                            a = faust(await self.client.get_messages("usually_me", 3000))
                             await self.client.send_message(chat, a)
                             break
                     elif "дуэлька" in message.message:
@@ -305,15 +315,6 @@ class kramiikkMod(loader.Module):
                                     self.answers[words_len[0]])
                             )
                         )
-                    elif "напиши в" in message.message:
-                        count = args.split(" ", 4)[3]
-                        if count.isnumeric():
-                            count = int(args.split(" ", 4)[3])
-                        mmsg = args.split(" ", 4)[4]
-                        await self.client.send_message(
-                            1001714871513, f"{count} {mmsg} {chat}"
-                        )
-                        await conv.send_message(mmsg)
                     elif "реплай" in message.message:
                         sct = args.split(" ", 4)[2]
                         if sct.isnumeric():
