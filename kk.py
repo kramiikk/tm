@@ -211,7 +211,7 @@ class kramiikkMod(loader.Module):
                         )
                     )
                     response = await response
-                await self.client.conversation(conv).cancel_all()
+                await self.client.conversation(chat).cancel_all()
                 if "Отлично! Как только" in response.text:
                     src = f"Chat id: {chat} {message.sender_id} Клан:"
                     ms = await self.client.get_messages(1655814348, search=src)
@@ -247,7 +247,7 @@ class kramiikkMod(loader.Module):
                 args = message.message
                 reply = await message.get_reply_message()
                 count = args.split(" ", 2)[1]
-                async with self.client.conversation(count) as conv:
+                async with self.client.conversation(chat) as conv:
                     if message.message.endswith("?"):
                         words = re.findall(r"\w+", f"{message.message}")
                         words_len = [words.__len__()] + [x.__len__()
@@ -416,7 +416,7 @@ class kramiikkMod(loader.Module):
                         if chat in self.duel:
                             self.duel.pop(chat)
                             self.db.set("Дуэлька", "duel", self.duel)
-                            await self.client.conversation(conv).cancel_all()
+                            await self.client.conversation(chat).cancel_all()
                             await utils.answer(message, "<b>пью ромашковый чай</b>!")
                         self.duel.setdefault(chat, {})
                         self.db.set("Дуэлька", "duel", self.duel)
@@ -454,7 +454,7 @@ class kramiikkMod(loader.Module):
                             await reply.reply(mmsg)
                         else:
                             await utils.answer(message, mmsg)
-                return await self.client.conversation(conv).cancel_all()
+                return await self.client.conversation(chat).cancel_all()
             elif (
                 message.message.lower().startswith("букашки мне😊")
                 and message.sender_id in bak
@@ -470,7 +470,7 @@ class kramiikkMod(loader.Module):
                     )
                     await conv.send_message("мой баланс")
                     response = await response
-                await self.client.conversation(conv).cancel_all()
+                await self.client.conversation(chat).cancel_all()
                 bug = int(
                     re.search("жабы: (\d+)", response.text,
                               re.IGNORECASE).group(1)
@@ -498,7 +498,7 @@ class kramiikkMod(loader.Module):
                     )
                     await conv.send_message("мой инвентарь")
                     response = await response
-                await self.client.conversation(conv).cancel_all()
+                await self.client.conversation(chat).cancel_all()
                 cnd = int(
                     re.search("Леденцы: (\d+)", response.text,
                               re.IGNORECASE).group(1)
@@ -836,7 +836,7 @@ class kramiikkMod(loader.Module):
                                 schedule=delta
                                 + datetime.timedelta(hours=2, seconds=13),
                             )
-                return await self.client.conversation(conv).cancel_all()
+                return await self.client.conversation(chat).cancel_all()
             else:
                 return
         except Exception as e:
