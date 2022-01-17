@@ -509,7 +509,6 @@ class kramiikkMod(loader.Module):
                         await utils.answer(
                             message, f"отправить леденцы {cnd}"
                         )
-                if apt > 0:
                     if apt > 9:
                         return await utils.answer(
                             message, "отправить аптечки 10"
