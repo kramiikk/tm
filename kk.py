@@ -198,14 +198,11 @@ class kramiikkMod(loader.Module):
                             await conv.send_message("реанимировать жабу")
                             await conv.send_message("напасть на клан")
                     elif "напиши в" in message.message:
-                        count = args.split(" ", 4)[3]
-                        if count.isnumeric():
-                            count = int(args.split(" ", 4)[3])
+                        chan = args.split(" ", 4)[3]
+                        if chan.isnumeric():
+                            chan = int(args.split(" ", 4)[3])
                         mmsg = args.split(" ", 4)[4]
-                        await self.client.send_message(
-                            1001714871513, f"{count} {mmsg} {chat}"
-                        )
-                        await conv.send_message(mmsg)
+                        await self.client.send_message(chan, mmsg)
                     elif "подземелье" in message.message:
                         response = conv.wait_event(
                             events.NewMessage(
