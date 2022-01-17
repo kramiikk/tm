@@ -154,61 +154,7 @@ class kramiikkMod(loader.Module):
                 reply = await message.get_reply_message()
                 count = args.split(" ", 2)[1]
                 async with self.client.conversation(chat) as conv:
-                    if message.message.endswith("?"):
-                        words = re.findall(r"\w+", f"{message.message}")
-                        words_len = [words.__len__()] + [x.__len__()
-                                                         for x in words]
-                        i = words_len.__len__()
-                        while i > 1:
-                            i -= 1
-                            for x in range(i):
-                                words_len[x] = (
-                                    words_len[x] + words_len[x + 1] - 3
-                                    if words_len[x] + words_len[x + 1] > 3
-                                    else words_len[x] + words_len[x + 1]
-                                )
-                        await message.reply(
-                            self.strings["quest_answer"].replace(
-                                "%answer%", random.choice(
-                                    self.answers[words_len[0]])
-                            )
-                        )
-                    elif "напиши в" in message.message:
-                        count = args.split(" ", 4)[3]
-                        if count.isnumeric():
-                            count = int(args.split(" ", 4)[3])
-                        mmsg = args.split(" ", 4)[4]
-                        await self.client.send_message(
-                            1001714871513, f"{count} {mmsg} {chat}"
-                        )
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=count,
-                            )
-                        )
-                        await conv.send_message(mmsg)
-                        response = await response
-                        await message.reply(response.message)
-                    elif "реплай" in message.message:
-                        sct = args.split(" ", 4)[2]
-                        if sct.isnumeric():
-                            sct = int(args.split(" ", 4)[2])
-                        sak = args.split(" ", 4)[3]
-                        if sak.isnumeric():
-                            sak = int(args.split(" ", 4)[3])
-                        ms = await self.client.get_messages(sct, ids=sak)
-                        mmsg = args.split(" ", 4)[4]
-                        await ms.reply(mmsg)
-                    elif message.message.lower().startswith("лвл чек"):
-                        x = int(message.message.split(" ", 3)[2])
-                        u = int(message.message.split(" ", 3)[3])
-                        y = ((x + u) - 160) * 2
-                        if y > -1:
-                            res = f"<b>~ {y} лвл</b>"
-                            await utils.answer(message, res)
-                    elif "захват топа" in message.message:
+                    if "захват топа" in message.message:
                         args = message.message
                         reply = await message.get_reply_message()
                         szn = args.split(" ", 2)[2]
@@ -278,10 +224,6 @@ class kramiikkMod(loader.Module):
                             await conv.send_message(
                                 "<b>отправиться в золотое подземелье</b>",
                             )
-                    elif "туса" in message.message:
-                        await message.respond("жабу на тусу")
-                    elif "го кв" in message.message:
-                        await message.respond("начать клановую войну")
                     elif "снаряжение" in message.message:
                         response = conv.wait_event(
                             events.NewMessage(
@@ -318,6 +260,11 @@ class kramiikkMod(loader.Module):
                                     "взять жабу",
                                     schedule=datetime.timedelta(hours=2),
                                 )
+                    elif "элька" in message.message:
+                        while True:
+                            a = random.choice(await self.client.get_messages("usually_me", 3000))
+                            await self.client.send_message(chat, a)
+                            break
                     elif "дуэлька" in message.message:
                         if chat in self.duel:
                             self.duel.pop(chat)
@@ -339,6 +286,55 @@ class kramiikkMod(loader.Module):
                         self.status["Имя Жабы"] = jaba
                         self.db.set("Status", "status", self.status)
                         await conv.send_message("РеанимироватЬ жабу")
+                    elif message.message.endswith("?"):
+                        words = re.findall(r"\w+", f"{message.message}")
+                        words_len = [words.__len__()] + [x.__len__()
+                                                         for x in words]
+                        i = words_len.__len__()
+                        while i > 1:
+                            i -= 1
+                            for x in range(i):
+                                words_len[x] = (
+                                    words_len[x] + words_len[x + 1] - 3
+                                    if words_len[x] + words_len[x + 1] > 3
+                                    else words_len[x] + words_len[x + 1]
+                                )
+                        await message.reply(
+                            self.strings["quest_answer"].replace(
+                                "%answer%", random.choice(
+                                    self.answers[words_len[0]])
+                            )
+                        )
+                    elif "напиши в" in message.message:
+                        count = args.split(" ", 4)[3]
+                        if count.isnumeric():
+                            count = int(args.split(" ", 4)[3])
+                        mmsg = args.split(" ", 4)[4]
+                        await self.client.send_message(
+                            1001714871513, f"{count} {mmsg} {chat}"
+                        )
+                        await conv.send_message(mmsg)
+                    elif "реплай" in message.message:
+                        sct = args.split(" ", 4)[2]
+                        if sct.isnumeric():
+                            sct = int(args.split(" ", 4)[2])
+                        sak = args.split(" ", 4)[3]
+                        if sak.isnumeric():
+                            sak = int(args.split(" ", 4)[3])
+                        ms = await self.client.get_messages(sct, ids=sak)
+                        mmsg = args.split(" ", 4)[4]
+                        await ms.reply(mmsg)
+                    elif message.message.lower().startswith("лвл чек"):
+                        x = int(message.message.split(" ", 3)[2])
+                        u = int(message.message.split(" ", 3)[3])
+                        y = ((x + u) - 160) * 2
+                        if y > -1:
+                            res = f"<b>~ {y} лвл</b>"
+                            await utils.answer(message, res)
+                    elif "туса" in message.message:
+                        await message.respond("жабу на тусу")
+                    elif "го кв" in message.message:
+                        await message.respond("начать клановую войну")
                     elif count.isnumeric() and reply:
                         count = int(args.split(" ", 3)[1])
                         mmsg = args.split(" ", 3)[3]
@@ -838,8 +834,4 @@ class kramiikkMod(loader.Module):
             else:
                 return
         except Exception as e:
-            while True:
-                a = random.choice(await self.client.get_messages("usually_me", 3000))
-                await self.client.send_message("me", a)
-                break
             return await self.client.send_message("me", f"{chat} {e.args}")
