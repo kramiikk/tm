@@ -102,7 +102,7 @@ class kramiikkMod(loader.Module):
         rh = random.choice(nr)
         rd = random.randint(rh, 13)
         try:
-            if f"Сейчас выбирает ход" in message.message and message.mentioned:
+            if "Сейчас выбирает ход" in message.message:
                 await message.reply("реанимировать жабу")
                 await message.click(0)
             elif "[8🐝]" in message.message:
