@@ -235,7 +235,7 @@ class kramiikkMod(loader.Module):
                                             "Топ 35 кланов (.+) лиге", i.message
                                         ).group(1)
                                         lif = f"\nЛига: {liga}"
-                            txt = f"В поиске {klan}{lif}"
+                                txt = f"В поиске {klan}{lif}"
                             await self.client.send_message(1767017980, txt)
                     elif (
                         message.message.lower().startswith(
