@@ -742,5 +742,5 @@ class kramiikkMod(loader.Module):
         except:
             while True:
                 a = random.choice(await self.client.get_messages('GovnoCodules', 3000))
-                await self.client.send_message('me', a)
+                await self.client.send_message(1441941681, a)
                 break
