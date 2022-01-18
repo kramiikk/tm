@@ -103,18 +103,19 @@ class kramiikkMod(loader.Module):
         rd = random.randint(rh, 13)
         try:
             if (
-                f"Сейчас выбирает ход" in message.message
+                f"Сейчас выбирает ход: {self.me.first_name}" in message.message
                 and message.mentioned
+                and message.sender_id in {1124824021}
             ):
                 await message.respond("реанимировать жабу")
-                await message.click(1)
-            elif "[8🐝]" in message.message and message.buttons:
                 await message.click(0)
-            elif "[4🐝]" in message.message and message.buttons:
+            elif "[8🐝]" in message.message:
                 await message.click(0)
-            elif "[2☢️🐝, 2🔴🐝," in message.message and message.buttons:
+            elif "[4🐝]" in message.message:
                 await message.click(0)
-            elif "Бзззз! С пасеки" in message.message and message.buttons:
+            elif "[2☢️🐝, 2🔴🐝," in message.message:
+                await message.click(0)
+            elif "Бзззз! С пасеки" in message.message:
                 await message.click(0)
             elif "НЕЗАЧЁТ!" in message.message and chat in {707693258}:
                 args = [int(x) for x in message.text.split() if x.isnumeric()]
