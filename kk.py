@@ -102,69 +102,60 @@ class kramiikkMod(loader.Module):
         rh = random.choice(nr)
         rd = random.randint(rh, 13)
         try:
-            if (
-                message.message.lower().startswith(
-                    ("начать клановую", "@tgtoadbot начать клановую")
-                )
-                and chat in ninja
-            ):
-                async with self.client.conversation(chat) as conv:
-                    response = conv.wait_event(
+            async with self.client.conversation(chat) as conv:
+                response = conv.wait_event(
                         events.NewMessage(
                             incoming=True,
                             from_users=1124824021,
                             chats=chat,
                         )
                     )
+                if (
+                    message.message.lower().startswith(
+                        ("начать клановую", "@tgtoadbot начать клановую")
+                    )
+                    and chat in ninja
+                ):
                     response = await response
-                await conv.cancel_all()
-                if "Отлично! Как только" in response.text:
-                    src = f"Chat id: {chat} {message.sender_id} Клан:"
-                    ms = await self.client.get_messages(1655814348, search=src)
-                    if ms.total == 0:
-                        return await self.client.send_message(
-                            1767017980,
-                            f"<i>В поиске {message.sender.first_name}</i>",
-                        )
-                    for i in ms:
-                        klan = re.search("Клан: (.+)", i.message).group(1)
-                        if "Усилитель:" in i.message:
-                            liga = re.search("Лига: (.+)", i.message).group(1)
-                            usil = re.search(
-                                "Усилитель: (.+)", i.message).group(1)
-                            lif = f"\nЛига: {liga}\nУсилитель: {usil}"
-                        else:
-                            src = f"Топ 35 кланов {klan}"
-                            ms = await self.client.get_messages(1782816965, search=src)
-                            for i in ms:
-                                liga = re.search(
-                                    "Топ 35 кланов (.+) лиге", i.message
-                                ).group(1)
-                                lif = f"\nЛига: {liga}"
-                    txt = f"В поиске {klan}{lif}"
-                    return await self.client.send_message(1767017980, txt)
-            elif (
-                message.message.lower().startswith(
-                    (name, f"@{self.me.username}"))
-                or (name in message.message and message.message.endswith("😉"))
-                and message.sender_id in bak
-            ):
-                await asyncio.sleep(rd)
-                args = message.message
-                reply = await message.get_reply_message()
-                count = args.split(" ", 2)[1]
-                async with self.client.conversation(chat) as conv:
+                    if "Отлично! Как только" in response.text:
+                        src = f"Chat id: {chat} {message.sender_id} Клан:"
+                        ms = await self.client.get_messages(1655814348, search=src)
+                        if ms.total == 0:
+                            return await self.client.send_message(
+                                1767017980,
+                                f"<i>В поиске {message.sender.first_name}</i>",
+                            )
+                        for i in ms:
+                            klan = re.search("Клан: (.+)", i.message).group(1)
+                            if "Усилитель:" in i.message:
+                                liga = re.search("Лига: (.+)", i.message).group(1)
+                                usil = re.search(
+                                    "Усилитель: (.+)", i.message).group(1)
+                                lif = f"\nЛига: {liga}\nУсилитель: {usil}"
+                            else:
+                                src = f"Топ 35 кланов {klan}"
+                                ms = await self.client.get_messages(1782816965, search=src)
+                                for i in ms:
+                                    liga = re.search(
+                                        "Топ 35 кланов (.+) лиге", i.message
+                                    ).group(1)
+                                    lif = f"\nЛига: {liga}"
+                        txt = f"В поиске {klan}{lif}"
+                        return await self.client.send_message(1767017980, txt)
+                elif (
+                    message.message.lower().startswith(
+                        (name, f"@{self.me.username}"))
+                    or (name in message.message and message.message.endswith("😉"))
+                    and message.sender_id in bak
+                ):
+                    await asyncio.sleep(rd)
+                    args = message.message
+                    reply = await message.get_reply_message()
+                    count = args.split(" ", 2)[1]
                     if "захват топа" in message.message:
                         args = message.message
                         reply = await message.get_reply_message()
                         szn = args.split(" ", 2)[2]
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=chat,
-                            )
-                        )
                         await conv.send_message(f"сезон кланов {szn}")
                         response = await response
                         result = re.findall(
@@ -180,13 +171,6 @@ class kramiikkMod(loader.Module):
                             rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
                         await response.reply(rep)
                     elif "напади" in message.message:
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=chat,
-                            )
-                        )
                         await conv.send_message("напасть на клан")
                         response = await response
                         if "Ваша жаба на" in response.text:
@@ -204,13 +188,6 @@ class kramiikkMod(loader.Module):
                         mmsg = args.split(" ", 4)[4]
                         await self.client.send_message(chan, mmsg)
                     elif "подземелье" in message.message:
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=chat,
-                            )
-                        )
                         await conv.send_message("отправиться в золотое подземелье")
                         response = await response
                         if "Пожалейте жабу," in response.text:
@@ -231,13 +208,6 @@ class kramiikkMod(loader.Module):
                                 "<b>отправиться в золотое подземелье</b>",
                             )
                     elif "снаряжение" in message.message:
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=chat,
-                            )
-                        )
                         await conv.send_message("мое снаряжение")
                         response = await response
                         if "Ближний бой: Пусто" in response.text:
@@ -278,24 +248,17 @@ class kramiikkMod(loader.Module):
                             await utils.answer(message, "<b>пью ромашковый чай</b>!")
                         self.duel.setdefault(chat, {})
                         self.db.set("Дуэлька", "duel", self.duel)
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=chat,
-                            )
-                        )
                         await conv.send_message("моя жаба")
                         response = await response
                         jaba = re.search("Имя жабы: (.+)",
-                                         response.text).group(1)
+                                        response.text).group(1)
                         self.status["Имя Жабы"] = jaba
                         self.db.set("Status", "status", self.status)
                         await conv.send_message("РеанимироватЬ жабу")
                     elif message.message.endswith("?"):
                         words = re.findall(r"\w+", f"{message.message}")
                         words_len = [words.__len__()] + [x.__len__()
-                                                         for x in words]
+                                                        for x in words]
                         i = words_len.__len__()
                         while i > 1:
                             i -= 1
@@ -352,99 +315,65 @@ class kramiikkMod(loader.Module):
                             await reply.reply(mmsg)
                         else:
                             await utils.answer(message, mmsg)
-                return await conv.cancel_all()
-            elif (
-                message.message.lower().startswith("букашки мне😊")
-                and message.sender_id in bak
-            ):
-                await asyncio.sleep(rd)
-                async with self.client.conversation(chat) as conv:
-                    response = conv.wait_event(
-                        events.NewMessage(
-                            incoming=True,
-                            from_users=1124824021,
-                            chats=chat,
-                        )
-                    )
+                elif (
+                    message.message.lower().startswith("букашки мне😊")
+                    and message.sender_id in bak
+                ):
+                    await asyncio.sleep(rd)
                     await conv.send_message("мой баланс")
                     response = await response
-                await conv.cancel_all()
-                bug = int(
-                    re.search("жабы: (\d+)", response.text,
-                              re.IGNORECASE).group(1)
-                )
-                if bug < 100:
-                    return await utils.answer(message, "осталось для похода")
-                else:
-                    while bug > 50049:
-                        await utils.answer(message, "отправить букашки 50000")
-                        bug -= 50000
-                    snt = bug - 50
-                    return await utils.answer(message, f"отправить букашки {snt}")
-            elif (
-                message.message.lower().startswith("инвентарь мне😊")
-                and message.sender_id in bak
-            ):
-                await asyncio.sleep(rd)
-                async with self.client.conversation(chat) as conv:
-                    response = conv.wait_event(
-                        events.NewMessage(
-                            incoming=True,
-                            from_users=1124824021,
-                            chats=chat,
-                        )
+                    bug = int(
+                        re.search("жабы: (\d+)", response.text,
+                                re.IGNORECASE).group(1)
                     )
+                    if bug < 100:
+                        return await utils.answer(message, "осталось для похода")
+                    else:
+                        while bug > 50049:
+                            await utils.answer(message, "отправить букашки 50000")
+                            bug -= 50000
+                        snt = bug - 50
+                        return await utils.answer(message, f"отправить букашки {snt}")
+                elif (
+                    message.message.lower().startswith("инвентарь мне😊")
+                    and message.sender_id in bak
+                ):
+                    await asyncio.sleep(rd)
                     await conv.send_message("мой инвентарь")
                     response = await response
-                await conv.cancel_all()
-                cnd = int(
-                    re.search("Леденцы: (\d+)", response.text,
-                              re.IGNORECASE).group(1)
-                )
-                apt = int(
-                    re.search("Аптечки: (\d+)", response.text,
-                              re.IGNORECASE).group(1)
-                )
-                if cnd > 0:
-                    if cnd > 49:
-                        await utils.answer(message, "отправить леденцы 50")
-                    else:
-                        await utils.answer(message, f"отправить леденцы {cnd}")
-                    if apt > 9:
-                        return await utils.answer(message, "отправить аптечки 10")
-                    else:
-                        return await utils.answer(message, f"отправить аптечки {apt}")
-            elif message.message.lower().startswith(asly) and message.sender_id in bak:
-                await asyncio.sleep(rd)
-                sch = (
-                    await self.client(
-                        functions.messages.GetScheduledHistoryRequest(chat, 0)
+                    cnd = int(
+                        re.search("Леденцы: (\d+)", response.text,
+                                re.IGNORECASE).group(1)
                     )
-                ).messages
-                await self.client(
-                    functions.messages.DeleteScheduledMessagesRequest(
-                        chat, id=[x.id for x in sch]
+                    apt = int(
+                        re.search("Аптечки: (\d+)", response.text,
+                                re.IGNORECASE).group(1)
                     )
-                )
-                async with self.client.conversation(chat) as conv:
-                    if chat in elj:
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=chat,
-                            )
+                    if cnd > 0:
+                        if cnd > 49:
+                            await utils.answer(message, "отправить леденцы 50")
+                        else:
+                            await utils.answer(message, f"отправить леденцы {cnd}")
+                        if apt > 9:
+                            return await utils.answer(message, "отправить аптечки 10")
+                        else:
+                            return await utils.answer(message, f"отправить аптечки {apt}")
+                elif message.message.lower().startswith(asly) and message.sender_id in bak:
+                    await asyncio.sleep(rd)
+                    sch = (
+                        await self.client(
+                            functions.messages.GetScheduledHistoryRequest(chat, 0)
                         )
+                    ).messages
+                    await self.client(
+                        functions.messages.DeleteScheduledMessagesRequest(
+                            chat, id=[x.id for x in sch]
+                        )
+                    )
+                    if chat in elj:
                         await conv.send_message("Отправиться в золотое подземелье")
                         response = await response
                         if "Ну-ка подожди," in response.text:
-                            response = conv.wait_event(
-                                events.NewMessage(
-                                    incoming=True,
-                                    from_users=1124824021,
-                                    chats=chat,
-                                )
-                            )
                             await conv.send_message("рейд инфо")
                             response = await response
                             if "Ребята в золотом" in response.text:
@@ -485,13 +414,6 @@ class kramiikkMod(loader.Module):
                                         )
                         else:
                             await conv.send_message("жаба инфо")
-                            response = conv.wait_event(
-                                events.NewMessage(
-                                    incoming=True,
-                                    from_users=1124824021,
-                                    chats=chat,
-                                )
-                            )
                             response = await response
                             if "(Откормить через" in response.text:
                                 time_f = re.search(
@@ -629,13 +551,6 @@ class kramiikkMod(loader.Module):
                                         + datetime.timedelta(minutes=45, seconds=13),
                                     )
                     else:
-                        response = conv.wait_event(
-                            events.NewMessage(
-                                incoming=True,
-                                from_users=1124824021,
-                                chats=chat,
-                            )
-                        )
                         await conv.send_message("жаба инфо")
                         response = await response
                         if "покормить через" in response.text:
@@ -719,8 +634,7 @@ class kramiikkMod(loader.Module):
                             await conv.send_message("завершить работу")
                             delta = datetime.timedelta(hours=6)
                         for i in range(2):
-                            delta = delta + \
-                                datetime.timedelta(hours=6, seconds=3)
+                            delta = delta + datetime.timedelta(hours=6, seconds=3)
                             await conv.send_message(
                                 "реанимировать жабу", schedule=delta
                             )
@@ -733,9 +647,9 @@ class kramiikkMod(loader.Module):
                                 schedule=delta
                                 + datetime.timedelta(hours=2, seconds=13),
                             )
-                return await conv.cancel_all()
-            elif (
-                f"Сейчас выбирает ход: {self.me.first_name}" in message.message
+            await conv.cancel_all()
+            if (
+                f"Сейчас выбирает ход" in message.message
                 and message.mentioned
             ):
                 await message.respond("реанимировать жабу")
