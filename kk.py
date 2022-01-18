@@ -101,59 +101,6 @@ class kramiikkMod(loader.Module):
         rd = random.randint(rh, 13)
         try:
             if (
-                "Сейчас выбирает ход: {self.me.first_name}" in message.message
-                and message.mentioned
-            ):
-                await message.respond("реанимировать жабу")
-                await message.click(0)
-            elif "[8🐝]" in message.message and message.buttons:
-                await message.click(0)
-            elif "[4🐝]" in message.message and message.buttons:
-                await message.click(0)
-            elif "[2☢️🐝, 2🔴🐝," in message.message and message.buttons:
-                await message.click(0)
-            elif "Бзззз! С пасеки" in message.message and message.buttons:
-                await message.click(0)
-            elif "НЕЗАЧЁТ!" in message.message and chat in {707693258}:
-                args = [int(x) for x in message.text.split() if x.isnumeric()]
-                rd = random.randint(20, 60)
-                if len(args) == 4:
-                    delta = datetime.timedelta(
-                        hours=args[1], minutes=args[2], seconds=args[3] + 13
-                    )
-                elif len(args) == 3:
-                    delta = datetime.timedelta(minutes=args[1], seconds=args[2] + 13)
-                elif len(args) == 2:
-                    delta = datetime.timedelta(seconds=args[1] + 13)
-                for i in range(3):
-                    delta = delta + datetime.timedelta(seconds=13)
-                    await self.client.send_message(chat, "Фарма", schedule=delta)
-            elif (
-                message.message.startswith("Алло")
-                and message.sender_id in {1124824021}
-                and chat in ninja
-            ):
-                capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
-                if capt:
-                    mk = capt.group(1)
-                    ek = capt.group(2)
-                    txt = f"⚡️{mk} <b>VS</b> {ek}"
-                    nm = await self.client.send_message(1767017980, txt)
-                    src = f"Топ 35 кланов {mk}"
-                    ms = await self.client.get_messages(1782816965, search=src)
-                    if ms.total == 0:
-                        src = f"{chat} {mk} Лига:"
-                        ms1 = await self.client.get_messages(1655814348, search=src)
-                        for i in ms1:
-                            liga = re.search("Лига: (.+)", i.message).group(1)
-                    else:
-                        for i in ms:
-                            liga = re.search(
-                                "Топ 35 кланов (.+) лиге", i.message
-                            ).group(1)
-                    txt += f"\nЛига: {liga}"
-                    await utils.answer(nm, txt)
-            elif (
                 message.message.lower().startswith(
                     ("начать клановую", "@tgtoadbot начать клановую")
                 )
@@ -764,6 +711,61 @@ class kramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
+            elif (
+                "Сейчас выбирает ход: {self.me.first_name}" in message.message
+                and message.mentioned
+            ):
+                await message.respond("реанимировать жабу")
+                await message.click(0)
+            elif "[8🐝]" in message.message and message.buttons:
+                await message.click(0)
+            elif "[4🐝]" in message.message and message.buttons:
+                await message.click(0)
+            elif "[2☢️🐝, 2🔴🐝," in message.message and message.buttons:
+                await message.click(0)
+            elif "Бзззз! С пасеки" in message.message and message.buttons:
+                await message.click(0)
+            elif "НЕЗАЧЁТ!" in message.message and chat in {707693258}:
+                args = [int(x) for x in message.text.split() if x.isnumeric()]
+                rd = random.randint(20, 60)
+                if len(args) == 4:
+                    delta = datetime.timedelta(
+                        hours=args[1], minutes=args[2], seconds=args[3] + 13
+                    )
+                elif len(args) == 3:
+                    delta = datetime.timedelta(minutes=args[1], seconds=args[2] + 13)
+                elif len(args) == 2:
+                    delta = datetime.timedelta(seconds=args[1] + 13)
+                for i in range(3):
+                    delta = delta + datetime.timedelta(seconds=13)
+                    await self.client.send_message(chat, "Фарма", schedule=delta)
+            elif (
+                message.message.startswith("Алло")
+                and message.sender_id in {1124824021}
+                and chat in ninja
+            ):
+                capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
+                if capt:
+                    mk = capt.group(1)
+                    ek = capt.group(2)
+                    txt = f"⚡️{mk} <b>VS</b> {ek}"
+                    nm = await self.client.send_message(1767017980, txt)
+                    src = f"Топ 35 кланов {mk}"
+                    ms = await self.client.get_messages(1782816965, search=src)
+                    if ms.total == 0:
+                        src = f"{chat} {mk} Лига:"
+                        ms1 = await self.client.get_messages(1655814348, search=src)
+                        for i in ms1:
+                            liga = re.search("Лига: (.+)", i.message).group(1)
+                    else:
+                        for i in ms:
+                            liga = re.search(
+                                "Топ 35 кланов (.+) лиге", i.message
+                            ).group(1)
+                    txt += f"\nЛига: {liga}"
+                    await utils.answer(nm, txt)
+            else:
+                return
         except:
             while True:
                 a = random.choice(await self.client.get_messages("GovnoCodules", 3000))
