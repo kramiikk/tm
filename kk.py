@@ -107,7 +107,7 @@ class kramiikkMod(loader.Module):
                 and message.mentioned
                 and message.sender_id in {1124824021}
             ):
-                await message.respond("реанимировать жабу")
+                await message.reply("реанимировать жабу")
                 await message.click(0)
             elif "[8🐝]" in message.message:
                 await message.click(0)
