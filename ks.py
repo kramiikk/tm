@@ -9,13 +9,6 @@ from telethon import events, functions
 from .. import loader, utils
 
 logger = logging.getLogger(__name__)
-asl = [
-    "жаба дня",
-    "топ жаб",
-    "сезон кланов",
-    "кланы",
-    "взять жабу",
-]
 bak = [
     1709411724,
     1261343954,
@@ -28,17 +21,6 @@ bak = [
     553299699,
     412897338,
 ]
-elj = [
-    -1001441941681,
-    -1001436786642,
-    -1001380664241,
-    -1001289617428,
-    -1001485617300,
-    -1001465870466,
-    -1001169549362,
-    -1001543064221,
-]
-klw = [-419726290, -1001543064221, -577735616, -1001493923839]
 ninja = [
     -1001380664241,
     -1001441941681,
@@ -57,22 +39,15 @@ def register(cb):
     ----------
 
     """
-    cb(kramiikkMod())
+    cb(kramikkMod())
 
 
 @loader.tds
-class kramiikkMod(loader.Module):
+class kramikkMod(loader.Module):
     """Алина, я люблю тебя."""
 
-    answers = {
-        0: ("Ответ тебе известен", "Ты знаешь лучше меня!", "Ответ убил!.."),
-        1: ("Да, но есть помехи", "Может быть", "Вероятно", "Возможно", "Наверняка"),
-        2: ("Есть помехи...", "Вряд ли", "Что-то помешает", "Маловероятно"),
-        3: ("Нет, но пока", "Скоро!", "Жди!", "Пока нет"),
-    }
     strings = {
-        "name": "kramiikk",
-        "quest_answer": "<i>%answer%</i>",
+        "name": "kramikk",
     }
 
     def __init__(self):
@@ -96,9 +71,7 @@ class kramiikkMod(loader.Module):
         ----------
 
         """
-        asly = random.choice(asl)
         chat = message.chat_id
-        name = "монарх"
         rh = random.choice(nr)
         rd = random.randint(rh, 13)
         if "Сейчас выбирает ход" in message.message and message.mentioned:
