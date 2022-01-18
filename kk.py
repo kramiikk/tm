@@ -107,15 +107,15 @@ class kramiikkMod(loader.Module):
                 and message.mentioned
             ):
                 await message.respond("реанимировать жабу")
-                return await message.click(1)
+                await message.click(1)
             elif "[8🐝]" in message.message and message.buttons:
-                return await message.click(0)
+                await message.click(0)
             elif "[4🐝]" in message.message and message.buttons:
-                return await message.click(0)
+                await message.click(0)
             elif "[2☢️🐝, 2🔴🐝," in message.message and message.buttons:
-                return await message.click(0)
+                await message.click(0)
             elif "Бзззз! С пасеки" in message.message and message.buttons:
-                return await message.click(0)
+                await message.click(0)
             elif "НЕЗАЧЁТ!" in message.message and chat in {707693258}:
                 args = [int(x) for x in message.text.split() if x.isnumeric()]
                 rd = random.randint(20, 60)
@@ -137,7 +137,7 @@ class kramiikkMod(loader.Module):
                 and chat in self.duel
             ):
                 await asyncio.sleep(rd)
-                return await utils.answer(message, "дуэль")
+                await utils.answer(message, "дуэль")
             elif (
                 f"Вы бросили вызов на дуэль пользователю {self.me.first_name}"
                 in message.message
@@ -147,13 +147,13 @@ class kramiikkMod(loader.Module):
                 await asyncio.sleep(rd)
                 await message.respond("дуэль принять")
                 await asyncio.sleep(rd)
-                return await message.respond("дуэль старт")
+                await message.respond("дуэль старт")
             elif (
                 f"{self.status['Имя Жабы']}, У вас ничья" in message.message
                 and chat in self.duel
             ):
                 await asyncio.sleep(rd)
-                return await message.respond("РеанимироватЬ жабу")
+                await message.respond("РеанимироватЬ жабу")
             elif (
                 self.status["Имя Жабы"] in message.message
                 and "отыграл" in message.message
@@ -194,7 +194,7 @@ class kramiikkMod(loader.Module):
                                 "Топ 35 кланов (.+) лиге", i.message
                             ).group(1)
                     txt += f"\nЛига: {liga}"
-                    return await utils.answer(nm, txt)
+                    await utils.answer(nm, txt)
             else:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -235,7 +235,7 @@ class kramiikkMod(loader.Module):
                                         ).group(1)
                                         lif = f"\nЛига: {liga}"
                             txt = f"В поиске {klan}{lif}"
-                            return await self.client.send_message(1767017980, txt)
+                            await self.client.send_message(1767017980, txt)
                     elif (
                         message.message.lower().startswith(
                             (name, f"@{self.me.username}"))
@@ -339,7 +339,7 @@ class kramiikkMod(loader.Module):
                             if chat in self.duel:
                                 self.duel.pop(chat)
                                 self.db.set("Дуэлька", "duel", self.duel)
-                                await utils.answer(message, "<b>пью ромашковый чай</b>!")
+                                return await utils.answer(message, "<b>пью ромашковый чай</b>!")
                             self.duel.setdefault(chat, {})
                             self.db.set("Дуэлька", "duel", self.duel)
                             await conv.send_message("моя жаба")
@@ -421,13 +421,13 @@ class kramiikkMod(loader.Module):
                                     re.IGNORECASE).group(1)
                         )
                         if bug < 100:
-                            return await utils.answer(message, "осталось для похода")
+                            await utils.answer(message, "осталось для похода")
                         else:
                             while bug > 50049:
                                 await utils.answer(message, "отправить букашки 50000")
                                 bug -= 50000
                             snt = bug - 50
-                            return await utils.answer(message, f"отправить букашки {snt}")
+                            await utils.answer(message, f"отправить букашки {snt}")
                     elif (
                         message.message.lower().startswith("инвентарь мне😊")
                         and message.sender_id in bak
@@ -449,9 +449,9 @@ class kramiikkMod(loader.Module):
                             else:
                                 await utils.answer(message, f"отправить леденцы {cnd}")
                             if apt > 9:
-                                return await utils.answer(message, "отправить аптечки 10")
+                                await utils.answer(message, "отправить аптечки 10")
                             else:
-                                return await utils.answer(message, f"отправить аптечки {apt}")
+                                await utils.answer(message, f"отправить аптечки {apt}")
                     elif message.message.lower().startswith(asly) and message.sender_id in bak:
                         await asyncio.sleep(rd)
                         sch = (
@@ -743,4 +743,4 @@ class kramiikkMod(loader.Module):
                                 )
                     await conv.cancel_all()
         except Exception as e:
-            return await self.client.send_message("me", f"{chat} {e.args}")
+            await self.client.send_message("me", f"{chat} {e.args}")
