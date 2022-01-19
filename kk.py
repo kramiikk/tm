@@ -657,7 +657,7 @@ class kramiikkMod(loader.Module):
                         )
             elif (
                 "Сейчас выбирает ход: {self.me.first_name}" in message.message
-                and message.mentioned
+                and message.buttons
             ):
                 await message.respond("реанимировать жабу")
                 await message.click(0)
