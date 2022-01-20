@@ -592,8 +592,8 @@ class kramiikkMod(loader.Module):
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
             elif (
-                "Сейчас выбирает ход: {self.me.first_name}" in message.message
-                and message.mentioned
+                f"Сейчас выбирает ход: {self.me.first_name}" in message.message
+                and message.buttons
             ):
                 await message.respond("реанимировать жабу")
                 await message.click(0)
