@@ -446,70 +446,6 @@ class kramiikkMod(loader.Module):
                                 "Отправиться в золотое подземелье",
                                 schedule=delta + datetime.timedelta(seconds=13),
                             )
-                        await self.client.send_message(chat, "Моя семья")
-                        response = await response
-                        if "Ваш жабёныш:" in response.text:
-                            if "Можно покормить через" in response.text:
-                                sem = re.search(
-                                    "покормить через (\d+) ч. (\d+) минут",
-                                    response.text,
-                                    re.IGNORECASE,
-                                )
-                                if sem:
-                                    hrs = int(sem.group(1))
-                                    min = int(sem.group(2))
-                                delta = datetime.timedelta(
-                                    hours=hrs, minutes=min, seconds=3
-                                )
-                                await self.client.send_message(
-                                    chat,
-                                    "покормить жабенка",
-                                    schedule=delta,
-                                )
-                            else:
-                                await self.client.send_message(
-                                    chat, "покормить жабенка"
-                                )
-                            if "Можно забрать через" in response.text:
-                                sad = re.search(
-                                    "забрать через (\d+) ч. (\d+) минут",
-                                    response.text,
-                                    re.IGNORECASE,
-                                )
-                                if sad:
-                                    hrs = int(sad.group(1))
-                                    min = int(sad.group(2))
-                                    delta = datetime.timedelta(
-                                        hours=hrs, minutes=min, seconds=3
-                                    )
-                                    await self.client.send_message(
-                                        chat,
-                                        "забрать жабенка",
-                                        schedule=delta,
-                                    )
-                            else:
-                                await self.client.send_message(chat, "забрать жабенка")
-                            if "Пойти на махач" in response.text:
-                                sad = re.search(
-                                    "махач через (\d+) ч. (\d+) минут",
-                                    response.text,
-                                    re.IGNORECASE,
-                                )
-                                if sad:
-                                    hrs = int(sad.group(1))
-                                    min = int(sad.group(2))
-                                    delta = datetime.timedelta(
-                                        hours=hrs, minutes=min, seconds=3
-                                    )
-                                    await self.client.send_message(
-                                        chat,
-                                        "отправить жабенка на махач",
-                                        schedule=delta,
-                                    )
-                            else:
-                                await self.client.send_message(
-                                    chat, "отправить жабенка на махач"
-                                )
                         await self.client.send_message(chat, "война инфо")
                         response = await response
                         if "Состояние" in response.text:
@@ -517,7 +453,7 @@ class kramiikkMod(loader.Module):
                                 await self.client.send_message(
                                     chat, "начать клановую войну"
                                 )
-                    else:
+                    elif "Забрать жабу можно" in response.text:
                         dng_s = re.search(
                             "жабу можно через (\d+) часов (\d+) минут",
                             response.text,
