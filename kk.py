@@ -432,20 +432,20 @@ class kramiikkMod(loader.Module):
                             response.text,
                             re.IGNORECASE,
                         )
-                        if dng_s:
-                            hrs = int(dng_s.group(1))
-                            min = int(dng_s.group(2))
-                            delta = datetime.timedelta(
-                                hours=hrs, minutes=min, seconds=3
-                            )
-                            await self.client.send_message(
-                                chat, "реанимировать жабу", schedule=delta
-                            )
-                            await self.client.send_message(
-                                chat,
-                                "Отправиться в золотое подземелье",
-                                schedule=delta + datetime.timedelta(seconds=13),
-                            )
+                        hrs = int(dng_s.group(1))
+                        min = int(dng_s.group(2))
+                        delta = datetime.timedelta(
+                            hours=hrs, minutes=min, seconds=3
+                        )
+                        await self.client.send_message(
+                            chat, "реанимировать жабу", schedule=delta
+                        )
+                        await self.client.send_message(
+                            chat,
+                            "Отправиться в золотое подземелье",
+                            schedule=delta + datetime.timedelta(seconds=13),
+                        )
+                        
                         await self.client.send_message(chat, "война инфо")
                         response = await response
                         if "Состояние" in response.text:
@@ -453,6 +453,32 @@ class kramiikkMod(loader.Module):
                                 await self.client.send_message(
                                     chat, "начать клановую войну"
                                 )
+                        elif f"{self.me.first_name} | Не атаковал" in response.text:
+                            await self.client.send_message(
+                            chat, "Напасть на клан"
+                        )
+                        if hrs>1:
+                            await self.client.send_message(chat, "реанимировать жабу")
+                            await self.client.send_message(chat, "работа крупье")
+                            delta = datetime.timedelta(hours=2, seconds=3)
+                            await self.client.send_message(
+                                chat, "завершить работу", schedule=delta
+                            )
+                        for i in range(2):
+                            delta = delta + datetime.timedelta(hours=6, seconds=3)
+                            await self.client.send_message(
+                                chat, "реанимировать жабу", schedule=delta
+                            )
+                            await self.client.send_message(
+                                chat,
+                                "работа крупье",
+                                schedule=delta + datetime.timedelta(seconds=3),
+                            )
+                            await self.client.send_message(
+                                chat,
+                                "завершить работу",
+                                schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                            )
                     elif "Забрать жабу можно" in response.text:
                         dng_s = re.search(
                             "жабу можно через (\d+) часов (\d+) минут",
