@@ -456,7 +456,7 @@ class kramiikkMod(loader.Module):
                         elif f"{self.me.first_name} | Не атаковал" in response.text:
                             await self.client.send_message(
                             chat, "Напасть на клан"
-                        )
+                            )
                         if hrs>1:
                             await self.client.send_message(chat, "реанимировать жабу")
                             await self.client.send_message(chat, "работа крупье")
