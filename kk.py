@@ -11,6 +11,7 @@ from .. import loader, utils
 logger = logging.getLogger(__name__)
 bak = [
     1261343954,
+    1377037394,
     547639600,
     553299699,
     412897338,
@@ -128,10 +129,9 @@ class kramiikkMod(loader.Module):
                     txt = f"В поиске {klan}{lif}"
                 await self.client.send_message(1767017980, txt)
         elif (
-            (message.message.lower().startswith((name, f"@{self.me.username}"))
-            or (name in message.message and message.message.endswith("😉")))
-            and message.sender_id in bak
-        ):
+            message.message.lower().startswith((name, f"@{self.me.username}"))
+            or (name in message.message and message.message.endswith("😉"))
+        ) and message.sender_id in bak:
             await asyncio.sleep(rd)
             args = message.message
             reply = await message.get_reply_message()
@@ -318,9 +318,7 @@ class kramiikkMod(loader.Module):
                 await conv.send_message("мой баланс")
                 response = await response
                 await conv.cancel_all()
-            bug = int(
-                re.search("жабы: (\d+)", response.text, re.IGNORECASE).group(1)
-            )
+            bug = int(re.search("жабы: (\d+)", response.text, re.IGNORECASE).group(1))
             if bug < 100:
                 await utils.answer(message, "осталось для похода")
             else:
@@ -395,9 +393,7 @@ class kramiikkMod(loader.Module):
                     if time_f:
                         hrs = int(time_f.group(1))
                         min = int(time_f.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=min, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
                         await self.client.send_message(
                             chat, "откормить жабку", schedule=delta
                         )
@@ -420,9 +416,7 @@ class kramiikkMod(loader.Module):
                     )
                     hrs = int(dng_s.group(1))
                     min = int(dng_s.group(2))
-                    delta = datetime.timedelta(
-                        hours=hrs, minutes=min, seconds=3
-                    )
+                    delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
                     await self.client.send_message(
                         chat, "реанимировать жабу", schedule=delta
                     )
@@ -448,10 +442,8 @@ class kramiikkMod(loader.Module):
                                 chat, "начать клановую войну"
                             )
                     elif f"{self.me.first_name} | Не атаковал" in response.text:
-                        await self.client.send_message(
-                        chat, "Напасть на клан"
-                        )
-                    if hrs>1:
+                        await self.client.send_message(chat, "Напасть на клан")
+                    if hrs > 1:
                         await self.client.send_message(chat, "реанимировать жабу")
                         await self.client.send_message(chat, "работа крупье")
                         delta = datetime.timedelta(hours=2, seconds=3)
@@ -482,23 +474,19 @@ class kramiikkMod(loader.Module):
                     if dng_s:
                         hrs = int(dng_s.group(1))
                         min = int(dng_s.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=min, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
                         await self.client.send_message(
                             chat, "завершить работу", schedule=delta
                         )
                         await self.client.send_message(
                             chat,
                             "реанимировать жабку",
-                            schedule=delta
-                            + datetime.timedelta(minutes=25, seconds=3),
+                            schedule=delta + datetime.timedelta(minutes=25, seconds=3),
                         )
                         await self.client.send_message(
                             chat,
                             "Отправиться в золотое подземелье",
-                            schedule=delta
-                            + datetime.timedelta(minutes=45, seconds=13),
+                            schedule=delta + datetime.timedelta(minutes=45, seconds=13),
                         )
             else:
                 async with self.client.conversation(chat) as conv:
@@ -521,9 +509,7 @@ class kramiikkMod(loader.Module):
                     if time_n:
                         hrs = int(time_n.group(1))
                         min = int(time_n.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=min, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
                         await self.client.send_message(
                             chat, "покормить жабку", schedule=delta
                         )
@@ -544,9 +530,7 @@ class kramiikkMod(loader.Module):
                     if time_j:
                         hrs = int(time_j.group(1))
                         min = int(time_j.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=min, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
                         await self.client.send_message(
                             chat, "реанимировать жабу", schedule=delta
                         )
@@ -568,8 +552,7 @@ class kramiikkMod(loader.Module):
                         await self.client.send_message(
                             chat,
                             "завершить работу",
-                            schedule=delta
-                            + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
                 if "жабу можно через" in response.text:
                     time_r = re.search(
@@ -580,9 +563,7 @@ class kramiikkMod(loader.Module):
                     if time_r:
                         hrs = int(time_r.group(1))
                         min = int(time_r.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=min, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=min, seconds=3)
                         await self.client.send_message(
                             chat, "завершить работу", schedule=delta
                         )
@@ -659,9 +640,7 @@ class kramiikkMod(loader.Module):
                         liga = re.search("Лига: (.+)", i.message).group(1)
                 else:
                     for i in ms:
-                        liga = re.search(
-                            "Топ 35 кланов (.+) лиге", i.message
-                        ).group(1)
+                        liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
                 txt += f"\nЛига: {liga}"
                 await utils.answer(nm, txt)
         else:
