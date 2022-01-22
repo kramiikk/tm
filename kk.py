@@ -128,9 +128,9 @@ class kramiikkMod(loader.Module):
                     txt = f"В поиске {klan}{lif}"
                 await self.client.send_message(1767017980, txt)
         elif (
-            message.message.lower().startswith((name, f"@{self.me.username}"))
+            (message.message.lower().startswith((name, f"@{self.me.username}"))
             or (name in message.message and message.message.endswith("😉"))
-            and message.sender_id in bak
+            and message.sender_id in bak)
         ):
             await asyncio.sleep(rd)
             args = message.message
