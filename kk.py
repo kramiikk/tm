@@ -127,7 +127,6 @@ class kramiikkMod(loader.Module):
                             lif = f"\nЛига: {liga}"
                     txt = f"В поиске {klan}{lif}"
                 await self.client.send_message(1767017980, txt)
-            raise events.StopPropagation
         elif (
             m.message.lower().startswith((name, f"@{self.me.username}"))
             or (name in m.message and m.message.endswith("😉"))
@@ -291,7 +290,6 @@ class kramiikkMod(loader.Module):
                     await reply.reply(mmsg)
                 else:
                     await m.respond(mmsg)
-            raise events.StopPropagation
         elif m.message.lower().startswith("букашки мне😊") and m.sender_id in bak:
             await asyncio.sleep(rd)
             async with self.client.conversation(chat) as conv:
@@ -314,7 +312,6 @@ class kramiikkMod(loader.Module):
                     bug -= 50000
                 snt = bug - 50
                 await m.reply(f"отправить букашки {snt}")
-            raise events.StopPropagation
         elif m.message.lower().startswith("инвентарь мне😊") and m.sender_id in bak:
             await asyncio.sleep(rd)
             async with self.client.conversation(chat) as conv:
@@ -343,7 +340,6 @@ class kramiikkMod(loader.Module):
                     await m.reply("отправить аптечки 10")
                 else:
                     await m.reply(f"отправить аптечки {apt}")
-            raise events.StopPropagation
         elif (
             m.message.lower().startswith(("доброе утро", "спокойной ночи"))
             and m.sender_id in bak
@@ -578,7 +574,6 @@ class kramiikkMod(loader.Module):
                         "завершить работу",
                         schedule=delta + datetime.timedelta(hours=2, seconds=13),
                     )
-            raise events.StopPropagation
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
             await m.click(0)
@@ -626,5 +621,4 @@ class kramiikkMod(loader.Module):
                         liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
                 txt += f"\nЛига: {liga}"
                 await nm.edit(txt)
-        else:
-            return
+        raise events.StopPropagation
