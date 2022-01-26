@@ -259,6 +259,8 @@ class kramiikkMod(loader.Module):
                 ms = await self.client.get_messages(sct, ids=sak)
                 mmsg = args.split(" ", 4)[4]
                 await ms.reply(mmsg)
+            elif "reply" in m.message:
+                await m.respond(reply.message)
             elif m.message.lower().startswith("лвл чек"):
                 x = int(m.message.split(" ", 3)[2])
                 u = int(m.message.split(" ", 3)[3])
