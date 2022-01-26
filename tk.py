@@ -200,7 +200,9 @@ class KramikkMod(loader.Module):
                                 a9 = snr.group(10)
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
                             return await self.client.send_message(OPPY, info)
-                if message.message.lower().startswith(("напасть на клан", "@tgtoadbot напасть на клан")):
+                if message.message.lower().startswith(
+                    ("напасть на клан", "@tgtoadbot напасть на клан")
+                ):
                     async with self.client.conversation(chat) as conv:
                         response = conv.wait_event(
                             events.MessageEdited(
@@ -211,7 +213,10 @@ class KramikkMod(loader.Module):
                         )
                         response = await response
                         if "1 атака" in response.text:
-                            jbb = re.search('а (.+):\n.+: (.+) \n.+\n.+: (\d+)\n\n.+а (.+):\n.+: (.+) \n.+\n.+: (\d+)$', response.text)
+                            jbb = re.search(
+                                "а (.+):\n.+: (.+) \n.+\n.+: (\d+)\n\n.+а (.+):\n.+: (.+) \n.+\n.+: (\d+)$",
+                                response.text,
+                            )
                             if jbb:
                                 jn = jbb.group(1)
                                 ur = jbb.group(2)
@@ -234,8 +239,13 @@ class KramikkMod(loader.Module):
                                     chats=message.chat_id,
                                 )
                             )
-                            if "Победитель {jn}!!!" or "Победитель {jn1}!!!" in response1.text:
-                                wnn = re.search('Победитель (.+)!!!', response1.text).group(1)
+                            if (
+                                "Победитель {jn}!!!"
+                                or "Победитель {jn1}!!!" in response1.text
+                            ):
+                                wnn = re.search(
+                                    "Победитель (.+)!!!", response1.text
+                                ).group(1)
                                 info += f"\n\n<b>Победитель {wnn}!!!</b>"
                                 return await mf.edit(info)
         except:
