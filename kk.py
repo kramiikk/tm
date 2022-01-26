@@ -5,7 +5,6 @@ import random
 import re
 
 from telethon import events, functions
-from telethon.events import StopPropagation
 
 from .. import loader
 
@@ -622,4 +621,3 @@ class kramiikkMod(loader.Module):
                         liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
                 txt += f"\nЛига: {liga}"
                 await nm.edit(txt)
-        raise StopPropagation
