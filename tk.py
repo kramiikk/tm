@@ -236,7 +236,7 @@ class KramikkMod(loader.Module):
                             )
                             if "Победитель {jn}!!!" or "Победитель {jn1}!!!" in response1.text:
                                 wnn = re.search('Победитель (.+)!!!', response1.text).group(1)
-                                info += f"\nПобедитель {wnn}!!!"
+                                info += f"\n\n<b>Победитель {wnn}!!!</b>"
                                 return await mf.edit(info)
         except:
             return
