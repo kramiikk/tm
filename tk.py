@@ -239,14 +239,10 @@ class KramikkMod(loader.Module):
                                     chats=message.chat_id,
                                 )
                             )
-                            if (
-                                "Победитель {jn}!!!"
-                                or "Победитель {jn1}!!!" in response1.text
-                            ):
-                                wnn = re.search(
-                                    "Победитель (.+)!!!", response1.text
-                                ).group(1)
-                                info += f"\n\n<b>Победитель {wnn}!!!</b>"
-                                return await mf.edit(info)
+                            if "Победитель {jn}!!!" in response1.text:
+                                info += f"\n\n<b>Победитель {jn}!!!</b>"
+                            elif "Победитель {jn1}!!!" in response1.text:
+                                info += f"\n\n<b>Победитель {jn1}!!!</b>"
+                            return await mf.edit(info)
         except:
             return
