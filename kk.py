@@ -135,7 +135,46 @@ class kramiikkMod(loader.Module):
             args = m.message
             reply = await m.get_reply_message()
             count = args.split(" ", 2)[1]
-            if "захват топа" in m.message:
+            if m.message.endswith("?"):
+                words = re.findall(r"\w+", f"{m.message}")
+                words_len = [words.__len__()] + [x.__len__() for x in words]
+                i = words_len.__len__()
+                while i > 1:
+                    i -= 1
+                    for x in range(i):
+                        words_len[x] = (
+                            words_len[x] + words_len[x + 1] - 3
+                            if words_len[x] + words_len[x + 1] > 3
+                            else words_len[x] + words_len[x + 1]
+                        )
+                await m.reply(
+                    self.strings["quest_answer"].replace(
+                        "%answer%", random.choice(self.answers[words_len[0]])
+                    )
+                )
+            elif "напиши в" in m.message:
+                chan = args.split(" ", 4)[3]
+                if chan.isnumeric():
+                    chan = int(args.split(" ", 4)[3])
+                mmsg = args.split(" ", 4)[4]
+                if reply:
+                    mmsg = reply
+                await self.client.send_message(chan, mmsg)
+            elif "реплай" in m.message:
+                sct = args.split(" ", 4)[2]
+                if sct.isnumeric():
+                    sct = int(args.split(" ", 4)[2])
+                sak = args.split(" ", 4)[3]
+                if sak.isnumeric():
+                    sak = int(args.split(" ", 4)[3])
+                ms = await self.client.get_messages(sct, ids=sak)
+                mmsg = args.split(" ", 4)[4]
+                if reply:
+                    mmsg = reply
+                await ms.reply(mmsg)
+            elif "reply" in m.message:
+                await m.respond(reply)
+            elif "захват топа" in m.message:
                 args = m.message
                 reply = await m.get_reply_message()
                 szn = args.split(" ", 2)[2]
@@ -181,12 +220,6 @@ class kramiikkMod(loader.Module):
                     await m.respond("выйти из подземелья")
                     await m.respond("реанимировать жабу")
                     await m.respond("напасть на клан")
-            elif "напиши в" in m.message:
-                chan = args.split(" ", 4)[3]
-                if chan.isnumeric():
-                    chan = int(args.split(" ", 4)[3])
-                mmsg = args.split(" ", 4)[4]
-                await self.client.send_message(chan, mmsg)
             elif "подземелье" in m.message:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -232,35 +265,6 @@ class kramiikkMod(loader.Module):
                     await m.respond("скрафтить налапники из клюва цапли")
                 else:
                     await m.respond("мой инвентарь")
-            elif m.message.endswith("?"):
-                words = re.findall(r"\w+", f"{m.message}")
-                words_len = [words.__len__()] + [x.__len__() for x in words]
-                i = words_len.__len__()
-                while i > 1:
-                    i -= 1
-                    for x in range(i):
-                        words_len[x] = (
-                            words_len[x] + words_len[x + 1] - 3
-                            if words_len[x] + words_len[x + 1] > 3
-                            else words_len[x] + words_len[x + 1]
-                        )
-                await m.reply(
-                    self.strings["quest_answer"].replace(
-                        "%answer%", random.choice(self.answers[words_len[0]])
-                    )
-                )
-            elif "реплай" in m.message:
-                sct = args.split(" ", 4)[2]
-                if sct.isnumeric():
-                    sct = int(args.split(" ", 4)[2])
-                sak = args.split(" ", 4)[3]
-                if sak.isnumeric():
-                    sak = int(args.split(" ", 4)[3])
-                ms = await self.client.get_messages(sct, ids=sak)
-                mmsg = args.split(" ", 4)[4]
-                await ms.reply(mmsg)
-            elif "reply" in m.message:
-                await m.respond(reply)
             elif m.message.lower().startswith("лвл чек"):
                 x = int(m.message.split(" ", 3)[2])
                 u = int(m.message.split(" ", 3)[3])
