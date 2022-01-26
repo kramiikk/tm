@@ -226,6 +226,11 @@ class KramikkMod(loader.Module):
                                 u1 = int(zd1)
                                 y1 = ((x1 + u1) - 160) * 2
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jn}\nУровень: ~{y}\n\nЖаба противника: {jn1}\nУровень: ~{y1}\n{response.text}"
-                            return await self.client.send_message(OPPY, info)
+                            mf = await self.client.send_message(OPPY, info)
+                            response = await response
+                            if "Победитель {jn}!!!" or "Победитель {jn1}!!!" in response.text:
+                                wnn = re.search('Победитель (.+)!!!', response.text).group(1)
+                                info += f"/nПобедитель {wnn}!!!"
+                                return await mf.edit(info)
         except:
             return
