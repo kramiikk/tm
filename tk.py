@@ -226,11 +226,11 @@ class KramikkMod(loader.Module):
                                 zd1 = jbb.group(6)
                                 x = int(ur)
                                 u = int(zd)
-                                y = ((x + u) - 160) * 2
+                                y = (((x + u) - 160) * 2)+1
                                 x1 = int(ur1)
                                 u1 = int(zd1)
-                                y1 = ((x1 + u1) - 160) * 2
-                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jn}\nУровень: ~{y}\n\nЖаба противника: {jn1}\nУровень: ~{y1}\n{response.text}"
+                                y1 = (((x1 + u1) - 160) * 2)+1
+                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jn}\nУровень: ~{y}\n\nЖаба противника: {jn1}\nУровень: ~{y1}"
                             mf = await self.client.send_message(OPPY, info)
                             response1 = await conv.wait_event(
                                 events.NewMessage(
