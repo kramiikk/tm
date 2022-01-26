@@ -239,9 +239,9 @@ class KramikkMod(loader.Module):
                                     chats=message.chat_id,
                                 )
                             )
-                            if "Победитель {jn}!!!" in response1.text:
+                            if f"Победитель {jn}!!!" in response1.text:
                                 info += f"\n\n<b>Победитель {jn}!!!</b>"
-                            elif "Победитель {jn1}!!!" in response1.text:
+                            elif f"Победитель {jn1}!!!" in response1.text:
                                 info += f"\n\n<b>Победитель {jn1}!!!</b>"
                             return await mf.edit(info)
         except:
