@@ -1,7 +1,7 @@
 import logging
 import re
 
-from telethon import events, functions, types
+from telethon import events
 
 from .. import loader, utils
 
@@ -42,7 +42,8 @@ class KramikkMod(loader.Module):
                 if message.message.startswith("Алло") and message.sender_id in {
                     1124824021
                 }:
-                    capt = re.search("клана (.+) нашелся враг (.+), пора", message.text)
+                    capt = re.search(
+                        "клана (.+) нашелся враг (.+), пора", message.text)
                     if capt:
                         mk = capt.group(1)
                         ek = capt.group(2)
@@ -54,7 +55,8 @@ class KramikkMod(loader.Module):
                             src = f"{chat} {mk} Лига:"
                             ms1 = await self.client.get_messages(1655814348, search=src)
                             for i in ms1:
-                                liga = re.search("Лига: (.+)", i.message).group(1)
+                                liga = re.search(
+                                    "Лига: (.+)", i.message).group(1)
                         else:
                             for i in ms:
                                 liga = re.search(
@@ -104,9 +106,11 @@ class KramikkMod(loader.Module):
                                     f"<i>В поиске {message.sender.first_name}</i>",
                                 )
                             for i in ms:
-                                klan = re.search("Клан: (.+)", i.message).group(1)
+                                klan = re.search(
+                                    "Клан: (.+)", i.message).group(1)
                                 if "Усилитель:" in i.message:
-                                    liga = re.search("Лига: (.+)", i.message).group(1)
+                                    liga = re.search(
+                                        "Лига: (.+)", i.message).group(1)
                                     usil = re.search(
                                         "Усилитель: (.+)", i.message
                                     ).group(1)
@@ -136,9 +140,12 @@ class KramikkMod(loader.Module):
                         )
                         response = await response
                         if "Опыт" in response.text:
-                            klan = re.search("Клан (.+):", response.text).group(1)
-                            liga = re.search("Лига: (.+)", response.text).group(1)
-                            usil = re.search("Усилитель: (.+)", response.text).group(1)
+                            klan = re.search(
+                                "Клан (.+):", response.text).group(1)
+                            liga = re.search(
+                                "Лига: (.+)", response.text).group(1)
+                            usil = re.search(
+                                "Усилитель: (.+)", response.text).group(1)
                             info = response.text
                             clj = re.search(
                                 "\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n",
@@ -165,9 +172,12 @@ class KramikkMod(loader.Module):
                         )
                         response = await response
                         if "Имя жабы:" in response.text:
-                            imy = re.search("Имя жабы: (.+)", response.text).group(1)
-                            urv = re.search("вашей жабы: (.+)", response.text).group(1)
-                            cll = re.search("Класс: (.+)", response.text).group(1)
+                            imy = re.search("Имя жабы: (.+)",
+                                            response.text).group(1)
+                            urv = re.search("вашей жабы: (.+)",
+                                            response.text).group(1)
+                            cll = re.search(
+                                "Класс: (.+)", response.text).group(1)
                             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {imy}\nУровень: {urv}\nКласс: {cll}\n{message.sender.first_name}"
                             return await self.client.send_message(OPPY, info)
                 if message.message.lower().startswith(
@@ -226,11 +236,11 @@ class KramikkMod(loader.Module):
                                 zd1 = jbb.group(6)
                                 x = int(ur)
                                 u = int(zd)
-                                y = (((x + u) - 160) * 2)+1
+                                y = ((x + u) - 160) * 2
                                 x1 = int(ur1)
                                 u1 = int(zd1)
-                                y1 = (((x1 + u1) - 160) * 2)+1
-                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jn}\nУровень: ~{y}\n\nЖаба противника: {jn1}\nУровень: ~{y1}"
+                                y1 = ((x1 + u1) - 160) * 2
+                            info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jn}\nУровень: ~{y+1}\n\nЖаба противника: {jn1}\nУровень: ~{y1+1}"
                             mf = await self.client.send_message(OPPY, info)
                             response1 = await conv.wait_event(
                                 events.NewMessage(
@@ -243,6 +253,6 @@ class KramikkMod(loader.Module):
                                 info += f"\n\n<b>Победитель {jn}!!!</b>"
                             elif f"Победитель {jn1}!!!" in response1.text:
                                 info += f"\n\n<b>Победитель {jn1}!!!</b>"
-                            return await mf.edit(info)
+                            await mf.edit(info)
         except:
             return
