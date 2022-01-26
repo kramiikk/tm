@@ -260,7 +260,7 @@ class kramiikkMod(loader.Module):
                 mmsg = args.split(" ", 4)[4]
                 await ms.reply(mmsg)
             elif "reply" in m.message:
-                await m.respond(reply.message)
+                await m.respond(reply)
             elif m.message.lower().startswith("лвл чек"):
                 x = int(m.message.split(" ", 3)[2])
                 u = int(m.message.split(" ", 3)[3])
