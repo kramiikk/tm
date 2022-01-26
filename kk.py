@@ -162,7 +162,6 @@ class kramiikkMod(loader.Module):
                         a = "<i>🌚Кто это...</i>"
                     rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
                 await response.reply(rep)
-                raise events.StopPropagation
             elif "напади" in m.message:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -183,7 +182,6 @@ class kramiikkMod(loader.Module):
                     await m.respond("выйти из подземелья")
                     await m.respond("реанимировать жабу")
                     await m.respond("напасть на клан")
-                raise events.StopPropagation
             elif "напиши в" in m.message:
                 chan = args.split(" ", 4)[3]
                 if chan.isnumeric():
@@ -211,7 +209,6 @@ class kramiikkMod(loader.Module):
                     await m.respond("<b>отправиться в золотое подземелье</b>")
                 else:
                     await m.respond("<b>рейд инфо</b>")
-                raise events.StopPropagation
             elif "снаряжение" in m.message:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -236,7 +233,6 @@ class kramiikkMod(loader.Module):
                     await m.respond("скрафтить налапники из клюва цапли")
                 else:
                     await m.respond("мой инвентарь")
-                raise events.StopPropagation
             elif m.message.endswith("?"):
                 words = re.findall(r"\w+", f"{m.message}")
                 words_len = [words.__len__()] + [x.__len__() for x in words]
@@ -295,6 +291,7 @@ class kramiikkMod(loader.Module):
                     await reply.reply(mmsg)
                 else:
                     await m.respond(mmsg)
+            raise events.StopPropagation
         elif m.message.lower().startswith("букашки мне😊") and m.sender_id in bak:
             await asyncio.sleep(rd)
             async with self.client.conversation(chat) as conv:
@@ -459,7 +456,6 @@ class kramiikkMod(loader.Module):
                             schedule=delta
                             + datetime.timedelta(hours=2, seconds=13),
                         )
-                    raise events.StopPropagation
                 elif "Забрать жабу можно" in response.text:
                     dng_s = re.search(
                         "жабу можно через (\d+) часов (\d+) минут",
@@ -487,7 +483,6 @@ class kramiikkMod(loader.Module):
                             schedule=delta
                             + datetime.timedelta(minutes=45, seconds=13),
                         )
-                raise events.StopPropagation
             else:
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
@@ -599,7 +594,7 @@ class kramiikkMod(loader.Module):
                         "завершить работу",
                         schedule=delta + datetime.timedelta(hours=2, seconds=13),
                     )
-                raise events.StopPropagation
+            raise events.StopPropagation
         elif (
             f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
         ):
