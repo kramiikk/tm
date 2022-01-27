@@ -587,16 +587,16 @@ class kramiikkMod(loader.Module):
                         incoming=True,
                         from_users=1124824021,
                         chats=chat,
-                        pattern='kramiikk❤️‍🔥',
+                        pattern='ᨒղ обнял(а) kramiikk❤️‍🔥',
                     )
                 )
-                await conv.send_message("жаба инфо")
+                await conv.send_message("обнять kramiikk❤️‍🔥")
                 response = await response
                 await conv.cancel_all()
             if response:
-                await m.respond("есть пара")
+                await m.respond("есть контакт")
             else:
-                await m.respond("где пара")
+                await m.respond("где")
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
             await m.click(0)
