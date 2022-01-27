@@ -580,6 +580,23 @@ class kramiikkMod(loader.Module):
                         "завершить работу",
                         schedule=delta + datetime.timedelta(hours=2, seconds=13),
                     )
+        elif "спаряжение" in m.message:
+                async with self.client.conversation(chat) as conv:
+                    response = conv.wait_event(
+                        events.NewMessage(
+                            incoming=True,
+                            from_users=1124824021,
+                            chats=chat,
+                            pattern='kramiikk❤️‍🔥'
+                        )
+                    )
+                    await conv.send_message("жаба инфо")
+                    response = await response
+                    await conv.cancel_all()
+                if response:
+                    await m.respond("есть пара")
+                else:
+                    await m.respond("где пара")
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
             await m.click(0)
