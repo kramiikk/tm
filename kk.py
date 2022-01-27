@@ -184,6 +184,7 @@ class kramiikkMod(loader.Module):
                             events.NewMessage(
                                 from_users=1124824021,
                                 chats=chat,
+                                pattern="⚔️",
                             )
                         )
                         await conv.send_message(f"сезон кланов {szn}")
@@ -245,6 +246,7 @@ class kramiikkMod(loader.Module):
                             events.NewMessage(
                                 from_users=1124824021,
                                 chats=chat,
+                                pattern="Ваше",
                             )
                         )
                         await conv.send_message("мое снаряжение")
@@ -300,6 +302,7 @@ class kramiikkMod(loader.Module):
                         events.NewMessage(
                             from_users=1124824021,
                             chats=chat,
+                            pattern="Баланс",
                         )
                     )
                     await conv.send_message("мой баланс")
@@ -323,6 +326,7 @@ class kramiikkMod(loader.Module):
                         events.NewMessage(
                             from_users=1124824021,
                             chats=chat,
+                            pattern="Ваш инвентарь:",
                         )
                     )
                     await conv.send_message("мой инвентарь")
@@ -363,6 +367,7 @@ class kramiikkMod(loader.Module):
                             events.NewMessage(
                                 from_users=1124824021,
                                 chats=chat,
+                                pattern="🍭",
                             )
                         )
                         await conv.send_message("жаба инфо")
@@ -416,6 +421,7 @@ class kramiikkMod(loader.Module):
                                 events.NewMessage(
                                     from_users=1124824021,
                                     chats=chat,
+                                    pattern="🛡",
                                 )
                             )
                             await conv.send_message("война инфо")
@@ -484,7 +490,7 @@ class kramiikkMod(loader.Module):
                             events.NewMessage(
                                 from_users=1124824021,
                                 chats=chat,
-                                pattern="1.",
+                                pattern="🍭",
                             )
                         )
                         await conv.send_message("жаба инфо")
@@ -595,10 +601,10 @@ class kramiikkMod(loader.Module):
                         events.NewMessage(
                             from_users=1124824021,
                             chats=chat,
-                            pattern="1.",
+                            pattern="💓",
                         )
                     )
-                    await conv.send_message("топ жаб")
+                    await conv.send_message("брак показать")
                     response = await response
                     await conv.cancel_all()
                 if response:
