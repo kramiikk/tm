@@ -121,6 +121,11 @@ class kramiikkMod(loader.Module):
                         else:
                             src = f"Топ 35 кланов {klan}"
                             ms = await self.client.get_messages(1782816965, search=src)
+                            if ms.total == 0:
+                                return await self.client.send_message(
+                                    1767017980,
+                                    f"<i>В поиске {klan}</i>",
+                                )
                             for i in ms:
                                 liga = re.search(
                                     "Топ 35 кланов (.+) лиге", i.message
