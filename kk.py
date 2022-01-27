@@ -484,6 +484,7 @@ class kramiikkMod(loader.Module):
                             events.NewMessage(
                                 from_users=1124824021,
                                 chats=chat,
+                                pattern="1.",
                             )
                         )
                         await conv.send_message("жаба инфо")
@@ -594,7 +595,7 @@ class kramiikkMod(loader.Module):
                         events.NewMessage(
                             from_users=1124824021,
                             chats=chat,
-                            pattern="Куат",
+                            pattern="1.",
                         )
                     )
                     await conv.send_message("топ жаб")
