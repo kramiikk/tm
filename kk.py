@@ -96,14 +96,14 @@ class kramiikkMod(loader.Module):
             async with self.client.conversation(chat) as conv:
                 response = conv.wait_event(
                     events.NewMessage(
-                        incoming=True,
                         from_users=1124824021,
                         chats=chat,
+                        pattern='Отлично!',
                     )
                 )
                 response = await response
                 await conv.cancel_all()
-            if "Отлично! Как только" in response.text:
+            if response:
                 src = f"Chat id: {chat} {m.sender_id} Клан:"
                 ms = await self.client.get_messages(1655814348, search=src)
                 if ms.total == 0:
@@ -181,7 +181,6 @@ class kramiikkMod(loader.Module):
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
-                            incoming=True,
                             from_users=1124824021,
                             chats=chat,
                         )
@@ -204,7 +203,6 @@ class kramiikkMod(loader.Module):
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
-                            incoming=True,
                             from_users=1124824021,
                             chats=chat,
                         )
@@ -224,7 +222,6 @@ class kramiikkMod(loader.Module):
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
-                            incoming=True,
                             from_users=1124824021,
                             chats=chat,
                         )
@@ -245,7 +242,6 @@ class kramiikkMod(loader.Module):
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
-                            incoming=True,
                             from_users=1124824021,
                             chats=chat,
                         )
@@ -301,7 +297,6 @@ class kramiikkMod(loader.Module):
             async with self.client.conversation(chat) as conv:
                 response = conv.wait_event(
                     events.NewMessage(
-                        incoming=True,
                         from_users=1124824021,
                         chats=chat,
                     )
@@ -323,7 +318,6 @@ class kramiikkMod(loader.Module):
             async with self.client.conversation(chat) as conv:
                 response = conv.wait_event(
                     events.NewMessage(
-                        incoming=True,
                         from_users=1124824021,
                         chats=chat,
                     )
@@ -364,7 +358,6 @@ class kramiikkMod(loader.Module):
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
-                            incoming=True,
                             from_users=1124824021,
                             chats=chat,
                         )
@@ -416,7 +409,6 @@ class kramiikkMod(loader.Module):
                     async with self.client.conversation(chat) as conv:
                         response = conv.wait_event(
                             events.NewMessage(
-                                incoming=True,
                                 from_users=1124824021,
                                 chats=chat,
                             )
@@ -480,7 +472,6 @@ class kramiikkMod(loader.Module):
                 async with self.client.conversation(chat) as conv:
                     response = conv.wait_event(
                         events.NewMessage(
-                            incoming=True,
                             from_users=1124824021,
                             chats=chat,
                         )
@@ -586,10 +577,10 @@ class kramiikkMod(loader.Module):
                     events.NewMessage(
                         from_users=1124824021,
                         chats=chat,
-                        pattern='(.+) kramiikk❤️‍🔥',
+                        pattern='Собираю',
                     )
                 )
-                await conv.send_message("обнять kramiikk❤️‍🔥")
+                await conv.send_message("жаба дня")
                 response = await response
                 await conv.cancel_all()
             if response:
