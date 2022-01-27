@@ -584,10 +584,9 @@ class kramiikkMod(loader.Module):
             async with self.client.conversation(chat) as conv:
                 response = conv.wait_event(
                     events.NewMessage(
-                        incoming=True,
                         from_users=1124824021,
                         chats=chat,
-                        pattern='ᨒղ обнял(а) kramiikk❤️‍🔥',
+                        pattern='(.+) kramiikk❤️‍🔥',
                     )
                 )
                 await conv.send_message("обнять kramiikk❤️‍🔥")
