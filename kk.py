@@ -587,7 +587,7 @@ class kramiikkMod(loader.Module):
                         incoming=True,
                         from_users=1124824021,
                         chats=chat,
-                        pattern='kramiikk❤️‍🔥'
+                        pattern='kramiikk❤️‍🔥',
                     )
                 )
                 await conv.send_message("жаба инфо")
