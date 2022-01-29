@@ -603,7 +603,9 @@ class kramiikkMod(loader.Module):
             ms = await self.client.get_messages(1767017980, limit=42)
             h = "<b>Сейчас в кв:\n</b>"
             for i in ms:
-                delta = datetime.datetime.now() - datetime.timedelta(
+                delta = datetime.timedelta(
+                    hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+                ) - datetime.timedelta(
                     hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                 )
                 if "VS" in i.message and delta < datetime.timedelta(
