@@ -1,23 +1,12 @@
 import asyncio
 import datetime
 import logging
-import os
 import random
 import re
-from time import time
 
 from telethon import events, functions
 
-from .. import loader, utils
-
-try:
-    import speech_recognition as sr
-    from pydub import AudioSegment
-except:
-    os.popen("python3 -m pip install pydub speech_recognition --upgrade").read()
-    import speech_recognition as sr
-    from pydub import AudioSegment
-# requires: pydub speechrecognition
+from .. import loader
 
 logger = logging.getLogger(__name__)
 bak = [
@@ -71,16 +60,7 @@ class kramiikkMod(loader.Module):
         2: ("Есть помехи...", "Вряд ли", "Что-то помешает", "Маловероятно"),
         3: ("Нет, но пока", "Скоро!", "Жди!", "Пока нет"),
     }
-    strings = {
-        "name": "kramiikk",
-        "quest_answer": "<i>%answer%</i>",
-        "converting": "<code>🗣 Распознаю голосовое сообщение...</code>",
-        "converted": "<b>👆 Текст этого войса:</b>\n<pre>{}</pre>",
-        "no_ffmpeg": '<b>Вам необходимо установить ffmpeg.</b> <a href="https://t.me/ftgchatru/454189">Инструкция</a>',
-        "voice_not_found": "🗣 <b>Войс не найден</b>",
-        "autovoice_off": "<b>🗣 Я больше не буду автоматически распознавать голосовые сообщения в этом чате</b>",
-        "autovoice_on": "<b>🗣 Теперь я буду распознавать голосовые сообщения в этом чате</b>",
-    }
+    strings = {"name": "kramiikk", "quest_answer": "<i>%answer%</i>"}
 
     def __init__(self):
         self.name = self.strings["name"]
@@ -94,52 +74,6 @@ class kramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.me = await client.get_me()
-        self.chats = self.db.get("vtt", "chats", [])
-
-    async def recognize(self, event):
-        try:
-            filename = "/tmp/" + str(time()).replace(".", "")
-            await event.download_media(file=filename + ".ogg")
-            song = AudioSegment.from_ogg(filename + ".ogg")
-            song.export(filename + ".wav", format="wav")
-            event = await utils.answer(event, self.strings("converting", event))
-            try:
-                event = event[0]
-            except:
-                pass
-            r = sr.Recognizer()
-            with sr.AudioFile(filename + ".wav") as source:
-                audio_data = r.record(source)
-                text = r.recognize_google(audio_data, language="ru-RU")
-                await utils.answer(event, self.strings("converted", event).format(text))
-        except Exception as e:
-            if "ffprobe" in str(e):
-                await utils.answer(event, self.strings("no_ffmpeg", event))
-            else:
-                await event.delete()
-
-    @loader.unrestricted
-    async def voicycmd(self, message):
-        reply = await message.get_reply_message()
-        if not reply or not reply.media or not reply.media.document.attributes[0].voice:
-            await utils.answer(message, self.strings("voice_not_found", message))
-            await asyncio.sleep(2)
-            await message.delete()
-            return
-
-        await self.recognize(reply)
-        await message.delete()
-
-    async def autovoicecmd(self, message):
-        """Напиши это в чате, чтобы автоматически распознавать в нем голосовые. Если написать ее повторно, распознавание будет отключено."""
-        chat_id = utils.get_chat_id(message)
-        if chat_id in self.chats:
-            self.chats.remove(chat_id)
-            await utils.answer(message, self.strings("autovoice_off"))
-        else:
-            self.chats.append(chat_id)
-            await utils.answer(message, self.strings("autovoice_on"))
-        self.db.set("vtt", "chats", self.chats)
 
     async def watcher(self, m):
         """.
@@ -728,13 +662,3 @@ class kramiikkMod(loader.Module):
                         liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
                 txt += f"\nЛига: {liga}"
                 await nm.edit(txt)
-        if chat not in self.chats:
-            return
-
-        try:
-            if not m.media or not m.media.document.attributes[0].voice:
-                return
-        except:
-            return
-
-        await self.recognize(m)
