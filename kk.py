@@ -74,7 +74,6 @@ class kramiikkMod(loader.Module):
     strings = {
         "name": "kramiikk",
         "quest_answer": "<i>%answer%</i>",
-        "name": "Voicy",
         "converting": "<code>🗣 Распознаю голосовое сообщение...</code>",
         "converted": "<b>👆 Текст этого войса:</b>\n<pre>{}</pre>",
         "no_ffmpeg": '<b>Вам необходимо установить ffmpeg.</b> <a href="https://t.me/ftgchatru/454189">Инструкция</a>',
