@@ -601,10 +601,10 @@ class kramiikkMod(loader.Module):
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
             elif "сейчас в кв" in m.message:
-                ms = await self.client.get_messages(1767017980, limit=15)
+                ms = await self.client.get_messages(1767017980, limit=21)
                 h = "<b>Сейчас в кв:\n</b>"
                 for i in ms:
-                    delta = datetime.timedelta(hours=m.date.hour, minutes=m.date.minute) - datetime.timedelta(hours=i.date.hour, minutes=i.date.minute)
+                    delta = datetime.now() - datetime.timedelta(hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second)
                     if "VS" in i.message and delta<datetime.timedelta(hours=4):
                         h += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
                 await m.edit(h)
