@@ -604,7 +604,7 @@ class kramiikkMod(loader.Module):
             h = "<b>Сейчас в кв:\n</b>"
             for i in ms:
                 delta = datetime.timedelta(
-                    hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+                    hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
                 ) - datetime.timedelta(
                     hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                 )
