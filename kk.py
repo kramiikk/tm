@@ -639,26 +639,19 @@ class kramiikkMod(loader.Module):
                         liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
                 txt += f"\nЛига: {liga}"
                 await nm.edit(txt)
-        elif (
-            "Итоги" in m.message
-            and m.sender_id in {1124824021}
-            and chat in ninja
-        ):
-            capt = re.search("клана (.+) нашелся враг (.+), пора", m.text)
-            if capt:
-                mk = capt.group(1)
-                ek = capt.group(2)
-                txt = f"⚡️{mk} <b>VS</b> {ek}"
-                nm = await self.client.send_message(1767017980, txt)
-                src = f"Топ 35 кланов {mk}"
-                ms = await self.client.get_messages(1782816965, search=src)
-                if ms.total == 0:
-                    src = f"{chat} {mk} Лига:"
-                    ms1 = await self.client.get_messages(1655814348, search=src)
-                    for i in ms1:
-                        liga = re.search("Лига: (.+)", i.message).group(1)
-                else:
-                    for i in ms:
-                        liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
-                txt += f"\nЛига: {liga}"
-                await nm.edit(txt)
+        #elif (
+            #"Итоги" in m.message
+            #and m.sender_id in {1124824021}
+            #and chat in ninja
+        #):
+            #result = re.findall("•(<.+?(\d+).+>)", m.text)
+            #rep = f"Chat id: {chat}"
+            #for i in result:
+                #src = f"{i[2]} Усилитель:"
+                #ms = await self.client.get_messages(1655814348, search=src)
+                #if ms.total != 0:
+                    #a = "<i>😈Захвачен</i>"
+                #else:
+                    #a = "<i>🌚Кто это...</i>"
+                #rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {a}"
+            #await response.reply(rep)
