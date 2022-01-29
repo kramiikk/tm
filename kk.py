@@ -601,7 +601,7 @@ class kramiikkMod(loader.Module):
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
             elif "сейчас в кв" in m.message:
-                ms = await self.client.get_messages(1767017980, limit=21)
+                ms = await self.client.get_messages(1767017980, limit=33)
                 h = "<b>Сейчас в кв:\n</b>"
                 for i in ms:
                     delta = datetime.timedelta(
