@@ -193,14 +193,14 @@ class kramiikkMod(loader.Module):
                     await conv.cancel_all()
                 result = re.findall("(\d+)\. 🛡(\d+) \| (.*)", response.text)
                 rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
-                for item in result:
-                    src = f"{item[2]} Усилитель:"
+                for i in result:
+                    src = f"{i[2]} Усилитель:"
                     ms = await self.client.get_messages(1655814348, search=src)
                     if ms.total != 0:
                         a = "<i>😈Захвачен</i>"
                     else:
                         a = "<i>🌚Кто это...</i>"
-                    rep += f"\n{item[0]}.🛡{item[1]} | {item[2]} | {a}"
+                    rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {a}"
                 await response.reply(rep)
             elif "напади" in m.message:
                 async with self.client.conversation(chat) as conv:
@@ -640,7 +640,7 @@ class kramiikkMod(loader.Module):
                 txt += f"\nЛига: {liga}"
                 await nm.edit(txt)
         elif (
-            m.message.startswith("Алло")
+            "Итоги" in m.message
             and m.sender_id in {1124824021}
             and chat in ninja
         ):
