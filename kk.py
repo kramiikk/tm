@@ -604,9 +604,9 @@ class kramiikkMod(loader.Module):
                 ms = await self.client.get_messages(1767017980, limit=15)
                 h = "<b>Сейчас в кв:\n</b>"
                 for i in ms:
-                    t = m.date.hour - i.date.hour
-                    if "VS" in i.message and t<4:
-                        h += f"\n{i.message}\n<i>идет часов: {t}</i>\n"
+                    delta = datetime.timedelta(hours=m.date.hour, minutes=m.date.minute) - datetime.timedelta(hours=i.date.hour, minutes=i.date.minute)
+                    if "VS" in i.message and delta<datetime.timedelta(hours=4):
+                        h += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
                 await m.edit(h)
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
