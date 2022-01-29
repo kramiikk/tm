@@ -600,11 +600,13 @@ class kramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-            elif "спаряжение" in m.message:
+            elif "сейчас в кв" in m.message:
                 ms = await self.client.get_messages(1767017980, limit=5)
+                h = "Сейчас в кв:\n"
                 for i in ms:
                     if "VS" in i.message and (m.date.hour - i.date.hour)<4:
-                        await m.respond(f"Сейчас в кв:\n{i}")
+                        h += f"{i.message}\n"
+                await m.edit(h)
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
