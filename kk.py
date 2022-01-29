@@ -609,7 +609,7 @@ class kramiikkMod(loader.Module):
                     ) - datetime.timedelta(
                         hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                     )
-                    if "VS" in i.message and delta < datetime.timedelta(hours=4, minutes=15):
+                    if "VS" in i.message and delta < datetime.timedelta(hours=4, minutes=3):
                         h += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
                 await m.edit(h)
             elif (
