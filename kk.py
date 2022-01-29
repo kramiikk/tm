@@ -1,12 +1,23 @@
 import asyncio
 import datetime
 import logging
+import os
 import random
 import re
+from time import time
 
 from telethon import events, functions
 
-from .. import loader
+from .. import loader, utils
+
+try:
+    import speech_recognition as sr
+    from pydub import AudioSegment
+except:
+    os.popen("python3 -m pip install pydub speech_recognition --upgrade").read()
+    import speech_recognition as sr
+    from pydub import AudioSegment
+# requires: pydub speechrecognition
 
 logger = logging.getLogger(__name__)
 bak = [
@@ -63,6 +74,13 @@ class kramiikkMod(loader.Module):
     strings = {
         "name": "kramiikk",
         "quest_answer": "<i>%answer%</i>",
+        "name": "Voicy",
+        "converting": "<code>🗣 Распознаю голосовое сообщение...</code>",
+        "converted": "<b>👆 Текст этого войса:</b>\n<pre>{}</pre>",
+        "no_ffmpeg": '<b>Вам необходимо установить ffmpeg.</b> <a href="https://t.me/ftgchatru/454189">Инструкция</a>',
+        "voice_not_found": "🗣 <b>Войс не найден</b>",
+        "autovoice_off": "<b>🗣 Я больше не буду автоматически распознавать голосовые сообщения в этом чате</b>",
+        "autovoice_on": "<b>🗣 Теперь я буду распознавать голосовые сообщения в этом чате</b>",
     }
 
     def __init__(self):
@@ -77,6 +95,52 @@ class kramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.me = await client.get_me()
+        self.chats = self.db.get("vtt", "chats", [])
+
+    async def recognize(self, event):
+        try:
+            filename = "/tmp/" + str(time()).replace(".", "")
+            await event.download_media(file=filename + ".ogg")
+            song = AudioSegment.from_ogg(filename + ".ogg")
+            song.export(filename + ".wav", format="wav")
+            event = await utils.answer(event, self.strings("converting", event))
+            try:
+                event = event[0]
+            except:
+                pass
+            r = sr.Recognizer()
+            with sr.AudioFile(filename + ".wav") as source:
+                audio_data = r.record(source)
+                text = r.recognize_google(audio_data, language="ru-RU")
+                await utils.answer(event, self.strings("converted", event).format(text))
+        except Exception as e:
+            if "ffprobe" in str(e):
+                await utils.answer(event, self.strings("no_ffmpeg", event))
+            else:
+                await event.delete()
+
+    @loader.unrestricted
+    async def voicycmd(self, message):
+        reply = await message.get_reply_message()
+        if not reply or not reply.media or not reply.media.document.attributes[0].voice:
+            await utils.answer(message, self.strings("voice_not_found", message))
+            await asyncio.sleep(2)
+            await message.delete()
+            return
+
+        await self.recognize(reply)
+        await message.delete()
+
+    async def autovoicecmd(self, message):
+        """Напиши это в чате, чтобы автоматически распознавать в нем голосовые. Если написать ее повторно, распознавание будет отключено."""
+        chat_id = utils.get_chat_id(message)
+        if chat_id in self.chats:
+            self.chats.remove(chat_id)
+            await utils.answer(message, self.strings("autovoice_off"))
+        else:
+            self.chats.append(chat_id)
+            await utils.answer(message, self.strings("autovoice_on"))
+        self.db.set("vtt", "chats", self.chats)
 
     async def watcher(self, m):
         """.
@@ -312,9 +376,7 @@ class kramiikkMod(loader.Module):
                 await conv.send_message("мой баланс")
                 response = await response
                 await conv.cancel_all()
-            bug = int(
-                re.search("жабы: (\d+)", response.text, re.IGNORECASE).group(1)
-            )
+            bug = int(re.search("жабы: (\d+)", response.text, re.IGNORECASE).group(1))
             if bug < 100:
                 await m.reply("осталось для похода")
             else:
@@ -386,9 +448,7 @@ class kramiikkMod(loader.Module):
                     if time_f:
                         hrs = int(time_f.group(1))
                         mnu = int(time_f.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=mnu, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=mnu, seconds=3)
                         await self.client.send_message(
                             chat, "откормить жабку", schedule=delta
                         )
@@ -458,8 +518,7 @@ class kramiikkMod(loader.Module):
                         await self.client.send_message(
                             chat,
                             "завершить работу",
-                            schedule=delta
-                            + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
                 elif "Забрать жабу можно" in response.text:
                     dng_s = re.search(
@@ -470,23 +529,19 @@ class kramiikkMod(loader.Module):
                     if dng_s:
                         hrs = int(dng_s.group(1))
                         mnu = int(dng_s.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=mnu, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=mnu, seconds=3)
                         await self.client.send_message(
                             chat, "завершить работу", schedule=delta
                         )
                         await self.client.send_message(
                             chat,
                             "реанимировать жабку",
-                            schedule=delta
-                            + datetime.timedelta(minutes=25, seconds=3),
+                            schedule=delta + datetime.timedelta(minutes=25, seconds=3),
                         )
                         await self.client.send_message(
                             chat,
                             "Отправиться в золотое подземелье",
-                            schedule=delta
-                            + datetime.timedelta(minutes=45, seconds=13),
+                            schedule=delta + datetime.timedelta(minutes=45, seconds=13),
                         )
             else:
                 async with self.client.conversation(chat) as conv:
@@ -509,9 +564,7 @@ class kramiikkMod(loader.Module):
                     if time_n:
                         hrs = int(time_n.group(1))
                         mnu = int(time_n.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=mnu, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=mnu, seconds=3)
                         await self.client.send_message(
                             chat, "покормить жабку", schedule=delta
                         )
@@ -532,9 +585,7 @@ class kramiikkMod(loader.Module):
                     if time:
                         hrs = int(time.group(1))
                         mnu = int(time.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=mnu, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=mnu, seconds=3)
                         await self.client.send_message(
                             chat, "реанимировать жабу", schedule=delta
                         )
@@ -556,8 +607,7 @@ class kramiikkMod(loader.Module):
                         await self.client.send_message(
                             chat,
                             "завершить работу",
-                            schedule=delta
-                            + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
                 if "жабу можно через" in response.text:
                     time = re.search(
@@ -568,9 +618,7 @@ class kramiikkMod(loader.Module):
                     if time:
                         hrs = int(time.group(1))
                         mnu = int(time.group(2))
-                        delta = datetime.timedelta(
-                            hours=hrs, minutes=mnu, seconds=3
-                        )
+                        delta = datetime.timedelta(hours=hrs, minutes=mnu, seconds=3)
                         await self.client.send_message(
                             chat, "завершить работу", schedule=delta
                         )
@@ -608,14 +656,10 @@ class kramiikkMod(loader.Module):
                 ) - datetime.timedelta(
                     hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                 )
-                if "VS" in i.message and delta < datetime.timedelta(
-                    hours=4, minutes=3
-                ):
+                if "VS" in i.message and delta < datetime.timedelta(hours=4, minutes=3):
                     h += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
             await m.edit(h)
-        elif (
-            f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
-        ):
+        elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
             await m.click(0)
         elif "[8🐝]" in m.message and m.buttons:
@@ -659,8 +703,39 @@ class kramiikkMod(loader.Module):
                         liga = re.search("Лига: (.+)", i.message).group(1)
                 else:
                     for i in ms:
-                        liga = re.search(
-                            "Топ 35 кланов (.+) лиге", i.message
-                        ).group(1)
+                        liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
                 txt += f"\nЛига: {liga}"
                 await nm.edit(txt)
+        elif (
+            m.message.startswith("Алло")
+            and m.sender_id in {1124824021}
+            and chat in ninja
+        ):
+            capt = re.search("клана (.+) нашелся враг (.+), пора", m.text)
+            if capt:
+                mk = capt.group(1)
+                ek = capt.group(2)
+                txt = f"⚡️{mk} <b>VS</b> {ek}"
+                nm = await self.client.send_message(1767017980, txt)
+                src = f"Топ 35 кланов {mk}"
+                ms = await self.client.get_messages(1782816965, search=src)
+                if ms.total == 0:
+                    src = f"{chat} {mk} Лига:"
+                    ms1 = await self.client.get_messages(1655814348, search=src)
+                    for i in ms1:
+                        liga = re.search("Лига: (.+)", i.message).group(1)
+                else:
+                    for i in ms:
+                        liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
+                txt += f"\nЛига: {liga}"
+                await nm.edit(txt)
+        if chat not in self.chats:
+            return
+
+        try:
+            if not m.media or not m.media.document.attributes[0].voice:
+                return
+        except:
+            return
+
+        await self.recognize(m)
