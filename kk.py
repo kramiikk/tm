@@ -610,7 +610,7 @@ class kramiikkMod(loader.Module):
                     if "VS" in i.message and delta < datetime.timedelta(
                         hours=4, minutes=3
                     ):
-                        h += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
+                        h += f"\n{i.message}\n<i>Время кв: {delta.strftime('%H:%M')}</i>\n"
                 await m.edit(h)
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
