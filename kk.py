@@ -525,14 +525,14 @@ class kramiikkMod(loader.Module):
                             chat, "покормить жабку", schedule=delta
                         )
                     if "работу можно" in response.text:
-                        time_j = re.search(
+                        time = re.search(
                             "будет через (\d+)ч:(\d+)м",
                             response.text,
                             re.IGNORECASE,
                         )
-                        if time_j:
-                            hrs = int(time_j.group(1))
-                            mnu = int(time_j.group(2))
+                        if time:
+                            hrs = int(time.group(1))
+                            mnu = int(time.group(2))
                             delta = datetime.timedelta(
                                 hours=hrs, minutes=mnu, seconds=3
                             )
@@ -561,14 +561,14 @@ class kramiikkMod(loader.Module):
                                 + datetime.timedelta(hours=2, seconds=13),
                             )
                     if "жабу можно через" in response.text:
-                        time_r = re.search(
+                        time = re.search(
                             "через (\d+) часов (\d+) минут",
                             response.text,
                             re.IGNORECASE,
                         )
-                        if time_r:
-                            hrs = int(time_r.group(1))
-                            mnu = int(time_r.group(2))
+                        if time:
+                            hrs = int(time.group(1))
+                            mnu = int(time.group(2))
                             delta = datetime.timedelta(
                                 hours=hrs, minutes=mnu, seconds=3
                             )
@@ -604,8 +604,10 @@ class kramiikkMod(loader.Module):
                 ms = await self.client.get_messages(1767017980, limit=21)
                 h = "<b>Сейчас в кв:\n</b>"
                 for i in ms:
-                    delta = datetime.now() - datetime.timedelta(hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second)
-                    if "VS" in i.message and delta<datetime.timedelta(hours=4):
+                    delta = datetime.now() - datetime.timedelta(
+                        hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+                    )
+                    if "VS" in i.message and delta < datetime.timedelta(hours=4):
                         h += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
                 await m.edit(h)
             elif (
