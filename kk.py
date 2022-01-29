@@ -601,21 +601,10 @@ class kramiikkMod(loader.Module):
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
             elif "спаряжение" in m.message:
-                async with self.client.conversation(chat) as conv:
-                    response = conv.wait_event(
-                        events.NewMessage(
-                            from_users=1124824021,
-                            chats=chat,
-                            pattern="💓",
-                        )
-                    )
-                    await conv.send_message("брак показать")
-                    response = await response
-                    await conv.cancel_all()
-                if response:
-                    await m.respond("есть контакт")
-                else:
-                    await m.respond("где")
+                ms = await self.client.get_messages(1767017980, limit=5)
+                for i in ms:
+                    if "VS" in i.message and (m.date.hour - i.date.hour)<4:
+                        await m.respond(f"Сейчас в кв:\n{i}")
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
