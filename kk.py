@@ -602,10 +602,11 @@ class kramiikkMod(loader.Module):
                         )
             elif "сейчас в кв" in m.message:
                 ms = await self.client.get_messages(1767017980, limit=5)
-                h = "Сейчас в кв:\n"
+                h = "Сейчас в кв:"
                 for i in ms:
-                    if "VS" in i.message and (m.date.hour - i.date.hour)<4:
-                        h += f"{i.message}\n"
+                    t = m.date.hour - i.date.hour
+                    if "VS" in i.message and t<4:
+                        h += f"\n{i.message}\n<i>прошло {t} часа</i>\n"
                 await m.edit(h)
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
