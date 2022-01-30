@@ -75,6 +75,18 @@ class kramiikkMod(loader.Module):
         self.db = db
         self.me = await client.get_me()
 
+    #async def err(self, chat, u, v):
+        #async with self.client.conversation(chat) as conv:
+            #response = conv.wait_event(
+                #events.NewMessage(
+                    #from_users=u,
+                    #chats=chat,
+                #)
+            #)
+            #await conv.send_message(v)
+            #response = await response
+            #await conv.cancel_all()
+
     async def watcher(self, m):
         """.
 
