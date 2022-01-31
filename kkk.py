@@ -76,6 +76,11 @@ class kramiikkMod(loader.Module):
         self.me = await client.get_me()
 
     async def err(self, chat, p, s):
+        """.
+
+        ----------
+
+        """
         async with self.client.conversation(chat) as conv:
             await s
             global response
@@ -93,12 +98,23 @@ class kramiikkMod(loader.Module):
         chat = m.chat_id
         name = "монарх"
         rd = random.randint(1, 13)
-        if "Итоги" in m.message and m.sender_id in {1124824021} and chat in ninja:
+        if (
+            ("Итоги" or "Эй, клан") in m.message
+            and m.sender_id in {1124824021}
+            and chat in ninja
+        ):
             if "одержал" in m.message:
                 klan = re.search("клан (.+) одержал", m.message).group(1)
-                itog = f"{klan} победил"
+                it = "победил,"
+                ig = "проигал"
+            elif "ничья" in m.message:
+                klan = re.search("клан (.+),", m.message).group(1)
+                it = "<b>НИЧЬЯ</b>"
+                ig = ""
             else:
                 klan = re.search(", (.+) в этот", m.message).group(1)
+                it = "проиграл,"
+                ig = "победил"
             src = f"VS {klan}"
             ms = await self.client.get_messages(1767017980, search=src)
             for i in ms:
@@ -107,18 +123,13 @@ class kramiikkMod(loader.Module):
                 ) - datetime.timedelta(
                     hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                 )
-                if delta > datetime.timedelta(hours=3, minutes=59):
-                    capt = re.search("(.+) VS (.+)", i.message)
-                    if capt:
-                        mk = capt.group(1)
-                        ek = capt.group(2)
-                    if mk == klan and itog:
-                        itog += f", {ek} проиграл"
-                    elif ek == klan and itog:
-                        itog += f", {ek} победил"
-                    else:
-                        itog = f"{mk} <b>НИЧЬЯ</b> {ek}"
-            await i.reply(itog)
+            if delta > datetime.timedelta(hours=3, minutes=59):
+                capt = re.search("(.+) VS (.+)", i.message)
+                if capt:
+                    mk = capt.group(1)
+                    ek = capt.group(2)
+                itog = f"{mk} {it} {ek} {ig}"
+                await i.reply(itog)
             result = re.findall("•(<.+?(\d+).+>)", m.text)
             rep = f"Chat id: {chat}\n{itog}\n\nСостав {klan}:"
             for i in result:
