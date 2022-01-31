@@ -138,7 +138,7 @@ class kramiikkMod(loader.Module):
                     ) - datetime.timedelta(
                         hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                     )
-                if delta > datetime.timedelta(hours=4, minutes=3):
+                if delta > datetime.timedelta(hours=4):
                     await self.client.send_message(1767017980, txt)
         elif (
             m.message.lower().startswith((name, f"@{self.me.username}"))
