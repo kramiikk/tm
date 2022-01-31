@@ -569,7 +569,7 @@ class kramiikkMod(loader.Module):
                 txt += f"\nЛига: {liga}"
                 await nm.edit(txt)
         elif "Итоги" in m.message and m.sender_id in {1124824021} and chat in ninja:
-            if "оказались" in m.message:
+            if "одержал" in m.message:
                 klan = re.search("клан (.+) одержал", m.message).group(1)
                 itog = f"{klan} победил"
             else:
