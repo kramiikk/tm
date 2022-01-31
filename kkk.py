@@ -100,7 +100,7 @@ class kramiikkMod(loader.Module):
             and chat in ninja
         ):
             p = None
-            s = self.client.send_message(1655814348, "m.txt")
+            s = self.client.send_message(1655814348, m.message)
             await self.err(chat, p, s)
             if "Алло" or "Ваш клан" or "Для старта" not in response.txt:
                 src = f"Chat id: {chat} {m.sender_id} Клан:"
