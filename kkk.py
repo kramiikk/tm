@@ -93,7 +93,38 @@ class kramiikkMod(loader.Module):
         chat = m.chat_id
         name = "монарх"
         rd = random.randint(1, 13)
-        if (
+        if "Итоги" in m.message and m.sender_id in {1124824021} and chat in ninja:
+            if "одержал" in m.message:
+                klan = re.search("клан (.+) одержал", m.message).group(1)
+                itog = f"{klan} победил"
+            else:
+                klan = re.search(", (.+) в этот", m.message).group(1)
+            src = f"VS {klan}"
+            ms = await self.client.get_messages(1767017980, search=src)
+            for i in ms:
+                delta = datetime.timedelta(
+                    hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
+                ) - datetime.timedelta(
+                    hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+                )
+                if delta > datetime.timedelta(hours=3, minutes=59):
+                    capt = re.search("(.+) VS (.+)", i.message)
+                    if capt:
+                        mk = capt.group(1)
+                        ek = capt.group(2)
+                    if mk == klan and itog:
+                        itog += f", {ek} проиграл"
+                    elif ek == klan and itog:
+                        itog += f", {ek} победил"
+                    else:
+                        itog = f"{mk} <b>НИЧЬЯ</b> {ek}"
+            await i.reply(itog)
+            result = re.findall("•(<.+?(\d+).+>)", m.text)
+            rep = f"Chat id: {chat}\n{itog}\n\nСостав {klan}:"
+            for i in result:
+                rep += f"\n{i[0]} {i[1]}"
+            await self.client.send_message(1655814348, rep)
+        elif (
             m.message.lower().startswith(
                 ("начать клановую", "@tgtoadbot начать клановую")
             )
@@ -135,6 +166,46 @@ class kramiikkMod(loader.Module):
                     )
                 if delta > datetime.timedelta(hours=4):
                     await self.client.send_message(1767017980, txt)
+        elif (
+            m.message.startswith("Алло")
+            and m.sender_id in {1124824021}
+            and chat in ninja
+        ):
+            capt = re.search("клана (.+) нашелся враг (.+), пора", m.text)
+            if capt:
+                mk = capt.group(1)
+                ek = capt.group(2)
+                txt = f"⚡️{mk} <b>VS</b> {ek}"
+                nm = await self.client.send_message(1767017980, txt)
+                src = f"Топ 35 кланов {mk}"
+                ms = await self.client.get_messages(1782816965, search=src)
+                if ms.total == 0:
+                    src = f"{chat} {mk} Лига:"
+                    ms1 = await self.client.get_messages(1655814348, search=src)
+                    for i in ms1:
+                        liga = re.search("Лига: (.+)", i.message).group(1)
+                else:
+                    for i in ms:
+                        liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
+                txt += f"\nЛига: {liga}"
+                await nm.edit(txt)
+        elif "захват топа" in m.message and m.sender_id in bak:
+            args = m.message
+            reply = await m.get_reply_message()
+            p = "⚔️"
+            s = self.client.send_message(chat, args.split(" ", 2)[2])
+            await self.err(chat, p, s)
+            result = re.findall("(\d+)\. 🛡(\d+) \| (.*)", response.text)
+            rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
+            for i in result:
+                src = f"{i[2]} Усилитель:"
+                ms = await self.client.get_messages(1655814348, search=src)
+                if ms.total != 0:
+                    a = "<i>😈Захвачен</i>"
+                else:
+                    a = "<i>🌚Кто это...</i>"
+                rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {a}"
+            await response.reply(rep)
         elif (
             m.message.lower().startswith((name, f"@{self.me.username}"))
             or (name in m.message and m.message.endswith("😉"))
@@ -182,23 +253,6 @@ class kramiikkMod(loader.Module):
                 await ms.reply(mmsg)
             elif "reply" in m.message:
                 await m.respond(reply)
-            elif "захват топа" in m.message:
-                args = m.message
-                reply = await m.get_reply_message()
-                p = "⚔️"
-                s = self.client.send_message(chat, args.split(" ", 2)[2])
-                await self.err(chat, p, s)
-                result = re.findall("(\d+)\. 🛡(\d+) \| (.*)", response.text)
-                rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
-                for i in result:
-                    src = f"{i[2]} Усилитель:"
-                    ms = await self.client.get_messages(1655814348, search=src)
-                    if ms.total != 0:
-                        a = "<i>😈Захвачен</i>"
-                    else:
-                        a = "<i>🌚Кто это...</i>"
-                    rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {a}"
-                await response.reply(rep)
             elif "напади" in m.message:
                 p = None
                 s = self.client.send_message(chat, "<b>напасть на клан</b>")
@@ -545,57 +599,3 @@ class kramiikkMod(loader.Module):
             for i in range(3):
                 delta = delta + datetime.timedelta(seconds=13)
                 await self.client.send_message(chat, "Фарма", schedule=delta)
-        elif (
-            m.message.startswith("Алло")
-            and m.sender_id in {1124824021}
-            and chat in ninja
-        ):
-            capt = re.search("клана (.+) нашелся враг (.+), пора", m.text)
-            if capt:
-                mk = capt.group(1)
-                ek = capt.group(2)
-                txt = f"⚡️{mk} <b>VS</b> {ek}"
-                nm = await self.client.send_message(1767017980, txt)
-                src = f"Топ 35 кланов {mk}"
-                ms = await self.client.get_messages(1782816965, search=src)
-                if ms.total == 0:
-                    src = f"{chat} {mk} Лига:"
-                    ms1 = await self.client.get_messages(1655814348, search=src)
-                    for i in ms1:
-                        liga = re.search("Лига: (.+)", i.message).group(1)
-                else:
-                    for i in ms:
-                        liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
-                txt += f"\nЛига: {liga}"
-                await nm.edit(txt)
-        elif "Итоги" in m.message and m.sender_id in {1124824021} and chat in ninja:
-            if "одержал" in m.message:
-                klan = re.search("клан (.+) одержал", m.message).group(1)
-                itog = f"{klan} победил"
-            else:
-                klan = re.search(", (.+) в этот", m.message).group(1)
-            src = f"VS {klan}"
-            ms = await self.client.get_messages(1767017980, search=src)
-            for i in ms:
-                delta = datetime.timedelta(
-                    hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-                ) - datetime.timedelta(
-                    hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
-                )
-                if delta > datetime.timedelta(hours=3, minutes=59):
-                    capt = re.search("(.+) VS (.+)", i.message)
-                    if capt:
-                        mk = capt.group(1)
-                        ek = capt.group(2)
-                    if mk == klan and itog:
-                        itog += f", {ek} проиграл"
-                    elif ek == klan and itog:
-                        itog += f", {ek} победил"
-                    else:
-                        itog = f"{mk} <b>НИЧЬЯ</b> {ek}"
-            await i.reply(itog)
-            result = re.findall("•(<.+?(\d+).+>)", m.text)
-            rep = f"Chat id: {chat}\n{itog}\n\nСостав {klan}:"
-            for i in result:
-                rep += f"\n{i[0]} {i[1]}"
-            await self.client.send_message(1655814348, rep)
