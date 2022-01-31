@@ -191,7 +191,9 @@ class kramiikkMod(loader.Module):
                 args = m.message
                 reply = await m.get_reply_message()
                 szn = args.split(" ", 2)[2]
-                #pattern="⚔️",
+                p = "⚔️"
+                s = self.client.send_message(chat, szn)
+                await self.err(chat, p, s)
                 result = re.findall("(\d+)\. 🛡(\d+) \| (.*)", response.text)
                 rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
                 for i in result:
