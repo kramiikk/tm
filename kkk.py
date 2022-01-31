@@ -105,16 +105,16 @@ class kramiikkMod(loader.Module):
         ):
             if "одержал" in m.message:
                 klan = re.search("клан (.+) одержал", m.message).group(1)
-                it = "победил,"
-                ig = "проигал"
+                it = "🥳,"
+                ig = "😢"
             elif "ничья" in m.message:
                 klan = re.search("клан (.+),", m.message).group(1)
-                it = "<b>НИЧЬЯ</b>"
+                it = "🫂"
                 ig = ""
             else:
                 klan = re.search(", (.+) в этот", m.message).group(1)
-                it = "проиграл,"
-                ig = "победил"
+                it = "😢,"
+                ig = "🥳"
             src = f"VS {klan}"
             ms = await self.client.get_messages(1767017980, search=src)
             for i in ms:
@@ -124,7 +124,7 @@ class kramiikkMod(loader.Module):
                     hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                 )
             if delta > datetime.timedelta(hours=3, minutes=59):
-                capt = re.search("(.+) VS (.+)", i.message)
+                capt = re.search("⚡️(.+) VS (.+)", i.message)
                 if capt:
                     mk = capt.group(1)
                     ek = capt.group(2)
