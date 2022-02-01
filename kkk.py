@@ -107,9 +107,12 @@ class kramiikkMod(loader.Module):
             if "одержал" in m.message:
                 klan = re.search(
                     r"клан (.+) одержал| счетом (\d+):(\d+)!", m.message)
+                if klan:
+                    hrs = int(klan.group(2))
+                    mnu = int(klan.group(3))
                 it = "🥳"
                 ig = "😢"
-                chet = f"{klan.group(2)}:{klan.group(3)}"
+                chet = f"{hrs}:{mnu}"
                 #if int(klan.group(2)) < int(klan.group(3)):
                     #chet = ''.join(reversed('chet'))
             elif "ничья" in m.message:
@@ -119,9 +122,12 @@ class kramiikkMod(loader.Module):
                 ig = ""
             else:
                 klan = re.search(r", (.+) в этот|Счет: (\d+):(\d+)", m.message)
+                if klan:
+                    hrs = int(klan.group(2))
+                    mnu = int(klan.group(3))
                 it = "😢"
                 ig = "🥳"
-                chet = f"{klan.group(3)}:{klan.group(2)}"
+                chet = f"{mnu}:{hrs}"
                 #if int(klan.group(3)) > int(klan.group(2)):
                     #chet = ''.join(reversed('chet'))
             src = f"VS {klan.group(1)}"
