@@ -106,10 +106,10 @@ class kramiikkMod(loader.Module):
         ):
             if "одержал" in m.message:
                 klan = re.search(
-                    r"клан (.+) одержал| счетом (\d+):(\d+)!", m.message)
+                    r"счетом (\d+):(\d+)!", m.message)
                 if klan:
-                    hrs = int(klan.group(2))
-                    mnu = int(klan.group(3))
+                    hrs = int(klan.group(1))
+                    mnu = int(klan.group(2))
                 it = "🥳"
                 ig = "😢"
                 chet = f"{hrs}:{mnu}"
