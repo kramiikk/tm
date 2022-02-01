@@ -130,7 +130,10 @@ class kramiikkMod(loader.Module):
                     if capt:
                         mk = capt.group(1)
                         ek = capt.group(2)
-                    itog = f"{mk} {it} {ek} {ig}"
+                    if klan != mk and "ничья" not in m.message:
+                        itog = f"{mk} {ig} {ek} {it}"
+                    else:
+                        itog = f"{mk} {it} {ek} {ig}"
                     await i.reply(itog)
             result = re.findall(r"•(<.+?(\d+).+>)", m.text)
             rep = f"Chat id: {chat}\n{itog}\n\nСостав {klan}:"
