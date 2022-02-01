@@ -156,7 +156,7 @@ class kramiikkMod(loader.Module):
             p = None
             s = self.client.send_message(1655814348, m.message)
             await self.err(m, p, s)
-            if not RESPONSE.txt.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
+            if not RESPONSE.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
                 src = f"Chat id: {m.chat_id} {m.sender_id} Клан:"
                 ms = await self.client.get_messages(1655814348, search=src)
                 for i in ms:
