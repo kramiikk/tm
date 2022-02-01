@@ -106,31 +106,24 @@ class kramiikkMod(loader.Module):
         ):
             if "одержал" in m.message:
                 klan = re.search(
-                    r"счетом (\d+):(\d+)!", m.message)
-                if klan:
-                    hrs = int(klan.group(1))
-                    mnu = int(klan.group(2))
+                    r"клан (.+) одержал[\s\S]*(\d+):(\d+)!", m.message)
                 it = "🥳"
                 ig = "😢"
-                chet = f"{hrs}:{mnu}"
-                await self.client.send_message(1782816965, chet)
-                #if int(klan.group(2)) < int(klan.group(3)):
-                    #chet = ''.join(reversed('chet'))
+                chet = f"{klan.group(2)}:{klan.group(3)}"
+                if int(klan.group(2)) < int(klan.group(3)):
+                    chet = ''.join(reversed('chet'))
             elif "ничья" in m.message:
                 klan = re.search("клан (.+),", m.message)
                 chet = "победила любовь🏳️‍🌈"
                 it = "🫂"
                 ig = ""
             else:
-                klan = re.search(r", (.+) в этот|Счет: (\d+):(\d+)", m.message)
-                if klan:
-                    hrs = int(klan.group(2))
-                    mnu = int(klan.group(3))
+                klan = re.search(", (.+) в этот[\s\S]*(\d+):(\d+)", m.message)
                 it = "😢"
                 ig = "🥳"
-                chet = f"{mnu}:{hrs}"
-                #if int(klan.group(3)) > int(klan.group(2)):
-                    #chet = ''.join(reversed('chet'))
+                chet = f"{klan.group(3)}:{klan.group(2)}"
+                if int(klan.group(3)) > int(klan.group(2)):
+                    chet = ''.join(reversed('chet'))
             src = f"VS {klan.group(1)}"
             ms = await self.client.get_messages(1767017980, search=src)
             for i in ms:
@@ -148,13 +141,12 @@ class kramiikkMod(loader.Module):
                         itog = f"{mk} {ig} {ek} {it}\n<i>{chet}</i>"
                     else:
                         itog = f"{mk} {it} {ek} {ig}\n<i>{chet}</i>"
-                    #await i.reply(itog)
-                    await self.client.send_message(1782816965, itog)
-            #result = re.findall(r"•(<.+?(\d+).+>)", m.text)
-            #rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
-            #for i in result:
-                #rep += f"\n{i[0]} {i[1]}"
-            #await self.client.send_message(1782816965, rep)
+                    await i.reply(itog)
+            result = re.findall(r"•(<.+?(\d+).+>)", m.text)
+            rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
+            for i in result:
+                rep += f"\n{i[0]} {i[1]}"
+            await self.client.send_message(1782816965, rep)
         elif (
             m.message.lower().startswith(
                 ("начать клановую", "@tgtoadbot начать клановую")
