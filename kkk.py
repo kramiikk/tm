@@ -83,7 +83,7 @@ class kramiikkMod(loader.Module):
         ----------
 
         """
-        async with self.client.conversation(m.chat_id) as conv:
+        async with self.client.conversation(chat) as conv:
             await s
             global RESPONSE
             RESPONSE = await conv.wait_event(
