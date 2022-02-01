@@ -146,7 +146,7 @@ class kramiikkMod(loader.Module):
                     rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
                     for i in result:
                         rep += f"\n{i[0]} {i[1]}"
-                    await self.client.send_message(1782816965, rep)
+                    await self.client.send_message(1655814348, rep)
         elif (
             m.message.lower().startswith(
                 ("начать клановую", "@tgtoadbot начать клановую")
