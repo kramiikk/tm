@@ -142,11 +142,11 @@ class kramiikkMod(loader.Module):
                     else:
                         itog = f"{mk} {it} {ek} {ig}\n<i>{chet}</i>"
                     await i.reply(itog)
-            result = re.findall(r"•(<.+?(\d+).+>)", m.text)
-            rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
-            for i in result:
-                rep += f"\n{i[0]} {i[1]}"
-            await self.client.send_message(1782816965, rep)
+                    result = re.findall(r"•(<.+?(\d+).+>)", m.text)
+                    rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
+                    for i in result:
+                        rep += f"\n{i[0]} {i[1]}"
+                    await self.client.send_message(1782816965, rep)
         elif (
             m.message.lower().startswith(
                 ("начать клановую", "@tgtoadbot начать клановую")
