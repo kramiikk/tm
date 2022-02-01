@@ -110,8 +110,8 @@ class kramiikkMod(loader.Module):
                 it = "🥳"
                 ig = "😢"
                 chet = f"{klan.group(2)}:{klan.group(3)}"
-                if int(klan.group(2)) < int(klan.group(3)):
-                    chet = ''.join(reversed('chet'))
+                #if int(klan.group(2)) < int(klan.group(3)):
+                    #chet = ''.join(reversed('chet'))
             elif "ничья" in m.message:
                 klan = re.search("клан (.+),", m.message)
                 chet = "победила любовь🏳️‍🌈"
@@ -122,8 +122,8 @@ class kramiikkMod(loader.Module):
                 it = "😢"
                 ig = "🥳"
                 chet = f"{klan.group(3)}:{klan.group(2)}"
-                if int(klan.group(3)) > int(klan.group(2)):
-                    chet = ''.join(reversed('chet'))
+                #if int(klan.group(3)) > int(klan.group(2)):
+                    #chet = ''.join(reversed('chet'))
             src = f"VS {klan.group(1)}"
             ms = await self.client.get_messages(1767017980, search=src)
             for i in ms:
