@@ -101,7 +101,7 @@ class kramiikkMod(loader.Module):
         name = "монарх"
         if (
             ("Итоги" or "Эй, клан") in m.message
-            and m.sender_id in {1124824021}
+            and m.sender_id in {1124824021, 1261343954}
             and m.chat_id in ninja
         ):
             if "одержал" in m.message:
@@ -141,12 +141,13 @@ class kramiikkMod(loader.Module):
                         itog = f"{mk} {ig} {ek} {it}\n<i>{chet}</i>"
                     else:
                         itog = f"{mk} {it} {ek} {ig}\n<i>{chet}</i>"
-                    await i.reply(itog)
-            result = re.findall(r"•(<.+?(\d+).+>)", m.text)
-            rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
-            for i in result:
-                rep += f"\n{i[0]} {i[1]}"
-            await self.client.send_message(1655814348, rep)
+                    #await i.reply(itog)
+                    await self.client.send_message(1782816965, itog)
+            #result = re.findall(r"•(<.+?(\d+).+>)", m.text)
+            #rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
+            #for i in result:
+                #rep += f"\n{i[0]} {i[1]}"
+            #await self.client.send_message(1782816965, rep)
         elif (
             m.message.lower().startswith(
                 ("начать клановую", "@tgtoadbot начать клановую")
