@@ -113,6 +113,7 @@ class kramiikkMod(loader.Module):
                 it = "🥳"
                 ig = "😢"
                 chet = f"{hrs}:{mnu}"
+                await self.client.send_message(1782816965, chet)
                 #if int(klan.group(2)) < int(klan.group(3)):
                     #chet = ''.join(reversed('chet'))
             elif "ничья" in m.message:
