@@ -87,7 +87,8 @@ class kramiikkMod(loader.Module):
             await s
             global RESPONSE
             RESPONSE = await conv.wait_event(
-                events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
+                events.NewMessage(from_users=1124824021,
+                                  chats=m.chat_id, pattern=p)
             )
             await conv.cancel_all()
 
@@ -104,7 +105,8 @@ class kramiikkMod(loader.Module):
             and m.chat_id in ninja
         ):
             if "одержал" in m.message:
-                klan = re.search(r"клан (.+) одержал| счетом (\d+):(\d+)!", m.message)
+                klan = re.search(
+                    r"клан (.+) одержал| счетом (\d+):(\d+)!", m.message)
                 it = "🥳"
                 ig = "😢"
                 chet = f"{klan.group(2)}:{klan.group(3)}"
@@ -278,7 +280,8 @@ class kramiikkMod(loader.Module):
                 await m.respond(reply)
             elif "напади" in m.message:
                 p = None
-                s = self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
+                s = self.client.send_message(
+                    m.chat_id, "<b>напасть на клан</b>")
                 await self.err(m.chat_id, p, s)
                 if "Ваша жаба на" in RESPONSE.text:
                     await m.respond("завершить работу")
@@ -305,7 +308,8 @@ class kramiikkMod(loader.Module):
                     await m.respond("<b>рейд инфо</b>")
             elif "снаряжение" in m.message:
                 p = "Ваше"
-                s = self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
+                s = self.client.send_message(
+                    m.chat_id, "<b>мое снаряжение</b>")
                 await self.err(m.chat_id, p, s)
                 if "Ближний бой: Пусто" in RESPONSE.text:
                     await m.respond("скрафтить клюв цапли")
