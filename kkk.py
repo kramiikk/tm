@@ -118,7 +118,7 @@ class kramiikkMod(loader.Module):
                 it = "🫂"
                 ig = ""
             else:
-                klan = re.search(", (.+) в этот|Счет: (\d+):(\d+)", m.message)
+                klan = re.search(r", (.+) в этот|Счет: (\d+):(\d+)", m.message)
                 it = "😢"
                 ig = "🥳"
                 chet = f"{klan.group(3)}:{klan.group(2)}"
