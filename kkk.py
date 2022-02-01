@@ -121,7 +121,7 @@ class kramiikkMod(loader.Module):
                 klan = re.search(", (.+) в этот[\s\S]*(\d+):(\d+)", m.message)
                 it = "😢"
                 ig = "🥳"
-                chet = f"{klan.group(3)}:{klan.group(2)}"
+                chet = f"{klan.group(2)}:{klan.group(3)}"
                 if int(klan.group(3)) > int(klan.group(2)):
                     chet = ''.join(reversed(chet))
             src = f"VS {klan.group(1)}"
@@ -134,13 +134,10 @@ class kramiikkMod(loader.Module):
                 )
                 if delta > datetime.timedelta(hours=3, minutes=59):
                     capt = re.search("⚡️(.+) VS (.+)", i.message)
-                    if capt:
-                        mk = capt.group(1)
-                        ek = capt.group(2)
-                    if klan.group(1) != mk and "ничья" not in m.message:
-                        itog = f"{mk} {ig} {ek} {it}\n<i>{chet}</i>"
+                    if klan.group(1) != capt.group(1) and "ничья" not in m.message:
+                        itog = f"{capt.group(1)} {ig} {capt.group(2)} {it}\n<i>{chet}</i>"
                     else:
-                        itog = f"{mk} {it} {ek} {ig}\n<i>{chet}</i>"
+                        itog = f"{capt.group(1)} {it} {capt.group(2)} {ig}\n<i>{chet}</i>"
                     await i.reply(itog)
                     result = re.findall(r"•(<.+?(\d+).+>)", m.text)
                     rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
