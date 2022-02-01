@@ -122,7 +122,7 @@ class kramiikkMod(loader.Module):
                 it = "😢"
                 ig = "🥳"
                 chet = f"{klan.group(2)}:{klan.group(3)}"
-                if int(klan.group(3)) > int(klan.group(2)):
+                if int(klan.group(2)) > int(klan.group(3)):
                     chet = ''.join(reversed(chet))
             src = f"VS {klan.group(1)}"
             ms = await self.client.get_messages(1767017980, search=src)
