@@ -20,12 +20,12 @@ import asyncio
 
 
 @loader.tds
-class VoicyMod(loader.Module):
+class VoiceMod(loader.Module):
     """Recognize voice messages"""
 
     strings = {
-        "name": "Voicy",
-        "converting": "<code>🗣 Распознаю голосовое сообщение...</code>",
+        "name": "Voice",
+        "converting": "<code>🗣 Пиздец еще одно голосовое сообщение...</code>",
         "converted": "<b>{}</b>\n\n🗣<pre>{}</pre>",
         "no_ffmpeg": '<b>Вам необходимо установить ffmpeg.</b> <a href="https://t.me/ftgchatru/454189">Инструкция</a>',
         "voice_not_found": "🗣 <b>Войс не найден</b>",
@@ -41,7 +41,7 @@ class VoicyMod(loader.Module):
     async def recognize(self, event):
         try:
             while True:
-                a = random.choice(await self.client.get_messages(1485617300, limit=3000, from_id=1092919751)).text
+                a = random.choice(await self.client.get_messages(1485617300, from_id=1092919751, limit=300)).text
                 break
             filename = "/tmp/" + str(time()).replace(".", "")
             await event.download_media(file=filename + ".ogg")
@@ -64,7 +64,7 @@ class VoicyMod(loader.Module):
                 await event.delete()
 
     @loader.unrestricted
-    async def voicycmd(self, message):
+    async def voicecmd(self, message):
         reply = await message.get_reply_message()
         if not reply or not reply.media or not reply.media.document.attributes[0].voice:
             await utils.answer(message, self.strings("voice_not_found", message))
