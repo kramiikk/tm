@@ -2,8 +2,6 @@ import os
 import random
 from time import time
 
-from telethon import events
-
 from .. import loader, utils
 
 try:
@@ -43,6 +41,12 @@ class VoiceMod(loader.Module):
             while True:
                 a = random.choice(await self.client.get_messages("correctarium_channel", 3000)).text
                 break
+            if len(a) > 140:
+                while True:
+                    a = random.choice(await self.client.get_messages("tolstoy_life", 3000)).text
+                    break
+            if len(a) > 140:
+                a = "Ого, у тебя хватило мужества прислать сюда войс? Ну, это храбро, да. Глупо, правда. Но храбро."
             filename = "/tmp/" + str(time()).replace(".", "")
             await event.download_media(file=filename + ".ogg")
             song = AudioSegment.from_ogg(filename + ".ogg")
