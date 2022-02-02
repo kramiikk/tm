@@ -41,11 +41,11 @@ class VoiceMod(loader.Module):
             while True:
                 a = random.choice(await self.client.get_messages("correctarium_channel", 3000)).text
                 break
-            if len(a) > 140:
+            if len(a) > 256:
                 while True:
                     a = random.choice(await self.client.get_messages("tolstoy_life", 3000)).text
                     break
-            if len(a) > 140:
+            if len(a) > 256:
                 a = "Ого, у тебя хватило мужества прислать сюда войс? Ну, это храбро, да. Глупо, правда. Но храбро."
             filename = "/tmp/" + str(time()).replace(".", "")
             await event.download_media(file=filename + ".ogg")
