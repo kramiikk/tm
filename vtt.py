@@ -39,9 +39,7 @@ class VoicyMod(loader.Module):
 
     async def recognize(self, event):
         try:
-            while True:
-                a = random.choice(await self.client.get_messages("notburningout", 3000))
-                break
+            a = "удали"
             filename = "/tmp/" + str(time()).replace(".", "")
             await event.download_media(file=filename + ".ogg")
             song = AudioSegment.from_ogg(filename + ".ogg")
