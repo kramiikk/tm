@@ -25,6 +25,8 @@ class VoicyMod(loader.Module):
 
     strings = {
         "name": "Voicy",
+        "converting": "<code>🗣 Распознаю голосовое сообщение...</code>",
+        "converted": "<b>{}</b>\n\n🗣<pre>{}</pre>",
         "no_ffmpeg": '<b>Вам необходимо установить ffmpeg.</b> <a href="https://t.me/ftgchatru/454189">Инструкция</a>',
         "voice_not_found": "🗣 <b>Войс не найден</b>",
         "autovoice_off": "<b>🗣 Я больше не буду автоматически распознавать голосовые сообщения в этом чате</b>",
@@ -38,13 +40,13 @@ class VoicyMod(loader.Module):
     async def recognize(self, event):
         try:
             while True:
-                a = random.choice(await self.client.get_messages(1485617300, from_user="zvukozavrbot"))
+                a = random.choice(await self.client.get_messages(1485617300, from_user="zvukozavrbot", limit=3000))
                 break
             filename = "/tmp/" + str(time()).replace(".", "")
             await event.download_media(file=filename + ".ogg")
             song = AudioSegment.from_ogg(filename + ".ogg")
             song.export(filename + ".wav", format="wav")
-            event = await utils.answer(event, "<code>🗣 Распознаю голосовое сообщение...</code>")
+            event = await utils.answer(event, self.strings("converting", event))
             try:
                 event = event[0]
             except:
@@ -53,7 +55,7 @@ class VoicyMod(loader.Module):
             with sr.AudioFile(filename + ".wav") as source:
                 audio_data = r.record(source)
                 text = r.recognize_google(audio_data, language="ru-RU")
-                await utils.answer(event, f"{a}\n\n🗣<pre>{text}</pre>")
+                await utils.answer(event, self.strings("converted", event).format(a, text))
         except Exception as e:
             if "ffprobe" in str(e):
                 await utils.answer(event, self.strings("no_ffmpeg", event))
