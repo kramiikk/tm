@@ -83,7 +83,7 @@ class kramiikkMod(loader.Module):
             1261343954,
         }:
             if "одержал" in m.message:
-                klan = re.search(r"клан (.+) одержал[\s\S]*(\d+):(\d+)!", m.message)
+                klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.message)
                 it = "🥳"
                 ig = "😢"
                 chet = f"{klan.group(2)}:{klan.group(3)}"
