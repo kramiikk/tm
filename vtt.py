@@ -41,7 +41,7 @@ class VoiceMod(loader.Module):
     async def recognize(self, event):
         try:
             while True:
-                a = random.choice(await self.client.get_messages(1485617300, 3000, from_id="zvukozavrbot")).text
+                a = random.choice(await self.client.get_messages("correctarium_channel", 3000)).text
                 break
             filename = "/tmp/" + str(time()).replace(".", "")
             await event.download_media(file=filename + ".ogg")
