@@ -25,8 +25,6 @@ class VoiceMod(loader.Module):
         "name": "Voice",
         "converting": "<code>🗣 Пиздец еще одно голосовое сообщение...</code>",
         "converted": "<b>{}</b>\n\n🗣<pre>{}</pre>",
-        "no_ffmpeg": '<b>Вам необходимо установить ffmpeg.</b> <a href="https://t.me/ftgchatru/454189">Инструкция</a>',
-        "voice_not_found": "🗣 <b>Войс не найден</b>",
         "autovoice_off": "<b>🗣 Я больше не буду автоматически распознавать голосовые сообщения в этом чате</b>",
         "autovoice_on": "<b>🗣 Теперь я буду распознавать голосовые сообщения в этом чате</b>",
     }
@@ -70,12 +68,6 @@ class VoiceMod(loader.Module):
     @loader.unrestricted
     async def voicecmd(self, message):
         reply = await message.get_reply_message()
-        if not reply or not reply.media or not reply.media.document.attributes[0].voice:
-            await utils.answer(message, self.strings("voice_not_found", message))
-            await asyncio.sleep(2)
-            await message.delete()
-            return
-
         await self.recognize(reply)
         await message.delete()
 
