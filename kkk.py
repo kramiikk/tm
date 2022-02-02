@@ -406,7 +406,8 @@ class kramiikkMod(loader.Module):
             p = "🐸"
             s = self.client.send_message(m.chat_id, "<b>моя жаба</b>")
             await self.err(m, p, s)
-            if "prime" in RESPONSE.text:
+            jaba = re.search(r"Уровень.+: (\d+)", RESPONSE.text).group(1)
+            if int(jaba) > 50:
                 p = "🍭"
                 s = self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                 await self.err(m, p, s)
