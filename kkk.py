@@ -222,10 +222,10 @@ class KramiikkMod(loader.Module):
                 i = args.split(" ", 4)[2]
                 if i.isnumeric():
                     i = int(i)
-                s = args.split(" ", 4)[3]
-                if s.isnumeric():
-                    s = int(s)
-                i = await self.client.get_messages(s, ids=i)
+                p = args.split(" ", 4)[3]
+                if p.isnumeric():
+                    p = int(p)
+                i = await self.client.get_messages(i, ids=p)
                 s = args.split(" ", 4)[4]
                 if reply:
                     s = reply
