@@ -275,9 +275,9 @@ class KramiikkMod(loader.Module):
                 else:
                     await m.respond("мой инвентарь")
             elif m.message.lower().startswith("лвл чек"):
-                if ((int(m.message.split(" ", 3)[2]) + int(m.message.split(" ", 3)[3])) - 160) * 2 > -1:
-                    res = f"<b>~ {s} лвл</b>"
-                    await m.reply(res)
+                s = ((int(m.message.split(" ", 3)[2]) + int(m.message.split(" ", 3)[3])) - 160) * 2
+                if s > -1:
+                    await m.reply(f"<b>~ {s} лвл</b>")
             elif "туса" in m.message:
                 await m.respond("жабу на тусу")
             elif "го кв" in m.message:
