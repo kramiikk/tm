@@ -90,7 +90,7 @@ class kramiikkMod(loader.Module):
                 if int(klan.group(2)) < int(klan.group(3)):
                     chet = "".join(reversed(chet))
             elif "ничья" in m.message:
-                klan = re.search("клан (.+),", m.message)
+                klan = re.search(r"клан (.+),", m.message)
                 chet = "победила любовь🏳️‍🌈"
                 it = "🫂"
                 ig = ""
