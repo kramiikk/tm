@@ -84,23 +84,10 @@ class kramiikkMod(loader.Module):
         }:
             if "одержал" in m.message:
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.message)
-                it = "🥳"
-                ig = "😢"
-                chet = f"{klan.group(2)}:{klan.group(3)}"
-                if int(klan.group(2)) < int(klan.group(3)):
-                    chet = "".join(reversed(chet))
-            elif "ничья" in m.message:
-                klan = re.search(r"клан (.+),", m.message)
-                chet = "победила любовь🏳️‍🌈"
-                it = "🫂"
-                ig = ""
-            else:
+            elif "слабее" in m.message:
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.message)
-                it = "😢"
-                ig = "🥳"
-                chet = f"{klan.group(2)}:{klan.group(3)}"
-                if int(klan.group(2)) > int(klan.group(3)):
-                    chet = "".join(reversed(chet))
+            else:
+                klan = re.search(r"клан (.+),", m.message)
             src = f"VS {klan.group(1)}"
             ms = await self.client.get_messages(1767017980, search=src)
             for i in ms:
@@ -109,19 +96,26 @@ class kramiikkMod(loader.Module):
                 ) - datetime.timedelta(
                     hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                 )
-                if delta < datetime.timedelta(hours=4, minutes=30):
+                if delta > datetime.timedelta(hours=4):
                     capt = re.search(r"⚡️(.+) VS (.+)", i.message)
-                    if klan.group(1) != capt.group(1) and "ничья" not in m.message:
+                    chet = f"{klan.group(2)}:{klan.group(3)}"
+                    itog = (
+                        f"{capt.group(1)} 🥳 {capt.group(2)} 😢\n<i>{chet}</i>"
+                    )
+                    if (klan.group(1) == capt.group(1) and "одержал" in m.message) or (klan.group(1) != capt.group(1) and "слабее" in m.message):
+                        if int(klan.group(2)) < int(klan.group(3)):
+                            chet = "".join(reversed(chet))
+                    elif (klan.group(1) == capt.group(1) and "слабее" in m.message) or (klan.group(1) != capt.group(1) and "одержал" in m.message):
+                        if int(klan.group(2)) > int(klan.group(3)):
+                            chet = "".join(reversed(chet))
                         itog = (
-                            f"{capt.group(1)} {ig} {capt.group(2)} {it}\n<i>{chet}</i>"
+                            f"{capt.group(1)} 😢 {capt.group(2)} 🥳\n<i>{chet}</i>"
                         )
                     else:
-                        itog = (
-                            f"{capt.group(1)} {it} {capt.group(2)} {ig}\n<i>{chet}</i>"
-                        )
+                        itog = "победила любовь🏳️‍🌈"
                     await i.reply(itog)
                     result = re.findall(r"•(<.+?(\d+).+>)", m.text)
-                    rep = f"Chat id: {m.chat_id}\n{itog}\n\nСостав {klan}:"
+                    rep = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
                     for i in result:
                         rep += f"\n{i[0]} {i[1]}"
                     await self.client.send_message(1655814348, rep)
