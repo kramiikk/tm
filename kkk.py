@@ -22,6 +22,7 @@ bak = [
 
 RESPONSE = None
 
+
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя."""
@@ -86,7 +87,7 @@ class KramiikkMod(loader.Module):
                 ) - datetime.timedelta(
                     hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                 )
-            if delta > datetime.timedelta(hours=4):
+            if delta < datetime.timedelta(days=0, hours=4, minutes=30):
                 capt = re.search(r"⚡️(.+) VS (.+)", i.message)
                 chet = f"{klan.group(2)}:{klan.group(3)}"
                 itog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢\n<i>{chet}</i>"
@@ -148,7 +149,7 @@ class KramiikkMod(loader.Module):
                                 minutes=s.date.minute,
                                 seconds=s.date.second,
                             )
-                        if delta > datetime.timedelta(hours=4):
+                        if delta > datetime.timedelta(days=0, hours=4):
                             await self.client.send_message(1767017980, txt)
         elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
             capt = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
@@ -275,7 +276,10 @@ class KramiikkMod(loader.Module):
                 else:
                     await m.respond("мой инвентарь")
             elif m.message.lower().startswith("лвл чек"):
-                s = ((int(m.message.split(" ", 3)[2]) + int(m.message.split(" ", 3)[3])) - 160) * 2
+                s = (
+                    (int(m.message.split(" ", 3)[2]) + int(m.message.split(" ", 3)[3]))
+                    - 160
+                ) * 2
                 if s > -1:
                     await m.reply(f"<b>~ {s} лвл</b>")
             elif "туса" in m.message:
