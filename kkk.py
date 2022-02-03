@@ -210,25 +210,25 @@ class KramiikkMod(loader.Module):
                     )
                 )
             elif "напиши в" in m.message:
-                chan = args.split(" ", 4)[3]
-                if chan.isnumeric():
-                    chan = int(args.split(" ", 4)[3])
-                mmsg = args.split(" ", 4)[4]
+                i = args.split(" ", 4)[3]
+                if i.isnumeric():
+                    i = int(i)
+                s = args.split(" ", 4)[4]
                 if reply:
-                    mmsg = reply
-                await self.client.send_message(chan, mmsg)
+                    s = reply
+                await self.client.send_message(i, s)
             elif "реплай" in m.message:
-                sct = args.split(" ", 4)[2]
-                if sct.isnumeric():
-                    sct = int(args.split(" ", 4)[2])
-                sak = args.split(" ", 4)[3]
-                if sak.isnumeric():
-                    sak = int(args.split(" ", 4)[3])
-                ms = await self.client.get_messages(sct, ids=sak)
-                mmsg = args.split(" ", 4)[4]
+                i = args.split(" ", 4)[2]
+                if i.isnumeric():
+                    i = int(i)
+                s = args.split(" ", 4)[3]
+                if s.isnumeric():
+                    s = int(s)
+                i = await self.client.get_messages(s, ids=i)
+                s = args.split(" ", 4)[4]
                 if reply:
-                    mmsg = reply
-                await ms.reply(mmsg)
+                    s = reply
+                await i.reply(s)
             elif "reply" in m.message:
                 await m.respond(reply)
             elif "напади" in m.message:
@@ -286,14 +286,14 @@ class KramiikkMod(loader.Module):
                 count = int(args.split(" ", 3)[1])
                 mmsg = args.split(" ", 3)[3]
                 time = int(args.split(" ", 3)[2])
-                for _ in range(count):
+                for i in range(count):
                     await reply.reply(mmsg)
                     await asyncio.sleep(time)
             elif count.isnumeric():
                 count = int(args.split(" ", 3)[1])
                 mmsg = args.split(" ", 3)[3]
                 time = int(args.split(" ", 3)[2])
-                for _ in range(count):
+                for i in range(count):
                     await m.reply(mmsg)
                     await asyncio.sleep(time)
             else:
