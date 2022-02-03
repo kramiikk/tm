@@ -110,7 +110,7 @@ class kramiikkMod(loader.Module):
                     hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                 )
                 if delta < datetime.timedelta(hours=4, minutes=30):
-                    capt = re.search("⚡️(.+) VS (.+)", i.message)
+                    capt = re.search(r"⚡️(.+) VS (.+)", i.message)
                     if klan.group(1) != capt.group(1) and "ничья" not in m.message:
                         itog = (
                             f"{capt.group(1)} {ig} {capt.group(2)} {it}\n<i>{chet}</i>"
@@ -137,17 +137,17 @@ class kramiikkMod(loader.Module):
                 src = f"Chat id: {m.chat_id} {m.sender_id} Клан:"
                 ms = await self.client.get_messages(1655814348, search=src)
                 for i in ms:
-                    klan = re.search("Клан: (.+)", i.message).group(1)
+                    klan = re.search(r"Клан: (.+)", i.message).group(1)
                     if "Усилитель:" in i.message:
-                        liga = re.search("Лига: (.+)", i.message).group(1)
-                        usil = re.search("Усилитель: (.+)", i.message).group(1)
+                        liga = re.search(r"Лига: (.+)", i.message).group(1)
+                        usil = re.search(r"Усилитель: (.+)", i.message).group(1)
                         lif = f"\nЛига: {liga}\nУсилитель: {usil}"
                     else:
                         src = f"Топ 35 кланов {klan}"
                         ms = await self.client.get_messages(1782816965, search=src)
                         for item in ms:
                             liga = re.search(
-                                "Топ 35 кланов (.+) лиге", item.message
+                                r"Топ 35 кланов (.+) лиге", item.message
                             ).group(1)
                             lif = f"\nЛига: {liga}"
                     if ("в деревянной" or "Деревянная") not in liga:
@@ -167,17 +167,17 @@ class kramiikkMod(loader.Module):
                         if delta > datetime.timedelta(hours=4):
                             await self.client.send_message(1767017980, txt)
         elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
-            capt = re.search("клана (.+) нашелся враг (.+), пора", m.text)
+            capt = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
             src = f"Топ 35 кланов {capt.group(1)}"
             ms = await self.client.get_messages(1782816965, search=src)
             if ms.total == 0:
                 src = f"{m.chat_id} {capt.group(1)} Лига:"
                 ms1 = await self.client.get_messages(1655814348, search=src)
                 for i in ms1:
-                    liga = re.search("Лига: (.+)", i.message).group(1)
+                    liga = re.search(r"Лига: (.+)", i.message).group(1)
             else:
                 for i in ms:
-                    liga = re.search("Топ 35 кланов (.+) лиге", i.message).group(1)
+                    liga = re.search(r"Топ 35 кланов (.+) лиге", i.message).group(1)
             if ("в деревянной" or "Деревянная") not in liga:
                 txt = f"⚡️{capt.group(1)} <b>VS</b> {capt.group(2)}\nЛига: {liga}"
                 await self.client.send_message(1767017980, txt)
