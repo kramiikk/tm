@@ -170,7 +170,7 @@ class KramiikkMod(loader.Module):
             if ("в деревянной" or "Деревянная") not in liga:
                 p = f"VS {klan.group(1)}"
                 await self.ter(m, p)
-                if datetime.timedelta(days=0, hours=4) < RESPONSE < datetime.timedelta(days=0, hours=4, minutes=30):
+                if RESPONSE > datetime.timedelta(days=0, hours=4):
                     txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {liga}"
                     await self.client.send_message(1767017980, txt)
         elif "захват топа" in m.message and m.sender_id in bak:
