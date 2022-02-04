@@ -178,6 +178,58 @@ class KramiikkMod(loader.Module):
                 if RESPONSE != datetime.timedelta(days=0, hours=0):
                     txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
                     await self.client.send_message(1767017980, txt)
+                    apt = re.search(
+                        r"клана (.+) нашелся враг (.+), пора .+\n(<.+?(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>)",
+                        m.text,
+                    )
+                    if apt:
+                        id0 = apt.group(12)
+                        ja0 = apt.group(11)
+                        id1 = apt.group(10)
+                        ja1 = apt.group(9)
+                        id2 = apt.group(8)
+                        ja2 = apt.group(7)
+                        id3 = apt.group(6)
+                        ja3 = apt.group(5)
+                        id4 = apt.group(4)
+                        ja4 = apt.group(3)
+                        ek = apt.group(2)
+                        mk = apt.group(1)
+                        war = f"{mk} против клана {ek}"
+                        war += f"\nChat id: {m.chat_id}\n<b>Клан: {mk}</b>\n{ja0} {id0}\n{ja1} {id1}\n{ja2} {id2}\n{ja3} {id3}\n{ja4} {id4}"
+                        m = await self.client.send_message(1655814348, f"⚡️ Клан {war}")
+        elif m.message.lower().startswith(
+                ("мой клан", "@tgtoadbot мой клан")
+        ):
+            async with self.client.conversation(m.chat_id) as conv:
+                response = conv.wait_event(
+                    events.NewMessage(
+                        incoming=True,
+                        from_users=1124824021,
+                        chats=m.chat_id,
+                    )
+                )
+                response = await response
+                if "Опыт" in response.text:
+                    klan = re.search(
+                        "Клан (.+):", response.text).group(1)
+                    liga = re.search(
+                        "Лига: (.+)", response.text).group(1)
+                    usil = re.search(
+                        "Усилитель: (.+)", response.text).group(1)
+                    info = response.text
+                    clj = re.search(
+                        "\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n",
+                        response.text,
+                    )
+                    if clj:
+                        lid = clj.group(1)
+                        ja1 = clj.group(2)
+                        ja2 = clj.group(3)
+                        ja3 = clj.group(4)
+                        ja4 = clj.group(5)
+                        info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nИмя: {m.sender.first_name}\nЛига: {liga}\nУсилитель: {usil}\n\nКлан: {klan}\n(лид): {lid}\n{ja1}\n{ja2}\n{ja3}:\n{ja4}"
+                    return await self.client.send_message(1655814348, info)
         elif "захват топа" in m.message and m.sender_id in bak:
             args = m.message
             p = "⚔️"
@@ -606,3 +658,99 @@ class KramiikkMod(loader.Module):
                         schedule=delta +
                                  datetime.timedelta(hours=2, seconds=13),
                     )
+
+                # if message.message.lower().startswith(
+                #     ("моя жаба", "@tgtoadbot моя жаба")
+                # ):
+                #     async with self.client.conversation(chat) as conv:
+                #         response = conv.wait_event(
+                #             events.NewMessage(
+                #                 incoming=True,
+                #                 from_users=1124824021,
+                #                 chats=message.chat_id,
+                #             )
+                #         )
+                #         response = await response
+                #         if "Имя жабы:" in response.text:
+                #             imy = re.search("Имя жабы: (.+)",
+                #                             response.text).group(1)
+                #             urv = re.search("вашей жабы: (.+)",
+                #                             response.text).group(1)
+                #             cll = re.search(
+                #                 "Класс: (.+)", response.text).group(1)
+                #             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {imy}\nУровень: {urv}\nКласс: {cll}\n{message.sender.first_name}"
+                #             return await self.client.send_message(OPPY, info)
+                # if message.message.lower().startswith(
+                #     ("мое снаряжение", "@tgtoadbot мое снаряжение")
+                # ):
+                #     async with self.client.conversation(chat) as conv:
+                #         response = conv.wait_event(
+                #             events.NewMessage(
+                #                 incoming=True,
+                #                 from_users=1124824021,
+                #                 chats=message.chat_id,
+                #             )
+                #         )
+                #         response = await response
+                #         if "Ваше снаряжение:" in response.text:
+                #             snr = re.search(
+                #                 "(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n\n.+\n.+\n.+\n.+\n\n(.+)\n(.+)\n(.+)",
+                #                 response.text,
+                #             )
+                #             if snr:
+                #                 aa = snr.group(1)
+                #                 a1 = snr.group(2)
+                #                 a2 = snr.group(3)
+                #                 a3 = snr.group(4)
+                #                 a4 = snr.group(5)
+                #                 a5 = snr.group(6)
+                #                 a6 = snr.group(7)
+                #                 a7 = snr.group(8)
+                #                 a8 = snr.group(9)
+                #                 a9 = snr.group(10)
+                #             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
+                #             return await self.client.send_message(OPPY, info)
+                # if message.message.lower().startswith(
+                #     ("напасть на клан", "@tgtoadbot напасть на клан")
+                # ):
+                #     async with self.client.conversation(chat) as conv:
+                #         response = conv.wait_event(
+                #             events.MessageEdited(
+                #                 incoming=True,
+                #                 from_users=1124824021,
+                #                 chats=chat,
+                #             )
+                #         )
+                #         response = await response
+                #         if "1 атака" in response.text:
+                #             jbb = re.search(
+                #                 "а (.+):\n.+: (.+) \n.+\n.+: (\d+)\n\n.+а (.+):\n.+: (.+) \n.+\n.+: (\d+)$",
+                #                 response.text,
+                #             )
+                #             if jbb:
+                #                 jn = jbb.group(1)
+                #                 ur = jbb.group(2)
+                #                 zd = jbb.group(3)
+                #                 jn1 = jbb.group(4)
+                #                 ur1 = jbb.group(5)
+                #                 zd1 = jbb.group(6)
+                #                 x = int(ur)
+                #                 u = int(zd)
+                #                 y = ((x + u) - 160) * 2
+                #                 x1 = int(ur1)
+                #                 u1 = int(zd1)
+                #                 y1 = ((x1 + u1) - 160) * 2
+                #             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {jn}\nУровень: ~{y+1}\n\nЖаба противника: {jn1}\nУровень: ~{y1+1}"
+                #             mf = await self.client.send_message(OPPY, info)
+                #             response1 = await conv.wait_event(
+                #                 events.NewMessage(
+                #                     incoming=True,
+                #                     from_users=1124824021,
+                #                     chats=message.chat_id,
+                #                 )
+                #             )
+                #             if f"Победитель {jn}!!!" in response1.text:
+                #                 info += f"\n\n<b>Победитель {jn}!!!</b>"
+                #             elif f"Победитель {jn1}!!!" in response1.text:
+                #                 info += f"\n\n<b>Победитель {jn1}!!!</b>"
+                #             await mf.edit(info)
