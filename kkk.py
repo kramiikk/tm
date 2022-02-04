@@ -20,6 +20,8 @@ bak = [
     388412512,
 ]
 
+MS = None
+
 RESPONSE = None
 
 
@@ -62,6 +64,22 @@ class KramiikkMod(loader.Module):
             )
             await conv.cancel_all()
 
+    async def ter(self, m, p):
+        """.
+
+        ----------
+
+        """
+        s = await self.client.get_messages(1767017980, search=p)
+        global MS
+        for MS in s:
+            global RESPONSE
+            RESPONSE = datetime.timedelta(
+                hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
+            ) - datetime.timedelta(
+                hours=MS.date.hour, minutes=MS.date.minute, seconds=MS.date.second
+            )
+
     async def watcher(self, m):
         """.
 
@@ -79,16 +97,10 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.message)
             else:
                 klan = re.search(r"клан (.+),", m.message)
-            src = f"VS {klan.group(1)}"
-            ms = await self.client.get_messages(1767017980, search=src)
-            for i in ms:
-                delta = datetime.timedelta(
-                    hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-                ) - datetime.timedelta(
-                    hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
-                )
-            if delta < datetime.timedelta(days=0, hours=4, minutes=30):
-                capt = re.search(r"⚡️(.+) VS (.+)", i.message)
+            p = f"VS {klan.group(1)}"
+            await self.ter(m, p)
+            if datetime.timedelta(days=0, hours=4) < RESPONSE < datetime.timedelta(days=0, hours=4, minutes=30):
+                capt = re.search(r"⚡️(.+) VS (.+)", MS.message)
                 chet = f"{klan.group(2)}:{klan.group(3)}"
                 itog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢"
                 if (klan.group(1) == capt.group(1) and "одержал" in m.message) or (
@@ -106,7 +118,7 @@ class KramiikkMod(loader.Module):
                     itog = "победила любовь🏳️‍🌈"
                     chet = ""
                 itog += f"\n<i>{chet}</i>"
-                await i.reply(itog)
+                await MS.reply(itog)
                 result = re.findall(r"•(<.+?(\d+).+>)", m.text)
                 rep = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
                 for n in result:
@@ -139,26 +151,16 @@ class KramiikkMod(loader.Module):
                             lif = f"\nЛига: {liga}"
                     if ("в деревянной" or "Деревянная") not in liga:
                         txt = f"В поиске {klan}{lif}"
-                        src = f"VS {klan}"
-                        ms = await self.client.get_messages(1767017980, search=src)
-                        for s in ms:
-                            delta = datetime.timedelta(
-                                hours=m.date.hour,
-                                minutes=m.date.minute,
-                                seconds=m.date.second,
-                            ) - datetime.timedelta(
-                                hours=s.date.hour,
-                                minutes=s.date.minute,
-                                seconds=s.date.second,
-                            )
-                        if delta > datetime.timedelta(days=0, hours=4):
+                        p = f"VS {klan}"
+                        await self.ter(m, p)
+                        if RESPONSE > datetime.timedelta(days=0, hours=4):
                             await self.client.send_message(1767017980, txt)
         elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
-            capt = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
-            src = f"Топ 35 кланов {capt.group(1)}"
+            klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
+            src = f"Топ 35 кланов {klan.group(1)}"
             ms = await self.client.get_messages(1782816965, search=src)
             if ms.total == 0:
-                src = f"{m.chat_id} {capt.group(1)} Лига:"
+                src = f"{m.chat_id} {klan.group(1)} Лига:"
                 ms1 = await self.client.get_messages(1655814348, search=src)
                 for i in ms1:
                     liga = re.search(r"Лига: (.+)", i.message).group(1)
@@ -166,8 +168,11 @@ class KramiikkMod(loader.Module):
                 for i in ms:
                     liga = re.search(r"Топ 35 кланов (.+) лиге", i.message).group(1)
             if ("в деревянной" or "Деревянная") not in liga:
-                txt = f"⚡️{capt.group(1)} <b>VS</b> {capt.group(2)}\nЛига: {liga}"
-                await self.client.send_message(1767017980, txt)
+                p = f"VS {klan.group(1)}"
+                await self.ter(m, p)
+                if datetime.timedelta(days=0, hours=4) < RESPONSE < datetime.timedelta(days=0, hours=4, minutes=30):
+                    txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {liga}"
+                    await self.client.send_message(1767017980, txt)
         elif "захват топа" in m.message and m.sender_id in bak:
             args = m.message
             reply = await m.get_reply_message()
