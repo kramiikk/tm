@@ -153,7 +153,7 @@ class KramiikkMod(loader.Module):
                         txt = f"В поиске {klan}{lif}"
                         p = f"VS {klan}"
                         await self.ter(m, p)
-                        if RESPONSE > datetime.timedelta(days=0, hours=4):
+                        if RESPONSE != datetime.timedelta(days=0, hours=0):
                             await self.client.send_message(1767017980, txt)
         elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
             klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
@@ -170,7 +170,7 @@ class KramiikkMod(loader.Module):
             if ("в деревянной" or "Деревянная") not in liga:
                 p = f"VS {klan.group(1)}"
                 await self.ter(m, p)
-                if RESPONSE > datetime.timedelta(days=0, hours=4):
+                if RESPONSE != datetime.timedelta(days=0, hours=0):
                     txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {liga}"
                     await self.client.send_message(1767017980, txt)
         elif "захват топа" in m.message and m.sender_id in bak:
