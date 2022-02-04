@@ -60,7 +60,8 @@ class KramiikkMod(loader.Module):
             await s
             global RESPONSE
             RESPONSE = await conv.wait_event(
-                events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
+                events.NewMessage(from_users=1124824021,
+                                  chats=m.chat_id, pattern=p)
             )
             await conv.cancel_all()
 
@@ -92,9 +93,11 @@ class KramiikkMod(loader.Module):
             1261343954,
         }:
             if "одержал" in m.message:
-                klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.message)
+                klan = re.search(
+                    r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.message)
             elif "слабее" in m.message:
-                klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.message)
+                klan = re.search(
+                    r", (.+) в этот[\s\S]* (\d+):(\d+)", m.message)
             else:
                 klan = re.search(r"клан (.+),", m.message)
             p = f"VS {klan.group(1)}"
@@ -139,7 +142,8 @@ class KramiikkMod(loader.Module):
                     klan = re.search(r"Клан: (.+)", i.message).group(1)
                     if "Усилитель:" in i.message:
                         liga = re.search(r"Лига: (.+)", i.message).group(1)
-                        usil = re.search(r"Усилитель: (.+)", i.message).group(1)
+                        usil = re.search(r"Усилитель: (.+)",
+                                         i.message).group(1)
                         lif = f"\nЛига: {liga}\nУсилитель: {usil}"
                     else:
                         src = f"Топ 35 кланов {klan}"
@@ -166,7 +170,8 @@ class KramiikkMod(loader.Module):
                     liga = re.search(r"Лига: (.+)", i.message).group(1)
             else:
                 for i in ms:
-                    liga = re.search(r"Топ 35 кланов (.+) лиге", i.message).group(1)
+                    liga = re.search(
+                        r"Топ 35 кланов (.+) лиге", i.message).group(1)
             if ("в деревянной" or "Деревянная") not in liga:
                 p = f"VS {klan.group(1)}"
                 await self.ter(m, p)
@@ -241,7 +246,8 @@ class KramiikkMod(loader.Module):
                 await m.respond(reply)
             elif "напади" in m.message:
                 p = None
-                s = self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
+                s = self.client.send_message(
+                    m.chat_id, "<b>напасть на клан</b>")
                 await self.err(m, p, s)
                 if "Ваша жаба на" in RESPONSE.text:
                     await m.respond("завершить работу")
@@ -268,7 +274,8 @@ class KramiikkMod(loader.Module):
                     await m.respond("<b>рейд инфо</b>")
             elif "снаряжение" in m.message:
                 p = "Ваше"
-                s = self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
+                s = self.client.send_message(
+                    m.chat_id, "<b>мое снаряжение</b>")
                 await self.err(m, p, s)
                 if "Ближний бой: Пусто" in RESPONSE.text:
                     await m.respond("скрафтить клюв цапли")
@@ -284,7 +291,8 @@ class KramiikkMod(loader.Module):
                     await m.respond("мой инвентарь")
             elif m.message.lower().startswith("лвл чек"):
                 s = (
-                    (int(m.message.split(" ", 3)[2]) + int(m.message.split(" ", 3)[3]))
+                    (int(m.message.split(" ", 3)[2]) +
+                     int(m.message.split(" ", 3)[3]))
                     - 160
                 ) * 2
                 if s > -1:
@@ -318,7 +326,8 @@ class KramiikkMod(loader.Module):
             p = "Баланс"
             s = self.client.send_message(m.chat_id, "<b>мой баланс</b>")
             await self.err(m, p, s)
-            bug = int(re.search(r"жабы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1))
+            bug = int(re.search(r"жабы: (\d+)",
+                      RESPONSE.text, re.IGNORECASE).group(1))
             if bug < 100:
                 await m.reply("осталось для похода")
             else:
@@ -333,10 +342,12 @@ class KramiikkMod(loader.Module):
             s = self.client.send_message(m.chat_id, "<b>мой инветарь</b>")
             await asyncio.sleep(random.randint(1, 13))
             cnd = int(
-                re.search(r"Леденцы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1)
+                re.search(r"Леденцы: (\d+)", RESPONSE.text,
+                          re.IGNORECASE).group(1)
             )
             apt = int(
-                re.search(r"Аптечки: (\d+)", RESPONSE.text, re.IGNORECASE).group(1)
+                re.search(r"Аптечки: (\d+)", RESPONSE.text,
+                          re.IGNORECASE).group(1)
             )
             if cnd > 0:
                 if cnd > 49:
@@ -375,7 +386,8 @@ class KramiikkMod(loader.Module):
                     hours=args[1], minutes=args[2], seconds=args[3] + 13
                 )
             elif len(args) == 3:
-                delta = datetime.timedelta(minutes=args[1], seconds=args[2] + 13)
+                delta = datetime.timedelta(
+                    minutes=args[1], seconds=args[2] + 13)
             elif len(args) == 2:
                 delta = datetime.timedelta(seconds=args[1] + 13)
             for i in range(3):
@@ -398,7 +410,8 @@ class KramiikkMod(loader.Module):
             p = "🐸"
             s = self.client.send_message(m.chat_id, "<b>моя жаба</b>")
             await self.err(m, p, s)
-            jaba = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.text)
+            jaba = re.search(
+                r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.text)
             if int(jaba.group(1)) > 50 and int(jaba.group(2)) > 2700:
                 p = "🍭"
                 s = self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
@@ -467,7 +480,8 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id,
                             "завершить работу",
-                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta +
+                            datetime.timedelta(hours=2, seconds=13),
                         )
                 elif "Забрать жабу можно" in RESPONSE.text:
                     dng_s = re.search(
@@ -486,12 +500,14 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(
                         m.chat_id,
                         "реанимировать жабку",
-                        schedule=delta + datetime.timedelta(minutes=25, seconds=3),
+                        schedule=delta +
+                        datetime.timedelta(minutes=25, seconds=3),
                     )
                     await self.client.send_message(
                         m.chat_id,
                         "Отправиться в золотое подземелье",
-                        schedule=delta + datetime.timedelta(minutes=45, seconds=13),
+                        schedule=delta +
+                        datetime.timedelta(minutes=45, seconds=13),
                     )
             else:
                 p = "🍭"
@@ -549,7 +565,8 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id,
                             "завершить работу",
-                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta +
+                            datetime.timedelta(hours=2, seconds=13),
                         )
                 if "жабу можно через" in RESPONSE.text:
                     time = re.search(
@@ -586,5 +603,6 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(
                         m.chat_id,
                         "завершить работу",
-                        schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                        schedule=delta +
+                        datetime.timedelta(hours=2, seconds=13),
                     )
