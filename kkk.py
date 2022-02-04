@@ -9,6 +9,9 @@ from telethon import events, functions
 from .. import loader
 
 logger = logging.getLogger(__name__)
+
+MS = None
+RESPONSE = datetime.timedelta(hours=4, minutes=30)
 bak = [
     1785723159,
     1261343954,
@@ -19,11 +22,6 @@ bak = [
     449434040,
     388412512,
 ]
-
-MS = None
-
-RESPONSE = None
-
 
 @loader.tds
 class KramiikkMod(loader.Module):
@@ -139,22 +137,23 @@ class KramiikkMod(loader.Module):
                 src = f"Chat id: {m.chat_id} {m.sender_id} Клан:"
                 ms = await self.client.get_messages(1655814348, search=src)
                 for i in ms:
+                    liga = None
                     klan = re.search(r"Клан: (.+)", i.message).group(1)
                     if "Усилитель:" in i.message:
                         liga = re.search(r"Лига: (.+)", i.message).group(1)
                         usil = re.search(r"Усилитель: (.+)",
                                          i.message).group(1)
-                        lif = f"\nЛига: {liga}\nУсилитель: {usil}"
+                        liga += f"\nУсилитель: {usil}"
                     else:
                         src = f"Топ 35 кланов {klan}"
                         ms = await self.client.get_messages(1782816965, search=src)
-                        for i in ms:
+                        for s in ms:
                             liga = re.search(
-                                r"Топ 35 кланов (.+) лиге", i.message
+                                r"Топ 35 кланов (.+) лиге", s.message
                             ).group(1)
-                            lif = f"\nЛига: {liga}"
+                    liga += f"\nЛига: {liga}"
                     if ("в деревянной" or "Деревянная") not in liga:
-                        txt = f"В поиске {klan}{lif}"
+                        txt = f"В поиске {klan}{liga}"
                         p = f"VS {klan}"
                         await self.ter(m, p)
                         if RESPONSE != datetime.timedelta(days=0, hours=0):
@@ -165,22 +164,21 @@ class KramiikkMod(loader.Module):
             ms = await self.client.get_messages(1782816965, search=src)
             if ms.total == 0:
                 src = f"{m.chat_id} {klan.group(1)} Лига:"
-                ms1 = await self.client.get_messages(1655814348, search=src)
-                for i in ms1:
-                    liga = re.search(r"Лига: (.+)", i.message).group(1)
+                ms = await self.client.get_messages(1655814348, search=src)
+                for i in ms:
+                    ms = re.search(r"Лига: (.+)", i.message).group(1)
             else:
                 for i in ms:
-                    liga = re.search(
+                    ms = re.search(
                         r"Топ 35 кланов (.+) лиге", i.message).group(1)
-            if ("в деревянной" or "Деревянная") not in liga:
+            if ("в деревянной" or "Деревянная") not in ms:
                 p = f"VS {klan.group(1)}"
                 await self.ter(m, p)
                 if RESPONSE != datetime.timedelta(days=0, hours=0):
-                    txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {liga}"
+                    txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
                     await self.client.send_message(1767017980, txt)
         elif "захват топа" in m.message and m.sender_id in bak:
             args = m.message
-            reply = await m.get_reply_message()
             p = "⚔️"
             s = self.client.send_message(
                 m.chat_id, "сезон кланов " + args.split(" ", 2)[2]
@@ -339,8 +337,8 @@ class KramiikkMod(loader.Module):
         elif m.message.lower().startswith("инвентарь мне😊") and m.sender_id in bak:
             await asyncio.sleep(random.randint(1, 13))
             p = "Ваш"
-            s = self.client.send_message(m.chat_id, "<b>мой инветарь</b>")
-            await asyncio.sleep(random.randint(1, 13))
+            s = self.client.send_message(m.chat_id, "<b>мой инвентарь</b>")
+            await self.err(m, p, s)
             cnd = int(
                 re.search(r"Леденцы: (\d+)", RESPONSE.text,
                           re.IGNORECASE).group(1)
@@ -381,6 +379,7 @@ class KramiikkMod(loader.Module):
             await m.click(0)
         elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
             args = [int(x) for x in m.text.split() if x.isnumeric()]
+            delta = datetime.timedelta(hours=4)
             if len(args) == 4:
                 delta = datetime.timedelta(
                     hours=args[1], minutes=args[2], seconds=args[3] + 13
@@ -606,4 +605,3 @@ class KramiikkMod(loader.Module):
                         schedule=delta +
                         datetime.timedelta(hours=2, seconds=13),
                     )
-
