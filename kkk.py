@@ -606,3 +606,4 @@ class KramiikkMod(loader.Module):
                         schedule=delta +
                         datetime.timedelta(hours=2, seconds=13),
                     )
+
