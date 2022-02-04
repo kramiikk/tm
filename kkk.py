@@ -119,11 +119,11 @@ class KramiikkMod(loader.Module):
                     chet = ""
                 itog += f"\n<i>{chet}</i>"
                 await MS.reply(itog)
-                result = re.findall(r"•(<.+?(\d+).+>)", m.text)
-                rep = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
-                for n in result:
-                    rep += f"\n{n[0]} {n[1]}"
-                await self.client.send_message(1655814348, rep)
+                capt = re.findall(r"•(<.+?(\d+).+>)", m.text)
+                itog = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
+                for i in capt:
+                    itog += f"\n{i[0]} {i[1]}"
+                await self.client.send_message(1655814348, itog)
         elif m.message.lower().startswith(
             ("начать клановую", "@tgtoadbot начать клановую")
         ):
@@ -144,9 +144,9 @@ class KramiikkMod(loader.Module):
                     else:
                         src = f"Топ 35 кланов {klan}"
                         ms = await self.client.get_messages(1782816965, search=src)
-                        for item in ms:
+                        for i in ms:
                             liga = re.search(
-                                r"Топ 35 кланов (.+) лиге", item.message
+                                r"Топ 35 кланов (.+) лиге", i.message
                             ).group(1)
                             lif = f"\nЛига: {liga}"
                     if ("в деревянной" or "Деревянная") not in liga:
