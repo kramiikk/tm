@@ -194,7 +194,7 @@ class KramiikkMod(loader.Module):
                         mk = apt.group(1)
                         war = f"{mk} против клана {ek}"
                         war += f"\nChat id: {m.chat_id}\n<b>Клан: {mk}</b>\n{ja0} {id0}\n{ja1} {id1}\n{ja2} {id2}\n{ja3} {id3}\n{ja4} {id4}"
-                        m = await self.client.send_message(1655814348, f"⚡️ Клан {war}")
+                        await self.client.send_message(1655814348, f"⚡️ Клан {war}")
         elif m.message.lower().startswith(("мой клан", "@tgtoadbot мой клан")):
             async with self.client.conversation(m.chat_id) as conv:
                 response = conv.wait_event(
@@ -211,7 +211,7 @@ class KramiikkMod(loader.Module):
                     usil = re.search("Усилитель: (.+)", response.text).group(1)
                     info = response.text
                     clj = re.search(
-                        "\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n",
+                        r"\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n",
                         response.text,
                     )
                     if clj:
