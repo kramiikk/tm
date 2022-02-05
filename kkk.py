@@ -154,7 +154,7 @@ class KramiikkMod(loader.Module):
                                 r"Топ 35 кланов (.+) лиге", s.message
                             ).group(1)
                     if ("в деревянной" or "Деревянная") not in liga:
-                        txt = f"В поиске {klan}\n{liga}"
+                        txt = f"В поиске {klan}\nЛига: {liga}"
                         p = f"VS {klan}"
                         await self.ter(m, p)
                         if RESPONSE != datetime.timedelta(days=0, hours=0):
