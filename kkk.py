@@ -147,11 +147,13 @@ class KramiikkMod(loader.Module):
                     else:
                         src = f"Топ 35 кланов {klan}"
                         ms = await self.client.get_messages(1782816965, search=src)
+                        if ms.total == 0:
+                            return
                         for s in ms:
                             liga = re.search(
                                 r"Топ 35 кланов (.+) лиге", s.message
                             ).group(1)
-                    if ("в деревянной" or "Деревянная") not in liga or ms.total != 0:
+                    if ("в деревянной" or "Деревянная") not in liga:
                         txt = f"В поиске {klan}{liga}"
                         p = f"VS {klan}"
                         await self.ter(m, p)
