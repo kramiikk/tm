@@ -151,7 +151,7 @@ class KramiikkMod(loader.Module):
                             liga = re.search(
                                 r"Топ 35 кланов (.+) лиге", s.message
                             ).group(1)
-                    if ("в деревянной" or "Деревянная") not in liga and ms.total != 0:
+                    if ("в деревянной" or "Деревянная") not in liga or ms.total != 0:
                         txt = f"В поиске {klan}{liga}"
                         p = f"VS {klan}"
                         await self.ter(m, p)
