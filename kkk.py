@@ -183,7 +183,7 @@ class KramiikkMod(loader.Module):
                     capt = re.findall(r"<.+?id=(\d+)\">", m.text)
                     itog = f"Chat id: {m.chat_id}\nКлан: {klan.group(1)}\n\nСостав:"
                     for i in capt:
-                        itog += f"\n{i[1]}"
+                        itog += f"\n{i}"
                     await self.client.send_message(1655814348, itog)
         elif m.message.lower().startswith(("мой клан", "@tgtoadbot мой клан")):
             async with self.client.conversation(m.chat_id) as conv:
