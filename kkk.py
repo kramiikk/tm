@@ -141,62 +141,50 @@ class KramiikkMod(loader.Module):
                 for i in ms:
                     liga = None
                     klan = re.search(r"Клан: (.+)", i.message).group(1)
+                p = f"VS {klan}"
+                await self.ter(m, p)
+                if RESPONSE != datetime.timedelta(days=0, hours=0):
                     if "Усилитель:" in i.message:
-                        ms = re.search(r"Лига: (.+)\nУсилитель: (.+)", i.message)
+                        p = re.search(r"Лига: (.+)\nУсилитель: (.+)", i.message)
                         liga = f"Лига: {liga.group(1)}\nУсилитель: {liga.group(2)}"
                     else:
                         src = f"Топ 35 кланов {klan}"
-                        ms = await self.client.get_messages(1782816965, search=src)
-                        if ms.total == 0:
+                        p = await self.client.get_messages(1782816965, search=src)
+                        if p.total != 0:
                             return
-                        for s in ms:
+                        for s in p:
                             liga = re.search(
                                 r"Топ 35 кланов (.+) лиге", s.message
                             ).group(1)
-                    if ("в деревянной" or "Деревянная") not in liga:
+                    if ("в деревянной" or "Деревянная") in liga:
                         txt = f"В поиске {klan}\nЛига: {liga}"
-                        p = f"VS {klan}"
-                        await self.ter(m, p)
-                        if RESPONSE != datetime.timedelta(days=0, hours=0):
-                            await self.client.send_message(1767017980, txt)
+                        await self.client.send_message(1767017980, txt)
         elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
             klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
-            src = f"Топ 35 кланов {klan.group(1)}"
-            ms = await self.client.get_messages(1782816965, search=src)
-            if ms.total == 0:
-                src = f"{m.chat_id} {klan.group(1)} Лига:"
-                ms = await self.client.get_messages(1655814348, search=src)
-                for i in ms:
-                    ms = re.search(r"Лига: (.+)", i.message).group(1)
-            else:
-                for i in ms:
-                    ms = re.search(r"Топ 35 кланов (.+) лиге", i.message).group(1)
-            if ("в деревянной" or "Деревянная") not in ms:
-                p = f"VS {klan.group(1)}"
-                await self.ter(m, p)
-                if RESPONSE != datetime.timedelta(days=0, hours=0):
+            p = f"VS {klan.group(1)}"
+            await self.ter(m, p)
+            if RESPONSE != datetime.timedelta(days=0, hours=0):
+                src = f"Топ 35 кланов {klan.group(1)}"
+                ms = await self.client.get_messages(1782816965, search=src)
+                if ms.total == 0:
+                    src = f"{m.chat_id} {klan.group(1)} Лига:"
+                    p = await self.client.get_messages(1655814348, search=src)
+                    if p.total != 0:
+                        return
+                    for i in p:
+                        p = re.search(r"Лига: (.+)", i.message).group(1)
+                else:
+                    for i in p:
+                        p = re.search(r"Топ 35 кланов (.+) лиге", i.message).group(1)
+                        
+                if ("в деревянной" or "Деревянная") not in ms:
                     txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
                     await self.client.send_message(1767017980, txt)
-                    apt = re.search(
-                        r"клана (.+) нашелся враг (.+), пора .+\n(<.+?(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>), (<.+=(\d+).+>)",
-                        m.text,
-                    )
-                    if apt:
-                        id0 = apt.group(12)
-                        ja0 = apt.group(11)
-                        id1 = apt.group(10)
-                        ja1 = apt.group(9)
-                        id2 = apt.group(8)
-                        ja2 = apt.group(7)
-                        id3 = apt.group(6)
-                        ja3 = apt.group(5)
-                        id4 = apt.group(4)
-                        ja4 = apt.group(3)
-                        ek = apt.group(2)
-                        mk = apt.group(1)
-                        war = f"{mk} против клана {ek}"
-                        war += f"\nChat id: {m.chat_id}\n<b>Клан: {mk}</b>\n{ja0} {id0}\n{ja1} {id1}\n{ja2} {id2}\n{ja3} {id3}\n{ja4} {id4}"
-                        await self.client.send_message(1655814348, f"⚡️ Клан {war}")
+                    capt = re.findall(r"<.+?id=(\d+)\">", m.text)
+                    itog = f"Chat id: {m.chat_id}\nКлан: {klan.group(1)}\n\nСостав:"
+                    for i in capt:
+                        itog += f"\n{i[1]}"
+                    await self.client.send_message(1655814348, itog)
         elif m.message.lower().startswith(("мой клан", "@tgtoadbot мой клан")):
             async with self.client.conversation(m.chat_id) as conv:
                 response = conv.wait_event(

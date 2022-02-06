@@ -76,18 +76,14 @@ class KramiikkMod(loader.Module):
                 name = "лавин"
             elif self.me.id in {1785723159}:
                 name = "крамик"
-                elj = {-1001441941681}
             elif self.me.id in {547639600}:
                 name = "нельс"
-                elj = {-1001441941681}
             elif self.me.id in {980699009}:
                 name = "лена"
-                elj = {-1001441941681}
             elif self.me.id in {1423368454}:
                 name = "len"
             elif self.me.id in {230473666}:
                 name = "ваня"
-                elj = {-1001441941681}
             elif self.me.id in {887255479}:
                 name = "кира"
             else:
