@@ -168,14 +168,14 @@ class KramiikkMod(loader.Module):
                 ms = await self.client.get_messages(1782816965, search=src)
                 if ms.total == 0:
                     src = f"{m.chat_id} {klan.group(1)} Лига:"
-                    p = await self.client.get_messages(1655814348, search=src)
-                    if p.total != 0:
+                    ms = await self.client.get_messages(1655814348, search=src)
+                    if ms.total != 0:
                         return
-                    for i in p:
-                        p = re.search(r"Лига: (.+)", i.message).group(1)
+                    for i in ms:
+                        ms = re.search(r"Лига: (.+)", i.message).group(1)
                 else:
-                    for i in p:
-                        p = re.search(r"Топ 35 кланов (.+) лиге", i.message).group(1)
+                    for i in ms:
+                        ms = re.search(r"Топ 35 кланов (.+) лиге", i.message).group(1)
                         
                 if ("в деревянной" or "Деревянная") not in ms:
                     txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
