@@ -146,7 +146,7 @@ class KramiikkMod(loader.Module):
                 if RESPONSE != datetime.timedelta(days=0, hours=0):
                     if "Усилитель:" in i.message:
                         p = re.search(r"Лига: (.+)\nУсилитель: (.+)", i.message)
-                        liga = f"Лига: {p.group(1)}\nУсилитель: {p.group(2)}"
+                        liga = f"{p.group(1)}\nУсилитель: {p.group(2)}"
                     else:
                         src = f"Топ 35 кланов {klan}"
                         p = await self.client.get_messages(1782816965, search=src)
