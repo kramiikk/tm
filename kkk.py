@@ -156,7 +156,7 @@ class KramiikkMod(loader.Module):
                             liga = re.search(
                                 r"Топ 35 кланов (.+) лиге", s.message
                             ).group(1)
-                    if ("в деревянной" or "Деревянная") in liga:
+                    if ("в деревянной" or "Деревянная") not in liga:
                         txt = f"В поиске {klan}\nЛига: {liga}"
                         await self.client.send_message(1767017980, txt)
         elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
