@@ -119,7 +119,7 @@ class KramiikkMod(loader.Module):
                     itog = f"{capt.group(1)} 😢 {capt.group(2)} 🥳"
                 else:
                     itog = "победила любовь🏳️‍🌈"
-                    chet = ""
+                    chet = "🫂"
                 itog += f"\n<i>{chet}</i>"
                 await MS.reply(itog)
                 capt = re.findall(r"•(<.+?(\d+).+>)", m.text)
