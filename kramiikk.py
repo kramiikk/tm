@@ -92,7 +92,6 @@ class KramiikkMod(loader.Module):
                 m.message.lower().startswith((name, f"@{self.me.username}"))
                 or (name in m.message and m.message.endswith("😉"))
             ) and m.sender_id in bak:
-                await asyncio.sleep(random.randint(1, 13))
                 args = m.message
                 reply = await m.get_reply_message()
                 count = args.split(" ", 2)[1]
