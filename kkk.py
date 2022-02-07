@@ -432,7 +432,7 @@ class KramiikkMod(loader.Module):
             await self.err(m, p, s)
             jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.raw_text)
             if int(jab.group(1)) > 50 and int(jab.group(2)) > 2700:
-                p = "🍭"
+                p = "🏃‍♂️"
                 s = self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                 await self.err(m, p, s)
                 if "(Откормить через" in RESPONSE.text:
