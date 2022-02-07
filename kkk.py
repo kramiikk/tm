@@ -162,10 +162,10 @@ class KramiikkMod(loader.Module):
             ms = await self.client.get_messages(1782816965, search=src)
             if ms.total == 0:
                 src = f"{m.chat_id} {klan.group(1)} Лига:"
-                ms = await self.client.get_messages(1655814348, search=src)
-                if ms.total != 0:
+                p = await self.client.get_messages(1655814348, search=src)
+                if p.total == 0:
                     return
-                for i in ms:
+                for i in p:
                     ms = re.search(r"Лига: (.+)", i.message).group(1)
             else:
                 for i in ms:
