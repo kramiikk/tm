@@ -270,7 +270,7 @@ class KramiikkMod(loader.Module):
                 s = self.client.send_message(m.chat_id, "<b>моя жаба</b>")
                 await self.err(m, p, s)
                 jaba = re.search(
-                    r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.text
+                    r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.message
                 )
                 if int(jaba.group(1)) > 50 and int(jaba.group(2)) > 2700:
                     p = "🍭"
