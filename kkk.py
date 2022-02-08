@@ -96,23 +96,23 @@ class KramiikkMod(loader.Module):
                 p = f"VS {klan.group(1)}"
                 await self.ter(m, p)
                 if (
-                        datetime.timedelta(days=0, hours=4)
-                        < RESPONSE
-                        < datetime.timedelta(days=0, hours=4, minutes=30)
+                    datetime.timedelta(days=0, hours=4)
+                    < RESPONSE
+                    < datetime.timedelta(days=0, hours=4, minutes=30)
                 ):
                     capt = re.search(r"⚡️(.+) VS (.+)", MS.text)
                     chet = f"{klan.group(2)}:{klan.group(3)}"
                     tog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢"
-                    if 'Эй, клан' in m.text:
+                    if "Эй, клан" in m.text:
                         tog = "победила любовь🏳️‍🌈"
                         chet = "🫂"
-                    elif (klan.group(1) == capt.group(1) and 'одержал' in m.text) or (
-                            klan.group(1) != capt.group(1) and "слабее" in m.text
+                    elif (klan.group(1) == capt.group(1) and "одержал" in m.text) or (
+                        klan.group(1) != capt.group(1) and "слабее" in m.text
                     ):
                         if int(klan.group(2)) < int(klan.group(3)):
                             chet = "".join(reversed(chet))
                     elif (klan.group(1) == capt.group(1) and "слабее" in m.text) or (
-                            klan.group(1) != capt.group(1) and "одержал" in m.text
+                        klan.group(1) != capt.group(1) and "одержал" in m.text
                     ):
                         if int(klan.group(2)) > int(klan.group(3)):
                             chet = "".join(reversed(chet))
@@ -125,20 +125,22 @@ class KramiikkMod(loader.Module):
                         tog += f"\n{i[0]} {i[1]}"
                     await self.client.send_message(1655814348, tog)
             elif m.message.lower().startswith(
-                    ("начать клановую", "@tgtoadbot начать клановую")
+                ("начать клановую", "@tgtoadbot начать клановую")
             ):
                 p = None
                 s = self.client.send_message(1655814348, m.message)
                 await self.err(m, p, s)
                 if not RESPONSE.text.startswith(
-                        ("Алло", "Ваш клан", "Для старта", "Чувак")
+                    ("Алло", "Ваш клан", "Для старта", "Чувак")
                 ):
                     src = f"Chat id: {m.chat_id} {m.sender_id} Клан:"
                     lira = None
                     ms = await self.client.get_messages(1655814348, search=src)
                     for i in ms:
                         if "Усилитель:" in i.message:
-                            klan = re.search(r"Лига: (.+)\nУсилитель: (.+)\n\nКлан: (.+)", i.text)
+                            klan = re.search(
+                                r"Лига: (.+)\nУсилитель: (.+)\n\nКлан: (.+)", i.text
+                            )
                             lira = f"{klan.group(3)}\nЛига: {klan.group(1)}\nУсилитель: {klan.group(2)}"
                             p = f"VS {klan.group(3)}"
                         else:
@@ -152,7 +154,9 @@ class KramiikkMod(loader.Module):
                                 lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
                             p = f"VS {klan.group(1)}"
                     await self.ter(m, p)
-                    if (RESPONSE != datetime.timedelta(days=0, hours=0)) and (("в деревянной" or "Деревянная") not in lira):
+                    if (RESPONSE != datetime.timedelta(days=0, hours=0)) and (
+                        ("в деревянной" or "Деревянная") not in lira
+                    ):
                         txt = f"В поиске {lira}"
                         await self.client.send_message(1767017980, txt)
             elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
@@ -165,10 +169,10 @@ class KramiikkMod(loader.Module):
                     if p.total == 0:
                         return
                     for i in p:
-                        ms = re.search(r"Лига: (.+)", i.message).group(1)
+                        ms = re.search(r"Лига: (.+)", i.text).group(1)
                 else:
                     for i in ms:
-                        ms = re.search(r"Топ 35 кланов (.+) лиге", i.message).group(1)
+                        ms = re.search(r"Топ 35 кланов (.+) лиге", i.text).group(1)
                 if ("в деревянной" or "Деревянная") not in ms:
                     txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
                     await self.client.send_message(1767017980, txt)
@@ -205,7 +209,7 @@ class KramiikkMod(loader.Module):
                             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nИмя: {m.sender.first_name}\nЛига: {lira}\nУсилитель: {usil}\n\nКлан: {klan}\n(лид): {lid}\n{ja1}\n{ja2}\n{ja3}:\n{ja4}"
                         return await self.client.send_message(1655814348, info)
             elif "захват топа" in m.message and m.sender_id in bak:
-                args = m.message
+                args = m.text
                 p = "⚔️"
                 s = self.client.send_message(
                     m.chat_id, "сезон кланов " + args.split(" ", 2)[2]
@@ -223,14 +227,14 @@ class KramiikkMod(loader.Module):
                     rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {s}"
                 await RESPONSE.reply(rep)
             elif (
-                    m.message.lower().startswith((name, f"@{self.me.username}"))
-                    or (name in m.message and m.message.endswith("😉"))
+                m.message.lower().startswith((name, f"@{self.me.username}"))
+                or (name in m.message and m.message.endswith("😉"))
             ) and m.sender_id in bak:
-                args = m.message
+                args = m.text
                 reply = await m.get_reply_message()
                 count = args.split(" ", 2)[1]
-                if m.message.endswith("?"):
-                    words = re.findall(r"\w+", f"{m.message}")
+                if m.raw_text.endswith("?"):
+                    words = re.findall(r"\w+", f"{m.text}")
                     words_len = [words.__len__()] + [x.__len__() for x in words]
                     i = words_len.__len__()
                     while i > 1:
@@ -313,9 +317,9 @@ class KramiikkMod(loader.Module):
                         await m.respond("мой инвентарь")
                 elif m.message.lower().startswith("лвл чек"):
                     s = (
-                                (int(m.message.split(" ", 3)[2]) + int(m.message.split(" ", 3)[3]))
-                                - 160
-                        ) * 2
+                        (int(m.text.split(" ", 3)[2]) + int(m.text.split(" ", 3)[3]))
+                        - 160
+                    ) * 2
                     if s > -1:
                         await m.reply(f"<b>~ {s} лвл</b>")
                 elif "туса" in m.message:
@@ -347,7 +351,9 @@ class KramiikkMod(loader.Module):
                 p = "Баланс"
                 s = self.client.send_message(m.chat_id, "<b>мой баланс</b>")
                 await self.err(m, p, s)
-                bug = int(re.search(r"жабы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1))
+                bug = int(
+                    re.search(r"жабы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1)
+                )
                 if bug < 100:
                     await m.reply("осталось для похода")
                 else:
@@ -386,15 +392,17 @@ class KramiikkMod(loader.Module):
                         hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
                     )
                     if "VS" in i.message and datetime.timedelta(
-                            days=0
+                        days=0
                     ) <= delta < datetime.timedelta(hours=4, minutes=3):
                         s += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
                 await m.edit(s)
-            elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
+            elif (
+                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+            ):
                 await m.respond("реанимировать жабу")
                 await m.click(0)
             elif (
-                    "[8🐝]" or "[4🐝]" or "[2☢️🐝, 2🔴🐝," or "Бзззз! С пасеки"
+                "[8🐝]" or "[4🐝]" or "[2☢️🐝, 2🔴🐝," or "Бзззз! С пасеки"
             ) in m.message and m.buttons:
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
@@ -412,8 +420,8 @@ class KramiikkMod(loader.Module):
                     delta = delta + datetime.timedelta(seconds=13)
                     await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
             elif (
-                    m.message.lower().startswith(("доброе утро", "спокойной ночи"))
-                    and m.sender_id in bak
+                m.message.lower().startswith(("доброе утро", "спокойной ночи"))
+                and m.sender_id in bak
             ):
                 sch = (
                     await self.client(
@@ -428,7 +436,9 @@ class KramiikkMod(loader.Module):
                 p = "🐸"
                 s = self.client.send_message(m.chat_id, "<b>моя жаба</b>")
                 await self.err(m, p, s)
-                jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.raw_text)
+                jab = re.search(
+                    r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.raw_text
+                )
                 if int(jab.group(1)) > 50 and int(jab.group(2)) > 2700:
                     p = "🏃‍♂️"
                     s = self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
@@ -497,7 +507,8 @@ class KramiikkMod(loader.Module):
                             await self.client.send_message(
                                 m.chat_id,
                                 "завершить работу",
-                                schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                                schedule=delta
+                                + datetime.timedelta(hours=2, seconds=13),
                             )
                     elif "Забрать жабу можно" in RESPONSE.text:
                         dng_s = re.search(
@@ -556,7 +567,9 @@ class KramiikkMod(loader.Module):
                             re.IGNORECASE,
                         )
                         delta = datetime.timedelta(
-                            hours=int(time.group(1)), minutes=int(time.group(2)), seconds=3
+                            hours=int(time.group(1)),
+                            minutes=int(time.group(2)),
+                            seconds=3,
                         )
                         await self.client.send_message(
                             m.chat_id, "реанимировать жабу", schedule=delta
@@ -579,7 +592,8 @@ class KramiikkMod(loader.Module):
                             await self.client.send_message(
                                 m.chat_id,
                                 "завершить работу",
-                                schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                                schedule=delta
+                                + datetime.timedelta(hours=2, seconds=13),
                             )
                     if "жабу можно через" in RESPONSE.text:
                         time = re.search(
@@ -588,7 +602,9 @@ class KramiikkMod(loader.Module):
                             re.IGNORECASE,
                         )
                         delta = datetime.timedelta(
-                            hours=int(time.group(1)), minutes=int(time.group(2)), seconds=3
+                            hours=int(time.group(1)),
+                            minutes=int(time.group(2)),
+                            seconds=3,
                         )
                         await self.client.send_message(
                             m.chat_id, "завершить работу", schedule=delta
