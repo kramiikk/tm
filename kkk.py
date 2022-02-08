@@ -86,10 +86,10 @@ class KramiikkMod(loader.Module):
         """
         name = "монарх"
         try:
-            if ("Итоги" or "Эй, клан,") in m.message and m.sender_id in {1124824021}:
-                if "одержал" in m.message:
+            if ("Итоги" or "Эй, клан") in m.message and m.sender_id in {1124824021}:
+                if "одержал" in m.text:
                     klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
-                elif "слабее" in m.message:
+                elif "слабее" in m.text:
                     klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
                 else:
                     klan = re.search(r"клан (.+),", m.text)
@@ -103,20 +103,20 @@ class KramiikkMod(loader.Module):
                     capt = re.search(r"⚡️(.+) VS (.+)", MS.text)
                     chet = f"{klan.group(2)}:{klan.group(3)}"
                     tog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢"
-                    if (klan.group(1) == capt.group(1) and 'одержал' in m.message) or (
-                            klan.group(1) != capt.group(1) and "слабее" in m.message
+                    if 'Эй, клан' in m.text:
+                        tog = "победила любовь🏳️‍🌈"
+                        chet = "🫂"
+                    elif (klan.group(1) == capt.group(1) and 'одержал' in m.text) or (
+                            klan.group(1) != capt.group(1) and "слабее" in m.text
                     ):
                         if int(klan.group(2)) < int(klan.group(3)):
                             chet = "".join(reversed(chet))
-                    elif (klan.group(1) == capt.group(1) and "слабее" in m.message) or (
-                            klan.group(1) != capt.group(1) and "одержал" in m.message
+                    elif (klan.group(1) == capt.group(1) and "слабее" in m.text) or (
+                            klan.group(1) != capt.group(1) and "одержал" in m.text
                     ):
                         if int(klan.group(2)) > int(klan.group(3)):
                             chet = "".join(reversed(chet))
                         tog = f"{capt.group(1)} 😢 {capt.group(2)} 🥳"
-                    else:
-                        tog = "победила любовь🏳️‍🌈"
-                        chet = "🫂"
                     tog += f"\n<i>{chet}</i>"
                     await MS.reply(tog)
                     capt = re.findall(r"•(<.+?(\d+).+>)", m.text)
