@@ -85,13 +85,11 @@ class KramiikkMod(loader.Module):
 
         """
         name = "монарх"
-        if m.message.startswith(("Итоги", "Эй, клан")) and m.sender_id in {1124824021}:
+        if m.message.startswith("Йоу, ваш") and m.sender_id in {1124824021}:
             if "одержал" in m.text:
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
-            elif "слабее" in m.text:
-                klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
             else:
-                klan = re.search(r"клан (.+),", m.text)
+                klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
             p = f"VS {klan.group(1)}"
             await self.ter(m, p)
             if (
@@ -102,17 +100,12 @@ class KramiikkMod(loader.Module):
                 capt = re.search(r"⚡️(.+) VS (.+)", MS.text)
                 chet = f"{klan.group(2)}:{klan.group(3)}"
                 tog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢"
-                if "Эй, клан" in m.text:
-                    tog = "победила любовь🏳️‍🌈"
-                    chet = "🫂"
-                elif (klan.group(1) == capt.group(1) and "одержал" in m.text) or (
+                if (klan.group(1) == capt.group(1) and "одержал" in m.text) or (
                     klan.group(1) != capt.group(1) and "слабее" in m.text
                 ):
                     if int(klan.group(2)) < int(klan.group(3)):
                         chet = "".join(reversed(chet))
-                elif (klan.group(1) == capt.group(1) and "слабее" in m.text) or (
-                    klan.group(1) != capt.group(1) and "одержал" in m.text
-                ):
+                else:
                     if int(klan.group(2)) > int(klan.group(3)):
                         chet = "".join(reversed(chet))
                     tog = f"{capt.group(1)} 😢 {capt.group(2)} 🥳"
@@ -124,7 +117,7 @@ class KramiikkMod(loader.Module):
                     tog += f"\n{i[0]} {i[1]}"
                 await self.client.send_message(1655814348, tog)
         elif m.message.lower().startswith(
-            ("клановой", "@tgtoadbot клановой")
+            ('клановой", "@tgtoadbot клановой')
         ):
             p = None
             s = self.client.send_message(1655814348, m.message)
@@ -159,7 +152,7 @@ class KramiikkMod(loader.Module):
                     txt = f"В поиске {lira}"
                     await self.client.send_message(1655814348, txt)
         elif m.message.lower().startswith(
-            ("начать клановую", "@tgtoadbot начать клановую")
+            ('начать клановую', '@tgtoadbot начать клановую')
         ):
             p = None
             s = self.client.send_message(1655814348, m.message)
@@ -349,9 +342,9 @@ class KramiikkMod(loader.Module):
                     await m.respond("скрафтить налапники из клюва цапли")
                 else:
                     await m.respond("мой инвентарь")
-            elif m.message.lower().startswith("лвл чек"):
+            elif "лвл чек" in m.message:
                 s = (
-                    (int(m.text.split(" ", 3)[2]) + int(m.text.split(" ", 3)[3]))
+                    (int(m.text.split(" ", 4)[3]) + int(m.text.split(" ", 4)[4]))
                     - 160
                 ) * 2
                 if s > -1:
