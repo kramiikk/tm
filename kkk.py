@@ -14,7 +14,7 @@ MS = None
 
 RESPONSE = None
 
-ak = ["золото", "серебро", "бронза"]
+ak = ["золото", "серебро", "бронза", "дерево"]
 
 bak = [
     1785723159,
@@ -264,6 +264,14 @@ class KramiikkMod(loader.Module):
                 await i.reply(s)
             elif "reply" in m.message:
                 await m.respond(reply)
+            elif "арена" in m.message:
+                p = "•"
+                s = self.client.send_message(m.chat_id, "<b>мои жабы</b>")
+                await self.err(m, p, s)
+                capt = re.findall(r"\| -100(\d+)", RESPONSE.text)
+                for i in capt:
+                    await self.client.send_message(i, "<b>реанимировать жабу</b>")
+                    await self.client.send_message(i, "<b>на арену</b>")
             elif "напади" in m.message:
                 p = None
                 s = self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
