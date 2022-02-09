@@ -64,7 +64,6 @@ class KramiikkMod(loader.Module):
             RESPONSE = await conv.wait_event(
                 events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
             )
-            await conv.cancel_all()
 
     async def ter(self, m, p):
         """.
@@ -89,7 +88,7 @@ class KramiikkMod(loader.Module):
 
         """
         name = "монарх"
-        if m.message.startswith("Йоу, ваш") and m.sender_id in {1124824021}:
+        if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
             if "одержал" in m.text:
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
             else:
@@ -121,10 +120,12 @@ class KramiikkMod(loader.Module):
                     tog += f"\n{i[0]} {i[1]}"
                 await self.client.send_message(1655814348, tog)
         elif m.message.lower().startswith(
-            ('начать клановую', '@tgtoadbot начать клановую')
+            ('клановой', '@tgtoadbot начать клановой')
         ):
+            await m.reply("aaaaaa")
+        elif m.message.lower().startswith('начать клановую') or m.message.lower().startswith('@tgtoadbot начать клановую'):
             p = None
-            s = self.client.send_message(1655814348, m.message)
+            s = self.client.send_message(1655814348, m.text)
             await self.err(m, p, s)
             if not RESPONSE.text.startswith(
                 ("Алло", "Ваш клан", "Для старта", "Чувак")
@@ -179,30 +180,18 @@ class KramiikkMod(loader.Module):
                 await self.client.send_message(1655814348, tog)
         elif m.message.lower().startswith(("мой клан", "@tgtoadbot мой клан")):
             async with self.client.conversation(m.chat_id) as conv:
-                response = conv.wait_event(
+                response = await conv.wait_event(
                     events.NewMessage(
-                        incoming=True,
                         from_users=1124824021,
                         chats=m.chat_id,
                     )
                 )
-                response = await response
                 if "Опыт" in response.text:
                     klan = re.search("Клан (.+):", response.text).group(1)
                     lira = re.search("Лига: (.+)", response.text).group(1)
                     usil = re.search("Усилитель: (.+)", response.text).group(1)
                     info = response.text
-                    clj = re.search(
-                        r"\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\W+ (.+)\n\n",
-                        response.text,
-                    )
-                    if clj:
-                        lid = clj.group(1)
-                        ja1 = clj.group(2)
-                        ja2 = clj.group(3)
-                        ja3 = clj.group(4)
-                        ja4 = clj.group(5)
-                        info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nИмя: {m.sender.first_name}\nЛига: {lira}\nУсилитель: {usil}\n\nКлан: {klan}\n(лид): {lid}\n{ja1}\n{ja2}\n{ja3}:\n{ja4}"
+                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {lira}\nУсилитель: {usil}\n\nКлан: {klan}"
                     return await self.client.send_message(1655814348, info)
         elif "захват топа" in m.message and m.sender_id in bak:
             args = m.text
