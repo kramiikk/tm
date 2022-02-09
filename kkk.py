@@ -60,14 +60,15 @@ class KramiikkMod(loader.Module):
         ----------
 
         """
-        global RESPONSE
         try:
             async with self.client.conversation(m.chat_id) as conv:
                 await s
+                global RESPONSE
                 RESPONSE = await conv.wait_event(
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
-        except TimeoutError:
+                await conv.cancel()
+        except asyncio.exceptions.TimeoutError:
             pass
 
     async def ter(self, m, p):
@@ -76,17 +77,16 @@ class KramiikkMod(loader.Module):
         ----------
 
         """
-        s = await self.client.get_messages(1767017980, search=p)
-        global MS
         try:
+            s = await self.client.get_messages(1767017980, search=p)
+            global MS
             for MS in s:
-                global RESPONSE
-                RESPONSE = datetime.timedelta(
+                MS = datetime.timedelta(
                     hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
                 ) - datetime.timedelta(
                     hours=MS.date.hour, minutes=MS.date.minute, seconds=MS.date.second
                 )
-        except TimeoutError:
+        except asyncio.exceptions.TimeoutError:
             pass
 
     async def watcher(self, m):
@@ -103,11 +103,7 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
             p = f"VS {klan.group(1)}"
             await self.ter(m, p)
-            if (
-                datetime.timedelta(days=0, hours=4)
-                < RESPONSE
-                < datetime.timedelta(days=0, hours=4, minutes=30)
-            ):
+            if MS == datetime.timedelta(days=0):
                 capt = re.search(r"⚡️(.+) VS (.+)", MS.text)
                 chet = f"{klan.group(2)}:{klan.group(3)}"
                 tog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢"
@@ -134,8 +130,11 @@ class KramiikkMod(loader.Module):
             p = None
             s = self.client.send_message(1782816965, f"Сезон кланов {i}")
             await self.err(m, p, s)
-            if not RESPONSE.text.startswith(
-                ("Алло", "Ваш клан", "Для старта", "Чувак")
+            if (
+                not RESPONSE.text.startswith(
+                    ("Алло", "Ваш клан", "Для старта", "Чувак")
+                )
+                or not RESPONSE
             ):
                 src = f"{m.chat_id} {m.sender_id} Клан:"
                 lira = None
@@ -158,8 +157,9 @@ class KramiikkMod(loader.Module):
                             lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
                         p = f"VS {klan.group(1)}"
                 await self.ter(m, p)
-                if (RESPONSE != datetime.timedelta(days=0, hours=0)) and (
-                    ("в деревянной" or "Деревянная") not in lira
+                if (
+                    MS != datetime.timedelta(days=0, hours=0)
+                    and "деревян" not in lira.casefold()
                 ):
                     txt = f"В поиске {lira}"
                     await self.client.send_message(1767017980, txt)
@@ -177,7 +177,7 @@ class KramiikkMod(loader.Module):
             else:
                 for i in ms:
                     ms = re.search(r"Топ 35 кланов (.+) лиге", i.text).group(1)
-            if ("в деревянной" or "Деревянная") not in ms:
+            if "деревян" not in ms.casefold():
                 txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
                 await self.client.send_message(1767017980, txt)
                 capt = re.findall(r"<.+?id=(\d+)\">", m.text)
@@ -194,11 +194,11 @@ class KramiikkMod(loader.Module):
                     )
                 )
                 if "Опыт" in response.text:
-                    klan = re.search("Клан (.+):", response.text).group(1)
-                    lira = re.search("Лига: (.+)", response.text).group(1)
-                    usil = re.search("Усилитель: (.+)", response.text).group(1)
+                    klan = re.search(
+                        r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", response.text
+                    )
                     info = response.text
-                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {lira}\nУсилитель: {usil}\n\nКлан: {klan}"
+                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
                     return await self.client.send_message(1655814348, info)
         elif "захват топа" in m.message and m.sender_id in bak:
             args = m.text
