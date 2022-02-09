@@ -10,6 +10,10 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
+MS = None
+
+RESPONSE = None
+
 bak = [
     1785723159,
     1261343954,
@@ -116,41 +120,6 @@ class KramiikkMod(loader.Module):
                 for i in capt:
                     tog += f"\n{i[0]} {i[1]}"
                 await self.client.send_message(1655814348, tog)
-        elif m.message.lower().startswith(
-            ('клановой", "@tgtoadbot клановой')
-        ):
-            p = None
-            s = self.client.send_message(1655814348, m.message)
-            await self.err(m, p, s)
-            if not RESPONSE.text.startswith(
-                ("Алло", "Ваш клан", "Для старта", "Чувак")
-            ):
-                src = f"{m.chat_id} {m.sender_id} Клан:"
-                lira = None
-                ms = await self.client.get_messages(1655814348, search=src)
-                for i in ms:
-                    if "Усилитель:" in i.message:
-                        klan = re.search(
-                            r"Лига: (.+)\nУсилитель: (.+)\n\nКлан: (.+)", i.text
-                        )
-                        lira = f"{klan.group(3)}\nЛига: {klan.group(1)}\nУсилитель: {klan.group(2)}"
-                        p = f"VS {klan.group(3)}"
-                    else:
-                        klan = re.search(r"Клан: (.+)", i.text)
-                        src = f"Топ 35 кланов {klan.group(1)}"
-                        p = await self.client.get_messages(1782816965, search=src)
-                        if p.total == 0:
-                            return
-                        for s in p:
-                            lira = re.search(r"Топ 35 кланов (.+) лиге", s.message)
-                            lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
-                        p = f"VS {klan.group(1)}"
-                await self.ter(m, p)
-                if (RESPONSE != datetime.timedelta(days=0, hours=0)) and (
-                    ("в деревянной" or "Деревянная") not in lira
-                ):
-                    txt = f"В поиске {lira}"
-                    await self.client.send_message(1655814348, txt)
         elif m.message.lower().startswith(
             ('начать клановую', '@tgtoadbot начать клановую')
         ):
