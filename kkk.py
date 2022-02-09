@@ -270,8 +270,8 @@ class KramiikkMod(loader.Module):
                 await self.err(m, p, s)
                 capt = re.findall(r"\| -100(\d+)", RESPONSE.text)
                 for i in capt:
-                    await self.client.send_message(i, "<b>реанимировать жабу</b>")
-                    await self.client.send_message(i, "<b>на арену</b>")
+                    await self.client.send_message(int(i), "<b>реанимировать жабу</b>")
+                    await self.client.send_message(int(i), "<b>на арену</b>")
             elif "напади" in m.message:
                 p = None
                 s = self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
