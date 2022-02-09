@@ -58,12 +58,15 @@ class KramiikkMod(loader.Module):
         ----------
 
         """
-        async with self.client.conversation(m.chat_id) as conv:
-            await s
-            global RESPONSE
-            RESPONSE = await conv.wait_event(
-                events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
-            )
+        try:
+            async with self.client.conversation(m.chat_id) as conv:
+                await s
+                global RESPONSE
+                RESPONSE = await conv.wait_event(
+                    events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
+                )
+        except TimeoutError:
+            await self.client.send_message(1655814348, f"Ошибка {str(e)}")
 
     async def ter(self, m, p):
         """.
