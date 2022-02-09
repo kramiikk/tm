@@ -128,8 +128,9 @@ class KramiikkMod(loader.Module):
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
         ):
+            i = random.choice("золото", "серебро", "бронза")
             p = None
-            s = self.client.send_message(1655814348, m.text)
+            s = self.client.send_message(1782816965, f"Сезон кланов {i}")
             await self.err(m, p, s)
             if not RESPONSE.text.startswith(
                 ("Алло", "Ваш клан", "Для старта", "Чувак")
