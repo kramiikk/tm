@@ -79,8 +79,8 @@ class KramiikkMod(loader.Module):
         """
         try:
             s = await self.client.get_messages(1767017980, search=p)
-            global MS
-            for MS in s:
+            for p in s:
+                global MS
                 MS = datetime.timedelta(
                     hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
                 ) - datetime.timedelta(
@@ -104,7 +104,7 @@ class KramiikkMod(loader.Module):
             p = f"VS {klan.group(1)}"
             await self.ter(m, p)
             if MS == datetime.timedelta(days=0):
-                capt = re.search(r"⚡️(.+) VS (.+)", MS.text)
+                capt = re.search(r"⚡️(.+) VS (.+)", p.text)
                 chet = f"{klan.group(2)}:{klan.group(3)}"
                 tog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢"
                 if (klan.group(1) == capt.group(1) and "одержал" in m.text) or (
@@ -117,7 +117,7 @@ class KramiikkMod(loader.Module):
                         chet = "".join(reversed(chet))
                     tog = f"{capt.group(1)} 😢 {capt.group(2)} 🥳"
                 tog += f"\n<i>{chet}</i>"
-                await MS.reply(tog)
+                await p.reply(tog)
                 capt = re.findall(r"•(<.+?(\d+).+>)", m.text)
                 tog = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
                 for i in capt:
