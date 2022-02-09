@@ -268,11 +268,8 @@ class KramiikkMod(loader.Module):
                     m.chat_id, id=[x.id for x in sch]
                 )
             )
-            delta = datetime.timedelta(seconds=7)
             p = None
-            s = self.client.send_message(
-                    m.chat_id, "моя банда", schedule=delta
-                )
+            s = asyncio.sleep(0.3)
             await self.err(m, p, s)
             if "(Откормить через" in RESPONSE.text:
                 time_f = re.search(
