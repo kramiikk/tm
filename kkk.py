@@ -66,7 +66,7 @@ class KramiikkMod(loader.Module):
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
         except TimeoutError:
-            await self.client.send_message(1655814348, f"Ошибка {str(e)}")
+            pass
 
     async def ter(self, m, p):
         """.
