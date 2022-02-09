@@ -67,7 +67,7 @@ class KramiikkMod(loader.Module):
                 RESPONSE = await conv.wait_event(
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
-                await conv.cancel()
+                await conv.cancel_all()
         except asyncio.exceptions.TimeoutError:
             pass
 
@@ -200,6 +200,7 @@ class KramiikkMod(loader.Module):
                     info = response.text
                     info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
                     return await self.client.send_message(1655814348, info)
+                await conv.cancel_all()
         elif "захват топа" in m.message and m.sender_id in bak:
             args = m.text
             p = "⚔️"
