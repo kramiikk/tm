@@ -268,8 +268,11 @@ class KramiikkMod(loader.Module):
                     m.chat_id, id=[x.id for x in sch]
                 )
             )
+            delta = datetime.timedelta(seconds=7)
             p = None
-            s = m.respond("мой баланс")
+            s = self.client.send_message(
+                    m.chat_id, "моя банда", schedule=delta
+                )
             await self.err(m, p, s)
             if "(Откормить через" in RESPONSE.text:
                 time_f = re.search(
