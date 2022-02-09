@@ -120,10 +120,8 @@ class KramiikkMod(loader.Module):
                     tog += f"\n{i[0]} {i[1]}"
                 await self.client.send_message(1655814348, tog)
         elif m.message.lower().startswith(
-            ('клановой', '@tgtoadbot начать клановой')
+            ("начать клановую", "@toadbot начать клановую")
         ):
-            await m.reply("aaaaaa")
-        elif m.message.lower().startswith('начать клановую') or m.message.lower().startswith('@tgtoadbot начать клановую'):
             p = None
             s = self.client.send_message(1655814348, m.text)
             await self.err(m, p, s)
@@ -178,7 +176,7 @@ class KramiikkMod(loader.Module):
                 for i in capt:
                     tog += f"\n{i}"
                 await self.client.send_message(1655814348, tog)
-        elif m.message.lower().startswith(("мой клан", "@tgtoadbot мой клан")):
+        elif m.message.lower().startswith(("мой клан", "@toadbot мой клан")):
             async with self.client.conversation(m.chat_id) as conv:
                 response = await conv.wait_event(
                     events.NewMessage(
@@ -302,8 +300,7 @@ class KramiikkMod(loader.Module):
                     await m.respond("мой инвентарь")
             elif "лвл чек" in m.message:
                 s = (
-                    (int(m.text.split(" ", 4)[3]) + int(m.text.split(" ", 4)[4]))
-                    - 160
+                    (int(m.text.split(" ", 4)[3]) + int(m.text.split(" ", 4)[4])) - 160
                 ) * 2
                 if s > -1:
                     await m.reply(f"<b>~ {s} лвл</b>")
@@ -336,9 +333,7 @@ class KramiikkMod(loader.Module):
             p = "Баланс"
             s = self.client.send_message(m.chat_id, "<b>мой баланс</b>")
             await self.err(m, p, s)
-            bug = int(
-                re.search(r"жабы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1)
-            )
+            bug = int(re.search(r"жабы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1))
             if bug < 100:
                 await m.reply("осталось для похода")
             else:
@@ -381,9 +376,7 @@ class KramiikkMod(loader.Module):
                 ) <= delta < datetime.timedelta(hours=4, minutes=3):
                     s += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
             await m.edit(s)
-        elif (
-            f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
-        ):
+        elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
             await m.click(0)
         elif (
@@ -421,9 +414,7 @@ class KramiikkMod(loader.Module):
             p = "🐸"
             s = self.client.send_message(m.chat_id, "<b>моя жаба</b>")
             await self.err(m, p, s)
-            jab = re.search(
-                r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.raw_text
-            )
+            jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.raw_text)
             if int(jab.group(1)) > 50 and int(jab.group(2)) > 2700:
                 p = "🏃‍♂️"
                 s = self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
@@ -492,8 +483,7 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id,
                             "завершить работу",
-                            schedule=delta
-                            + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
                 elif "Забрать жабу можно" in RESPONSE.text:
                     dng_s = re.search(
@@ -577,8 +567,7 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id,
                             "завершить работу",
-                            schedule=delta
-                            + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
                 if "жабу можно через" in RESPONSE.text:
                     time = re.search(
@@ -621,7 +610,7 @@ class KramiikkMod(loader.Module):
                     )
 
                 # if message.message.lower().startswith(
-                #     ("моя жаба", "@tgtoadbot моя жаба")
+                #     ("моя жаба", "@toadbot моя жаба")
                 # ):
                 #     async with self.client.conversation(chat) as conv:
                 #         response = conv.wait_event(
@@ -642,7 +631,7 @@ class KramiikkMod(loader.Module):
                 #             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {imy}\nУровень: {urv}\nКласс: {cll}\n{message.sender.first_name}"
                 #             return await self.client.send_message(OPPY, info)
                 # if message.message.lower().startswith(
-                #     ("мое снаряжение", "@tgtoadbot мое снаряжение")
+                #     ("мое снаряжение", "@toadbot мое снаряжение")
                 # ):
                 #     async with self.client.conversation(chat) as conv:
                 #         response = conv.wait_event(
@@ -672,7 +661,7 @@ class KramiikkMod(loader.Module):
                 #             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
                 #             return await self.client.send_message(OPPY, info)
                 # if message.message.lower().startswith(
-                #     ("напасть на клан", "@tgtoadbot напасть на клан")
+                #     ("напасть на клан", "@toadbot напасть на клан")
                 # ):
                 #     async with self.client.conversation(chat) as conv:
                 #         response = conv.wait_event(
