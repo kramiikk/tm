@@ -58,10 +58,10 @@ class KramiikkMod(loader.Module):
         ----------
 
         """
+        global RESPONSE
         try:
             async with self.client.conversation(m.chat_id) as conv:
                 await s
-                global RESPONSE
                 RESPONSE = await conv.wait_event(
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
@@ -76,13 +76,16 @@ class KramiikkMod(loader.Module):
         """
         s = await self.client.get_messages(1767017980, search=p)
         global MS
-        for MS in s:
-            global RESPONSE
-            RESPONSE = datetime.timedelta(
-                hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-            ) - datetime.timedelta(
-                hours=MS.date.hour, minutes=MS.date.minute, seconds=MS.date.second
-            )
+        try:
+            for MS in s:
+                global RESPONSE
+                RESPONSE = datetime.timedelta(
+                    hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
+                ) - datetime.timedelta(
+                    hours=MS.date.hour, minutes=MS.date.minute, seconds=MS.date.second
+                )
+        except TimeoutError:
+            pass
 
     async def watcher(self, m):
         """.
