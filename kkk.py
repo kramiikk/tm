@@ -84,7 +84,7 @@ class KramiikkMod(loader.Module):
                 MS = datetime.timedelta(
                     hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
                 ) - datetime.timedelta(
-                    hours=MS.date.hour, minutes=MS.date.minute, seconds=MS.date.second
+                    hours=p.date.hour, minutes=p.date.minute, seconds=p.date.second
                 )
         except asyncio.exceptions.TimeoutError:
             pass
@@ -130,11 +130,8 @@ class KramiikkMod(loader.Module):
             p = None
             s = self.client.send_message(1782816965, f"Сезон кланов {i}")
             await self.err(m, p, s)
-            if (
-                not RESPONSE.text.startswith(
-                    ("Алло", "Ваш клан", "Для старта", "Чувак")
-                )
-                or not RESPONSE
+            if not RESPONSE.text.startswith(
+                ("Алло", "Ваш клан", "Для старта", "Чувак")
             ):
                 src = f"{m.chat_id} {m.sender_id} Клан:"
                 lira = None
@@ -157,10 +154,7 @@ class KramiikkMod(loader.Module):
                             lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
                         p = f"VS {klan.group(1)}"
                 await self.ter(m, p)
-                if (
-                    MS != datetime.timedelta(days=0, hours=0)
-                    and "деревян" not in lira.casefold()
-                ):
+                if MS != datetime.timedelta(days=0, hours=0):
                     txt = f"В поиске {lira}"
                     await self.client.send_message(1767017980, txt)
         elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
@@ -186,21 +180,12 @@ class KramiikkMod(loader.Module):
                     tog += f"\n{i}"
                 await self.client.send_message(1655814348, tog)
         elif m.message.lower().startswith(("мой клан", "@toadbot мой клан")):
-            async with self.client.conversation(m.chat_id) as conv:
-                response = await conv.wait_event(
-                    events.NewMessage(
-                        from_users=1124824021,
-                        chats=m.chat_id,
-                    )
-                )
-                if "Опыт" in response.text:
-                    klan = re.search(
-                        r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", response.text
-                    )
-                    info = response.text
-                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
-                    return await self.client.send_message(1655814348, info)
-                await conv.cancel_all()
+            p = "Клан"
+            s = self.client.send_message(1782816965, f"топ кланов")
+            await self.err(m, p, s)
+            klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RESPONSE.text)
+            info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
+            return await self.client.send_message(1655814348, info)
         elif "захват топа" in m.message and m.sender_id in bak:
             args = m.text
             p = "⚔️"
