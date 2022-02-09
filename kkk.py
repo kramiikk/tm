@@ -151,9 +151,7 @@ class KramiikkMod(loader.Module):
                         for s in p:
                             lira = re.search(r"Топ 35 кланов (.+) лиге", s.message)
                             lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
-                if datetime.timedelta(days=m.date.day, hours=m.date.hour) != datetime.timedelta(days=0, hours=0):
-                    txt = f"В поиске {lira}"
-                    await self.client.send_message(1767017980, txt)
+                    await self.client.send_message(1767017980, f"В поиске {lira}")
         elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
             klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
             src = f"Топ 35 кланов {klan.group(1)}"
