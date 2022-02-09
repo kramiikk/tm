@@ -252,41 +252,9 @@ class KramiikkMod(loader.Module):
                     await m.reply("отправить аптечки 10")
                 else:
                     await m.reply(f"отправить аптечки {apt}")
-        elif "сейчас в кв" in m.message:
-            ms = await self.client.get_messages(1767017980, limit=42)
-            s = "<b>Сейчас в кв:\n</b>"
-            for i in ms:
-                delta = datetime.timedelta(
-                    hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-                ) - datetime.timedelta(
-                    hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
-                )
-                if "VS" in i.message and datetime.timedelta(
-                    days=0
-                ) <= delta < datetime.timedelta(hours=4, minutes=3):
-                    s += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
-            await m.edit(s)
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
             await m.click(0)
-        elif (
-            "[8🐝]" or "[4🐝]" or "[2☢️🐝, 2🔴🐝," or "Бзззз! С пасеки"
-        ) in m.message and m.buttons:
-            await m.click(0)
-        elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
-            args = [int(x) for x in m.text.split() if x.isnumeric()]
-            delta = datetime.timedelta(hours=4)
-            if len(args) == 4:
-                delta = datetime.timedelta(
-                    hours=args[1], minutes=args[2], seconds=args[3] + 13
-                )
-            elif len(args) == 3:
-                delta = datetime.timedelta(minutes=args[1], seconds=args[2] + 13)
-            elif len(args) == 2:
-                delta = datetime.timedelta(seconds=args[1] + 13)
-            for i in range(3):
-                delta = delta + datetime.timedelta(seconds=13)
-                await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
         elif m.message.lower().startswith(
             ("жаба инфо", "@toadbot жаба")
         ) and m.sender_id in {1785723159, 1261343954}:
