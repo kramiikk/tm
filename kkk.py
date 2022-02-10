@@ -334,7 +334,7 @@ class KramiikkMod(loader.Module):
         elif "сейчас в кв" in m.message:
             s = await self.client.get_messages(1767017980, limit=42)
             txt = "<b>Сейчас в кв:\n</b>"
-            await self.err(m, s)
+            await self.ter(m, s)
             if "VS" in MS.text and datetime.timedelta(days=0) <= s < datetime.timedelta(
                 hours=4, minutes=3
             ):
