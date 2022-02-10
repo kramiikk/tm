@@ -99,8 +99,9 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
             else:
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
+            p = f"VS {klan.group(1)}"
             s = await self.client.get_messages(
-                1767017980, search=f"VS {klan.group(1)}"
+                1767017980, search=p
             )
             for i in s:
                 p = re.search(r"⚡️(.+) VS (.+)", i.text)
