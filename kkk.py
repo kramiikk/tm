@@ -104,8 +104,10 @@ class KramiikkMod(loader.Module):
                 1767017980, search=phrase
             )
             for i in msg:
-                reg = re.search(r"..(.+) <.+> (.+)", i.text)
-                await i.reply(f"ss {reg.group(1)}")
+                await self.ter(m, i)
+                if datetime.timedelta(days=0, hours=4) <= MS < datetime.timedelta(days=0, hours=4, minutes=30):
+                    reg = re.search(r"..(.+) <.+> (.+)", i.text)
+                    await i.reply(f"ss {reg.group(1)}")
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
         ):
