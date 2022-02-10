@@ -339,7 +339,7 @@ class KramiikkMod(loader.Module):
                 hours=4, minutes=3
             ):
                 txt += f"\n{MS.message}\n<i>Время кв: {s}</i>\n"
-            await m.edit(s)
+            await m.edit(txt)
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
             await m.click(0)
