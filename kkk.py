@@ -56,14 +56,13 @@ class KramiikkMod(loader.Module):
         except asyncio.exceptions.TimeoutError:
             pass
 
-    async def ter(self, m, s):
+    async def ter(self, m, i):
         global MS
-        for MS in s:
-            s = datetime.timedelta(
-                hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-            ) - datetime.timedelta(
-                hours=MS.date.hour, minutes=MS.date.minute, seconds=MS.date.second
-            )
+        MS = datetime.timedelta(
+            hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
+        ) - datetime.timedelta(
+            hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+        )
 
     async def watcher(self, m):
         name = "монарх"
@@ -333,11 +332,10 @@ class KramiikkMod(loader.Module):
         elif "сейчас в кв" in m.message:
             s = await self.client.get_messages(1767017980, limit=42)
             txt = "<b>Сейчас в кв:\n</b>"
-            await self.ter(m, s)
-            if "VS" in MS.text and datetime.timedelta(days=0) <= s < datetime.timedelta(
-                hours=4, minutes=3
-            ):
-                txt += f"\n{MS.message}\n<i>Время кв: {s}</i>\n"
+            for i in s:
+                await self.ter(m, i)
+                if "VS" in i.text and datetime.timedelta(days=0) <= MS < datetime.timedelta(hours=4, minutes=3):
+                    txt += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
             await m.edit(txt)
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
