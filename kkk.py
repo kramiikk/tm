@@ -101,7 +101,7 @@ class KramiikkMod(loader.Module):
             await self.client.send_message(m.chat_id, "<b>топ жаб букашки</b>")
             await self.err(m, p)
             res = re.findall(r": (\d+) ", RESPONSE.text)
-            rep = "И так посчитаем.."
+            rep = "И так посчитаем..\n"
             p = await RESPONSE.reply(rep)
             s = 0
             for i in res:
