@@ -105,9 +105,11 @@ class KramiikkMod(loader.Module):
             p = await RESPONSE.reply(rep)
             s = 0
             for i in res:
+                a = s
                 s += int(i)
-                rep += f"\n{s}"
+                rep += f"\n{a} + {i} = {s}"
                 await p.edit(rep)
+                await asyncio.sleep(1)
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
         ):
