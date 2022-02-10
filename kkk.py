@@ -75,7 +75,7 @@ class KramiikkMod(loader.Module):
                 1767017980, search=f"VS {klan.group(1)}"
             )
             for i in s:
-                p = re.search(r"⚡️(.+) VS (.+)", i.text)
+                p = re.search(r"..(.+) <.+> (.+)", i.text)
                 chet = f"{klan.group(2)}:{klan.group(3)}"
                 tog = f"{p.group(1)} 🥳 {p.group(2)} 😢"
                 if (klan.group(1) == p.group(1) and "одержал" in m.text) or (
@@ -104,7 +104,7 @@ class KramiikkMod(loader.Module):
                 1767017980, search=phrase
             )
             for i in msg:
-                reg = re.search(r"⚡️(.+) VS (.+)", i.text)
+                reg = re.search(r"..(.+) <.+> (.+)", i.text)
                 await i.reply(f"ss {reg.group(1)}")
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
