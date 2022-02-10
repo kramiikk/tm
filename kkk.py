@@ -71,22 +71,22 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
             else:
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
-            ms = await self.client.get_messages(
+            s = await self.client.get_messages(
                 1767017980, search=f"VS {klan.group(1)}"
             )
-            for i in ms:
-                ms = re.search(r"⚡️(.+) VS (.+)", i.text)
+            for i in s:
+                p = re.search(r"⚡️(.+) VS (.+)", i.text)
                 chet = f"{klan.group(2)}:{klan.group(3)}"
-                tog = f"{ms.group(1)} 🥳 {ms.group(2)} 😢"
-                if (klan.group(1) == ms.group(1) and "одержал" in m.text) or (
-                    klan.group(1) != ms.group(1) and "слабее" in m.text
+                tog = f"{p.group(1)} 🥳 {p.group(2)} 😢"
+                if (klan.group(1) == p.group(1) and "одержал" in m.text) or (
+                    klan.group(1) != p.group(1) and "слабее" in m.text
                 ):
                     if int(klan.group(2)) < int(klan.group(3)):
                         chet = "".join(reversed(chet))
                 else:
                     if int(klan.group(2)) > int(klan.group(3)):
                         chet = "".join(reversed(chet))
-                    tog = f"{ms.group(1)} 😢 {ms.group(2)} 🥳"
+                    tog = f"{p.group(1)} 😢 {p.group(2)} 🥳"
                 tog += f"\n<i>{chet}</i>"
                 await i.reply(tog)
             ms = re.findall(r"•(<.+?(\d+).+>)", m.text)
