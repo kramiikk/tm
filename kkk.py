@@ -64,7 +64,6 @@ class KramiikkMod(loader.Module):
             ) - datetime.timedelta(
                 hours=MS.date.hour, minutes=MS.date.minute, seconds=MS.date.second
             )
-            return s, MS
 
     async def watcher(self, m):
         name = "монарх"
