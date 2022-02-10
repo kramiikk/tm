@@ -91,7 +91,7 @@ class KramiikkMod(loader.Module):
                     chet = "".join(reversed(chet))
                 tog = f"{capt.group(1)} 😢 {capt.group(2)} 🥳"
             tog += f"\n<i>{chet}</i>"
-            await p.reply(tog)
+            await RESPONSE.reply(tog)
             capt = re.findall(r"•(<.+?(\d+).+>)", m.text)
             tog = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
             for i in capt:
