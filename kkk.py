@@ -75,39 +75,39 @@ class KramiikkMod(loader.Module):
                 1767017980, search=f"VS {klan.group(1)}"
             )
             for i in s:
-                p = re.search(r"..(.+) <.+> (.+)", i.text)
-                chet = f"{klan.group(2)}:{klan.group(3)}"
-                tog = f"{p.group(1)} 🥳 {p.group(2)} 😢"
-                if (klan.group(1) == p.group(1) and "одержал" in m.text) or (
-                    klan.group(1) != p.group(1) and "слабее" in m.text
-                ):
-                    if int(klan.group(2)) < int(klan.group(3)):
-                        chet = "".join(reversed(chet))
-                else:
-                    if int(klan.group(2)) > int(klan.group(3)):
-                        chet = "".join(reversed(chet))
-                    tog = f"{p.group(1)} 😢 {p.group(2)} 🥳"
-                tog += f"\n<i>{chet}</i>"
-                await i.reply(tog)
+                await self.ter(m, i)
+                if datetime.timedelta(days=0, hours=4) <= MS < datetime.timedelta(days=0, hours=4, minutes=30):
+                    p = re.search(r"..(.+) <.+> (.+)", i.text)
+                    chet = f"{klan.group(2)}:{klan.group(3)}"
+                    tog = f"{p.group(1)} 🥳 {p.group(2)} 😢"
+                    if (klan.group(1) == p.group(1) and "одержал" in m.text) or (
+                        klan.group(1) != p.group(1) and "слабее" in m.text
+                    ):
+                        if int(klan.group(2)) < int(klan.group(3)):
+                            chet = "".join(reversed(chet))
+                    else:
+                        if int(klan.group(2)) > int(klan.group(3)):
+                            chet = "".join(reversed(chet))
+                        tog = f"{p.group(1)} 😢 {p.group(2)} 🥳"
+                    tog += f"\n<i>{chet}</i>"
+                    await i.reply(tog)
             ms = re.findall(r"•(<.+?(\d+).+>)", m.text)
             tog = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
             for i in ms:
                 tog += f"\n{i[0]} {i[1]}"
             await self.client.send_message(1655814348, tog)
-        elif m.message.startswith("Йоу,") and m.sender_id in {1261343954}:
-            if "одержал" in m.text:
-                klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
-            else:
-                klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
-            phrase = f"VS {klan.group(1)}"
-            msg = await self.client.get_messages(
-                1767017980, search=phrase
-            )
-            for i in msg:
-                await self.ter(m, i)
-                if datetime.timedelta(days=0, hours=4) <= MS < datetime.timedelta(days=0, hours=4, minutes=30):
-                    reg = re.search(r"..(.+) <.+> (.+)", i.text)
-                    await i.reply(f"ss {reg.group(1)}")
+        elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
+            p = None
+            await self.client.send_message(m.chat_id, "<b>топ жаб букашки</b>")
+            await self.err(m, p)
+            res = re.findall(r": (\d+) ", RESPONSE.text)
+            rep = "И так посчитаем.."
+            p = await RESPONSE.reply(rep)
+            s = 0
+            for i in res:
+                s += int(i)
+                rep += f"\n{s}"
+                await p.edit(rep)
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
         ):
