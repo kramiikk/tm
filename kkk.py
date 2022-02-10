@@ -10,8 +10,6 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
-MS = None
-
 ak = ["золото", "серебро", "бронза", "дерево"]
 
 bak = [
@@ -105,7 +103,9 @@ class KramiikkMod(loader.Module):
             i = random.choice(ak)
             p = None
             await self.err(m, p)
-            if not RESPONSE.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
+            if not RESPONSE.text.startswith(
+                ("Алло", "Ваш клан", "Для старта", "Чувак")
+            ):
                 src = f"{m.chat_id} {m.sender_id} Клан:"
                 lira = None
                 ms = await self.client.get_messages(1655814348, search=src)
@@ -318,8 +318,12 @@ class KramiikkMod(loader.Module):
             p = "Ваш"
             await self.client.send_message(m.chat_id, "<b>мой инвентарь</b>")
             await self.err(m, p)
-            cnd = int(re.search(r"Леденцы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1))
-            apt = int(re.search(r"Аптечки: (\d+)", RESPONSE.text, re.IGNORECASE).group(1))
+            cnd = int(
+                re.search(r"Леденцы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1)
+            )
+            apt = int(
+                re.search(r"Аптечки: (\d+)", RESPONSE.text, re.IGNORECASE).group(1)
+            )
             if cnd > 0:
                 if cnd > 49:
                     await m.reply("отправить леденцы 50")
