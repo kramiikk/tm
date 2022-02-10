@@ -99,13 +99,13 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
             else:
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
-            p = f"VS {klan.group(1)}"
-            s = await self.client.get_messages(
-                1767017980, search=p
+            phrase = f"VS {klan.group(1)}"
+            msg = await self.client.get_messages(
+                1767017980, search=phrase
             )
-            for i in s:
-                p = re.search(r"⚡️(.+) VS (.+)", i.text)
-                await i.reply(f"ss {p.group(1)}")
+            for i in msg:
+                reg = re.search(r"⚡️(.+) VS (.+)", i.text)
+                await i.reply(f"ss {reg.group(1)}")
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
         ):
