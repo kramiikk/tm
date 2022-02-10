@@ -50,10 +50,10 @@ class KramiikkMod(loader.Module):
     async def err(self, m, p):
         try:
             async with self.client.conversation(m.chat_id) as conv:
-                response = conv.wait_event(
+                global RESPONSE
+                RESPONSE = await conv.wait_event(
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
-                p = await response
                 await conv.cancel_all()
         except asyncio.exceptions.TimeoutError:
             pass
@@ -80,7 +80,7 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
             p = f"VS {klan.group(1)}"
             await self.ter(m, p)
-            capt = re.search(r"⚡️(.+) VS (.+)", p.text)
+            capt = re.search(r"⚡️(.+) VS (.+)", RESPONSE.text)
             chet = f"{klan.group(2)}:{klan.group(3)}"
             tog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢"
             if (klan.group(1) == capt.group(1) and "одержал" in m.text) or (
@@ -105,7 +105,7 @@ class KramiikkMod(loader.Module):
             i = random.choice(ak)
             p = None
             await self.err(m, p)
-            if not p.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
+            if not RESPONSE.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
                 src = f"{m.chat_id} {m.sender_id} Клан:"
                 lira = None
                 ms = await self.client.get_messages(1655814348, search=src)
@@ -151,7 +151,7 @@ class KramiikkMod(loader.Module):
         elif m.message.lower().startswith(("мой клан", "@toadbot мой клан")):
             p = "Клан"
             await self.err(m, p)
-            klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", p.text)
+            klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RESPONSE.text)
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
             return await self.client.send_message(1655814348, info)
         elif "захват топа" in m.message and m.sender_id in bak:
@@ -161,7 +161,7 @@ class KramiikkMod(loader.Module):
                 m.chat_id, "сезон кланов " + args.split(" ", 2)[2]
             )
             await self.err(m, p)
-            result = re.findall(r"(\d+)\. 🛡(\d+) \| (.*)", p.text)
+            result = re.findall(r"(\d+)\. 🛡(\d+) \| (.*)", RESPONSE.text)
             rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
             for i in result:
                 src = f"{i[2]} Усилитель:"
@@ -222,7 +222,7 @@ class KramiikkMod(loader.Module):
                 p = "•"
                 await self.client.send_message(m.chat_id, "<b>мои жабы</b>")
                 await self.err(m, p)
-                capt = re.findall(r"\| -100(\d+)", p.text)
+                capt = re.findall(r"\| -100(\d+)", RESPONSE.text)
                 for i in capt:
                     await self.client.send_message(int(i), "<b>реанимировать жабу</b>")
                     await self.client.send_message(int(i), "<b>на арену</b>")
@@ -230,11 +230,11 @@ class KramiikkMod(loader.Module):
                 p = None
                 await self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
                 await self.err(m, p)
-                if "Ваша жаба на" in p.text:
+                if "Ваша жаба на" in RESPONSE.text:
                     await m.respond("завершить работу")
                     await m.respond("реанимировать жабу")
                     await m.respond("напасть на клан")
-                elif "Ваша жаба сейчас" in p.text:
+                elif "Ваша жаба сейчас" in RESPONSE.text:
                     await m.respond("выйти из подземелья")
                     await m.respond("реанимировать жабу")
                     await m.respond("напасть на клан")
@@ -244,11 +244,11 @@ class KramiikkMod(loader.Module):
                     m.chat_id, "<b>отправиться в золотое подземелье</b>"
                 )
                 await self.err(m, p)
-                if "Пожалейте жабу," in p.text:
+                if "Пожалейте жабу," in RESPONSE.text:
                     await m.respond("завершить работу")
                     await m.respond("реанимировать жабу")
                     await m.respond("<b>отправиться в золотое подземелье</b>")
-                elif "Ваша жаба при" in p.text:
+                elif "Ваша жаба при" in RESPONSE.text:
                     await m.respond("реанимировать жабу")
                     await m.respond("<b>отправиться в золотое подземелье</b>")
                 else:
@@ -257,15 +257,15 @@ class KramiikkMod(loader.Module):
                 p = "Ваше"
                 await self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
                 await self.err(m, p)
-                if "Ближний бой: Пусто" in p.text:
+                if "Ближний бой: Пусто" in RESPONSE.text:
                     await m.respond("скрафтить клюв цапли")
-                if "Дальний бой: Пусто" in p.text:
+                if "Дальний бой: Пусто" in RESPONSE.text:
                     await m.respond("скрафтить букашкомет")
-                if "Наголовник: Пусто" in p.text:
+                if "Наголовник: Пусто" in RESPONSE.text:
                     await m.respond("скрафтить наголовник из клюва цапли")
-                if "Нагрудник: Пусто" in p.text:
+                if "Нагрудник: Пусто" in RESPONSE.text:
                     await m.respond("скрафтить нагрудник из клюва цапли")
-                if "Налапники: Пусто" in p.text:
+                if "Налапники: Пусто" in RESPONSE.text:
                     await m.respond("скрафтить налапники из клюва цапли")
                 else:
                     await m.respond("мой инвентарь")
@@ -304,7 +304,7 @@ class KramiikkMod(loader.Module):
             p = "Баланс"
             await self.client.send_message(m.chat_id, "<b>мой баланс</b>")
             await self.err(m, p)
-            bug = int(re.search(r"жабы: (\d+)", p.text, re.IGNORECASE).group(1))
+            bug = int(re.search(r"жабы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1))
             if bug < 100:
                 await m.reply("осталось для похода")
             else:
@@ -318,8 +318,8 @@ class KramiikkMod(loader.Module):
             p = "Ваш"
             await self.client.send_message(m.chat_id, "<b>мой инвентарь</b>")
             await self.err(m, p)
-            cnd = int(re.search(r"Леденцы: (\d+)", p.text, re.IGNORECASE).group(1))
-            apt = int(re.search(r"Аптечки: (\d+)", p.text, re.IGNORECASE).group(1))
+            cnd = int(re.search(r"Леденцы: (\d+)", RESPONSE.text, re.IGNORECASE).group(1))
+            apt = int(re.search(r"Аптечки: (\d+)", RESPONSE.text, re.IGNORECASE).group(1))
             if cnd > 0:
                 if cnd > 49:
                     await m.reply("отправить леденцы 50")
@@ -386,10 +386,10 @@ class KramiikkMod(loader.Module):
                 p = "🏃‍♂️"
                 await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                 await self.err(m, p)
-                if "(Откормить через" in p.text:
+                if "(Откормить через" in RESPONSE.text:
                     time_f = re.search(
                         r"Откормить через (\d+)ч:(\d+)м",
-                        p.text,
+                        RESPONSE.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -411,10 +411,10 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(
                         m.chat_id, "откормить жабку", schedule=delta
                     )
-                if "В подземелье можно" in p.text:
+                if "В подземелье можно" in RESPONSE.text:
                     dng_s = re.search(
                         r"подземелье можно через (\d+)ч. (\d+)м.",
-                        p.text,
+                        RESPONSE.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -452,10 +452,10 @@ class KramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-                elif "Забрать жабу можно" in p.text:
+                elif "Забрать жабу можно" in RESPONSE.text:
                     dng_s = re.search(
                         r"жабу можно через (\d+) часов (\d+) минут",
-                        p.text,
+                        RESPONSE.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -480,10 +480,10 @@ class KramiikkMod(loader.Module):
                 p = "🍭"
                 await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                 await self.err(m, p)
-                if "покормить через" in p.text:
+                if "покормить через" in RESPONSE:
                     time_n = re.search(
                         r"покормить через (\d+)ч:(\d+)м",
-                        p.text,
+                        RESPONSE.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -502,10 +502,10 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(
                         m.chat_id, "покормить жабку", schedule=delta
                     )
-                if "работу можно" in p.text:
+                if "работу можно" in RESPONSE.text:
                     time = re.search(
                         r"будет через (\d+)ч:(\d+)м",
-                        p.text,
+                        RESPONSE.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -536,10 +536,10 @@ class KramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-                if "жабу можно через" in p.text:
+                if "жабу можно через" in RESPONSE.text:
                     time = re.search(
                         r"через (\d+) часов (\d+) минут",
-                        p.text,
+                        RESPONSE.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -550,7 +550,7 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(
                         m.chat_id, "завершить работу", schedule=delta
                     )
-                elif "можно отправить" in p.text:
+                elif "можно отправить" in RESPONSE.text:
                     await m.respond("реанимировать жабу")
                     await m.respond("работа крупье")
                     delta = datetime.timedelta(hours=2, seconds=3)
