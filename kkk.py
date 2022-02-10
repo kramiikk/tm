@@ -57,13 +57,14 @@ class KramiikkMod(loader.Module):
             pass
 
     async def ter(self, m, s):
-        for i in s:
-            global MS
-            MS = datetime.timedelta(
+        global MS
+        for MS in s:
+            s = datetime.timedelta(
                 hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
             ) - datetime.timedelta(
-                hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+                hours=MS.date.hour, minutes=MS.date.minute, seconds=MS.date.second
             )
+            return s, MS
 
     async def watcher(self, m):
         name = "монарх"
@@ -72,7 +73,9 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
             else:
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
-            ms = await self.client.get_messages(1767017980, search=f"VS {klan.group(1)}")
+            ms = await self.client.get_messages(
+                1767017980, search=f"VS {klan.group(1)}"
+            )
             for i in ms:
                 ms = re.search(r"⚡️(.+) VS (.+)", i.text)
                 chet = f"{klan.group(2)}:{klan.group(3)}"
@@ -96,7 +99,6 @@ class KramiikkMod(loader.Module):
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
         ):
-            i = random.choice(ak)
             p = None
             await self.err(m, p)
             if not RESPONSE.text.startswith(
@@ -331,17 +333,12 @@ class KramiikkMod(loader.Module):
                     await m.reply(f"отправить аптечки {apt}")
         elif "сейчас в кв" in m.message:
             s = await self.client.get_messages(1767017980, limit=42)
-            ms = "<b>Сейчас в кв:\n</b>"
-            for i in ms:
-                delta = datetime.timedelta(
-                    hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-                ) - datetime.timedelta(
-                    hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
-                )
-                if "VS" in i.message and datetime.timedelta(
-                    days=0
-                ) <= delta < datetime.timedelta(hours=4, minutes=3):
-                    s += f"\n{i.message}\n<i>Время кв: {delta}</i>\n"
+            txt = "<b>Сейчас в кв:\n</b>"
+            await self.err(m, s)
+            if "VS" in MS.text and datetime.timedelta(days=0) <= s < datetime.timedelta(
+                hours=4, minutes=3
+            ):
+                txt += f"\n{MS.message}\n<i>Время кв: {s}</i>\n"
             await m.edit(s)
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
@@ -381,7 +378,7 @@ class KramiikkMod(loader.Module):
             p = "🐸"
             await self.client.send_message(m.chat_id, "<b>моя жаба</b>")
             await self.err(m, p)
-            jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", p.raw_text)
+            jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RESPONSE.raw_text)
             if int(jab.group(1)) > 50 and int(jab.group(2)) > 2700:
                 p = "🏃‍♂️"
                 await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
