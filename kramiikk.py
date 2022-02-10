@@ -89,6 +89,8 @@ class KramiikkMod(loader.Module):
             name = "ваня"
         elif self.me.id in {887255479}:
             name = "кира"
+        elif self.me.id in {1266917477}:
+            name = "артур"
         else:
             name = self.me.first_name
         if (
