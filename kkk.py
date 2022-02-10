@@ -56,18 +56,14 @@ class KramiikkMod(loader.Module):
         except asyncio.exceptions.TimeoutError:
             pass
 
-    async def ter(self, m, p):
-        try:
-            s = await self.client.get_messages(1767017980, search=p)
-            for p in s:
-                global MS
-                MS = datetime.timedelta(
-                    hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-                ) - datetime.timedelta(
-                    hours=p.date.hour, minutes=p.date.minute, seconds=p.date.second
-                )
-        except asyncio.exceptions.TimeoutError:
-            pass
+    async def ter(self, m, s):
+        for i in s:
+            global MS
+            MS = datetime.timedelta(
+                hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
+            ) - datetime.timedelta(
+                hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+            )
 
     async def watcher(self, m):
         name = "монарх"
@@ -77,7 +73,7 @@ class KramiikkMod(loader.Module):
             else:
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
             p = f"VS {klan.group(1)}"
-            await self.ter(m, p)
+            await self.err(m, p)
             capt = re.search(r"⚡️(.+) VS (.+)", RESPONSE.text)
             chet = f"{klan.group(2)}:{klan.group(3)}"
             tog = f"{capt.group(1)} 🥳 {capt.group(2)} 😢"
@@ -334,8 +330,8 @@ class KramiikkMod(loader.Module):
                 else:
                     await m.reply(f"отправить аптечки {apt}")
         elif "сейчас в кв" in m.message:
-            ms = await self.client.get_messages(1767017980, limit=42)
-            s = "<b>Сейчас в кв:\n</b>"
+            s = await self.client.get_messages(1767017980, limit=42)
+            ms = "<b>Сейчас в кв:\n</b>"
             for i in ms:
                 delta = datetime.timedelta(
                     hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
