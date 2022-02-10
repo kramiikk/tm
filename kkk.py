@@ -171,7 +171,7 @@ class KramiikkMod(loader.Module):
                 else:
                     s = "<i>🌚Кто это...</i>"
                 rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {s}"
-            await p.reply(rep)
+            await RESPONSE.reply(rep)
         elif (
             m.message.lower().startswith((name, f"@{self.me.username}"))
             or (name in m.message and m.message.endswith("😉"))
