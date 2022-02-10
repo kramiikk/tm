@@ -98,6 +98,7 @@ class KramiikkMod(loader.Module):
             await self.client.send_message(1655814348, tog)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
             p = None
+            await m.delete()
             await self.client.send_message(m.chat_id, "<b>топ жаб букашки</b>")
             await self.err(m, p)
             res = re.findall(r": (\d+) ", RESPONSE.text)
@@ -111,6 +112,8 @@ class KramiikkMod(loader.Module):
                     rep += f"\n{a} + {i} = {s}"
                     await p.edit(rep)
                 await asyncio.sleep(1)
+            rep += f"\n<b>Итого: {s}</b>"
+            await p.edit(rep)
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
         ):
