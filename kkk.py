@@ -112,7 +112,7 @@ class KramiikkMod(loader.Module):
                     rep += f"\n{a} + {i} = {s}"
                     await p.edit(rep)
                 await asyncio.sleep(1)
-            rep += f"\n\n<b>Итого: {s} букашек</b>"
+            rep += f"\n\n<b>Итого: {s}\n             букашек</b>"
             await p.edit(rep)
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
