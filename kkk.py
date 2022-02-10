@@ -105,7 +105,7 @@ class KramiikkMod(loader.Module):
             )
             for i in s:
                 p = re.search(r"⚡️(.+) VS (.+)", i.text)
-                await i.reply(p)
+                await i.reply(f"ss {p}")
         elif m.message.lower().startswith(
             ("начать клановую", "@toadbot начать клановую")
         ):
