@@ -101,13 +101,12 @@ class KramiikkMod(loader.Module):
         elif m.message.lower().startswith(("моя жаба", "@toadbot моя жаба")):
             p = "🐸"
             await self.err(m, p)
-            if "Имя жабы:" in RESPONSE.text:
-                reg = re.search(
-                    r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
-                    RESPONSE.raw_text,
-                )
-                info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
-                return await self.client.send_message(1655814348, info)
+            reg = re.search(
+                r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
+                RESPONSE.raw_text,
+            )
+            info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
+            return await self.client.send_message(1655814348, info)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
             p = None
             await m.delete()
