@@ -116,13 +116,14 @@ class KramiikkMod(loader.Module):
                     "а: (.+)\n.+: (.+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
                     RESPONSE.text,
                 )
-                info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nЗдоровье: {reg.group(3)}\nАтака: {reg.group(4)}\nЗащита: {reg.group(5)}"
+                lvl = (int(reg.group(3)) - 160)*2+1
             else:
                 reg = re.search(
                     "а: (.+)\n.+: (.+ (\d+).+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
                     RESPONSE.text,
                 )
-                info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nВремя: {reg.group(3)}\nЗдоровье: {reg.group(4)}\nАтака: {reg.group(5)}\nЗащита: {reg.group(6)}"
+                lvl = (int(reg.group(4)) - 160) * 2 + 1
+            info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nУровень: {lvl}"
             return await self.client.send_message(1655814348, info)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
             p = None
