@@ -71,12 +71,14 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
             else:
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
-            s = await self.client.get_messages(
-                1767017980, search=f"VS {klan.group(1)}"
-            )
+            s = await self.client.get_messages(1767017980, search=f"VS {klan.group(1)}")
             for i in s:
                 await self.ter(m, i)
-                if datetime.timedelta(days=0, hours=4) <= MS < datetime.timedelta(days=0, hours=4, minutes=30):
+                if (
+                    datetime.timedelta(days=0, hours=4)
+                    <= MS
+                    < datetime.timedelta(days=0, hours=4, minutes=30)
+                ):
                     p = re.search(r"..(.+) <.+> (.+)", i.text)
                     chet = f"{klan.group(2)}:{klan.group(3)}"
                     tog = f"{p.group(1)} 🥳 {p.group(2)} 😢"
@@ -96,6 +98,16 @@ class KramiikkMod(loader.Module):
             for i in ms:
                 tog += f"\n{i[0]} {i[1]}"
             await self.client.send_message(1655814348, tog)
+        elif m.message.lower().startswith(("моя жаба", "@toadbot моя жаба")):
+            p = "🐸"
+            await self.err(m, p)
+            if "Имя жабы:" in RESPONSE.text:
+                reg = re.search(
+                    r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
+                    RESPONSE.raw_text,
+                )
+                info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
+                return await self.client.send_message(1655814348, info)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
             p = None
             await m.delete()
@@ -354,7 +366,9 @@ class KramiikkMod(loader.Module):
             txt = "<b>Сейчас в кв:\n</b>"
             for i in s:
                 await self.ter(m, i)
-                if "VS" in i.text and datetime.timedelta(days=0) <= MS < datetime.timedelta(hours=4, minutes=3):
+                if "VS" in i.text and datetime.timedelta(
+                    days=0
+                ) <= MS < datetime.timedelta(hours=4, minutes=3):
                     txt += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
             await m.edit(txt)
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
@@ -590,27 +604,6 @@ class KramiikkMod(loader.Module):
                         schedule=delta + datetime.timedelta(hours=2, seconds=13),
                     )
 
-                # if message.message.lower().startswith(
-                #     ("моя жаба", "@toadbot моя жаба")
-                # ):
-                #     async with self.client.conversation(chat) as conv:
-                #         response = conv.wait_event(
-                #             events.NewMessage(
-                #                 incoming=True,
-                #                 from_users=1124824021,
-                #                 chats=message.chat_id,
-                #             )
-                #         )
-                #         response = await response
-                #         if "Имя жабы:" in response.text:
-                #             imy = re.search("Имя жабы: (.+)",
-                #                             response.text).group(1)
-                #             urv = re.search("вашей жабы: (.+)",
-                #                             response.text).group(1)
-                #             cll = re.search(
-                #                 "Класс: (.+)", response.text).group(1)
-                #             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nЖаба: {imy}\nУровень: {urv}\nКласс: {cll}\n{message.sender.first_name}"
-                #             return await self.client.send_message(OPPY, info)
                 # if message.message.lower().startswith(
                 #     ("мое снаряжение", "@toadbot мое снаряжение")
                 # ):
