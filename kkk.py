@@ -627,7 +627,7 @@ class KramiikkMod(loader.Module):
                 # ):
                 #         if "1 атака" in response.text:
                 #             jbb = re.search(
-                #                 "а (.+):\n.+: (.+) \n.+\n.+: (\d+)\n\n.+а (.+):\n.+: (.+) \n.+\n.+: (\d+)$",
+                #                 "🐸 (.+):\n.+ (.+) \n.+ (.+)\n.+ (.+)\n\n🐸 (.+):\n.+ (.+) \n.+ (.+)\n.+ (.+)",
                 #                 response.text,
                 #             )
                 #             if jbb:
