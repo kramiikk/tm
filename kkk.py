@@ -110,6 +110,8 @@ class KramiikkMod(loader.Module):
         elif m.message.lower().startswith(
             ("мое снаряжение", "@toadbot мое снаряжение")
         ):
+            p = "Ваше"
+            await self.err(m, p)
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\n"
             if "Нет усилителя" in RESPONSE.text:
                 reg = re.search(
