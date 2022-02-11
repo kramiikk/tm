@@ -94,7 +94,7 @@ class KramiikkMod(loader.Module):
         else:
             name = self.me.first_name
         if (
-            m.message.lower().startswith((name, f"@{self.me.username}"))
+            m.message.casefold().startswith((name, f"@{self.me.username}"))
             or (name in m.message and m.message.endswith("😉"))
         ) and m.sender_id in bak:
             args = m.text
@@ -220,7 +220,7 @@ class KramiikkMod(loader.Module):
                     await reply.reply(mmsg)
                 else:
                     await m.respond(mmsg)
-        elif m.message.lower().startswith("букашки мне😊") and m.sender_id in bak:
+        elif m.message.casefold().startswith("букашки мне😊") and m.sender_id in bak:
             await asyncio.sleep(random.randint(1, 13))
             p = "Баланс"
             s = self.client.send_message(m.chat_id, "<b>мой баланс</b>")
@@ -234,7 +234,7 @@ class KramiikkMod(loader.Module):
                     bug -= 50000
                 snt = bug - 50
                 await m.reply(f"отправить букашки {snt}")
-        elif m.message.lower().startswith("инвентарь мне😊") and m.sender_id in bak:
+        elif m.message.casefold().startswith("инвентарь мне😊") and m.sender_id in bak:
             await asyncio.sleep(random.randint(1, 13))
             p = "Ваш"
             s = self.client.send_message(m.chat_id, "<b>мой инвентарь</b>")
@@ -257,7 +257,7 @@ class KramiikkMod(loader.Module):
         elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
             await m.respond("реанимировать жабу")
             await m.click(0)
-        elif m.message.lower().startswith(
+        elif m.message.casefold().startswith(
             ("жаба инфо", "@toadbot жаба")
         ) and m.sender_id in {1785723159, 1261343954}:
             sch = (

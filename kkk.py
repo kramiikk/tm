@@ -607,45 +607,17 @@ class KramiikkMod(loader.Module):
                 # if message.message.lower().startswith(
                 #     ("мое снаряжение", "@toadbot мое снаряжение")
                 # ):
-                #     async with self.client.conversation(chat) as conv:
-                #         response = conv.wait_event(
-                #             events.NewMessage(
-                #                 incoming=True,
-                #                 from_users=1124824021,
-                #                 chats=message.chat_id,
-                #             )
-                #         )
                 #         response = await response
                 #         if "Ваше снаряжение:" in response.text:
                 #             snr = re.search(
                 #                 "(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n\n.+\n.+\n.+\n.+\n\n(.+)\n(.+)\n(.+)",
                 #                 response.text,
                 #             )
-                #             if snr:
-                #                 aa = snr.group(1)
-                #                 a1 = snr.group(2)
-                #                 a2 = snr.group(3)
-                #                 a3 = snr.group(4)
-                #                 a4 = snr.group(5)
-                #                 a5 = snr.group(6)
-                #                 a6 = snr.group(7)
-                #                 a7 = snr.group(8)
-                #                 a8 = snr.group(9)
-                #                 a9 = snr.group(10)
                 #             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
                 #             return await self.client.send_message(OPPY, info)
                 # if message.message.lower().startswith(
                 #     ("напасть на клан", "@toadbot напасть на клан")
                 # ):
-                #     async with self.client.conversation(chat) as conv:
-                #         response = conv.wait_event(
-                #             events.MessageEdited(
-                #                 incoming=True,
-                #                 from_users=1124824021,
-                #                 chats=chat,
-                #             )
-                #         )
-                #         response = await response
                 #         if "1 атака" in response.text:
                 #             jbb = re.search(
                 #                 "а (.+):\n.+: (.+) \n.+\n.+: (\d+)\n\n.+а (.+):\n.+: (.+) \n.+\n.+: (\d+)$",
