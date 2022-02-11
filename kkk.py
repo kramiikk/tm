@@ -107,6 +107,23 @@ class KramiikkMod(loader.Module):
             )
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
             return await self.client.send_message(1655814348, info)
+        elif m.message.lower().startswith(
+            ("мое снаряжение", "@toadbot мое снаряжение")
+        ):
+            info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\n"
+            if "Нет усилителя" in RESPONSE.text:
+                reg = re.search(
+                    "а: (.+)\n.+: (.+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
+                    RESPONSE.text,
+                )
+                info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nЗдоровье: {reg.group(3)}\nАтака: {reg.group(4)}\nЗащита: {reg.group(5)}"
+            else:
+                reg = re.search(
+                    "а: (.+)\n.+: (.+ (\d+).+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
+                    RESPONSE.text,
+                )
+                info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nВремя: {reg.group(3)}\nЗдоровье: {reg.group(4)}\nАтака: {reg.group(5)}\nЗащита: {reg.group(6)}"
+            return await self.client.send_message(1655814348, info)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
             p = None
             await m.delete()
@@ -602,18 +619,6 @@ class KramiikkMod(loader.Module):
                         "завершить работу",
                         schedule=delta + datetime.timedelta(hours=2, seconds=13),
                     )
-
-                # if message.message.lower().startswith(
-                #     ("мое снаряжение", "@toadbot мое снаряжение")
-                # ):
-                #         response = await response
-                #         if "Ваше снаряжение:" in response.text:
-                #             snr = re.search(
-                #                 "(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n(.+)\n\n.+\n.+\n.+\n.+\n\n(.+)\n(.+)\n(.+)",
-                #                 response.text,
-                #             )
-                #             info = f"Chat id: {chat}\nUser id: {message.sender_id}\nИмя: {message.sender.first_name}\\n\nСнаряжение:\n{aa}\n{a1}\n{a2}\n{a3}\n{a4}\n\n{a5}\n{a6}\n{a7}\n{a8}\n{a9}"
-                #             return await self.client.send_message(OPPY, info)
                 # if message.message.lower().startswith(
                 #     ("напасть на клан", "@toadbot напасть на клан")
                 # ):
