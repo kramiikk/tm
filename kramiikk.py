@@ -74,27 +74,27 @@ class KramiikkMod(loader.Module):
 
         """
         if self.me.id in {1486632011}:
-            name = "оботи"
+            name = "Оботи"
         elif self.me.id in {1286303075}:
-            name = "лавин"
+            name = "Лавин"
         elif self.me.id in {1785723159}:
-            name = "крамик"
+            name = "Крамик"
         elif self.me.id in {547639600}:
-            name = "нельс"
+            name = "Нельс"
         elif self.me.id in {980699009}:
-            name = "лена"
+            name = "Лена"
         elif self.me.id in {1423368454}:
-            name = "len"
+            name = "Len"
         elif self.me.id in {230473666}:
-            name = "ваня"
+            name = "Ваня"
         elif self.me.id in {887255479}:
-            name = "кира"
+            name = "Кира"
         elif self.me.id in {1266917477}:
-            name = "артур"
+            name = "Артур"
         else:
             name = self.me.first_name
         if (
-            m.message.casefold().startswith((name, f"@{self.me.username}"))
+            m.message.startswith((name, f"@{self.me.username}"))
             or (name in m.message and m.message.endswith("😉"))
         ) and m.sender_id in bak:
             args = m.text
