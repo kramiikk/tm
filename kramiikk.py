@@ -242,9 +242,9 @@ class KramiikkMod(loader.Module):
         elif m.message.casefold().startswith(
             ("жаба инфо", "@toadbot жаба")
         ) and m.sender_id in {1785723159, 1261343954}:
+            p = "🏃‍♂️"
+            await self.err(m, p)
             if "(Откормить через" in RESPONSE.text:
-                p = "🏃‍♂️"
-                await self.err(m, p)
                 time_f = re.search(
                     r"Откормить через (\d+)ч:(\d+)м",
                     RESPONSE.text,
