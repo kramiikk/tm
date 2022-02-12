@@ -136,7 +136,6 @@ class KramiikkMod(loader.Module):
             async with self.client.conversation(m.chat_id) as conv:
                 rsp = conv.wait_event(
                     events.MessageEdited(
-                        incoming=True,
                         from_users=1124824021,
                         chats=m.chat_id,
                         pattern="🤕",
