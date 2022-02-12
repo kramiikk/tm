@@ -273,6 +273,21 @@ class KramiikkMod(loader.Module):
                 for i in capt:
                     await self.client.send_message(int(i), "<b>реанимировать жабу</b>")
                     await self.client.send_message(int(i), "<b>на арену</b>")
+            elif "клан" in m.message:
+                arg = args.split(" ", 3)[2]
+                src = f"Клан: {arg} Состав:"
+                get = await self.client.get_messages(1655814348, search=src)
+                reg = re.findall(r"\n(\d+)", get.text)
+                msg = "Клан {arg}:\n"
+                for i in reg:
+                    src = f"{i} Уровень:"
+                    get = await self.client.get_messages(1655814348, search=src)
+                    reg = re.search(r"ь: (\d+)", get.text)
+                    msg += f"\nУровень: {reg.group(1)}"
+                    if "Жаба" in get.text:
+                        reg = re.search(r"а: (.+)", get.text)
+                        msg += f" Жаба: {reg.group(1)}"
+                await m.respond(msg)
             elif "напади" in m.message:
                 p = None
                 await self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
