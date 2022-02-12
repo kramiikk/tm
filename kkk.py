@@ -142,6 +142,7 @@ class KramiikkMod(loader.Module):
                         pattern="🤕",
                     )
                 )
+                await conv.cancel_all()
                 txt = f"Chat id: {m.chat_id}\n"
                 reg = re.findall(
                     "🐸 (.+):\n.+ (.+) \n.+\n.+ (.+)",
