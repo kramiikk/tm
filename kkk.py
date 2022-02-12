@@ -10,8 +10,6 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
-ak = ["золото", "серебро", "бронза", "дерево"]
-
 bak = [
     1785723159,
     1261343954,
