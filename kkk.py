@@ -125,7 +125,7 @@ class KramiikkMod(loader.Module):
                 lvl = (int(reg.group(4)) - 160) * 2 + 1
             info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nУровень: {lvl}"
             return await self.client.send_message(1655814348, info)
-        if m.message.lower().startswith(
+        elif m.message.lower().startswith(
             (
                 "напасть на клан",
                 "@toadbot напасть на клан",
