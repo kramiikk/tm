@@ -287,7 +287,7 @@ class KramiikkMod(loader.Module):
                             ger = re.search(r"ь: (\d+)", p.text)
                             msg += f"\nУровень: {ger.group(1)}"
                         if "Жаба" in p.text:
-                            ger = re.search(r"а: (.+)", get.text).group(1)
+                            ger = re.search(r"а: (.+)", p.text).group(1)
                             msg += f" Жаба: {ger}"
                 await m.respond(msg)
             elif "напади" in m.message:
