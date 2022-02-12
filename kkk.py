@@ -276,17 +276,18 @@ class KramiikkMod(loader.Module):
             elif "клан" in m.message:
                 arg = args.split(" ", 3)[2]
                 src = f"Клан: {arg} Состав:"
-                get = await self.client.get_messages(1655814348, search=src)
-                reg = re.findall(r"\n(\d+)", get.text)
                 msg = "Клан {arg}:\n"
-                for i in reg:
-                    src = f"{i} Уровень:"
-                    get = await self.client.get_messages(1655814348, search=src)
-                    reg = re.search(r"ь: (\d+)", get.text)
-                    msg += f"\nУровень: {reg.group(1)}"
-                    if "Жаба" in get.text:
-                        reg = re.search(r"а: (.+)", get.text)
-                        msg += f" Жаба: {reg.group(1)}"
+                get = await self.client.get_messages(1655814348, search=src)
+                for i in get:
+                    reg = re.findall(r"\n(\d+)", i.text)
+                    for s in reg:
+                        src = f"{s} Уровень:"
+                        get = await self.client.get_messages(1655814348, search=src)
+                        reg = re.search(r"ь: (\d+)", get.text)
+                        msg += f"\nУровень: {reg.group(1)}"
+                        if "Жаба" in get.text:
+                            reg = re.search(r"а: (.+)", get.text)
+                            msg += f" Жаба: {reg.group(1)}"
                 await m.respond(msg)
             elif "напади" in m.message:
                 p = None
