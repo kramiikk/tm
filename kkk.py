@@ -274,7 +274,7 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(int(i), "<b>реанимировать жабу</b>")
                     await self.client.send_message(int(i), "<b>на арену</b>")
             elif "клан" in m.message:
-                arg = args.split(" ", 3)[2]
+                arg = args.split(" ", 2)[2]
                 src = f"Клан: {arg} Состав:"
                 msg = f"Клан {arg}:\n"
                 get = await self.client.get_messages(1655814348, search=src)
