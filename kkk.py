@@ -283,11 +283,12 @@ class KramiikkMod(loader.Module):
                     for s in reg:
                         src = f"{s} Уровень:"
                         get = await self.client.get_messages(1655814348, search=src)
-                        reg = re.search(r"ь: (\d+)", get.text)
-                        msg += f"\nУровень: {reg.group(1)}"
-                        if "Жаба" in get.text:
-                            reg = re.search(r"а: (.+)", get.text)
-                            msg += f" Жаба: {reg.group(1)}"
+                        for p in get:
+                            ger = re.search(r"ь: (\d+)", p.text)
+                        msg += f"\nУровень: {ger.group(1)}"
+                        if "Жаба" in p.text:
+                            ger = re.search(r"а: (.+)", get.text).group(1)
+                            msg += f" Жаба: {ger}"
                 await m.respond(msg)
             elif "напади" in m.message:
                 p = None
