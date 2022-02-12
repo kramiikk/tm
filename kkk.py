@@ -285,7 +285,7 @@ class KramiikkMod(loader.Module):
                         get = await self.client.get_messages(1655814348, search=src)
                         for p in get:
                             ger = re.search(r"ь: (\d+)", p.text)
-                        msg += f"\nУровень: {ger.group(1)}"
+                            msg += f"\nУровень: {ger.group(1)}"
                         if "Жаба" in p.text:
                             ger = re.search(r"а: (.+)", get.text).group(1)
                             msg += f" Жаба: {ger}"
