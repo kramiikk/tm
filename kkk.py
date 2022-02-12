@@ -276,12 +276,13 @@ class KramiikkMod(loader.Module):
             elif "клан" in m.message:
                 arg = args.split(" ", 3)[2]
                 src = f"Клан: {arg} Состав:"
-                msg = "Клан {arg}:\n"
+                msg = f"Клан {arg}:\n"
                 get = await self.client.get_messages(1655814348, search=src)
                 for i in get:
+                    ger = re.search(r"id: (.+)", i.text).group(1)
                     reg = re.findall(r"\n(\d+)", i.text)
                     for s in reg:
-                        src = f"{s} Уровень:"
+                        src = f"{ger} {s} Уровень:"
                         get = await self.client.get_messages(1655814348, search=src)
                         for p in get:
                             ger = re.search(r"ь: (\d+)", p.text)
