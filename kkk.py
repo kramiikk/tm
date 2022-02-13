@@ -43,37 +43,30 @@ class KramiikkMod(loader.Module):
         self.db = db
         self.me = await client.get_me()
 
-    async def err(self, m, p):
+    async def err(self, i, m, p):
         try:
+            global MS
+            MS = datetime.timedelta(
+                hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
+            ) - datetime.timedelta(
+                hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+            )
+
             async with self.client.conversation(m.chat_id) as conv:
                 global RSP
-                RSP = await conv.wait_event(
+                RSP = conv.wait_event(
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
                 await conv.cancel_all()
-        except asyncio.exceptions.TimeoutError:
-            pass
 
-    async def edd(self, m, p):
-        try:
-            async with self.client.conversation(m.chat_id) as conv:
                 global RSS
-                RSS = await conv.wait_event(
+                RSS = conv.wait_event(
                     events.MessageEdited(
                         from_users=1124824021, chats=m.chat_id, pattern=p
                     )
                 )
-                await conv.cancel_all()
         except asyncio.exceptions.TimeoutError:
             pass
-
-    async def ter(self, m, i):
-        global MS
-        MS = datetime.timedelta(
-            hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-        ) - datetime.timedelta(
-            hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
-        )
 
     async def watcher(self, m):
         name = "монарх"
@@ -84,7 +77,7 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
             s = await self.client.get_messages(1767017980, search=f"VS {klan.group(1)}")
             for i in s:
-                await self.ter(m, i)
+                await self.err(m, i)
                 if (
                     datetime.timedelta(days=0, hours=4)
                     <= MS
@@ -112,9 +105,10 @@ class KramiikkMod(loader.Module):
         elif m.message.lower().startswith(("моя жаба", "@toadbot моя жаба")):
             p = "🐸"
             await self.err(m, p)
+            rsp = await RSP
             reg = re.search(
                 r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
-                RSP.raw_text,
+                rsp.raw_text,
             )
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
             return await self.client.send_message(1655814348, info)
@@ -124,16 +118,16 @@ class KramiikkMod(loader.Module):
             p = "Ваше"
             await self.err(m, p)
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\n"
-            if "Нет усилителя" in RSP.text:
+            if "Нет усилителя" in rsp.text:
                 reg = re.search(
                     "а: (.+)\n.+: (.+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
-                    RSP.text,
+                    rsp.text,
                 )
                 lvl = (int(reg.group(3)) - 160) * 2 + 1
             else:
                 reg = re.search(
                     "а: (.+)\n.+: (.+ (\d+).+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
-                    RSP.text,
+                    rsp.text,
                 )
                 lvl = (int(reg.group(4)) - 160) * 2 + 1
             info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nУровень: {lvl}"
@@ -146,12 +140,13 @@ class KramiikkMod(loader.Module):
                 "на арену",
             )
         ):
-            p = "🤕"
-            await self.edd(m, p)
+            p = "🐸"
+            await self.err(m, p)
+            rsp = await RSP
             txt = f"Chat id: {m.chat_id}\n"
             reg = re.findall(
                 "🐸 (.+):\n.+ (.+) \n.+\n.+ (.+)",
-                RSS.text,
+                rsp.text,
             )
             for i in reg:
                 y = ((int(i[1]) + int(i[2])) - 160) * 2
@@ -160,8 +155,8 @@ class KramiikkMod(loader.Module):
                 txt += f"\nУровень: {y} Жаба: {i[0]}"
             mf = await self.client.send_message(1655814348, txt)
             p = "Победитель"
-            await self.err(m, p)
-            if f"Победитель {i[0]}!!!" in RSP.text:
+            rsp = await RSP
+            if f"Победитель {i[0]}!!!" in rsp.text:
                 txt += f"\n\n<b>Победитель {i[0]}!!!</b>"
             await mf.edit(txt)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
@@ -169,9 +164,10 @@ class KramiikkMod(loader.Module):
             await m.delete()
             await self.client.send_message(m.chat_id, "<b>топ жаб букашки</b>")
             await self.err(m, p)
-            res = re.findall(r": (\d+) ", RSP.text)
+            rsp = await RSP
+            res = re.findall(r": (\d+) ", rsp.text)
             rep = "И так посчитаем... 🤑\n"
-            p = await RSP.reply(rep)
+            p = await rsp.reply(rep)
             s = 0
             for i in res:
                 a = s
@@ -187,7 +183,8 @@ class KramiikkMod(loader.Module):
         ):
             p = None
             await self.err(m, p)
-            if not RSP.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
+            rsp = await RSP
+            if not rsp.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
                 src = f"{m.chat_id} {m.sender_id} Клан:"
                 lira = None
                 ms = await self.client.get_messages(1655814348, search=src)
@@ -233,7 +230,8 @@ class KramiikkMod(loader.Module):
         elif m.message.lower().startswith(("мой клан", "@toadbot мой клан")):
             p = "Клан"
             await self.err(m, p)
-            klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
+            rsp = await RSP
+            klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", rsp.text)
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
             return await self.client.send_message(1655814348, info)
         elif "захват топа" in m.message and m.sender_id in bak:
@@ -243,7 +241,8 @@ class KramiikkMod(loader.Module):
                 m.chat_id, "сезон кланов " + args.split(" ", 2)[2]
             )
             await self.err(m, p)
-            result = re.findall(r"(\d+)\. 🛡(\d+) \| (.*)", RSP.text)
+            rsp = await RSP
+            result = re.findall(r"(\d+)\. 🛡(\d+) \| (.*)", rsp.text)
             rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
             for i in result:
                 src = f"{i[2]} Усилитель:"
@@ -253,7 +252,7 @@ class KramiikkMod(loader.Module):
                 else:
                     s = "<i>🌚Кто это...</i>"
                 rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {s}"
-            await RSP.reply(rep)
+            await rsp.reply(rep)
         elif (
             m.message.lower().startswith((name, f"@{self.me.username}"))
             or (name in m.message and m.message.endswith("😉"))
@@ -304,7 +303,8 @@ class KramiikkMod(loader.Module):
                 p = "•"
                 await self.client.send_message(m.chat_id, "<b>мои жабы</b>")
                 await self.err(m, p)
-                capt = re.findall(r"\| -100(\d+)", RSP.text)
+                rsp = await RSP
+                capt = re.findall(r"\| -100(\d+)", rsp.text)
                 for i in capt:
                     await self.client.send_message(int(i), "<b>реанимировать жабу</b>")
                     await self.client.send_message(int(i), "<b>на арену</b>")
@@ -330,11 +330,12 @@ class KramiikkMod(loader.Module):
                 p = None
                 await self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
                 await self.err(m, p)
-                if "Ваша жаба на" in RSP.text:
+                rsp = await RSP
+                if "Ваша жаба на" in rsp.text:
                     await m.respond("завершить работу")
                     await m.respond("реанимировать жабу")
                     await m.respond("напасть на клан")
-                elif "Ваша жаба сейчас" in RSP.text:
+                elif "Ваша жаба сейчас" in rsp.text:
                     await m.respond("выйти из подземелья")
                     await m.respond("реанимировать жабу")
                     await m.respond("напасть на клан")
@@ -344,11 +345,12 @@ class KramiikkMod(loader.Module):
                     m.chat_id, "<b>отправиться в золотое подземелье</b>"
                 )
                 await self.err(m, p)
-                if "Пожалейте жабу," in RSP.text:
+                rsp = await RSP
+                if "Пожалейте жабу," in rsp.text:
                     await m.respond("завершить работу")
                     await m.respond("реанимировать жабу")
                     await m.respond("<b>отправиться в золотое подземелье</b>")
-                elif "Ваша жаба при" in RSP.text:
+                elif "Ваша жаба при" in rsp.text:
                     await m.respond("реанимировать жабу")
                     await m.respond("<b>отправиться в золотое подземелье</b>")
                 else:
@@ -357,15 +359,16 @@ class KramiikkMod(loader.Module):
                 p = "Ваше"
                 await self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
                 await self.err(m, p)
-                if "Ближний бой: Пусто" in RSP.text:
+                rsp = await RSP
+                if "Ближний бой: Пусто" in rsp.text:
                     await m.respond("скрафтить клюв цапли")
-                if "Дальний бой: Пусто" in RSP.text:
+                if "Дальний бой: Пусто" in rsp.text:
                     await m.respond("скрафтить букашкомет")
-                if "Наголовник: Пусто" in RSP.text:
+                if "Наголовник: Пусто" in rsp.text:
                     await m.respond("скрафтить наголовник из клюва цапли")
-                if "Нагрудник: Пусто" in RSP.text:
+                if "Нагрудник: Пусто" in rsp.text:
                     await m.respond("скрафтить нагрудник из клюва цапли")
-                if "Налапники: Пусто" in RSP.text:
+                if "Налапники: Пусто" in rsp.text:
                     await m.respond("скрафтить налапники из клюва цапли")
                 else:
                     await m.respond("мой инвентарь")
@@ -404,7 +407,8 @@ class KramiikkMod(loader.Module):
             p = "Баланс"
             await self.client.send_message(m.chat_id, "<b>мой баланс</b>")
             await self.err(m, p)
-            bug = int(re.search(r"жабы: (\d+)", RSP.text, re.IGNORECASE).group(1))
+            rsp = await RSP
+            bug = int(re.search(r"жабы: (\d+)", rsp.text, re.IGNORECASE).group(1))
             if bug < 100:
                 await m.reply("осталось для похода")
             else:
@@ -418,8 +422,9 @@ class KramiikkMod(loader.Module):
             p = "Ваш"
             await self.client.send_message(m.chat_id, "<b>мой инвентарь</b>")
             await self.err(m, p)
-            cnd = int(re.search(r"Леденцы: (\d+)", RSP.text, re.IGNORECASE).group(1))
-            apt = int(re.search(r"Аптечки: (\d+)", RSP.text, re.IGNORECASE).group(1))
+            rsp = await RSP
+            cnd = int(re.search(r"Леденцы: (\d+)", rsp.text, re.IGNORECASE).group(1))
+            apt = int(re.search(r"Аптечки: (\d+)", rsp.text, re.IGNORECASE).group(1))
             if cnd > 0:
                 if cnd > 49:
                     await m.reply("отправить леденцы 50")
@@ -433,7 +438,7 @@ class KramiikkMod(loader.Module):
             s = await self.client.get_messages(1767017980, limit=42)
             txt = "<b>Сейчас в кв:\n</b>"
             for i in s:
-                await self.ter(m, i)
+                await self.err(m, i)
                 if "VS" in i.text and datetime.timedelta(
                     days=0
                 ) <= MS < datetime.timedelta(hours=4, minutes=3):
@@ -477,15 +482,17 @@ class KramiikkMod(loader.Module):
             p = "🐸"
             await self.client.send_message(m.chat_id, "<b>моя жаба</b>")
             await self.err(m, p)
-            jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RSP.raw_text)
+            rsp = await RSP
+            jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", rsp.raw_text)
             if int(jab.group(1)) > 50 and int(jab.group(2)) > 2700:
                 p = "🏃‍♂️"
                 await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                 await self.err(m, p)
-                if "(Откормить через" in RSP.text:
+                rsp = await RSP
+                if "(Откормить через" in rsp.text:
                     time_f = re.search(
                         r"Откормить через (\d+)ч:(\d+)м",
-                        RSP.text,
+                        rsp.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -507,10 +514,10 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(
                         m.chat_id, "откормить жабку", schedule=delta
                     )
-                if "В подземелье можно" in RSP.text:
+                if "В подземелье можно" in rsp.text:
                     dng_s = re.search(
                         r"подземелье можно через (\d+)ч. (\d+)м.",
-                        RSP.text,
+                        rsp.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -548,10 +555,10 @@ class KramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-                elif "Забрать жабу можно" in RSP.text:
+                elif "Забрать жабу можно" in rsp.text:
                     dng_s = re.search(
                         r"жабу можно через (\d+) часов (\d+) минут",
-                        RSP.text,
+                        rsp.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -576,10 +583,11 @@ class KramiikkMod(loader.Module):
                 p = "🍭"
                 await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                 await self.err(m, p)
-                if "покормить через" in RSP:
+                rsp = await RSP
+                if "покормить через" in rsp:
                     time_n = re.search(
                         r"покормить через (\d+)ч:(\d+)м",
-                        RSP.text,
+                        rsp.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -598,10 +606,10 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(
                         m.chat_id, "покормить жабку", schedule=delta
                     )
-                if "работу можно" in RSP.text:
+                if "работу можно" in rsp.text:
                     time = re.search(
                         r"будет через (\d+)ч:(\d+)м",
-                        RSP.text,
+                        rsp.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -632,10 +640,10 @@ class KramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-                if "жабу можно через" in RSP.text:
+                if "жабу можно через" in rsp.text:
                     time = re.search(
                         r"через (\d+) часов (\d+) минут",
-                        RSP.text,
+                        rsp.text,
                         re.IGNORECASE,
                     )
                     delta = datetime.timedelta(
@@ -646,7 +654,7 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(
                         m.chat_id, "завершить работу", schedule=delta
                     )
-                elif "можно отправить" in RSP.text:
+                elif "можно отправить" in rsp.text:
                     await m.respond("реанимировать жабу")
                     await m.respond("работа крупье")
                     delta = datetime.timedelta(hours=2, seconds=3)
