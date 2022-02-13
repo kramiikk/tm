@@ -54,6 +54,19 @@ class KramiikkMod(loader.Module):
         except asyncio.exceptions.TimeoutError:
             pass
 
+    async def edd(self, m, p):
+        try:
+            async with self.client.conversation(m.chat_id) as conv:
+                global RSS
+                RSS = await conv.wait_event(
+                    events.MessageEdited(
+                        from_users=1124824021, chats=m.chat_id, pattern=p
+                    )
+                )
+                await conv.cancel_all()
+        except asyncio.exceptions.TimeoutError:
+            pass
+
     async def ter(self, m, i):
         global MS
         MS = datetime.timedelta(
@@ -133,26 +146,19 @@ class KramiikkMod(loader.Module):
                 "на арену",
             )
         ):
-            async with self.client.conversation(m.chat_id) as conv:
-                rsp = await conv.wait_event(
-                    events.MessageEdited(
-                        from_users=1124824021,
-                        chats=m.chat_id,
-                        pattern="🤕",
-                    )
-                )
-                await conv.cancel_all()
-                txt = f"Chat id: {m.chat_id}\n"
-                reg = re.findall(
-                    "🐸 (.+):\n.+ (.+) \n.+\n.+ (.+)",
-                    rsp.text,
-                )
-                for i in reg:
-                    y = ((int(i[1]) + int(i[2])) - 160) * 2
-                    if y < 25:
-                        y = f"{y} возможно без цапли"
-                    txt += f"\nУровень: {y} Жаба: {i[0]}"
-                mf = await self.client.send_message(1655814348, txt)
+            p = "🤕"
+            await self.edd(m, p)
+            txt = f"Chat id: {m.chat_id}\n"
+            reg = re.findall(
+                "🐸 (.+):\n.+ (.+) \n.+\n.+ (.+)",
+                RSS.text,
+            )
+            for i in reg:
+                y = ((int(i[1]) + int(i[2])) - 160) * 2
+                if y < 25:
+                    y = f"{y} возможно без цапли"
+                txt += f"\nУровень: {y} Жаба: {i[0]}"
+            mf = await self.client.send_message(1655814348, txt)
             p = "Победитель"
             await self.err(m, p)
             if f"Победитель {i[0]}!!!" in RSP.text:
