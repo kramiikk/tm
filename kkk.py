@@ -153,11 +153,11 @@ class KramiikkMod(loader.Module):
                         y = f"{y} возможно без цапли"
                     txt += f"\nУровень: {y} Жаба: {i[0]}"
                 mf = await self.client.send_message(1655814348, txt)
-                p = "Победитель"
-                await self.err(m, p)
-                if f"Победитель {i[0]}!!!" in RSP.text:
-                    txt += f"\n\n<b>Победитель {i[0]}!!!</b>"
-                await mf.edit(txt)
+            p = "Победитель"
+            await self.err(m, p)
+            if f"Победитель {i[0]}!!!" in RSP.text:
+                txt += f"\n\n<b>Победитель {i[0]}!!!</b>"
+            await mf.edit(txt)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
             p = None
             await m.delete()
