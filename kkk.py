@@ -43,15 +43,16 @@ class KramiikkMod(loader.Module):
         self.db = db
         self.me = await client.get_me()
 
-    async def err(self, i, m, p):
-        try:
-            global MS
-            MS = datetime.timedelta(
-                hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-            ) - datetime.timedelta(
-                hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
-            )
+    async def tms(self, m, i):
+        global MS
+        MS = datetime.timedelta(
+            hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
+        ) - datetime.timedelta(
+            hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+        )
 
+    async def err(self, m, p):
+        try:
             async with self.client.conversation(m.chat_id) as conv:
                 global RSP
                 RSP = conv.wait_event(
@@ -77,17 +78,17 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
             s = await self.client.get_messages(1767017980, search=f"VS {klan.group(1)}")
             for i in s:
-                await self.err(m, i)
+                await self.tms(m, i)
                 if (
-                    datetime.timedelta(days=0, hours=4)
-                    <= MS
-                    < datetime.timedelta(days=0, hours=4, minutes=30)
+                        datetime.timedelta(days=0, hours=4)
+                        <= MS
+                        < datetime.timedelta(days=0, hours=4, minutes=30)
                 ):
                     p = re.search(r"..(.+) <.+> (.+)", i.text)
                     chet = f"{klan.group(2)}:{klan.group(3)}"
                     tog = f"{p.group(1)} 🥳 {p.group(2)} 😢"
                     if (klan.group(1) == p.group(1) and "одержал" in m.text) or (
-                        klan.group(1) != p.group(1) and "слабее" in m.text
+                            klan.group(1) != p.group(1) and "слабее" in m.text
                     ):
                         if int(klan.group(2)) < int(klan.group(3)):
                             chet = "".join(reversed(chet))
@@ -113,10 +114,11 @@ class KramiikkMod(loader.Module):
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
             return await self.client.send_message(1655814348, info)
         elif m.message.lower().startswith(
-            ("мое снаряжение", "@toadbot мое снаряжение")
+                ("мое снаряжение", "@toadbot мое снаряжение")
         ):
             p = "Ваше"
             await self.err(m, p)
+            rsp = await RSP
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\n"
             if "Нет усилителя" in rsp.text:
                 reg = re.search(
@@ -133,12 +135,12 @@ class KramiikkMod(loader.Module):
             info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nУровень: {lvl}"
             return await self.client.send_message(1655814348, info)
         elif m.message.lower().startswith(
-            (
-                "напасть на клан",
-                "@toadbot напасть на клан",
-                "@toadbot на арену",
-                "на арену",
-            )
+                (
+                        "напасть на клан",
+                        "@toadbot напасть на клан",
+                        "@toadbot на арену",
+                        "на арену",
+                )
         ):
             p = "🐸"
             await self.err(m, p)
@@ -153,12 +155,12 @@ class KramiikkMod(loader.Module):
                 if y < 25:
                     y = f"{y} возможно без цапли"
                 txt += f"\nУровень: {y} Жаба: {i[0]}"
-            mf = await self.client.send_message(1655814348, txt)
-            p = "Победитель"
-            rsp = await RSP
-            if f"Победитель {i[0]}!!!" in rsp.text:
-                txt += f"\n\n<b>Победитель {i[0]}!!!</b>"
-            await mf.edit(txt)
+                mf = await self.client.send_message(1655814348, txt)
+                p = "Победитель"
+                rsp = await RSP
+                if f"Победитель {i[0]}!!!" in rsp.text:
+                    txt += f"\n\n<b>Победитель {i[0]}!!!</b>"
+                await mf.edit(txt)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
             p = None
             await m.delete()
@@ -179,7 +181,7 @@ class KramiikkMod(loader.Module):
             rep += f"\n\n<b>Итого: {s}\n             букашек</b>"
             await p.edit(rep)
         elif m.message.lower().startswith(
-            ("начать клановую", "@toadbot начать клановую")
+                ("начать клановую", "@toadbot начать клановую")
         ):
             p = None
             await self.err(m, p)
@@ -254,8 +256,8 @@ class KramiikkMod(loader.Module):
                 rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {s}"
             await rsp.reply(rep)
         elif (
-            m.message.lower().startswith((name, f"@{self.me.username}"))
-            or (name in m.message and m.message.endswith("😉"))
+                m.message.lower().startswith((name, f"@{self.me.username}"))
+                or (name in m.message and m.message.endswith("😉"))
         ) and m.sender_id in bak:
             args = m.text
             reply = await m.get_reply_message()
@@ -322,9 +324,9 @@ class KramiikkMod(loader.Module):
                         for p in get:
                             ger = re.search(r"ь: (\d+)", p.text)
                             msg += f"\nУровень: {ger.group(1)}"
-                        if "Жаба:" in p.text:
-                            ger = re.search(r"а: (.+)", p.text).group(1)
-                            msg += f" Жаба: {ger}"
+                            if "Жаба:" in p.text:
+                                ger = re.search(r"а: (.+)", p.text).group(1)
+                                msg += f" Жаба: {ger}"
                 await m.respond(msg)
             elif "напади" in m.message:
                 p = None
@@ -374,8 +376,8 @@ class KramiikkMod(loader.Module):
                     await m.respond("мой инвентарь")
             elif "лвл чек" in m.message:
                 s = (
-                    (int(m.text.split(" ", 4)[3]) + int(m.text.split(" ", 4)[4])) - 160
-                ) * 2
+                            (int(m.text.split(" ", 4)[3]) + int(m.text.split(" ", 4)[4])) - 160
+                    ) * 2
                 if s > -1:
                     await m.reply(f"<b>~ {s} лвл</b>")
             elif "туса" in m.message:
@@ -438,9 +440,9 @@ class KramiikkMod(loader.Module):
             s = await self.client.get_messages(1767017980, limit=42)
             txt = "<b>Сейчас в кв:\n</b>"
             for i in s:
-                await self.err(m, i)
+                await self.tms(m, i)
                 if "VS" in i.text and datetime.timedelta(
-                    days=0
+                        days=0
                 ) <= MS < datetime.timedelta(hours=4, minutes=3):
                     txt += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
             await m.edit(txt)
@@ -448,7 +450,7 @@ class KramiikkMod(loader.Module):
             await m.respond("реанимировать жабу")
             await m.click(0)
         elif (
-            "[8🐝]" or "[4🐝]" or "[2☢️🐝, 2🔴🐝," or "Бзззз! С пасеки"
+                "[8🐝]" or "[4🐝]" or "[2☢️🐝, 2🔴🐝," or "Бзззз! С пасеки"
         ) in m.message and m.buttons:
             await m.click(0)
         elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
@@ -466,8 +468,8 @@ class KramiikkMod(loader.Module):
                 delta = delta + datetime.timedelta(seconds=13)
                 await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
         elif (
-            m.message.lower().startswith(("доброе утро", "спокойной ночи"))
-            and m.sender_id in bak
+                m.message.lower().startswith(("доброе утро", "спокойной ночи"))
+                and m.sender_id in bak
         ):
             sch = (
                 await self.client(
