@@ -101,7 +101,7 @@ class KramiikkMod(loader.Module):
                 for i in ms:
                     tog += f"\n{i[0]} {i[1]}"
                 await self.client.send_message(1655814348, tog)
-            elif m.message.lower().startswith(("моя жаба", "@toadbot моя жаба")):
+            elif m.message.lower().startswith(("моя жаба", "@toadbot моя жаба")) and (len(m.message) == 17 or len(m.message) == 8):
                 p = "🐸"
                 await self.err(m, p)
                 if "Имя жабы" in RSP.text:
@@ -111,9 +111,7 @@ class KramiikkMod(loader.Module):
                     )
                     info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
                     await self.client.send_message(1655814348, info)
-            elif m.message.lower().startswith(
-                ("мое снаряжение", "@toadbot мое снаряжение")
-            ):
+            elif m.message.lower().startswith(("мое снаряжение", "@toadbot мое снаряжение")) and (len(m.message) == 14 or len(m.message) == 23):
                 p = "Ваше"
                 await self.err(m, p)
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\n"
@@ -228,7 +226,7 @@ class KramiikkMod(loader.Module):
                     r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
                 return await self.client.send_message(1655814348, info)
-            elif "захват топа" in m.message and m.sender_id in bak and ((len(m.message) == 19 or len(m.message) == 18)):
+            elif "захват топа" in m.message and m.sender_id in bak and len(m.message) in {18, 19}:
                 args = m.text
                 p = "⚔️"
                 await self.client.send_message(
