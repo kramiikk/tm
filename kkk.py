@@ -58,7 +58,6 @@ class KramiikkMod(loader.Module):
                 RSP = conv.wait_event(
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
-                await conv.cancel_all()
 
                 global RSS
                 RSS = conv.wait_event(
@@ -155,12 +154,7 @@ class KramiikkMod(loader.Module):
                 if y < 25:
                     y = f"{y} возможно без цапли"
                 txt += f"\nУровень: {y} Жаба: {i[0]}"
-                mf = await self.client.send_message(1655814348, txt)
-                p = "Победитель"
-                rsp = await RSP
-                if f"Победитель {i[0]}!!!" in rsp.text:
-                    txt += f"\n\n<b>Победитель {i[0]}!!!</b>"
-                await mf.edit(txt)
+                await self.client.send_message(1655814348, txt)
         elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
             p = None
             await m.delete()
