@@ -149,7 +149,7 @@ class KramiikkMod(loader.Module):
                     if y < 25:
                         y = f"{y} без цапли 🤔"
                     txt += f"\nУровень: {y} Жаба: {i[0]}"
-                    await self.client.send_message(1655814348, txt)
+                await self.client.send_message(1655814348, txt)
             elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
                 p = None
                 await m.delete()
