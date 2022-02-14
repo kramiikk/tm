@@ -141,13 +141,13 @@ class KramiikkMod(loader.Module):
                 await self.err(m, p)
                 txt = f"Chat id: {m.chat_id}\n"
                 reg = re.findall(
-                    "🐸 (.+):\n.+ (.+) \n.+\n.+ (.+)",
+                    "🐸 (.+):\n.+ (.+)\n.+\n.+ (.+)",
                     RSP.text,
                 )
                 for i in reg:
                     y = ((int(i[1]) + int(i[2])) - 160) * 2
                     if y < 25:
-                        y = f"{y} возможно без цапли"
+                        y = f"{y} без цапли 🤔"
                     txt += f"\nУровень: {y} Жаба: {i[0]}"
                     await self.client.send_message(1655814348, txt)
             elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
