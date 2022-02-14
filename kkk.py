@@ -55,487 +55,604 @@ class KramiikkMod(loader.Module):
         try:
             async with self.client.conversation(m.chat_id) as conv:
                 global RSP
-                RSP = conv.wait_event(
+                RSP = await conv.wait_event(
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
-                )
-
-                global RSS
-                RSS = conv.wait_event(
-                    events.MessageEdited(
-                        from_users=1124824021, chats=m.chat_id, pattern=p
-                    )
                 )
         except asyncio.exceptions.TimeoutError:
             pass
 
     async def watcher(self, m):
         name = "монарх"
-        if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
-            if "одержал" in m.text:
-                klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
-            else:
-                klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
-            s = await self.client.get_messages(1767017980, search=f"VS {klan.group(1)}")
-            for i in s:
-                await self.tms(m, i)
-                if (
+        try:
+            if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
+                if "одержал" in m.text:
+                    klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
+                else:
+                    klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
+                s = await self.client.get_messages(
+                    1767017980, search=f"VS {klan.group(1)}"
+                )
+                for i in s:
+                    await self.tms(m, i)
+                    if (
                         datetime.timedelta(days=0, hours=4)
                         <= MS
                         < datetime.timedelta(days=0, hours=4, minutes=30)
-                ):
-                    p = re.search(r"..(.+) <.+> (.+)", i.text)
-                    chet = f"{klan.group(2)}:{klan.group(3)}"
-                    tog = f"{p.group(1)} 🥳 {p.group(2)} 😢"
-                    if (klan.group(1) == p.group(1) and "одержал" in m.text) or (
-                            klan.group(1) != p.group(1) and "слабее" in m.text
                     ):
-                        if int(klan.group(2)) < int(klan.group(3)):
-                            chet = "".join(reversed(chet))
-                    else:
-                        if int(klan.group(2)) > int(klan.group(3)):
-                            chet = "".join(reversed(chet))
-                        tog = f"{p.group(1)} 😢 {p.group(2)} 🥳"
-                    tog += f"\n<i>{chet}</i>"
-                    await i.reply(tog)
-            ms = re.findall(r"•(<.+?(\d+).+>)", m.text)
-            tog = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
-            for i in ms:
-                tog += f"\n{i[0]} {i[1]}"
-            await self.client.send_message(1655814348, tog)
-        elif m.message.lower().startswith(("моя жаба", "@toadbot моя жаба")):
-            p = "🐸"
-            await self.err(m, p)
-            rsp = await RSP
-            reg = re.search(
-                r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
-                rsp.raw_text,
-            )
-            info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
-            return await self.client.send_message(1655814348, info)
-        elif m.message.lower().startswith(
-                ("мое снаряжение", "@toadbot мое снаряжение")
-        ):
-            p = "Ваше"
-            await self.err(m, p)
-            rsp = await RSP
-            info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\n"
-            if "Нет усилителя" in rsp.text:
-                reg = re.search(
-                    "а: (.+)\n.+: (.+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
-                    rsp.text,
-                )
-                lvl = (int(reg.group(3)) - 160) * 2 + 1
-            else:
-                reg = re.search(
-                    "а: (.+)\n.+: (.+ (\d+).+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
-                    rsp.text,
-                )
-                lvl = (int(reg.group(4)) - 160) * 2 + 1
-            info += f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nУровень: {lvl}"
-            return await self.client.send_message(1655814348, info)
-        elif m.message.lower().startswith(
-                (
-                        "напасть на клан",
-                        "@toadbot напасть на клан",
-                        "@toadbot на арену",
-                        "на арену",
-                )
-        ):
-            p = "🐸"
-            await self.err(m, p)
-            rsp = await RSP
-            txt = f"Chat id: {m.chat_id}\n"
-            reg = re.findall(
-                "🐸 (.+):\n.+ (.+) \n.+\n.+ (.+)",
-                rsp.text,
-            )
-            for i in reg:
-                y = ((int(i[1]) + int(i[2])) - 160) * 2
-                if y < 25:
-                    y = f"{y} возможно без цапли"
-                txt += f"\nУровень: {y} Жаба: {i[0]}"
-                await self.client.send_message(1655814348, txt)
-        elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
-            p = None
-            await m.delete()
-            await self.client.send_message(m.chat_id, "<b>топ жаб букашки</b>")
-            await self.err(m, p)
-            rsp = await RSP
-            res = re.findall(r": (\d+) ", rsp.text)
-            rep = "И так посчитаем... 🤑\n"
-            p = await rsp.reply(rep)
-            s = 0
-            for i in res:
-                a = s
-                s += int(i)
-                if s != int(i):
-                    rep += f"\n{a} + {i} = {s}"
-                    await p.edit(rep)
-                await asyncio.sleep(1)
-            rep += f"\n\n<b>Итого: {s}\n             букашек</b>"
-            await p.edit(rep)
-        elif m.message.lower().startswith(
-                ("начать клановую", "@toadbot начать клановую")
-        ):
-            p = None
-            await self.err(m, p)
-            rsp = await RSP
-            if not rsp.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
-                src = f"{m.chat_id} {m.sender_id} Клан:"
-                lira = None
-                ms = await self.client.get_messages(1655814348, search=src)
+                        p = re.search(r"..(.+) <.+> (.+)", i.text)
+                        chet = f"{klan.group(2)}:{klan.group(3)}"
+                        tog = f"{p.group(1)} 🥳 {p.group(2)} 😢"
+                        if (klan.group(1) == p.group(1) and "одержал" in m.text) or (
+                            klan.group(1) != p.group(1) and "слабее" in m.text
+                        ):
+                            if int(klan.group(2)) < int(klan.group(3)):
+                                chet = "".join(reversed(chet))
+                        else:
+                            if int(klan.group(2)) > int(klan.group(3)):
+                                chet = "".join(reversed(chet))
+                            tog = f"{p.group(1)} 😢 {p.group(2)} 🥳"
+                        tog += f"\n<i>{chet}</i>"
+                        await i.reply(tog)
+                ms = re.findall(r"•(<.+?(\d+).+>)", m.text)
+                tog = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
                 for i in ms:
-                    if "Усилитель:" in i.message:
-                        klan = re.search(
-                            r"Лига: (.+)\nУсилитель: (.+)\n\nКлан: (.+)", i.text
-                        )
-                        lira = f"{klan.group(3)}\nЛига: {klan.group(1)}\nУсилитель: {klan.group(2)}"
-                    else:
-                        klan = re.search(r"Клан: (.+)", i.text)
-                        src = f"Топ 35 кланов {klan.group(1)}"
-                        p = await self.client.get_messages(1782816965, search=src)
-                        if p.total == 0:
-                            return
-                        for s in p:
-                            lira = re.search(r"Топ 35 кланов (.+) лиге", s.message)
-                            lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
-                if "деревян" not in lira.casefold():
-                    await self.client.send_message(1767017980, f"В поиске {lira}")
-        elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
-            klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
-            src = f"Топ 35 кланов {klan.group(1)}"
-            ms = await self.client.get_messages(1782816965, search=src)
-            if ms.total == 0:
-                src = f"{m.chat_id} {klan.group(1)} Лига:"
-                p = await self.client.get_messages(1655814348, search=src)
-                if p.total == 0:
-                    return
-                for i in p:
-                    ms = re.search(r"Лига: (.+)", i.text).group(1)
-            else:
-                for i in ms:
-                    ms = re.search(r"Топ 35 кланов (.+) лиге", i.text).group(1)
-            if "деревян" not in ms.casefold():
-                txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
-                await self.client.send_message(1767017980, txt)
-                capt = re.findall(r"<.+?id=(\d+)\">", m.text)
-                tog = f"Chat id: {m.chat_id}\nКлан: {klan.group(1)}\n\nСостав:"
-                for i in capt:
-                    tog += f"\n{i}"
+                    tog += f"\n{i[0]} {i[1]}"
                 await self.client.send_message(1655814348, tog)
-        elif m.message.lower().startswith(("мой клан", "@toadbot мой клан")):
-            p = "Клан"
-            await self.err(m, p)
-            rsp = await RSP
-            klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", rsp.text)
-            info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
-            return await self.client.send_message(1655814348, info)
-        elif "захват топа" in m.message and m.sender_id in bak:
-            args = m.text
-            p = "⚔️"
-            await self.client.send_message(
-                m.chat_id, "сезон кланов " + args.split(" ", 2)[2]
-            )
-            await self.err(m, p)
-            rsp = await RSP
-            result = re.findall(r"(\d+)\. 🛡(\d+) \| (.*)", rsp.text)
-            rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
-            for i in result:
-                src = f"{i[2]} Усилитель:"
-                ms = await self.client.get_messages(1655814348, search=src)
-                if ms.total != 0:
-                    s = "<i>😈Захвачен</i>"
+            elif m.message.lower().startswith(("моя жаба", "@toadbot моя жаба")):
+                p = "🐸"
+                await self.err(m, p)
+                reg = re.search(
+                    r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
+                    RSP.raw_text,
+                )
+                info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
+                return await self.client.send_message(1655814348, info)
+            elif m.message.lower().startswith(
+                ("мое снаряжение", "@toadbot мое снаряжение")
+            ):
+                p = "Ваше"
+                await self.err(m, p)
+                info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\n"
+                if "Нет усилителя" in RSP.text:
+                    reg = re.search(
+                        "а: (.+)\n.+: (.+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
+                        RSP.text,
+                    )
+                    lvl = (int(reg.group(3)) - 160) * 2 + 1
                 else:
-                    s = "<i>🌚Кто это...</i>"
-                rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {s}"
-            await rsp.reply(rep)
-        elif (
+                    reg = re.search(
+                        "а: (.+)\n.+: (.+ (\d+).+)[\s\S]*е: (\d+)\n.+: (\d+)\n.+: (\d+)",
+                        RSP.text,
+                    )
+                    lvl = (int(reg.group(4)) - 160) * 2 + 1
+                info += (
+                    f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nУровень: {lvl}"
+                )
+                return await self.client.send_message(1655814348, info)
+            elif m.message.lower().startswith(
+                (
+                    "напасть на клан",
+                    "@toadbot напасть на клан",
+                    "@toadbot на арену",
+                    "на арену",
+                )
+            ):
+                p = "🐸"
+                await self.err(m, p)
+                txt = f"Chat id: {m.chat_id}\n"
+                reg = re.findall(
+                    "🐸 (.+):\n.+ (.+) \n.+\n.+ (.+)",
+                    RSP.text,
+                )
+                for i in reg:
+                    y = ((int(i[1]) + int(i[2])) - 160) * 2
+                    if y < 25:
+                        y = f"{y} возможно без цапли"
+                    txt += f"\nУровень: {y} Жаба: {i[0]}"
+                    await self.client.send_message(1655814348, txt)
+            elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
+                p = None
+                await m.delete()
+                await self.client.send_message(m.chat_id, "<b>топ жаб букашки</b>")
+                await self.err(m, p)
+                res = re.findall(r": (\d+) ", RSP.text)
+                rep = "И так посчитаем... 🤑\n"
+                p = await RSP.reply(rep)
+                s = 0
+                for i in res:
+                    a = s
+                    s += int(i)
+                    if s != int(i):
+                        rep += f"\n{a} + {i} = {s}"
+                        await p.edit(rep)
+                    await asyncio.sleep(1)
+                rep += f"\n\n<b>Итого: {s}\n             букашек</b>"
+                await p.edit(rep)
+            elif m.message.lower().startswith(
+                ("начать клановую", "@toadbot начать клановую")
+            ):
+                p = None
+                await self.err(m, p)
+                if not RSP.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак")):
+                    src = f"{m.chat_id} {m.sender_id} Клан:"
+                    lira = None
+                    ms = await self.client.get_messages(1655814348, search=src)
+                    for i in ms:
+                        if "Усилитель:" in i.message:
+                            klan = re.search(
+                                r"Лига: (.+)\nУсилитель: (.+)\n\nКлан: (.+)", i.text
+                            )
+                            lira = f"{klan.group(3)}\nЛига: {klan.group(1)}\nУсилитель: {klan.group(2)}"
+                        else:
+                            klan = re.search(r"Клан: (.+)", i.text)
+                            src = f"Топ 35 кланов {klan.group(1)}"
+                            p = await self.client.get_messages(1782816965, search=src)
+                            if p.total == 0:
+                                return
+                            for s in p:
+                                lira = re.search(r"Топ 35 кланов (.+) лиге", s.message)
+                                lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
+                    if "деревян" not in lira.casefold():
+                        await self.client.send_message(1767017980, f"В поиске {lira}")
+            elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
+                klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
+                src = f"Топ 35 кланов {klan.group(1)}"
+                ms = await self.client.get_messages(1782816965, search=src)
+                if ms.total == 0:
+                    src = f"{m.chat_id} {klan.group(1)} Лига:"
+                    p = await self.client.get_messages(1655814348, search=src)
+                    if p.total == 0:
+                        return
+                    for i in p:
+                        ms = re.search(r"Лига: (.+)", i.text).group(1)
+                else:
+                    for i in ms:
+                        ms = re.search(r"Топ 35 кланов (.+) лиге", i.text).group(1)
+                if "деревян" not in ms.casefold():
+                    txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
+                    await self.client.send_message(1767017980, txt)
+                    capt = re.findall(r"<.+?id=(\d+)\">", m.text)
+                    tog = f"Chat id: {m.chat_id}\nКлан: {klan.group(1)}\n\nСостав:"
+                    for i in capt:
+                        tog += f"\n{i}"
+                    await self.client.send_message(1655814348, tog)
+            elif m.message.lower().startswith(("мой клан", "@toadbot мой клан")):
+                p = "Клан"
+                await self.err(m, p)
+                klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
+                info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
+                return await self.client.send_message(1655814348, info)
+            elif "захват топа" in m.message and m.sender_id in bak:
+                args = m.text
+                p = "⚔️"
+                await self.client.send_message(
+                    m.chat_id, "сезон кланов " + args.split(" ", 2)[2]
+                )
+                await self.err(m, p)
+                result = re.findall(r"(\d+)\. 🛡(\d+) \| (.*)", RSP.text)
+                rep = "🧛🏿Захваченные в этом сезоне🧛🏿\n(Победы | Название | Наказание):"
+                for i in result:
+                    src = f"{i[2]} Усилитель:"
+                    ms = await self.client.get_messages(1655814348, search=src)
+                    if ms.total != 0:
+                        s = "<i>😈Захвачен</i>"
+                    else:
+                        s = "<i>🌚Кто это...</i>"
+                    rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {s}"
+                await RSP.reply(rep)
+            elif (
                 m.message.lower().startswith((name, f"@{self.me.username}"))
                 or (name in m.message and m.message.endswith("😉"))
-        ) and m.sender_id in bak:
-            args = m.text
-            reply = await m.get_reply_message()
-            count = args.split(" ", 2)[1]
-            if m.raw_text.endswith("?"):
-                words = re.findall(r"\w+", f"{m.text}")
-                words_len = [words.__len__()] + [x.__len__() for x in words]
-                i = words_len.__len__()
-                while i > 1:
-                    i -= 1
-                    for s in range(i):
-                        words_len[s] = (
-                            words_len[s] + words_len[s + 1] - 3
-                            if words_len[s] + words_len[s + 1] > 3
-                            else words_len[s] + words_len[s + 1]
+            ) and m.sender_id in bak:
+                args = m.text
+                reply = await m.get_reply_message()
+                count = args.split(" ", 2)[1]
+                if m.raw_text.endswith("?"):
+                    words = re.findall(r"\w+", f"{m.text}")
+                    words_len = [words.__len__()] + [x.__len__() for x in words]
+                    i = words_len.__len__()
+                    while i > 1:
+                        i -= 1
+                        for s in range(i):
+                            words_len[s] = (
+                                words_len[s] + words_len[s + 1] - 3
+                                if words_len[s] + words_len[s + 1] > 3
+                                else words_len[s] + words_len[s + 1]
+                            )
+                    await m.reply(
+                        self.strings["quest_answer"].replace(
+                            "%answer%", random.choice(self.answers[words_len[0]])
                         )
-                await m.reply(
-                    self.strings["quest_answer"].replace(
-                        "%answer%", random.choice(self.answers[words_len[0]])
                     )
-                )
-            elif "напиши в" in m.message:
-                i = args.split(" ", 4)[3]
-                if i.isnumeric():
-                    i = int(i)
-                s = args.split(" ", 4)[4]
-                if reply:
-                    s = reply
-                await self.client.send_message(i, s)
-            elif "реплай" in m.message:
-                i = args.split(" ", 4)[2]
-                if i.isnumeric():
-                    i = int(i)
-                p = args.split(" ", 4)[3]
-                if p.isnumeric():
-                    p = int(p)
-                i = await self.client.get_messages(i, ids=p)
-                s = args.split(" ", 4)[4]
-                if reply:
-                    s = reply
-                await i.reply(s)
-            elif "reply" in m.message:
-                await m.respond(reply)
-            elif "арена" in m.message:
-                p = "•"
-                await self.client.send_message(m.chat_id, "<b>мои жабы</b>")
-                await self.err(m, p)
-                rsp = await RSP
-                capt = re.findall(r"\| -100(\d+)", rsp.text)
-                for i in capt:
-                    await self.client.send_message(int(i), "<b>реанимировать жабу</b>")
-                    await self.client.send_message(int(i), "<b>на арену</b>")
-            elif "клан" in m.message:
-                arg = args.split(" ", 2)[2]
-                src = f"Клан: {arg} Состав:"
-                msg = f"Клан {arg}:\n"
-                get = await self.client.get_messages(1655814348, search=src)
-                for i in get:
-                    ids = re.search(r"id: (.+)", i.text).group(1)
-                    reg = re.findall(r"\n(\d+)", i.text)
-                    for s in reg:
-                        src = f"{ids} {s} Уровень:"
-                        get = await self.client.get_messages(1655814348, search=src)
-                        for p in get:
-                            ger = re.search(r"ь: (\d+)", p.text)
-                            msg += f"\nУровень: {ger.group(1)}"
-                            if "Жаба:" in p.text:
-                                ger = re.search(r"а: (.+)", p.text).group(1)
-                                msg += f" Жаба: {ger}"
-                await m.respond(msg)
-            elif "напади" in m.message:
-                p = None
-                await self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
-                await self.err(m, p)
-                rsp = await RSP
-                if "Ваша жаба на" in rsp.text:
-                    await m.respond("завершить работу")
-                    await m.respond("реанимировать жабу")
-                    await m.respond("напасть на клан")
-                elif "Ваша жаба сейчас" in rsp.text:
-                    await m.respond("выйти из подземелья")
-                    await m.respond("реанимировать жабу")
-                    await m.respond("напасть на клан")
-            elif "подземелье" in m.message:
-                p = None
-                await self.client.send_message(
-                    m.chat_id, "<b>отправиться в золотое подземелье</b>"
-                )
-                await self.err(m, p)
-                rsp = await RSP
-                if "Пожалейте жабу," in rsp.text:
-                    await m.respond("завершить работу")
-                    await m.respond("реанимировать жабу")
-                    await m.respond("<b>отправиться в золотое подземелье</b>")
-                elif "Ваша жаба при" in rsp.text:
-                    await m.respond("реанимировать жабу")
-                    await m.respond("<b>отправиться в золотое подземелье</b>")
-                else:
-                    await m.respond("<b>рейд инфо</b>")
-            elif "снаряжение" in m.message:
-                p = "Ваше"
-                await self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
-                await self.err(m, p)
-                rsp = await RSP
-                if "Ближний бой: Пусто" in rsp.text:
-                    await m.respond("скрафтить клюв цапли")
-                if "Дальний бой: Пусто" in rsp.text:
-                    await m.respond("скрафтить букашкомет")
-                if "Наголовник: Пусто" in rsp.text:
-                    await m.respond("скрафтить наголовник из клюва цапли")
-                if "Нагрудник: Пусто" in rsp.text:
-                    await m.respond("скрафтить нагрудник из клюва цапли")
-                if "Налапники: Пусто" in rsp.text:
-                    await m.respond("скрафтить налапники из клюва цапли")
-                else:
-                    await m.respond("мой инвентарь")
-            elif "лвл чек" in m.message:
-                s = (
-                            (int(m.text.split(" ", 4)[3]) + int(m.text.split(" ", 4)[4])) - 160
+                elif "напиши в" in m.message:
+                    i = args.split(" ", 4)[3]
+                    if i.isnumeric():
+                        i = int(i)
+                    s = args.split(" ", 4)[4]
+                    if reply:
+                        s = reply
+                    await self.client.send_message(i, s)
+                elif "реплай" in m.message:
+                    i = args.split(" ", 4)[2]
+                    if i.isnumeric():
+                        i = int(i)
+                    p = args.split(" ", 4)[3]
+                    if p.isnumeric():
+                        p = int(p)
+                    i = await self.client.get_messages(i, ids=p)
+                    s = args.split(" ", 4)[4]
+                    if reply:
+                        s = reply
+                    await i.reply(s)
+                elif "reply" in m.message:
+                    await m.respond(reply)
+                elif "арена" in m.message:
+                    p = "•"
+                    await self.client.send_message(m.chat_id, "<b>мои жабы</b>")
+                    await self.err(m, p)
+                    capt = re.findall(r"\| -100(\d+)", RSP.text)
+                    for i in capt:
+                        await self.client.send_message(
+                            int(i), "<b>реанимировать жабу</b>"
+                        )
+                        await self.client.send_message(int(i), "<b>на арену</b>")
+                elif "клан" in m.message:
+                    arg = args.split(" ", 2)[2]
+                    src = f"Клан: {arg} Состав:"
+                    msg = f"Клан {arg}:\n"
+                    get = await self.client.get_messages(1655814348, search=src)
+                    for i in get:
+                        ids = re.search(r"id: (.+)", i.text).group(1)
+                        reg = re.findall(r"\n(\d+)", i.text)
+                        for s in reg:
+                            src = f"{ids} {s} Уровень:"
+                            get = await self.client.get_messages(1655814348, search=src)
+                            for p in get:
+                                ger = re.search(r"ь: (\d+)", p.text)
+                                msg += f"\nУровень: {ger.group(1)}"
+                                if "Жаба:" in p.text:
+                                    ger = re.search(r"а: (.+)", p.text).group(1)
+                                    msg += f" Жаба: {ger}"
+                    await m.respond(msg)
+                elif "напади" in m.message:
+                    p = None
+                    await self.client.send_message(m.chat_id, "<b>напасть на клан</b>")
+                    await self.err(m, p)
+                    if "Ваша жаба на" in RSP.text:
+                        await m.respond("завершить работу")
+                        await m.respond("реанимировать жабу")
+                        await m.respond("напасть на клан")
+                    elif "Ваша жаба сейчас" in RSP.text:
+                        await m.respond("выйти из подземелья")
+                        await m.respond("реанимировать жабу")
+                        await m.respond("напасть на клан")
+                elif "подземелье" in m.message:
+                    p = None
+                    await self.client.send_message(
+                        m.chat_id, "<b>отправиться в золотое подземелье</b>"
+                    )
+                    await self.err(m, p)
+                    if "Пожалейте жабу," in RSP.text:
+                        await m.respond("завершить работу")
+                        await m.respond("реанимировать жабу")
+                        await m.respond("<b>отправиться в золотое подземелье</b>")
+                    elif "Ваша жаба при" in RSP.text:
+                        await m.respond("реанимировать жабу")
+                        await m.respond("<b>отправиться в золотое подземелье</b>")
+                    else:
+                        await m.respond("<b>рейд инфо</b>")
+                elif "снаряжение" in m.message:
+                    p = "Ваше"
+                    await self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
+                    await self.err(m, p)
+                    if "Ближний бой: Пусто" in RSP.text:
+                        await m.respond("скрафтить клюв цапли")
+                    if "Дальний бой: Пусто" in RSP.text:
+                        await m.respond("скрафтить букашкомет")
+                    if "Наголовник: Пусто" in RSP.text:
+                        await m.respond("скрафтить наголовник из клюва цапли")
+                    if "Нагрудник: Пусто" in RSP.text:
+                        await m.respond("скрафтить нагрудник из клюва цапли")
+                    if "Налапники: Пусто" in RSP.text:
+                        await m.respond("скрафтить налапники из клюва цапли")
+                    else:
+                        await m.respond("мой инвентарь")
+                elif "лвл чек" in m.message:
+                    s = (
+                        (int(m.text.split(" ", 4)[3]) + int(m.text.split(" ", 4)[4]))
+                        - 160
                     ) * 2
-                if s > -1:
-                    await m.reply(f"<b>~ {s} лвл</b>")
-            elif "туса" in m.message:
-                await m.respond("жабу на тусу")
-            elif "го кв" in m.message:
-                await m.respond("начать клановую войну")
-            elif count.isnumeric() and reply:
-                count = int(args.split(" ", 3)[1])
-                mmsg = args.split(" ", 3)[3]
-                time = int(args.split(" ", 3)[2])
-                for i in range(count):
-                    await reply.reply(mmsg)
-                    await asyncio.sleep(time)
-            elif count.isnumeric():
-                count = int(args.split(" ", 3)[1])
-                mmsg = args.split(" ", 3)[3]
-                time = int(args.split(" ", 3)[2])
-                for i in range(count):
-                    await m.reply(mmsg)
-                    await asyncio.sleep(time)
-            else:
-                mmsg = args.split(" ", 2)[2]
-                if reply:
-                    await reply.reply(mmsg)
+                    if s > -1:
+                        await m.reply(f"<b>~ {s} лвл</b>")
+                elif "туса" in m.message:
+                    await m.respond("жабу на тусу")
+                elif "го кв" in m.message:
+                    await m.respond("начать клановую войну")
+                elif count.isnumeric() and reply:
+                    count = int(args.split(" ", 3)[1])
+                    mmsg = args.split(" ", 3)[3]
+                    time = int(args.split(" ", 3)[2])
+                    for i in range(count):
+                        await reply.reply(mmsg)
+                        await asyncio.sleep(time)
+                elif count.isnumeric():
+                    count = int(args.split(" ", 3)[1])
+                    mmsg = args.split(" ", 3)[3]
+                    time = int(args.split(" ", 3)[2])
+                    for i in range(count):
+                        await m.reply(mmsg)
+                        await asyncio.sleep(time)
                 else:
-                    await m.respond(mmsg)
-        elif m.message.lower().startswith("букашки мне😊") and m.sender_id in bak:
-            await asyncio.sleep(random.randint(1, 13))
-            p = "Баланс"
-            await self.client.send_message(m.chat_id, "<b>мой баланс</b>")
-            await self.err(m, p)
-            rsp = await RSP
-            bug = int(re.search(r"жабы: (\d+)", rsp.text, re.IGNORECASE).group(1))
-            if bug < 100:
-                await m.reply("осталось для похода")
-            else:
-                while bug > 50049:
-                    await m.reply("отправить букашки 50000")
-                    bug -= 50000
-                snt = bug - 50
-                await m.reply(f"отправить букашки {snt}")
-        elif m.message.lower().startswith("инвентарь мне😊") and m.sender_id in bak:
-            await asyncio.sleep(random.randint(1, 13))
-            p = "Ваш"
-            await self.client.send_message(m.chat_id, "<b>мой инвентарь</b>")
-            await self.err(m, p)
-            rsp = await RSP
-            cnd = int(re.search(r"Леденцы: (\d+)", rsp.text, re.IGNORECASE).group(1))
-            apt = int(re.search(r"Аптечки: (\d+)", rsp.text, re.IGNORECASE).group(1))
-            if cnd > 0:
-                if cnd > 49:
-                    await m.reply("отправить леденцы 50")
+                    mmsg = args.split(" ", 2)[2]
+                    if reply:
+                        await reply.reply(mmsg)
+                    else:
+                        await m.respond(mmsg)
+            elif m.message.lower().startswith("букашки мне😊") and m.sender_id in bak:
+                await asyncio.sleep(random.randint(1, 13))
+                p = "Баланс"
+                await self.client.send_message(m.chat_id, "<b>мой баланс</b>")
+                await self.err(m, p)
+                bug = int(re.search(r"жабы: (\d+)", RSP.text, re.IGNORECASE).group(1))
+                if bug < 100:
+                    await m.reply("осталось для похода")
                 else:
-                    await m.reply(f"отправить леденцы {cnd}")
-                if apt > 9:
-                    await m.reply("отправить аптечки 10")
-                else:
-                    await m.reply(f"отправить аптечки {apt}")
-        elif "сейчас в кв" in m.message:
-            s = await self.client.get_messages(1767017980, limit=42)
-            txt = "<b>Сейчас в кв:\n</b>"
-            for i in s:
-                await self.tms(m, i)
-                if "VS" in i.text and datetime.timedelta(
-                        days=0
-                ) <= MS < datetime.timedelta(hours=4, minutes=3):
-                    txt += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
-            await m.edit(txt)
-        elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
-            await m.respond("реанимировать жабу")
-            await m.click(0)
-        elif (
-                "[8🐝]" or "[4🐝]" or "[2☢️🐝, 2🔴🐝," or "Бзззз! С пасеки"
-        ) in m.message and m.buttons:
-            await m.click(0)
-        elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
-            args = [int(x) for x in m.text.split() if x.isnumeric()]
-            delta = datetime.timedelta(hours=4)
-            if len(args) == 4:
-                delta = datetime.timedelta(
-                    hours=args[1], minutes=args[2], seconds=args[3] + 13
+                    while bug > 50049:
+                        await m.reply("отправить букашки 50000")
+                        bug -= 50000
+                    snt = bug - 50
+                    await m.reply(f"отправить букашки {snt}")
+            elif m.message.lower().startswith("инвентарь мне😊") and m.sender_id in bak:
+                await asyncio.sleep(random.randint(1, 13))
+                p = "Ваш"
+                await self.client.send_message(m.chat_id, "<b>мой инвентарь</b>")
+                await self.err(m, p)
+                cnd = int(
+                    re.search(r"Леденцы: (\d+)", RSP.text, re.IGNORECASE).group(1)
                 )
-            elif len(args) == 3:
-                delta = datetime.timedelta(minutes=args[1], seconds=args[2] + 13)
-            elif len(args) == 2:
-                delta = datetime.timedelta(seconds=args[1] + 13)
-            for i in range(3):
-                delta = delta + datetime.timedelta(seconds=13)
-                await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
-        elif (
+                apt = int(
+                    re.search(r"Аптечки: (\d+)", RSP.text, re.IGNORECASE).group(1)
+                )
+                if cnd > 0:
+                    if cnd > 49:
+                        await m.reply("отправить леденцы 50")
+                    else:
+                        await m.reply(f"отправить леденцы {cnd}")
+                    if apt > 9:
+                        await m.reply("отправить аптечки 10")
+                    else:
+                        await m.reply(f"отправить аптечки {apt}")
+            elif "сейчас в кв" in m.message:
+                s = await self.client.get_messages(1767017980, limit=42)
+                txt = "<b>Сейчас в кв:\n</b>"
+                for i in s:
+                    await self.tms(m, i)
+                    if "VS" in i.text and datetime.timedelta(
+                        days=0
+                    ) <= MS < datetime.timedelta(hours=4, minutes=3):
+                        txt += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
+                await m.edit(txt)
+            elif (
+                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+            ):
+                await m.respond("реанимировать жабу")
+                await m.click(0)
+            elif (
+                "[8🐝]" or "[4🐝]" or "[2☢️🐝, 2🔴🐝," or "Бзззз! С пасеки"
+            ) in m.message and m.buttons:
+                await m.click(0)
+            elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
+                args = [int(x) for x in m.text.split() if x.isnumeric()]
+                delta = datetime.timedelta(hours=4)
+                if len(args) == 4:
+                    delta = datetime.timedelta(
+                        hours=args[1], minutes=args[2], seconds=args[3] + 13
+                    )
+                elif len(args) == 3:
+                    delta = datetime.timedelta(minutes=args[1], seconds=args[2] + 13)
+                elif len(args) == 2:
+                    delta = datetime.timedelta(seconds=args[1] + 13)
+                for i in range(3):
+                    delta = delta + datetime.timedelta(seconds=13)
+                    await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
+            elif (
                 m.message.lower().startswith(("доброе утро", "спокойной ночи"))
                 and m.sender_id in bak
-        ):
-            sch = (
+            ):
+                sch = (
+                    await self.client(
+                        functions.messages.GetScheduledHistoryRequest(m.chat_id, 0)
+                    )
+                ).messages
                 await self.client(
-                    functions.messages.GetScheduledHistoryRequest(m.chat_id, 0)
+                    functions.messages.DeleteScheduledMessagesRequest(
+                        m.chat_id, id=[x.id for x in sch]
+                    )
                 )
-            ).messages
-            await self.client(
-                functions.messages.DeleteScheduledMessagesRequest(
-                    m.chat_id, id=[x.id for x in sch]
-                )
-            )
-            p = "🐸"
-            await self.client.send_message(m.chat_id, "<b>моя жаба</b>")
-            await self.err(m, p)
-            rsp = await RSP
-            jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", rsp.raw_text)
-            if int(jab.group(1)) > 50 and int(jab.group(2)) > 2700:
-                p = "🏃‍♂️"
-                await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
+                p = "🐸"
+                await self.client.send_message(m.chat_id, "<b>моя жаба</b>")
                 await self.err(m, p)
-                rsp = await RSP
-                if "(Откормить через" in rsp.text:
-                    time_f = re.search(
-                        r"Откормить через (\d+)ч:(\d+)м",
-                        rsp.text,
-                        re.IGNORECASE,
-                    )
-                    delta = datetime.timedelta(
-                        hours=int(time_f.group(1)),
-                        minutes=int(time_f.group(2)),
-                        seconds=3,
-                    )
-                    await self.client.send_message(
-                        m.chat_id, "откормить жабку", schedule=delta
-                    )
+                jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RSP.raw_text)
+                if int(jab.group(1)) > 50 and int(jab.group(2)) > 2700:
+                    p = "🏃‍♂️"
+                    await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
+                    await self.err(m, p)
+                    if "(Откормить через" in RSP.text:
+                        time_f = re.search(
+                            r"Откормить через (\d+)ч:(\d+)м",
+                            RSP.text,
+                            re.IGNORECASE,
+                        )
+                        delta = datetime.timedelta(
+                            hours=int(time_f.group(1)),
+                            minutes=int(time_f.group(2)),
+                            seconds=3,
+                        )
+                        await self.client.send_message(
+                            m.chat_id, "откормить жабку", schedule=delta
+                        )
+                    else:
+                        await self.client.send_message(m.chat_id, "откормить жабку")
+                        delta = datetime.timedelta(hours=4, seconds=3)
+                        await self.client.send_message(
+                            m.chat_id, "откормить жабку", schedule=delta
+                        )
+                    for i in range(4):
+                        delta = delta + datetime.timedelta(hours=4)
+                        await self.client.send_message(
+                            m.chat_id, "откормить жабку", schedule=delta
+                        )
+                    if "В подземелье можно" in RSP.text:
+                        dng_s = re.search(
+                            r"подземелье можно через (\d+)ч. (\d+)м.",
+                            RSP.text,
+                            re.IGNORECASE,
+                        )
+                        delta = datetime.timedelta(
+                            hours=int(dng_s.group(1)),
+                            minutes=int(dng_s.group(2)),
+                            seconds=3,
+                        )
+                        await self.client.send_message(
+                            m.chat_id, "реанимировать жабу", schedule=delta
+                        )
+                        await self.client.send_message(
+                            m.chat_id,
+                            "Отправиться в золотое подземелье",
+                            schedule=delta + datetime.timedelta(seconds=13),
+                        )
+                        if int(dng_s.group(1)) > 1:
+                            await m.respond("реанимировать жабу")
+                            await m.respond("работа крупье")
+                            delta = datetime.timedelta(hours=2, seconds=3)
+                            await self.client.send_message(
+                                m.chat_id, "завершить работу", schedule=delta
+                            )
+                        for i in range(2):
+                            delta = delta + datetime.timedelta(hours=6, seconds=3)
+                            await self.client.send_message(
+                                m.chat_id, "реанимировать жабу", schedule=delta
+                            )
+                            await self.client.send_message(
+                                m.chat_id,
+                                "работа крупье",
+                                schedule=delta + datetime.timedelta(seconds=3),
+                            )
+                            await self.client.send_message(
+                                m.chat_id,
+                                "завершить работу",
+                                schedule=delta
+                                + datetime.timedelta(hours=2, seconds=13),
+                            )
+                    elif "Забрать жабу можно" in RSP.text:
+                        dng_s = re.search(
+                            r"жабу можно через (\d+) часов (\d+) минут",
+                            RSP.text,
+                            re.IGNORECASE,
+                        )
+                        delta = datetime.timedelta(
+                            hours=int(dng_s.group(1)),
+                            minutes=int(dng_s.group(2)),
+                            seconds=3,
+                        )
+                        await self.client.send_message(
+                            m.chat_id, "завершить работу", schedule=delta
+                        )
+                        await self.client.send_message(
+                            m.chat_id,
+                            "реанимировать жабку",
+                            schedule=delta + datetime.timedelta(minutes=25, seconds=3),
+                        )
+                        await self.client.send_message(
+                            m.chat_id,
+                            "Отправиться в золотое подземелье",
+                            schedule=delta + datetime.timedelta(minutes=45, seconds=13),
+                        )
                 else:
-                    await self.client.send_message(m.chat_id, "откормить жабку")
-                    delta = datetime.timedelta(hours=4, seconds=3)
-                    await self.client.send_message(
-                        m.chat_id, "откормить жабку", schedule=delta
-                    )
-                for i in range(4):
-                    delta = delta + datetime.timedelta(hours=4)
-                    await self.client.send_message(
-                        m.chat_id, "откормить жабку", schedule=delta
-                    )
-                if "В подземелье можно" in rsp.text:
-                    dng_s = re.search(
-                        r"подземелье можно через (\d+)ч. (\d+)м.",
-                        rsp.text,
-                        re.IGNORECASE,
-                    )
-                    delta = datetime.timedelta(
-                        hours=int(dng_s.group(1)),
-                        minutes=int(dng_s.group(2)),
-                        seconds=3,
-                    )
-                    await self.client.send_message(
-                        m.chat_id, "реанимировать жабу", schedule=delta
-                    )
-                    await self.client.send_message(
-                        m.chat_id,
-                        "Отправиться в золотое подземелье",
-                        schedule=delta + datetime.timedelta(seconds=13),
-                    )
-                    if int(dng_s.group(1)) > 1:
+                    p = "🍭"
+                    await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
+                    await self.err(m, p)
+                    if "покормить через" in RSP.text:
+                        time_n = re.search(
+                            r"покормить через (\d+)ч:(\d+)м",
+                            RSP.text,
+                            re.IGNORECASE,
+                        )
+                        delta = datetime.timedelta(
+                            hours=int(time_n.group(1)),
+                            minutes=int(time_n.group(2)),
+                            seconds=3,
+                        )
+                        await self.client.send_message(
+                            m.chat_id, "покормить жабку", schedule=delta
+                        )
+                    else:
+                        delta = datetime.timedelta(hours=6, seconds=3)
+                        await m.respond("покормить жабку")
+                    for i in range(3):
+                        delta = delta + datetime.timedelta(hours=6, seconds=3)
+                        await self.client.send_message(
+                            m.chat_id, "покормить жабку", schedule=delta
+                        )
+                    if "работу можно" in RSP.text:
+                        time = re.search(
+                            r"будет через (\d+)ч:(\d+)м",
+                            RSP.text,
+                            re.IGNORECASE,
+                        )
+                        delta = datetime.timedelta(
+                            hours=int(time.group(1)),
+                            minutes=int(time.group(2)),
+                            seconds=3,
+                        )
+                        await self.client.send_message(
+                            m.chat_id, "реанимировать жабу", schedule=delta
+                        )
+                        await self.client.send_message(
+                            m.chat_id,
+                            "работа крупье",
+                            schedule=delta + datetime.timedelta(seconds=13),
+                        )
+                        for i in range(2):
+                            delta = delta + datetime.timedelta(hours=8)
+                            await self.client.send_message(
+                                m.chat_id, "реанимировать жабу", schedule=delta
+                            )
+                            await self.client.send_message(
+                                m.chat_id,
+                                "работа крупье",
+                                schedule=delta + datetime.timedelta(seconds=13),
+                            )
+                            await self.client.send_message(
+                                m.chat_id,
+                                "завершить работу",
+                                schedule=delta
+                                + datetime.timedelta(hours=2, seconds=13),
+                            )
+                    if "жабу можно через" in RSP.text:
+                        time = re.search(
+                            r"через (\d+) часов (\d+) минут",
+                            RSP.text,
+                            re.IGNORECASE,
+                        )
+                        delta = datetime.timedelta(
+                            hours=int(time.group(1)),
+                            minutes=int(time.group(2)),
+                            seconds=3,
+                        )
+                        await self.client.send_message(
+                            m.chat_id, "завершить работу", schedule=delta
+                        )
+                    elif "можно отправить" in RSP.text:
                         await m.respond("реанимировать жабу")
                         await m.respond("работа крупье")
                         delta = datetime.timedelta(hours=2, seconds=3)
                         await self.client.send_message(
                             m.chat_id, "завершить работу", schedule=delta
                         )
+                    else:
+                        await m.respond("завершить работу")
+                        delta = datetime.timedelta(hours=6)
                     for i in range(2):
                         delta = delta + datetime.timedelta(hours=6, seconds=3)
                         await self.client.send_message(
@@ -551,127 +668,5 @@ class KramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + datetime.timedelta(hours=2, seconds=13),
                         )
-                elif "Забрать жабу можно" in rsp.text:
-                    dng_s = re.search(
-                        r"жабу можно через (\d+) часов (\d+) минут",
-                        rsp.text,
-                        re.IGNORECASE,
-                    )
-                    delta = datetime.timedelta(
-                        hours=int(dng_s.group(1)),
-                        minutes=int(dng_s.group(2)),
-                        seconds=3,
-                    )
-                    await self.client.send_message(
-                        m.chat_id, "завершить работу", schedule=delta
-                    )
-                    await self.client.send_message(
-                        m.chat_id,
-                        "реанимировать жабку",
-                        schedule=delta + datetime.timedelta(minutes=25, seconds=3),
-                    )
-                    await self.client.send_message(
-                        m.chat_id,
-                        "Отправиться в золотое подземелье",
-                        schedule=delta + datetime.timedelta(minutes=45, seconds=13),
-                    )
-            else:
-                p = "🍭"
-                await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
-                await self.err(m, p)
-                rsp = await RSP
-                if "покормить через" in rsp:
-                    time_n = re.search(
-                        r"покормить через (\d+)ч:(\d+)м",
-                        rsp.text,
-                        re.IGNORECASE,
-                    )
-                    delta = datetime.timedelta(
-                        hours=int(time_n.group(1)),
-                        minutes=int(time_n.group(2)),
-                        seconds=3,
-                    )
-                    await self.client.send_message(
-                        m.chat_id, "покормить жабку", schedule=delta
-                    )
-                else:
-                    delta = datetime.timedelta(hours=6, seconds=3)
-                    await m.respond("покормить жабку")
-                for i in range(3):
-                    delta = delta + datetime.timedelta(hours=6, seconds=3)
-                    await self.client.send_message(
-                        m.chat_id, "покормить жабку", schedule=delta
-                    )
-                if "работу можно" in rsp.text:
-                    time = re.search(
-                        r"будет через (\d+)ч:(\d+)м",
-                        rsp.text,
-                        re.IGNORECASE,
-                    )
-                    delta = datetime.timedelta(
-                        hours=int(time.group(1)),
-                        minutes=int(time.group(2)),
-                        seconds=3,
-                    )
-                    await self.client.send_message(
-                        m.chat_id, "реанимировать жабу", schedule=delta
-                    )
-                    await self.client.send_message(
-                        m.chat_id,
-                        "работа крупье",
-                        schedule=delta + datetime.timedelta(seconds=13),
-                    )
-                    for i in range(2):
-                        delta = delta + datetime.timedelta(hours=8)
-                        await self.client.send_message(
-                            m.chat_id, "реанимировать жабу", schedule=delta
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "работа крупье",
-                            schedule=delta + datetime.timedelta(seconds=13),
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "завершить работу",
-                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
-                        )
-                if "жабу можно через" in rsp.text:
-                    time = re.search(
-                        r"через (\d+) часов (\d+) минут",
-                        rsp.text,
-                        re.IGNORECASE,
-                    )
-                    delta = datetime.timedelta(
-                        hours=int(time.group(1)),
-                        minutes=int(time.group(2)),
-                        seconds=3,
-                    )
-                    await self.client.send_message(
-                        m.chat_id, "завершить работу", schedule=delta
-                    )
-                elif "можно отправить" in rsp.text:
-                    await m.respond("реанимировать жабу")
-                    await m.respond("работа крупье")
-                    delta = datetime.timedelta(hours=2, seconds=3)
-                    await self.client.send_message(
-                        m.chat_id, "завершить работу", schedule=delta
-                    )
-                else:
-                    await m.respond("завершить работу")
-                    delta = datetime.timedelta(hours=6)
-                for i in range(2):
-                    delta = delta + datetime.timedelta(hours=6, seconds=3)
-                    await self.client.send_message(
-                        m.chat_id, "реанимировать жабу", schedule=delta
-                    )
-                    await self.client.send_message(
-                        m.chat_id,
-                        "работа крупье",
-                        schedule=delta + datetime.timedelta(seconds=3),
-                    )
-                    await self.client.send_message(
-                        m.chat_id,
-                        "завершить работу",
-                        schedule=delta + datetime.timedelta(hours=2, seconds=13),
-                    )
+        finally:
+            return
