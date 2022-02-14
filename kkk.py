@@ -226,7 +226,7 @@ class KramiikkMod(loader.Module):
                     r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
                 return await self.client.send_message(1655814348, info)
-            elif "захват топа" in m.message and m.sender_id in bak and len(m.message) == (18 or 19):
+            elif "захват топа" in m.message and m.sender_id in bak and ((len(m.message) == 19 or len(m.message) == 18)):
                 args = m.text
                 p = "⚔️"
                 await self.client.send_message(
