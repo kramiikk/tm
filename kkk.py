@@ -104,12 +104,13 @@ class KramiikkMod(loader.Module):
             elif m.message.lower().startswith(("моя жаба", "@toadbot моя жаба")):
                 p = "🐸"
                 await self.err(m, p)
-                reg = re.search(
-                    r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
-                    RSP.raw_text,
-                )
-                info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
-                return await self.client.send_message(1655814348, info)
+                if "Имя жабы" in RSP.text:
+                    reg = re.search(
+                        r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
+                        RSP.raw_text,
+                    )
+                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
+                    await self.client.send_message(1655814348, info)
             elif m.message.lower().startswith(
                 ("мое снаряжение", "@toadbot мое снаряжение")
             ):
@@ -142,17 +143,18 @@ class KramiikkMod(loader.Module):
             ):
                 p = "🐸"
                 await self.err(m, p)
-                txt = f"Chat id: {m.chat_id}\n"
-                reg = re.findall(
-                    "🐸 (.+):\n.+ (.+)\n.+\n.+ (.+)",
-                    RSP.text,
-                )
-                for i in reg:
-                    y = ((int(i[1]) + int(i[2])) - 160) * 2
-                    if y < 25:
-                        y = f"{y} без цапли 🤔"
-                    txt += f"\nУровень: {y} Жаба: {i[0]}"
-                await self.client.send_message(1655814348, txt)
+                if "Приняла" in RSP.text:
+                    txt = f"Chat id: {m.chat_id}\n"
+                    reg = re.findall(
+                        "🐸 (.+):\n.+ (.+)\n.+\n.+ (.+)",
+                        RSP.text,
+                    )
+                    for i in reg:
+                        y = ((int(i[1]) + int(i[2])) - 160) * 2
+                        if y < 25:
+                            y = f"{y} без цапли 🤔"
+                        txt += f"\nУровень: {y} Жаба: {i[0]}"
+                    await self.client.send_message(1655814348, txt)
             elif m.message.startswith("топ всяк") and m.sender_id in {1261343954}:
                 p = None
                 await m.delete()
@@ -448,9 +450,7 @@ class KramiikkMod(loader.Module):
             ):
                 await m.respond("реанимировать жабу")
                 await m.click(0)
-            elif (
-                "[8🐝]" or "[4🐝]" or "[2☢️🐝, 2🔴🐝," or "Бзззз! С пасеки"
-            ) in m.message and m.buttons:
+            elif ("🐝" or "Бзззз! С пасеки") in m.message and m.buttons:
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
