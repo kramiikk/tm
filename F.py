@@ -15,7 +15,7 @@ class InlineGgMod(loader.Module):
     strings = {
         "name": "InlineGg",
         "imghl": "🧐 <b>Azal*n g*y?</b>",
-        "tired": "😾 <b>Правильно \"Azal*n g*y\"</b>"
+        "tired": "👉 <b>Правильно \"Azal*n g*y\"</b>"
     }
 
     def get(self, *args) -> dict:
@@ -33,10 +33,14 @@ class InlineGgMod(loader.Module):
 
     async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
-            await call.answer('Не то!😜')
+            await call.answer('😜 Не туда!')
             return
 
-        await call.edit(f"👊 🪵 👌")
+        await call.edit(f"😜")
+        await asyncio.sleep(1)
+        await call.edit(f"🥰")
+        await asyncio.sleep(1)
+        await call.edit(f"😍")
         await asyncio.sleep(1)
 
         await call.edit(self.strings('tired'))
