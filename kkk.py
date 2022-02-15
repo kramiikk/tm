@@ -166,6 +166,7 @@ class KramiikkMod(loader.Module):
                 for i in res:
                     s += int(i)
                     rep += f"\n       + {i}"
+                    await p.edit(rep)
                     await asyncio.sleep(1)
                 rep += f"\n\n<b>Итого: {s}\n             букашек</b>"
                 await p.edit(rep)
