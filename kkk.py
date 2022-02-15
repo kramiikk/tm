@@ -167,7 +167,7 @@ class KramiikkMod(loader.Module):
                     s += int(i)
                     rep += f"\n       + {i}"
                     await p.edit(rep)
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.5)
                 rep += f"\n\n<b>Итого: {s}\n             букашек</b>"
                 await p.edit(rep)
             elif m.message.casefold().startswith(
