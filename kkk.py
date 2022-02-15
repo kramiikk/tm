@@ -98,7 +98,7 @@ class KramiikkMod(loader.Module):
                 for i in ms:
                     tog += f"\n{i[0]} {i[1]}"
                 await self.client.send_message(1655814348, tog)
-            elif m.message.lower().startswith(
+            elif m.message.casefold().startswith(
                 ("моя жаба", "@toadbot моя жаба")
             ) and len(m.message) in {17, 8}:
                 p = "🐸"
@@ -110,7 +110,7 @@ class KramiikkMod(loader.Module):
                     )
                     info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
                     await self.client.send_message(1655814348, info)
-            elif m.message.lower().startswith(
+            elif m.message.casefold().startswith(
                 ("мое снаряжение", "@toadbot мое снаряжение")
             ) and len(m.message) in {14, 23}:
                 p = "Ваше"
@@ -132,14 +132,14 @@ class KramiikkMod(loader.Module):
                     f"Банда: {reg.group(1)}\nУсилитель: {reg.group(2)}\nУровень: {lvl}"
                 )
                 return await self.client.send_message(1655814348, info)
-            elif m.message.lower().startswith(
+            elif m.message.casefold().startswith(
                 (
                     "напасть на клан",
                     "@toadbot напасть на клан",
                     "@toadbot на арену",
                     "на арену",
                 )
-            ):
+            ) and len(m.message) in {17, 24, 15, 8}:
                 p = "🐸"
                 await self.err(m, p)
                 if "Приняла" in RSP.text:
@@ -164,15 +164,12 @@ class KramiikkMod(loader.Module):
                 p = await RSP.reply(rep)
                 s = 0
                 for i in res:
-                    a = s
                     s += int(i)
-                    if s != int(i):
-                        rep += f"\n{a} + {i} = {s}"
-                        await p.edit(rep)
+                    rep += f"\n       + {i}"
                     await asyncio.sleep(1)
                 rep += f"\n\n<b>Итого: {s}\n             букашек</b>"
                 await p.edit(rep)
-            elif m.message.lower().startswith(
+            elif m.message.casefold().startswith(
                 ("начать клановую войну", "@toadbot начать клановую войну")
             ) and len(m.message) in {21, 30}:
                 p = None
@@ -220,7 +217,7 @@ class KramiikkMod(loader.Module):
                     for i in capt:
                         tog += f"\n{i}"
                     await self.client.send_message(1655814348, tog)
-            elif m.message.lower().startswith(("мой клан", "@toadbot мой клан")):
+            elif m.message.casefold().startswith(("мой клан", "@toadbot мой клан")):
                 p = "Клан"
                 await self.err(m, p)
                 klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
@@ -249,7 +246,7 @@ class KramiikkMod(loader.Module):
                     rep += f"\n{i[0]}.🛡{i[1]} | {i[2]} | {s}"
                 await RSP.reply(rep)
             elif (
-                m.message.lower().startswith((name, f"@{self.me.username}"))
+                m.message.casefold().startswith((name, f"@{self.me.username}"))
                 or (name in m.message and m.message.endswith("😉"))
             ) and m.sender_id in bak:
                 args = m.text
@@ -396,7 +393,7 @@ class KramiikkMod(loader.Module):
                         await reply.reply(mmsg)
                     else:
                         await m.respond(mmsg)
-            elif m.message.lower().startswith("букашки мне😊") and m.sender_id in bak:
+            elif m.message.casefold().startswith("букашки мне😊") and m.sender_id in bak:
                 await asyncio.sleep(random.randint(1, 13))
                 p = "Баланс"
                 await self.client.send_message(m.chat_id, "<b>мой баланс</b>")
@@ -410,7 +407,7 @@ class KramiikkMod(loader.Module):
                         bug -= 50000
                     snt = bug - 50
                     await m.reply(f"отправить букашки {snt}")
-            elif m.message.lower().startswith("инвентарь мне😊") and m.sender_id in bak:
+            elif m.message.casefold().startswith("инвентарь мне😊") and m.sender_id in bak:
                 await asyncio.sleep(random.randint(1, 13))
                 p = "Ваш"
                 await self.client.send_message(m.chat_id, "<b>мой инвентарь</b>")
@@ -445,7 +442,7 @@ class KramiikkMod(loader.Module):
             ):
                 await m.respond("реанимировать жабу")
                 await m.click(0)
-            elif m.sender_id in {830605725} and m.buttons:
+            elif m.sender_id in {830605725} and m.buttons and "Ваше уважение" not in m.message:
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
@@ -462,19 +459,9 @@ class KramiikkMod(loader.Module):
                     delta = delta + datetime.timedelta(seconds=13)
                     await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
             elif (
-                m.message.lower().startswith(("доброе утро", "спокойной ночи"))
+                m.message.casefold().startswith(("доброе утро", "спокойной ночи"))
                 and m.sender_id in bak
             ):
-                sch = (
-                    await self.client(
-                        functions.messages.GetScheduledHistoryRequest(m.chat_id, 0)
-                    )
-                ).messages
-                await self.client(
-                    functions.messages.DeleteScheduledMessagesRequest(
-                        m.chat_id, id=[x.id for x in sch]
-                    )
-                )
                 p = "🐸"
                 await self.client.send_message(m.chat_id, "<b>моя жаба</b>")
                 await self.err(m, p)
