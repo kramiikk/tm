@@ -445,7 +445,7 @@ class KramiikkMod(loader.Module):
             ):
                 await m.respond("реанимировать жабу")
                 await m.click(0)
-            elif ("🐝" or "Бзззз! С пасеки") in m.message and m.buttons:
+            elif m.sender_id in {830605725} and m.buttons:
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
