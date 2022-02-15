@@ -1,10 +1,12 @@
 # scope: inline_content
 
-from .. import loader, utils
-from telethon.tl.types import *
-from aiogram.types import *
-import logging
 import asyncio
+import logging
+
+from aiogram.types import *
+from telethon.tl.types import *
+
+from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +39,14 @@ class InlineGgMod(loader.Module):
             return
 
         await call.edit(f"😜")
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
         await call.edit(f"🥰")
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
         await call.edit(f"😍")
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
 
         await call.edit(self.strings('tired'))
-        await asyncio.sleep(10)
+        await asyncio.sleep(3)
         await call.edit(self.strings('tired'), reply_markup=[[{
             'text': '💔 Не нажимай, я стесняюсь!',
             'url': 'https://t.me/Azalonn'
