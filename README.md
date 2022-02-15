@@ -1,2 +1,2 @@
 # tm
- скрипты юзербота для @tgtoadbot (Telegram bot)
+ scripts for t.me/toadbot
