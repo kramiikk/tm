@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 
 from aiogram.types import *
 from telethon.tl.types import *
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 @loader.tds
 class InlineGgMod(loader.Module):
-    """Non-spammy ghoul module"""
+    """Non-spam"""
     strings = {
         "name": "InlineGg",
         "imghl": "🧐 <b>Azal*n g*y?</b>",
@@ -35,15 +36,23 @@ class InlineGgMod(loader.Module):
 
     async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
-            await call.answer('😜 Не туда!')
+            src = f"Клан Вадим и его жабехи Состав:"
+            msg = f"Клан Вадим и его жабехи:\n"
+            get = await self.client.get_messages(1655814348, search=src)
+            for i in get:
+                ids = re.search(r"id: (.+)", i.text).group(1)
+                reg = re.findall(r"\n(\d+)", i.text)
+                for s in reg:
+                    src = f"{ids} {s} Уровень:"
+                    get = await self.client.get_messages(1655814348, search=src)
+                    for p in get:
+                        ger = re.search(r"ь: (\d+)", p.text)
+                        msg += f"\nУровень: {ger.group(1)}"
+                        if "Жаба:" in p.text:
+                            ger = re.search(r"а: (.+)", p.text).group(1)
+                            msg += f" Жаба: {ger}"
+            await call.answer(msg)
             return
-
-        await call.edit(f"😜")
-        await asyncio.sleep(3)
-        await call.edit(f"🥰")
-        await asyncio.sleep(3)
-        await call.edit(f"😍")
-        await asyncio.sleep(3)
 
         await call.edit(self.strings('tired'))
         await asyncio.sleep(3)
@@ -54,7 +63,7 @@ class InlineGgMod(loader.Module):
         await call.unload()
 
     async def ggcmd(self, message: Message) -> None:
-        """Sends ghoul message"""
+        """Sends gg message"""
         await self.inline.form(self.strings('imghl'), message=message, reply_markup=[[{
             'text': '🤠 G*y',
             'callback': self.inline__handler,
