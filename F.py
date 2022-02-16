@@ -22,14 +22,6 @@ class InlineGgMod(loader.Module):
         "tired": "👉"
     }
 
-    async def tms(self, m: Message, i):
-        global MS
-        MS = datetime.timedelta(
-            hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-        ) - datetime.timedelta(
-            hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
-        )
-
     def get(self, *args) -> dict:
         return self.db.get(self.strings['name'], *args)
 
@@ -40,10 +32,18 @@ class InlineGgMod(loader.Module):
         self.db = db
         self.client = client
 
+    async def tms(self, t, i):
+        global MS
+        MS = datetime.timedelta(
+            hours=t.date.hour, minutes=t.date.minute, seconds=t.date.second
+        ) - datetime.timedelta(
+            hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+        )
+
     async def inline_close(self, call: CallbackQuery) -> None:
         await call.close()
 
-    async def inline__handler(self, m: Message, call: CallbackQuery, correct: bool) -> None:
+    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
             await call.answer("лох")
             return
@@ -66,8 +66,9 @@ class InlineGgMod(loader.Module):
         await asyncio.sleep(1)
         s = await self.client.get_messages(1767017980, limit=42)
         txt = "<b>Сейчас в кв:\n</b>"
+        t = await self.client.send_message(1782816965, "Сезон кланов золото")
         for i in s:
-            await self.tms(m, i)
+            await self.tms(t, i)
             if "VS" in i.text and datetime.timedelta(
                 days=0
             ) <= MS < datetime.timedelta(hours=4, minutes=3):
