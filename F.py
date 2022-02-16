@@ -1,6 +1,7 @@
 # scope: inline_content
 
 import asyncio
+import datetime
 import logging
 import re
 
@@ -21,6 +22,14 @@ class InlineGgMod(loader.Module):
         "tired": "👉"
     }
 
+    async def tms(self, m, i):
+        global MS
+        MS = datetime.timedelta(
+            hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
+        ) - datetime.timedelta(
+            hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
+        )
+
     def get(self, *args) -> dict:
         return self.db.get(self.strings['name'], *args)
 
@@ -34,7 +43,7 @@ class InlineGgMod(loader.Module):
     async def inline_close(self, call: CallbackQuery) -> None:
         await call.close()
 
-    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
+    async def inline__handler(self, m, call: CallbackQuery, correct: bool) -> None:
         if not correct:
             await call.answer("лох")
             return
@@ -54,6 +63,16 @@ class InlineGgMod(loader.Module):
                         ger = re.search(r"а: (.+)", p.text).group(1)
                         msg += f" Жаба: {ger}"
         await call.edit(msg)
+        await asyncio.sleep(1)
+        s = await self.client.get_messages(1767017980, limit=42)
+        txt = "<b>Сейчас в кв:\n</b>"
+        for i in s:
+            await self.tms(m, i)
+            if "VS" in i.text and datetime.timedelta(
+                days=0
+            ) <= MS < datetime.timedelta(hours=4, minutes=3):
+                txt += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
+        await call.edit(txt)
         await asyncio.sleep(13)
         await call.edit(self.strings('tired'), reply_markup=[[{
             'text': '💔 Не нажимай!',
