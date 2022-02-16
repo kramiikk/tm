@@ -47,7 +47,7 @@ class InlineGgMod(loader.Module):
         if not correct:
             await call.answer("лох")
             return
-        src = f"Клан Вадим и его жабехи Состав:"
+        src = f"жмякнул {call.from_user.id}\n\nКлан Вадим и его жабехи Состав:"
         msg = f"Клан Вадим и его жабехи:\n"
         get = await self.client.get_messages(1655814348, search=src)
         for i in get:
