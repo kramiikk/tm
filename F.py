@@ -53,7 +53,7 @@ class InlineGgMod(loader.Module):
                     if "Жаба:" in p.text:
                         ger = re.search(r"а: (.+)", p.text).group(1)
                         msg += f" Жаба: {ger}"
-        await call.edit(self.strings('tired'))
+        await call.edit(msg)
         await asyncio.sleep(13)
         await call.edit(self.strings('tired'), reply_markup=[[{
             'text': '💔 Не нажимай!',
