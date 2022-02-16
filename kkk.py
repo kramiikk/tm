@@ -1,10 +1,10 @@
 import asyncio
-import datetime
 import logging
 import random
 import re
 
-from telethon import events, functions
+from telethon import events
+from datetime import timedelta
 
 from .. import loader
 
@@ -45,9 +45,9 @@ class KramiikkMod(loader.Module):
 
     async def tms(self, m, i):
         global MS
-        MS = datetime.timedelta(
+        MS = timedelta(
             hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
-        ) - datetime.timedelta(
+        ) - timedelta(
             hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
         )
 
@@ -75,9 +75,9 @@ class KramiikkMod(loader.Module):
                 for i in s:
                     await self.tms(m, i)
                     if (
-                        datetime.timedelta(days=0, hours=4)
+                        timedelta(days=0, hours=4)
                         <= MS
-                        < datetime.timedelta(days=0, hours=4, minutes=30)
+                        < timedelta(days=0, hours=4, minutes=30)
                     ):
                         p = re.search(r"..(.+) <.+> (.+)", i.text)
                         chet = f"{klan.group(2)}:{klan.group(3)}"
@@ -238,17 +238,17 @@ class KramiikkMod(loader.Module):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
-                delta = datetime.timedelta(hours=4)
+                delta = timedelta(hours=4)
                 if len(args) == 4:
-                    delta = datetime.timedelta(
+                    delta = timedelta(
                         hours=args[1], minutes=args[2], seconds=args[3] + 13
                     )
                 elif len(args) == 3:
-                    delta = datetime.timedelta(minutes=args[1], seconds=args[2] + 13)
+                    delta = timedelta(minutes=args[1], seconds=args[2] + 13)
                 elif len(args) == 2:
-                    delta = datetime.timedelta(seconds=args[1] + 13)
+                    delta = timedelta(seconds=args[1] + 13)
                 for i in range(3):
-                    delta = delta + datetime.timedelta(seconds=13)
+                    delta = delta + timedelta(seconds=13)
                     await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
             elif (
                 m.message.casefold().startswith(("доброе утро", "спокойной ночи"))
@@ -268,7 +268,7 @@ class KramiikkMod(loader.Module):
                             RSP.text,
                             re.IGNORECASE,
                         )
-                        delta = datetime.timedelta(
+                        delta = timedelta(
                             hours=int(time_f.group(1)),
                             minutes=int(time_f.group(2)),
                             seconds=3,
@@ -278,12 +278,12 @@ class KramiikkMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(m.chat_id, "откормить жабку")
-                        delta = datetime.timedelta(hours=4, seconds=3)
+                        delta = timedelta(hours=4, seconds=3)
                         await self.client.send_message(
                             m.chat_id, "откормить жабку", schedule=delta
                         )
                     for i in range(4):
-                        delta = delta + datetime.timedelta(hours=4)
+                        delta = delta + timedelta(hours=4)
                         await self.client.send_message(
                             m.chat_id, "откормить жабку", schedule=delta
                         )
@@ -293,7 +293,7 @@ class KramiikkMod(loader.Module):
                             RSP.text,
                             re.IGNORECASE,
                         )
-                        delta = datetime.timedelta(
+                        delta = timedelta(
                             hours=int(dng_s.group(1)),
                             minutes=int(dng_s.group(2)),
                             seconds=3,
@@ -304,30 +304,30 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id,
                             "Отправиться в золотое подземелье",
-                            schedule=delta + datetime.timedelta(seconds=13),
+                            schedule=delta + timedelta(seconds=13),
                         )
                         if int(dng_s.group(1)) > 1:
                             await m.respond("реанимировать жабу")
                             await m.respond("работа крупье")
-                            delta = datetime.timedelta(hours=2, seconds=3)
+                            delta = timedelta(hours=2, seconds=3)
                             await self.client.send_message(
                                 m.chat_id, "завершить работу", schedule=delta
                             )
                         for i in range(2):
-                            delta = delta + datetime.timedelta(hours=6, seconds=3)
+                            delta = delta + timedelta(hours=6, seconds=3)
                             await self.client.send_message(
                                 m.chat_id, "реанимировать жабу", schedule=delta
                             )
                             await self.client.send_message(
                                 m.chat_id,
                                 "работа крупье",
-                                schedule=delta + datetime.timedelta(seconds=3),
+                                schedule=delta + timedelta(seconds=3),
                             )
                             await self.client.send_message(
                                 m.chat_id,
                                 "завершить работу",
                                 schedule=delta
-                                + datetime.timedelta(hours=2, seconds=13),
+                                + timedelta(hours=2, seconds=13),
                             )
                     elif "Забрать жабу можно" in RSP.text:
                         dng_s = re.search(
@@ -335,7 +335,7 @@ class KramiikkMod(loader.Module):
                             RSP.text,
                             re.IGNORECASE,
                         )
-                        delta = datetime.timedelta(
+                        delta = timedelta(
                             hours=int(dng_s.group(1)),
                             minutes=int(dng_s.group(2)),
                             seconds=3,
@@ -346,12 +346,12 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id,
                             "реанимировать жабку",
-                            schedule=delta + datetime.timedelta(minutes=25, seconds=3),
+                            schedule=delta + timedelta(minutes=25, seconds=3),
                         )
                         await self.client.send_message(
                             m.chat_id,
                             "Отправиться в золотое подземелье",
-                            schedule=delta + datetime.timedelta(minutes=45, seconds=13),
+                            schedule=delta + timedelta(minutes=45, seconds=13),
                         )
                 else:
                     p = "🍭"
@@ -363,7 +363,7 @@ class KramiikkMod(loader.Module):
                             RSP.text,
                             re.IGNORECASE,
                         )
-                        delta = datetime.timedelta(
+                        delta = timedelta(
                             hours=int(time_n.group(1)),
                             minutes=int(time_n.group(2)),
                             seconds=3,
@@ -372,10 +372,10 @@ class KramiikkMod(loader.Module):
                             m.chat_id, "покормить жабку", schedule=delta
                         )
                     else:
-                        delta = datetime.timedelta(hours=6, seconds=3)
+                        delta = timedelta(hours=6, seconds=3)
                         await m.respond("покормить жабку")
                     for i in range(3):
-                        delta = delta + datetime.timedelta(hours=6, seconds=3)
+                        delta = delta + timedelta(hours=6, seconds=3)
                         await self.client.send_message(
                             m.chat_id, "покормить жабку", schedule=delta
                         )
@@ -385,7 +385,7 @@ class KramiikkMod(loader.Module):
                             RSP.text,
                             re.IGNORECASE,
                         )
-                        delta = datetime.timedelta(
+                        delta = timedelta(
                             hours=int(time.group(1)),
                             minutes=int(time.group(2)),
                             seconds=3,
@@ -396,23 +396,23 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id,
                             "работа крупье",
-                            schedule=delta + datetime.timedelta(seconds=13),
+                            schedule=delta + timedelta(seconds=13),
                         )
                         for i in range(2):
-                            delta = delta + datetime.timedelta(hours=8)
+                            delta = delta + timedelta(hours=8)
                             await self.client.send_message(
                                 m.chat_id, "реанимировать жабу", schedule=delta
                             )
                             await self.client.send_message(
                                 m.chat_id,
                                 "работа крупье",
-                                schedule=delta + datetime.timedelta(seconds=13),
+                                schedule=delta + timedelta(seconds=13),
                             )
                             await self.client.send_message(
                                 m.chat_id,
                                 "завершить работу",
                                 schedule=delta
-                                + datetime.timedelta(hours=2, seconds=13),
+                                + timedelta(hours=2, seconds=13),
                             )
                     if "жабу можно через" in RSP.text:
                         time = re.search(
@@ -420,7 +420,7 @@ class KramiikkMod(loader.Module):
                             RSP.text,
                             re.IGNORECASE,
                         )
-                        delta = datetime.timedelta(
+                        delta = timedelta(
                             hours=int(time.group(1)),
                             minutes=int(time.group(2)),
                             seconds=3,
@@ -431,27 +431,27 @@ class KramiikkMod(loader.Module):
                     elif "можно отправить" in RSP.text:
                         await m.respond("реанимировать жабу")
                         await m.respond("работа крупье")
-                        delta = datetime.timedelta(hours=2, seconds=3)
+                        delta = timedelta(hours=2, seconds=3)
                         await self.client.send_message(
                             m.chat_id, "завершить работу", schedule=delta
                         )
                     else:
                         await m.respond("завершить работу")
-                        delta = datetime.timedelta(hours=6)
+                        delta = timedelta(hours=6)
                     for i in range(2):
-                        delta = delta + datetime.timedelta(hours=6, seconds=3)
+                        delta = delta + timedelta(hours=6, seconds=3)
                         await self.client.send_message(
                             m.chat_id, "реанимировать жабу", schedule=delta
                         )
                         await self.client.send_message(
                             m.chat_id,
                             "работа крупье",
-                            schedule=delta + datetime.timedelta(seconds=3),
+                            schedule=delta + timedelta(seconds=3),
                         )
                         await self.client.send_message(
                             m.chat_id,
                             "завершить работу",
-                            schedule=delta + datetime.timedelta(hours=2, seconds=13),
+                            schedule=delta + timedelta(hours=2, seconds=13),
                         )
         finally:
             return

@@ -1,14 +1,14 @@
 # scope: inline_content
 
 import asyncio
-import datetime
 import logging
 import re
 
 from aiogram.types import *
 from telethon.tl.types import *
+from datetime import timedelta
 
-from .. import loader, utils
+from .. import loader
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +34,9 @@ class InlineGgMod(loader.Module):
 
     async def tms(self, t, i):
         global MS
-        MS = datetime.timedelta(
+        MS = timedelta(
             hours=t.date.hour, minutes=t.date.minute, seconds=t.date.second
-        ) - datetime.timedelta(
+        ) - timedelta(
             hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second
         )
 
@@ -69,9 +69,9 @@ class InlineGgMod(loader.Module):
         t = await self.client.send_message(1782816965, "Сезон кланов золото")
         for i in s:
             await self.tms(t, i)
-            if "VS" in i.text and datetime.timedelta(
+            if "VS" in i.text and timedelta(
                 days=0
-            ) <= MS < datetime.timedelta(hours=4, minutes=3):
+            ) <= MS < timedelta(hours=4, minutes=3):
                 txt += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
         await call.edit(txt)
         await asyncio.sleep(13)
