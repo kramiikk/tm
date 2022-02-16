@@ -18,7 +18,7 @@ class InlineGgMod(loader.Module):
     strings = {
         "name": "InlineGg",
         "imghl": "🧐 <b>Azal*n g*y?</b>",
-        "tired": "👉 <b>Правильно \"Azal*n g*y\"</b>"
+        "tired": "👉"
     }
 
     def get(self, *args) -> dict:
@@ -36,29 +36,28 @@ class InlineGgMod(loader.Module):
 
     async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
-            src = f"Клан Вадим и его жабехи Состав:"
-            msg = f"Клан Вадим и его жабехи:\n"
-            get = await self.client.get_messages(1655814348, search=src)
-            for i in get:
-                ids = re.search(r"id: (.+)", i.text).group(1)
-                reg = re.findall(r"\n(\d+)", i.text)
-                for s in reg:
-                    src = f"{ids} {s} Уровень:"
-                    get = await self.client.get_messages(1655814348, search=src)
-                    for p in get:
-                        ger = re.search(r"ь: (\d+)", p.text)
-                        msg += f"\nУровень: {ger.group(1)}"
-                        if "Жаба:" in p.text:
-                            ger = re.search(r"а: (.+)", p.text).group(1)
-                            msg += f" Жаба: {ger}"
-            await call.answer(msg)
+            await call.answer("лох")
             return
-
+        src = f"Клан Вадим и его жабехи Состав:"
+        msg = f"Клан Вадим и его жабехи:\n"
+        get = await self.client.get_messages(1655814348, search=src)
+        for i in get:
+            ids = re.search(r"id: (.+)", i.text).group(1)
+            reg = re.findall(r"\n(\d+)", i.text)
+            for s in reg:
+                src = f"{ids} {s} Уровень:"
+                get = await self.client.get_messages(1655814348, search=src)
+                for p in get:
+                    ger = re.search(r"ь: (\d+)", p.text)
+                    msg += f"\nУровень: {ger.group(1)}"
+                    if "Жаба:" in p.text:
+                        ger = re.search(r"а: (.+)", p.text).group(1)
+                        msg += f" Жаба: {ger}"
         await call.edit(self.strings('tired'))
-        await asyncio.sleep(3)
+        await asyncio.sleep(13)
         await call.edit(self.strings('tired'), reply_markup=[[{
-            'text': '💔 Не нажимай, я стесняюсь!',
-            'url': 'https://t.me/Azalonn'
+            'text': '💔 Не нажимай!',
+            'url': 'https://t.me/+PGb_kTUvwYcyN2Qy'
         }]])
         await call.unload()
 
