@@ -22,7 +22,7 @@ class InlineGgMod(loader.Module):
         "tired": "👉"
     }
 
-    async def tms(self, m, i):
+    async def tms(self, m: Message, i):
         global MS
         MS = datetime.timedelta(
             hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
@@ -43,7 +43,7 @@ class InlineGgMod(loader.Module):
     async def inline_close(self, call: CallbackQuery) -> None:
         await call.close()
 
-    async def inline__handler(self, m, call: CallbackQuery, correct: bool) -> None:
+    async def inline__handler(self, m: Message, call: CallbackQuery, correct: bool) -> None:
         if not correct:
             await call.answer("лох")
             return
