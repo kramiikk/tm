@@ -171,7 +171,7 @@ class KramiikkMod(loader.Module):
                 reply = await m.get_reply_message()
                 count = args.split(" ", 2)[1]
                 if m.raw_text.endswith("?"):
-                    words = re.findall(r"\w+", f"{m.text}")
+                    words = re.findall(r".+", f"{m.text}")
                     words_len = [words.__len__()] + [x.__len__() for x in words]
                     i = words_len.__len__()
                     while i > 1:
@@ -271,14 +271,13 @@ class KramiikkMod(loader.Module):
                         delta = timedelta(
                             hours=int(time_f.group(1)),
                             minutes=int(time_f.group(2)),
-                            seconds=3,
                         )
                         await self.client.send_message(
                             m.chat_id, "откормить жабку", schedule=delta
                         )
                     else:
                         await self.client.send_message(m.chat_id, "откормить жабку")
-                        delta = timedelta(hours=4, seconds=3)
+                        delta = timedelta(hours=4)
                         await self.client.send_message(
                             m.chat_id, "откормить жабку", schedule=delta
                         )
@@ -296,7 +295,6 @@ class KramiikkMod(loader.Module):
                         delta = timedelta(
                             hours=int(dng_s.group(1)),
                             minutes=int(dng_s.group(2)),
-                            seconds=3,
                         )
                         await self.client.send_message(
                             m.chat_id, "реанимировать жабу", schedule=delta
@@ -304,7 +302,7 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id,
                             "Отправиться в золотое подземелье",
-                            schedule=delta + timedelta(seconds=13),
+                            schedule=delta,
                         )
                         if int(dng_s.group(1)) > 1:
                             await m.respond("реанимировать жабу")
