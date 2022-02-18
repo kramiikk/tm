@@ -377,5 +377,7 @@ class KramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + timedelta(hours=2, seconds=13),
                         )
+            else:
+                return
         finally:
             return
