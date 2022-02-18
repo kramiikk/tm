@@ -62,23 +62,23 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         if self.me.id in {1486632011}:
-            name = "Оботи"
+            name = "оботи"
         elif self.me.id in {1286303075}:
-            name = "Лавин"
+            name = "лавин"
         elif self.me.id in {1785723159}:
-            name = "Крамик"
+            name = "крамик"
         elif self.me.id in {547639600}:
-            name = "Нельс"
+            name = "нельс"
         elif self.me.id in {980699009}:
-            name = "Лена"
+            name = "лена"
         elif self.me.id in {1423368454}:
-            name = "Len"
+            name = "len"
         elif self.me.id in {230473666}:
-            name = "Ваня"
+            name = "ваня"
         elif self.me.id in {887255479}:
-            name = "Кира"
+            name = "кира"
         elif self.me.id in {1266917477}:
-            name = "Артур"
+            name = "артур"
         else:
             name = self.me.first_name
         try:
