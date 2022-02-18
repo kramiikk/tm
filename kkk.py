@@ -243,7 +243,7 @@ class KramiikkMod(loader.Module):
                 p = "🐸"
                 await self.err(m, p)
                 jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RSP.raw_text)
-                if int(jab.group(1)) > 72 and int(jab.group(2)) > 1250:
+                if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
                     p = "🏃‍♂️"
                     await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                     await self.err(m, p)
