@@ -286,7 +286,31 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(
                             m.chat_id, "откормить жабку", schedule=delta
                         )
-                    if "В подземелье можно" in RSP.text:
+                    if "Забрать жабу можно" in RSP.text:
+                        dng_s = re.search(
+                            r"жабу можно через (\d+) часов (\d+) минут",
+                            RSP.text,
+                            re.IGNORECASE,
+                        )
+                        delta = timedelta(
+                            hours=int(dng_s.group(1)),
+                            minutes=int(dng_s.group(2)),
+                            seconds=3,
+                        )
+                        await self.client.send_message(
+                            m.chat_id, "завершить работу", schedule=delta
+                        )
+                        await self.client.send_message(
+                            m.chat_id,
+                            "реанимировать жабку",
+                            schedule=delta,
+                        )
+                        await self.client.send_message(
+                            m.chat_id,
+                            "Отправиться в золотое подземелье",
+                            schedule=delta,
+                        )
+                    elif "В подземелье можно" in RSP.text:
                         dng_s = re.search(
                             r"подземелье можно через (\d+)ч. (\d+)м.",
                             RSP.text,
@@ -327,30 +351,6 @@ class KramiikkMod(loader.Module):
                                 schedule=delta
                                 + timedelta(hours=2, seconds=13),
                             )
-                    elif "Забрать жабу можно" in RSP.text:
-                        dng_s = re.search(
-                            r"жабу можно через (\d+) часов (\d+) минут",
-                            RSP.text,
-                            re.IGNORECASE,
-                        )
-                        delta = timedelta(
-                            hours=int(dng_s.group(1)),
-                            minutes=int(dng_s.group(2)),
-                            seconds=3,
-                        )
-                        await self.client.send_message(
-                            m.chat_id, "завершить работу", schedule=delta
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "реанимировать жабку",
-                            schedule=delta + timedelta(minutes=25, seconds=3),
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "Отправиться в золотое подземелье",
-                            schedule=delta + timedelta(minutes=45, seconds=13),
-                        )
                 else:
                     p = "🍭"
                     await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
