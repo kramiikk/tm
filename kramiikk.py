@@ -175,7 +175,7 @@ class KramiikkMod(loader.Module):
                         txt = r"подземелье можно через (\d+)ч. (\d+)м."
                         await self.uku(m, cmn, txt)
                 else:
-                    p = "🍭"
+                    p = "🏃‍♂️"
                     await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                     await self.err(m, p)
                     if "покормить через" in RSP.text:
