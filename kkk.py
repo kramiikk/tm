@@ -102,18 +102,6 @@ class KramiikkMod(loader.Module):
                     tog += f"\n{i[0]} {i[1]}"
                 await self.client.send_message(1655814348, tog)
             elif m.message.casefold().startswith(
-                ("моя жаба", "@toadbot моя жаба")
-            ) and len(m.message) in {17, 8}:
-                p = "🐸"
-                await self.err(m, p)
-                if "Имя жабы" in RSP.text:
-                    reg = re.search(
-                        r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
-                        RSP.raw_text,
-                    )
-                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
-                    await self.client.send_message(1655814348, info)
-            elif m.message.casefold().startswith(
                 ("начать клановую войну", "@toadbot начать клановую войну")
             ) and len(m.message) in {21, 30}:
                 p = None
@@ -280,7 +268,7 @@ class KramiikkMod(loader.Module):
                         txt = r"подземелье можно через (\d+)ч. (\d+)м."
                         await self.uku(m, cmn, txt)
                 else:
-                    p = "🍭"
+                    p = "🏃‍♂️"
                     await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
                     await self.err(m, p)
                     if "покормить через" in RSP.text:
@@ -377,6 +365,18 @@ class KramiikkMod(loader.Module):
                             "завершить работу",
                             schedule=delta + timedelta(hours=2, seconds=13),
                         )
+            elif m.message.casefold().startswith(
+                ("моя жаба", "@toadbot моя жаба")
+            ) and len(m.message) in {17, 8}:
+                p = "🐸"
+                await self.err(m, p)
+                if "Имя жабы" in RSP.text:
+                    reg = re.search(
+                        r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
+                        RSP.raw_text,
+                    )
+                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
+                    await self.client.send_message(1655814348, info)
             else:
                 return
         finally:
