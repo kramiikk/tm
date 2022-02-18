@@ -101,6 +101,105 @@ class KramiikkMod(loader.Module):
             txt = r"подземелье можно через (\d+)ч. (\d+)м."
             await self.uku(m, cmn, txt)
 
+    async def bmj(self, m):
+        p = "🏃‍♂️"
+        await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
+        await self.err(m, p)
+        if "покормить через" in RSP.text:
+            time_n = re.search(
+                r"покормить через (\d+)ч:(\d+)м",
+                RSP.text,
+                re.IGNORECASE,
+            )
+            delta = timedelta(
+                hours=int(time_n.group(1)),
+                minutes=int(time_n.group(2)),
+            )
+            await self.client.send_message(
+                m.chat_id, "покормить жабку", schedule=delta
+            )
+        else:
+            delta = timedelta(hours=6, seconds=3)
+            await m.respond("покормить жабку")
+        for i in range(3):
+            delta = delta + timedelta(hours=6, seconds=3)
+            await self.client.send_message(
+                m.chat_id, "покормить жабку", schedule=delta
+            )
+        if "работу можно" in RSP.text:
+            time = re.search(
+                r"будет через (\d+)ч:(\d+)м",
+                RSP.text,
+                re.IGNORECASE,
+            )
+            delta = timedelta(
+                hours=int(time.group(1)),
+                minutes=int(time.group(2)),
+                seconds=3,
+            )
+            await self.client.send_message(
+                m.chat_id, "реанимировать жабу", schedule=delta
+            )
+            await self.client.send_message(
+                m.chat_id,
+                "работа крупье",
+                schedule=delta + timedelta(seconds=13),
+            )
+            for i in range(2):
+                delta = delta + timedelta(hours=8)
+                await self.client.send_message(
+                    m.chat_id, "реанимировать жабу", schedule=delta
+                )
+                await self.client.send_message(
+                    m.chat_id,
+                    "работа крупье",
+                    schedule=delta + timedelta(seconds=13),
+                )
+                await self.client.send_message(
+                    m.chat_id,
+                    "завершить работу",
+                    schedule=delta + timedelta(hours=2, seconds=13),
+                )
+        if "жабу можно через" in RSP.text:
+            time = re.search(
+                r"через (\d+) часов (\d+) минут",
+                RSP.text,
+                re.IGNORECASE,
+            )
+            delta = timedelta(
+                hours=int(time.group(1)),
+                minutes=int(time.group(2)),
+                seconds=3,
+            )
+            await self.client.send_message(
+                m.chat_id, "завершить работу", schedule=delta
+            )
+        elif "можно отправить" in RSP.text:
+            await m.respond("реанимировать жабу")
+            await m.respond("работа крупье")
+            delta = timedelta(hours=2, seconds=3)
+            await self.client.send_message(
+                m.chat_id, "завершить работу", schedule=delta
+            )
+        else:
+            await m.respond("завершить работу")
+            delta = timedelta(hours=6)
+        for i in range(2):
+            delta = delta + timedelta(hours=6, seconds=3)
+            await self.client.send_message(
+                m.chat_id, "реанимировать жабу", schedule=delta
+            )
+            await self.client.send_message(
+                m.chat_id,
+                "работа крупье",
+                schedule=delta + timedelta(seconds=3),
+            )
+            await self.client.send_message(
+                m.chat_id,
+                "завершить работу",
+                schedule=delta + timedelta(hours=2, seconds=13),
+            )
+
     async def watcher(self, m):
         name = "монарх"
         try:
@@ -271,103 +370,7 @@ class KramiikkMod(loader.Module):
                 if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
                     await self.buk(m)
                 else:
-                    p = "🏃‍♂️"
-                    await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
-                    await self.err(m, p)
-                    if "покормить через" in RSP.text:
-                        time_n = re.search(
-                            r"покормить через (\d+)ч:(\d+)м",
-                            RSP.text,
-                            re.IGNORECASE,
-                        )
-                        delta = timedelta(
-                            hours=int(time_n.group(1)),
-                            minutes=int(time_n.group(2)),
-                        )
-                        await self.client.send_message(
-                            m.chat_id, "покормить жабку", schedule=delta
-                        )
-                    else:
-                        delta = timedelta(hours=6, seconds=3)
-                        await m.respond("покормить жабку")
-                    for i in range(3):
-                        delta = delta + timedelta(hours=6, seconds=3)
-                        await self.client.send_message(
-                            m.chat_id, "покормить жабку", schedule=delta
-                        )
-                    if "работу можно" in RSP.text:
-                        time = re.search(
-                            r"будет через (\d+)ч:(\d+)м",
-                            RSP.text,
-                            re.IGNORECASE,
-                        )
-                        delta = timedelta(
-                            hours=int(time.group(1)),
-                            minutes=int(time.group(2)),
-                            seconds=3,
-                        )
-                        await self.client.send_message(
-                            m.chat_id, "реанимировать жабу", schedule=delta
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "работа крупье",
-                            schedule=delta + timedelta(seconds=13),
-                        )
-                        for i in range(2):
-                            delta = delta + timedelta(hours=8)
-                            await self.client.send_message(
-                                m.chat_id, "реанимировать жабу", schedule=delta
-                            )
-                            await self.client.send_message(
-                                m.chat_id,
-                                "работа крупье",
-                                schedule=delta + timedelta(seconds=13),
-                            )
-                            await self.client.send_message(
-                                m.chat_id,
-                                "завершить работу",
-                                schedule=delta + timedelta(hours=2, seconds=13),
-                            )
-                    if "жабу можно через" in RSP.text:
-                        time = re.search(
-                            r"через (\d+) часов (\d+) минут",
-                            RSP.text,
-                            re.IGNORECASE,
-                        )
-                        delta = timedelta(
-                            hours=int(time.group(1)),
-                            minutes=int(time.group(2)),
-                            seconds=3,
-                        )
-                        await self.client.send_message(
-                            m.chat_id, "завершить работу", schedule=delta
-                        )
-                    elif "можно отправить" in RSP.text:
-                        await m.respond("реанимировать жабу")
-                        await m.respond("работа крупье")
-                        delta = timedelta(hours=2, seconds=3)
-                        await self.client.send_message(
-                            m.chat_id, "завершить работу", schedule=delta
-                        )
-                    else:
-                        await m.respond("завершить работу")
-                        delta = timedelta(hours=6)
-                    for i in range(2):
-                        delta = delta + timedelta(hours=6, seconds=3)
-                        await self.client.send_message(
-                            m.chat_id, "реанимировать жабу", schedule=delta
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "работа крупье",
-                            schedule=delta + timedelta(seconds=3),
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "завершить работу",
-                            schedule=delta + timedelta(hours=2, seconds=13),
-                        )
+                    await self.bmj(m)
             elif m.message.casefold().startswith(
                 ("моя жаба", "@toadbot моя жаба")
             ) and len(m.message) in {17, 8}:
