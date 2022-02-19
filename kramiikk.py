@@ -1,9 +1,9 @@
 import asyncio
 import logging
 import re
+from datetime import timedelta
 
 from telethon import events
-from datetime import timedelta
 
 from .. import loader
 
@@ -38,6 +38,17 @@ class KramiikkMod(loader.Module):
         self.db = db
         self.me = await client.get_me()
 
+    async def err(self, m, p):
+        try:
+            async with self.client.conversation(m.chat_id) as conv:
+                global RSP
+                RSP = await conv.wait_event(
+                    events.NewMessage(from_users=1124824021,
+                                      chats=m.chat_id, pattern=p)
+                )
+        except asyncio.exceptions.TimeoutError:
+            pass
+
     async def uku(self, m, cmn, txt):
         time = re.search(
             txt,
@@ -47,43 +58,76 @@ class KramiikkMod(loader.Module):
         await self.client.send_message(
             m.chat_id,
             cmn,
-            schedule=timedelta(hours=int(time.group(1)), minutes=int(time.group(2))),
+            schedule=timedelta(hours=int(time.group(1)),
+                               minutes=int(time.group(2))),
         )
 
-    async def err(self, m, p):
-        try:
-            async with self.client.conversation(m.chat_id) as conv:
-                global RSP
-                RSP = await conv.wait_event(
-                    events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
-                )
-        except asyncio.exceptions.TimeoutError:
-            pass
+    async def buk(self, m):
+        p = "🏃‍♂️"
+        await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
+        await self.err(m, p)
+        cmn = "откормить жабку"
+        if "(Откормить через" in RSP.text:
+            txt = r"Откормить через (\d+)ч:(\d+)м"
+            await self.uku(m, cmn, txt)
+        else:
+            await self.client.send_message(m.chat_id, cmn)
+        if "Можно отправиться" in RSP.text:
+            cmn = "отправиться в золотое подземелье"
+            await self.client.send_message(m.chat_id, cmn)
+        elif (
+            "подземелье можно через 2ч"
+            and "Жабу можно отправить" in RSP.text
+        ):
+            cmn = "работа крупье"
+            await self.client.send_message(m.chat_id, cmn)
+            return await self.client.send_message(
+                m.chat_id, "<b>моя жаба</b>"
+            )
+        elif "В подземелье можно" in RSP.text:
+            cmn = "отправиться в золотое подземелье"
+            txt = r"подземелье можно через (\d+)ч. (\d+)м."
+            await self.uku(m, cmn, txt)
+
+    async def bmj(self, m):
+        p = "🏃‍♂️"
+        await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
+        await self.err(m, p)
+        cmn = "покормить жабку"
+        if "покормить через" in RSP.text:
+            txt = r"покормить через (\d+)ч:(\d+)м"
+            await self.uku(m, cmn, txt)
+        else:
+            await self.client.send_message(m.chat_id, cmn)
+        if "работу можно" in RSP.text:
+            cmn = "работа крупье"
+            txt = r"будет через (\d+)ч:(\d+)м"
+            await self.uku(m, cmn, txt)
+        elif "можно отправить" in RSP.text:
+            await m.respond("работа крупье")
 
     async def watcher(self, m):
         if self.me.id in {1486632011}:
-            name = "оботи"
+            name = "Оботи"
         elif self.me.id in {1286303075}:
-            name = "лавин"
-        elif self.me.id in {1785723159}:
-            name = "крамик"
+            name = "Лавин"
         elif self.me.id in {547639600}:
-            name = "нельс"
+            name = "Нельс"
         elif self.me.id in {980699009}:
-            name = "лена"
+            name = "Лена"
         elif self.me.id in {1423368454}:
-            name = "len"
+            name = "Len"
         elif self.me.id in {230473666}:
-            name = "ваня"
+            name = "Ваня"
         elif self.me.id in {887255479}:
-            name = "кира"
+            name = "Кира"
         elif self.me.id in {1266917477}:
-            name = "артур"
+            name = "Артур"
         else:
             name = self.me.first_name
         try:
             if (
-                m.message.casefold().startswith((name, f"@{self.me.username}"))
+                m.message.startswith((name, f"@{self.me.username}"))
             ) and m.sender_id in bak:
                 args = m.text
                 reply = await m.get_reply_message()
@@ -137,141 +181,21 @@ class KramiikkMod(loader.Module):
             ):
                 p = "🐸"
                 await self.err(m, p)
-                jab = re.search(r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RSP.raw_text)
-                if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
-                    p = "🏃‍♂️"
-                    await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
-                    await self.err(m, p)
-                    cmn = "откормить жабку"
-                    if "(Откормить через" in RSP.text:
-                        txt = r"Откормить через (\d+)ч:(\d+)м"
-                        await self.uku(m, cmn, txt)
-                    else:
-                        await self.client.send_message(m.chat_id, cmn)
-                    if "жабу с работы" in RSP.text:
-                        cmn = "завершить работу"
-                        await self.client.send_message(m.chat_id, cmn)
-                        return await self.client.send_message(
-                            m.chat_id, "<b>моя жаба</b>"
-                        )
-                    if "Можно отправиться" in RSP.text:
-                        cmn = "отправиться в золотое подземелье"
-                        await self.client.send_message(m.chat_id, cmn)
-                    elif (
-                        "подземелье можно через 2ч"
-                        and "Жабу можно отправить" in RSP.text
-                    ):
-                        cmn = "работа крупье"
-                        await self.client.send_message(m.chat_id, cmn)
-                        return await self.client.send_message(
-                            m.chat_id, "<b>моя жаба</b>"
-                        )
-                    elif "Забрать жабу можно" in RSP.text:
-                        cmn = "завершить работу"
-                        txt = r"жабу можно через (\d+) часов (\d+) минут"
-                        await self.uku(m, cmn, txt)
-                    elif "В подземелье можно" in RSP.text:
-                        cmn = "отправиться в золотое подземелье"
-                        txt = r"подземелье можно через (\d+)ч. (\d+)м."
-                        await self.uku(m, cmn, txt)
+                jab = re.search(
+                    r"Уровень.+: (\d+)[\s\S]*Состояние: .. (.+)\n.+: (\d+)", RSP.raw_text)
+                if jab.group(2) != "Живая":
+                    await m.respond("реанимировать жабу")
+                if int(jab.group(1)) > 72 and int(jab.group(3)) > 3750:
+                    await self.buk(m)
                 else:
-                    p = "🏃‍♂️"
-                    await self.client.send_message(m.chat_id, "<b>жаба инфо</b>")
-                    await self.err(m, p)
-                    if "покормить через" in RSP.text:
-                        time_n = re.search(
-                            r"покормить через (\d+)ч:(\d+)м",
-                            RSP.text,
-                            re.IGNORECASE,
-                        )
-                        delta = timedelta(
-                            hours=int(time_n.group(1)),
-                            minutes=int(time_n.group(2)),
-                        )
-                        await self.client.send_message(
-                            m.chat_id, "покормить жабку", schedule=delta
-                        )
-                    else:
-                        delta = timedelta(hours=6, seconds=3)
-                        await m.respond("покормить жабку")
-                    for i in range(3):
-                        delta = delta + timedelta(hours=6, seconds=3)
-                        await self.client.send_message(
-                            m.chat_id, "покормить жабку", schedule=delta
-                        )
-                    if "работу можно" in RSP.text:
-                        time = re.search(
-                            r"будет через (\d+)ч:(\d+)м",
-                            RSP.text,
-                            re.IGNORECASE,
-                        )
-                        delta = timedelta(
-                            hours=int(time.group(1)),
-                            minutes=int(time.group(2)),
-                            seconds=3,
-                        )
-                        await self.client.send_message(
-                            m.chat_id, "реанимировать жабу", schedule=delta
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "работа крупье",
-                            schedule=delta + timedelta(seconds=13),
-                        )
-                        for i in range(2):
-                            delta = delta + timedelta(hours=8)
-                            await self.client.send_message(
-                                m.chat_id, "реанимировать жабу", schedule=delta
-                            )
-                            await self.client.send_message(
-                                m.chat_id,
-                                "работа крупье",
-                                schedule=delta + timedelta(seconds=13),
-                            )
-                            await self.client.send_message(
-                                m.chat_id,
-                                "завершить работу",
-                                schedule=delta + timedelta(hours=2, seconds=13),
-                            )
-                    if "жабу можно через" in RSP.text:
-                        time = re.search(
-                            r"через (\d+) часов (\d+) минут",
-                            RSP.text,
-                            re.IGNORECASE,
-                        )
-                        delta = timedelta(
-                            hours=int(time.group(1)),
-                            minutes=int(time.group(2)),
-                            seconds=3,
-                        )
-                        await self.client.send_message(
-                            m.chat_id, "завершить работу", schedule=delta
-                        )
-                    elif "можно отправить" in RSP.text:
-                        await m.respond("реанимировать жабу")
-                        await m.respond("работа крупье")
-                        delta = timedelta(hours=2, seconds=3)
-                        await self.client.send_message(
-                            m.chat_id, "завершить работу", schedule=delta
-                        )
-                    else:
-                        await m.respond("завершить работу")
-                        delta = timedelta(hours=6)
-                    for i in range(2):
-                        delta = delta + timedelta(hours=6, seconds=3)
-                        await self.client.send_message(
-                            m.chat_id, "реанимировать жабу", schedule=delta
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "работа крупье",
-                            schedule=delta + timedelta(seconds=3),
-                        )
-                        await self.client.send_message(
-                            m.chat_id,
-                            "завершить работу",
-                            schedule=delta + timedelta(hours=2, seconds=13),
-                        )
+                    await self.bmj(m)
+                if "жабу можно через" in RSP.text:
+                    cmn = "завершить работу"
+                    txt = r"через (\d+) часов (\d+) минут"
+                    await self.uku(m, cmn, txt)
+                elif "жабу с работы" in RSP.text:
+                    cmn = "завершить работу"
+                    await self.client.send_message(m.chat_id, cmn)
             else:
                 return
         finally:
