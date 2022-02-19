@@ -283,13 +283,6 @@ class KramiikkMod(loader.Module):
                     await self.buk(m)
                 else:
                     await self.bmj(m)
-                if "жабу можно через" in RSP.text:
-                    cmn = "завершить работу"
-                    txt = r"через (\d+) часов (\d+) минут"
-                    await self.uku(m, cmn, txt)
-                elif "жабу с работы" in RSP.text:
-                    cmn = "завершить работу"
-                    await self.client.send_message(m.chat_id, cmn)
             elif m.message.casefold().startswith(
                 ("моя жаба", "@toadbot моя жаба")
             ) and len(m.message) in {17, 8}:
