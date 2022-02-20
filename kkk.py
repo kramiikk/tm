@@ -112,7 +112,7 @@ class KramiikkMod(loader.Module):
                 await m.respond("работа крупье")
 
     async def watcher(self, m):
-        name = "монарх"
+        name = "Монарх"
         if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
             if "одержал" in m.text:
                 klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
