@@ -122,9 +122,9 @@ class KramiikkMod(loader.Module):
             name = "Артур"
         else:
             name = self.me.first_name
-        if (
-            m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id
-        ) or (
+        if m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
+            await self.bmj(m)
+        elif (
             m.message.startswith((name, f"@{self.me.username}"))
             and "инфо" in m.message
             and m.sender_id in {1785723159}
