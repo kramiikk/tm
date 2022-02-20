@@ -9,20 +9,6 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
-bak = [
-    1785723159,
-    1377037394,
-    1261343954,
-    1015477223,
-    880446774,
-    635396952,
-    553299699,
-    547639600,
-    449434040,
-    412897338,
-    388412512,
-]
-
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя."""
@@ -141,7 +127,7 @@ class KramiikkMod(loader.Module):
                 await m.respond("<b>моя жаба</b>")
                 await self.bmj(m)
             elif (m.message.startswith((name, f"@{self.me.username}"))) and (
-                m.sender_id in bak or m.sender_id in self.su
+                m.sender_id in {1785723159, 1261343954} or m.sender_id in self.su
             ):
                 cmn = "<b>реанимировать жабу</b>"
                 await m.respond(cmn)
