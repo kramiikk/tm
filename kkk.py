@@ -271,13 +271,13 @@ class KramiikkMod(loader.Module):
             args = [int(x) for x in m.text.split() if x.isnumeric()]
             delta = timedelta(hours=4)
             if len(args) == 4:
-                delta = timedelta(hours=args[1], minutes=args[2], seconds=args[3] + 13)
+                delta = timedelta(hours=args[1], minutes=args[2], seconds=args[3])
             elif len(args) == 3:
-                delta = timedelta(minutes=args[1], seconds=args[2] + 13)
+                delta = timedelta(minutes=args[1], seconds=args[2])
             elif len(args) == 2:
-                delta = timedelta(seconds=args[1] + 13)
+                delta = timedelta(seconds=args[1])
             for i in range(3):
-                delta = delta + timedelta(seconds=13)
+                delta = delta + timedelta(seconds=30)
                 await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
         elif m.message.casefold().startswith(
             ("моя жаба", "@toadbot моя жаба", "/my_toad")
