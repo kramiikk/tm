@@ -269,13 +269,7 @@ class KramiikkMod(loader.Module):
             await m.click(0)
         elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
             args = [int(x) for x in m.text.split() if x.isnumeric()]
-            delta = timedelta(hours=4)
-            if len(args) == 4:
-                delta = timedelta(hours=args[1], minutes=args[2], seconds=args[3])
-            elif len(args) == 3:
-                delta = timedelta(minutes=args[1], seconds=args[2])
-            elif len(args) == 2:
-                delta = timedelta(seconds=args[1])
+            delta = timedelta(hours=args[1], minutes=args[2], seconds=args[3])
             for i in range(3):
                 delta = delta + timedelta(seconds=30)
                 await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
