@@ -278,10 +278,7 @@ class KramiikkMod(loader.Module):
             await self.err(m, p)
             jab = re.search(
                 r"Уровень.+: (\d+)[\s\S]*Состояние: .. (.+)\n.+: (\d+)", RSP.raw_text)
-            if int(jab.group(1)) > 72 and int(jab.group(3)) > 3750:
-                await self.buk(m)
-            else:
-                await self.bmj(m)
+            await self.bmj(m)
         elif m.message.casefold().startswith(
             ("моя жаба", "@toadbot моя жаба")
         ) and len(m.message) in {17, 8}:
