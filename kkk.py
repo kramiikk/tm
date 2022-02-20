@@ -274,10 +274,6 @@ class KramiikkMod(loader.Module):
             m.message.casefold().startswith(("моя жаба", "@toadbot моя жаба"))
             and m.sender_id == self.me.id
         ):
-            p = "🐸"
-            await self.err(m, p)
-            jab = re.search(
-                r"Уровень.+: (\d+)[\s\S]*Состояние: .. (.+)\n.+: (\d+)", RSP.raw_text)
             await self.bmj(m)
         elif m.message.casefold().startswith(
             ("моя жаба", "@toadbot моя жаба")
