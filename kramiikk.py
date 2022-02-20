@@ -182,7 +182,7 @@ class KramiikkMod(loader.Module):
                 p = "🐸"
                 await self.err(m, p)
                 jab = re.search(
-                    r"Уровень.+: (\d+)[\s\S]*Букашки: (\d+)", RSP.raw_text)
+                    r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.raw_text)
                 if "Живая" not in RSP.text:
                     await m.respond("реанимировать жабу")
                 if int(jab.group(1)) > 72 and int(jab.group(3)) > 3750:
