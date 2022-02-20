@@ -35,6 +35,7 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
+        self.su = self.db.get("su", "users", [])
         self.me = await client.get_me()
 
     async def err(self, m, p):
@@ -110,6 +111,7 @@ class KramiikkMod(loader.Module):
             await self.uku(m, cmn, txt)
 
     async def watcher(self, m):
+        args = m.text
         if self.me.id in {1486632011}:
             name = "Оботи"
         elif self.me.id in {1286303075}:
@@ -128,63 +130,75 @@ class KramiikkMod(loader.Module):
             name = "Артур"
         else:
             name = self.me.first_name
-        if m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
-            await self.bmj(m)
-        elif (
-                m.message.startswith((name, f"@{self.me.username}"))
-                and "инфо" in m.message
-                and m.sender_id in {1785723159}
-        ):
-            await m.respond("<b>моя жаба</b>")
-            await self.bmj(m)
-        elif (
-                m.message.startswith((name, f"@{self.me.username}"))
-        ) and m.sender_id in bak:
-            cmn = "<b>реанимировать жабу</b>"
-            await m.respond(cmn)
-            args = m.text
-            reply = await m.get_reply_message()
-            if "напиши в" in m.message:
-                i = args.split(" ", 4)[3]
-                if i.isnumeric():
-                    i = int(i)
-                s = args.split(" ", 4)[4]
-                if reply:
-                    s = reply
-                await self.client.send_message(i, cmn)
-                await self.client.send_message(i, s)
-            elif "арена" in m.message:
-                p = "•"
-                await self.client.send_message(m.chat_id, "<b>мои жабы</b>")
-                await self.err(m, p)
-                capt = re.findall(r"\| -100(\d+)", RSP.text)
-                for i in capt:
-                    await self.client.send_message(int(i), cmn)
-                    await self.client.send_message(int(i), "<b>на арену</b>")
-            elif "напади" in m.message:
-                await m.respond("напасть на клан")
-            elif "подземелье" in m.message:
-                await m.respond("<b>отправиться в золотое подземелье</b>")
-            elif "снаряжение" in m.message:
-                p = "Ваше"
-                await self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
-                await self.err(m, p)
-                if "Ближний бой: Пусто" in RSP.text:
-                    await m.respond("скрафтить клюв цапли")
-                if "Дальний бой: Пусто" in RSP.text:
-                    await m.respond("скрафтить букашкомет")
-                if "Наголовник: Пусто" in RSP.text:
-                    await m.respond("скрафтить наголовник из клюва цапли")
-                if "Нагрудник: Пусто" in RSP.text:
-                    await m.respond("скрафтить нагрудник из клюва цапли")
-                if "Налапники: Пусто" in RSP.text:
-                    await m.respond("скрафтить налапники из клюва цапли")
-            else:
-                mmsg = args.split(" ", 2)[2]
-                if reply:
-                    await reply.reply(mmsg)
+        try:
+            if m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
+                await self.bmj(m)
+            elif (
+                    m.message.startswith((name, f"@{self.me.username}"))
+                    and "инфо" in m.message
+                    and m.sender_id in {1785723159}
+            ):
+                await m.respond("<b>моя жаба</b>")
+                await self.bmj(m)
+            elif (m.message.startswith((name, f"@{self.me.username}"))) and (
+                m.sender_id in bak or m.sender_id in self.su
+            ):
+                cmn = "<b>реанимировать жабу</b>"
+                await m.respond(cmn)
+                args = m.text
+                reply = await m.get_reply_message()
+                if "напиши в" in m.message:
+                    i = args.split(" ", 4)[3]
+                    if i.isnumeric():
+                        i = int(i)
+                    s = args.split(" ", 4)[4]
+                    if reply:
+                        s = reply
+                    await self.client.send_message(i, cmn)
+                    await self.client.send_message(i, s)
+                elif "арена" in m.message:
+                    p = "•"
+                    await self.client.send_message(m.chat_id, "<b>мои жабы</b>")
+                    await self.err(m, p)
+                    capt = re.findall(r"\| -100(\d+)", RSP.text)
+                    for i in capt:
+                        await self.client.send_message(int(i), cmn)
+                        await self.client.send_message(int(i), "<b>на арену</b>")
+                elif "напади" in m.message:
+                    await m.respond("напасть на клан")
+                elif "подземелье" in m.message:
+                    await m.respond("<b>отправиться в золотое подземелье</b>")
+                elif "снаряжение" in m.message:
+                    p = "Ваше"
+                    await self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
+                    await self.err(m, p)
+                    if "Ближний бой: Пусто" in RSP.text:
+                        await m.respond("скрафтить клюв цапли")
+                    if "Дальний бой: Пусто" in RSP.text:
+                        await m.respond("скрафтить букашкомет")
+                    if "Наголовник: Пусто" in RSP.text:
+                        await m.respond("скрафтить наголовник из клюва цапли")
+                    if "Нагрудник: Пусто" in RSP.text:
+                        await m.respond("скрафтить нагрудник из клюва цапли")
+                    if "Налапники: Пусто" in RSP.text:
+                        await m.respond("скрафтить налапники из клюва цапли")
                 else:
-                    await m.respond(mmsg)
-        elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
-            await m.respond("реанимировать жабу")
-            await m.click(0)
+                    mmsg = args.split(" ", 2)[2]
+                    if reply:
+                        await reply.reply(mmsg)
+                    else:
+                        await m.respond(mmsg)
+            elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
+                await m.respond("реанимировать жабу")
+                await m.click(0)
+            elif m.message.startswith("su!") and m.sender_id == self.me.id:
+                i = int(args.split(" ", 1)[1])
+                if i in self.su:
+                    self.su.remove(i)
+                    await m.respond(f"🖕🏾 {i} успешно удален")
+                else:
+                    self.su.append(i)
+                    await m.respond(f"🤙🏾 {i} успешно добавлен")
+                self.db.set("su", "users", self.su)
+        finally:
+            return
