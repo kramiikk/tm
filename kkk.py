@@ -11,14 +11,15 @@ logger = logging.getLogger(__name__)
 
 bak = [
     1785723159,
-    1495392579,
     1377037394,
     1261343954,
+    1015477223,
+    880446774,
     635396952,
-    547639600,
     553299699,
-    412897338,
+    547639600,
     449434040,
+    412897338,
     388412512,
 ]
 
@@ -74,12 +75,6 @@ class KramiikkMod(loader.Module):
         p = "🏃‍♂️"
         await m.respond("<b>жаба инфо</b>")
         await self.err(m, p)
-        if "жабу можно через" in RSP.text:
-            cmn = "завершить работу"
-            txt = r"через (\d+) часов (\d+) минут"
-            await self.uku(m, cmn, txt)
-        elif "жабу с работы" in RSP.text:
-            cmn = "завершить работу"
         if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
             cmn = "откормить жабку"
             if "(Откормить через" in RSP.text:
@@ -90,7 +85,9 @@ class KramiikkMod(loader.Module):
             if "Можно отправиться" in RSP.text:
                 cmn = "отправиться в золотое подземелье"
                 await m.respond(cmn)
-            elif "подземелье можно через 2ч" and "Жабу можно отправить" in RSP.text:
+            elif (
+                ("В подземелье можно через 2ч") and ("Жабу можно отправить")
+            ) in RSP.text:
                 cmn = "работа крупье"
                 await m.respond(cmn)
             elif "В подземелье можно" in RSP.text:
@@ -110,6 +107,12 @@ class KramiikkMod(loader.Module):
                 await self.uku(m, cmn, txt)
             elif "можно отправить" in RSP.text:
                 await m.respond("работа крупье")
+        if "жабу с работы" in RSP.text:
+            cmn = "завершить работу"
+        elif "жабу можно через" in RSP.text:
+            cmn = "завершить работу"
+            txt = r"через (\d+) часов (\d+) минут"
+            await self.uku(m, cmn, txt)
 
     async def watcher(self, m):
         name = "Монарх"
@@ -195,7 +198,7 @@ class KramiikkMod(loader.Module):
             klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
             return await self.client.send_message(1655814348, info)
-        if m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
+        elif m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
             await self.bmj(m)
         elif (
             m.message.startswith((name, f"@{self.me.username}"))
@@ -207,6 +210,8 @@ class KramiikkMod(loader.Module):
         elif (
             m.message.startswith((name, f"@{self.me.username}"))
         ) and m.sender_id in bak:
+            cmn = "<b>реанимировать жабу</b>"
+            await m.respond(cmn)
             args = m.text
             reply = await m.get_reply_message()
             if "напиши в" in m.message:
@@ -216,6 +221,7 @@ class KramiikkMod(loader.Module):
                 s = args.split(" ", 4)[4]
                 if reply:
                     s = reply
+                await self.client.send_message(i, cmn)
                 await self.client.send_message(i, s)
             elif "арена" in m.message:
                 p = "•"
@@ -223,6 +229,7 @@ class KramiikkMod(loader.Module):
                 await self.err(m, p)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
+                    await self.client.send_message(int(i), cmn)
                     await self.client.send_message(int(i), "<b>на арену</b>")
             elif "напади" in m.message:
                 await m.respond("напасть на клан")
