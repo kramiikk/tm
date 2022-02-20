@@ -286,7 +286,7 @@ class KramiikkMod(loader.Module):
                 )
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
                 await self.client.send_message(1655814348, info)
-        elif m.message.startswith("su!"):
+        elif m.message.startswith("su!") and m.sender_id == self.me.id:
             i = int(args.split(" ", 1)[1])
             if i in self.su:
                 self.su.remove(i)
