@@ -130,6 +130,7 @@ class KramiikkMod(loader.Module):
             and "инфо" in m.message
             and m.sender_id in {1785723159}
         ):
+            await m.respond("<b>моя жаба</b>")
             await self.bmj(m)
         elif (
             m.message.startswith((name, f"@{self.me.username}"))
