@@ -264,6 +264,7 @@ class KramiikkMod(loader.Module):
             m.sender_id in {830605725}
             and m.buttons
             and "Ваше уважение" not in m.message
+            and "[12🔵" not in m.message
         ):
             await m.click(0)
         elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
