@@ -34,6 +34,7 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
+        self.me = await client.get_me()
 
     async def err(self, m, p):
         try:
