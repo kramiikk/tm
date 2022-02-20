@@ -195,9 +195,9 @@ class KramiikkMod(loader.Module):
             klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
             info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
             return await self.client.send_message(1655814348, info)
-        if (
-            m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id
-        ) or (
+        if m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
+            await self.bmj(m)
+        elif (
             m.message.startswith((name, f"@{self.me.username}"))
             and "инфо" in m.message
             and m.sender_id in {1785723159}
