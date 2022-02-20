@@ -86,8 +86,9 @@ class KramiikkMod(loader.Module):
                 cmn = "отправиться в золотое подземелье"
                 await m.respond(cmn)
             elif (
-                ("В подземелье можно через 2ч") and ("Жабу можно отправить")
-            ) in RSP.text:
+                "В подземелье можно через 2ч" in RSP.text
+                and "Жабу можно отправить" in RSP.text
+            ):
                 cmn = "работа крупье"
                 await m.respond(cmn)
             elif "В подземелье можно" in RSP.text:
@@ -109,6 +110,7 @@ class KramiikkMod(loader.Module):
                 await m.respond("работа крупье")
         if "жабу с работы" in RSP.text:
             cmn = "завершить работу"
+            await m.respond(cmn)
         elif "жабу можно через" in RSP.text:
             cmn = "завершить работу"
             txt = r"через (\d+) часов (\d+) минут"
