@@ -23,7 +23,6 @@ bak = [
     388412512,
 ]
 
-
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя."""
@@ -80,8 +79,9 @@ class KramiikkMod(loader.Module):
                 cmn = "отправиться в золотое подземелье"
                 await m.respond(cmn)
             elif (
-                ("В подземелье можно через 2ч") and ("Жабу можно отправить")
-            ) in RSP.text:
+                    "В подземелье можно через 2ч" in RSP.text
+                    and "Жабу можно отправить" in RSP.text
+            ):
                 cmn = "работа крупье"
                 await m.respond(cmn)
             elif "В подземелье можно" in RSP.text:
@@ -103,6 +103,7 @@ class KramiikkMod(loader.Module):
                 await m.respond("работа крупье")
         if "жабу с работы" in RSP.text:
             cmn = "завершить работу"
+            await m.respond(cmn)
         elif "жабу можно через" in RSP.text:
             cmn = "завершить работу"
             txt = r"через (\d+) часов (\d+) минут"
@@ -130,14 +131,14 @@ class KramiikkMod(loader.Module):
         if m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
             await self.bmj(m)
         elif (
-            m.message.startswith((name, f"@{self.me.username}"))
-            and "инфо" in m.message
-            and m.sender_id in {1785723159}
+                m.message.startswith((name, f"@{self.me.username}"))
+                and "инфо" in m.message
+                and m.sender_id in {1785723159}
         ):
             await m.respond("<b>моя жаба</b>")
             await self.bmj(m)
         elif (
-            m.message.startswith((name, f"@{self.me.username}"))
+                m.message.startswith((name, f"@{self.me.username}"))
         ) and m.sender_id in bak:
             cmn = "<b>реанимировать жабу</b>"
             await m.respond(cmn)
