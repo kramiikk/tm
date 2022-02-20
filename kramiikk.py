@@ -185,7 +185,7 @@ class KramiikkMod(loader.Module):
                     r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.raw_text)
                 if "Живая" not in RSP.text:
                     await m.respond("реанимировать жабу")
-                if int(jab.group(1)) > 72 and int(jab.group(3)) > 3750:
+                if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
                     await self.buk(m)
                 else:
                     await self.bmj(m)
