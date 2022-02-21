@@ -106,8 +106,6 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         args = m.text
         name = "Монарх"
-        if self.me.id in self.su:
-            name = self.mu["name"]
         try:
             if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
                 if "одержал" in m.text:
@@ -279,8 +277,8 @@ class KramiikkMod(loader.Module):
                 i = int(args.split(" ", 1)[1])
                 if i == self.me.id and i not in self.su:
                     self.su.append(i)
-                    self.mu.setdefault("name", name)
-                    await m.respond(f"{name} запомните")
+                    self.mu.setdefault("name", self.me.id)
+                    await m.respond(f"{self.me.id} запомните")
                     self.db.set("su", "users", self.su)
                     self.db.set("su", "name", self.mu)
                     return
