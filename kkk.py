@@ -106,6 +106,7 @@ class KramiikkMod(loader.Module):
         args = m.text
         name = "Монарх"
         if self.me.id in self.su:
+            i = self.me.id
             name = self.su[i]["name"]
         try:
             if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
