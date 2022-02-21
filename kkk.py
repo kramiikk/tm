@@ -277,8 +277,8 @@ class KramiikkMod(loader.Module):
                 i = int(args.split(" ", 1)[1])
                 if i == self.me.id and i not in self.su:
                     self.su.append(i)
-                    self.mu.setdefault("name", self.me.id)
-                    await m.respond(f"{self.me.id} запомните")
+                    self.mu.setdefault("name", self.me.first_name)
+                    await m.respond(f"{self.me.first_name} запомните")
                     self.db.set("su", "users", self.su)
                     self.db.set("su", "users", self.mu)
                     return
@@ -293,6 +293,6 @@ class KramiikkMod(loader.Module):
                 self.mu["name"] = args.split(" ", 1)[1]
                 i = self.mu["name"]
                 await m.respond(f"👻 {i} успешно добавлен")
-                self.db.set("su", "name", self.mu)
+                self.db.set("su", "users", self.mu)
         finally:
             return
