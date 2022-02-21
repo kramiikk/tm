@@ -9,6 +9,7 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
+
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя."""
@@ -22,6 +23,7 @@ class KramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.su = self.db.get("su", "users", [])
+        self.mu = self.db.get("su", "names", {})
         self.me = await client.get_me()
 
     async def err(self, m, p):
@@ -66,8 +68,8 @@ class KramiikkMod(loader.Module):
                 cmn = "отправиться в золотое подземелье"
                 await m.respond(cmn)
             elif (
-                    "В подземелье можно через 2ч" in RSP.text
-                    and "Жабу можно отправить" in RSP.text
+                "В подземелье можно через 2ч" in RSP.text
+                and "Жабу можно отправить" in RSP.text
             ):
                 cmn = "работа крупье"
                 await m.respond(cmn)
@@ -116,13 +118,18 @@ class KramiikkMod(loader.Module):
             name = "Артур"
         else:
             name = self.me.first_name
+        if self.me.id in self.su:
+            name = self.mu["name"]
         try:
-            if m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
+            if (
+                m.message.casefold().startswith("/my_toad")
+                and m.sender_id == self.me.id
+            ):
                 await self.bmj(m)
             elif (
-                    m.message.startswith((name, f"@{self.me.username}"))
-                    and "инфо" in m.message
-                    and m.sender_id in {1785723159}
+                m.message.startswith((name, f"@{self.me.username}"))
+                and "инфо" in m.message
+                and m.sender_id in {1785723159}
             ):
                 await m.respond("<b>моя жаба</b>")
                 await self.bmj(m)
@@ -131,7 +138,6 @@ class KramiikkMod(loader.Module):
             ):
                 cmn = "<b>реанимировать жабу</b>"
                 await m.respond(cmn)
-                args = m.text
                 reply = await m.get_reply_message()
                 if "напиши в" in m.message:
                     i = args.split(" ", 4)[3]
@@ -174,11 +180,20 @@ class KramiikkMod(loader.Module):
                         await reply.reply(mmsg)
                     else:
                         await m.respond(mmsg)
-            elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
+            elif (
+                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+            ):
                 await m.respond("реанимировать жабу")
                 await m.click(0)
             elif m.message.startswith("su!") and m.sender_id == self.me.id:
                 i = int(args.split(" ", 1)[1])
+                if i == self.me.id and i not in self.su:
+                    self.su.append(i)
+                    self.mu.setdefault("name", name)
+                    await m.respond(f"<b>👺 {name} запомните</b>")
+                    self.db.set("su", "users", self.su)
+                    self.db.set("su", "names", self.mu)
+                    return
                 if i in self.su:
                     self.su.remove(i)
                     await m.respond(f"🖕🏾 {i} успешно удален")
@@ -186,5 +201,10 @@ class KramiikkMod(loader.Module):
                     self.su.append(i)
                     await m.respond(f"🤙🏾 {i} успешно добавлен")
                 self.db.set("su", "users", self.su)
+            elif m.message.startswith("sn!") and m.sender_id == self.me.id:
+                self.mu["name"] = args.split(" ", 1)[1]
+                i = self.mu["name"]
+                await m.respond(f"👻 {i} успешно добавлен")
+                self.db.set("su", "names", self.mu)
         finally:
             return
