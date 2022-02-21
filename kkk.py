@@ -9,6 +9,7 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
+
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя."""
@@ -114,7 +115,9 @@ class KramiikkMod(loader.Module):
                     klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
                 else:
                     klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
-                s = await self.client.get_messages(1767017980, search=f"VS {klan.group(1)}")
+                s = await self.client.get_messages(
+                    1767017980, search=f"VS {klan.group(1)}"
+                )
                 for i in s:
                     await self.tms(m, i)
                     if (
@@ -191,7 +194,10 @@ class KramiikkMod(loader.Module):
                 klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
                 return await self.client.send_message(1655814348, info)
-            elif m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
+            elif (
+                m.message.casefold().startswith("/my_toad")
+                and m.sender_id == self.me.id
+            ):
                 await self.bmj(m)
             elif (
                 m.message.startswith((name, f"@{self.me.username}"))
@@ -247,7 +253,9 @@ class KramiikkMod(loader.Module):
                         await reply.reply(mmsg)
                     else:
                         await m.respond(mmsg)
-            elif f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons:
+            elif (
+                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+            ):
                 await m.respond("реанимировать жабу")
                 await m.click(0)
             elif (
