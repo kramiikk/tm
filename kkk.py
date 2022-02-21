@@ -22,7 +22,7 @@ class KramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.su = self.db.get("su", "users", [])
-        self.mu = self.db.get("su", "users", {})
+        self.mu = self.db.get("su", "names", {})
         self.me = await client.get_me()
 
     async def tms(self, m, i):
@@ -280,7 +280,7 @@ class KramiikkMod(loader.Module):
                     self.mu.setdefault("name", self.me.first_name)
                     await m.respond(f"{self.me.first_name} запомните")
                     self.db.set("su", "users", self.su)
-                    self.db.set("su", "users", self.mu)
+                    self.db.set("su", "names", self.mu)
                     return
                 if i in self.su:
                     self.su.remove(i)
@@ -293,6 +293,6 @@ class KramiikkMod(loader.Module):
                 self.mu["name"] = args.split(" ", 1)[1]
                 i = self.mu["name"]
                 await m.respond(f"👻 {i} успешно добавлен")
-                self.db.set("su", "users", self.mu)
+                self.db.set("su", "names", self.mu)
         finally:
             return
