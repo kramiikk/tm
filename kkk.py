@@ -280,7 +280,8 @@ class KramiikkMod(loader.Module):
                     self.su.append(i)
                     self.su.setdefault(i, {})
                     self.su[i].setdefault("name", name)
-                    await m.respond(f"{self.su[i]["name"]} запомни")
+                    p = self.su[i]["name"]
+                    await m.respond(f"{p} запомните")
                     self.db.set("su", "users", self.su)
                     return
                 if i in self.su:
