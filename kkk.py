@@ -106,6 +106,8 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         args = m.text
         name = "Монарх"
+        if self.me.id in self.su:
+            wnm = self.mu["name"]
         try:
             if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
                 if "одержал" in m.text:
@@ -192,7 +194,7 @@ class KramiikkMod(loader.Module):
             elif m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
                 await self.bmj(m)
             elif (
-                m.message.startswith((name, f"@{self.me.username}"))
+                m.message.startswith((name, f"@{self.me.username}", wnm))
                 and "инфо" in m.message
                 and m.sender_id in {1785723159}
             ):
