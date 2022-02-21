@@ -280,7 +280,7 @@ class KramiikkMod(loader.Module):
                     self.mu.setdefault("name", self.me.id)
                     await m.respond(f"{self.me.id} запомните")
                     self.db.set("su", "users", self.su)
-                    self.db.set("su", "name", self.mu)
+                    self.db.set("su", "users", self.mu)
                     return
                 if i in self.su:
                     self.su.remove(i)
