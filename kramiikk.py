@@ -100,22 +100,14 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         args = m.text
-        if self.me.id in {1486632011}:
-            name = "Оботи"
-        elif self.me.id in {1286303075}:
-            name = "Лавин"
-        elif self.me.id in {547639600}:
+        if self.me.id in {547639600}:
             name = "Нельс"
         elif self.me.id in {980699009}:
             name = "Лена"
-        elif self.me.id in {1423368454}:
-            name = "Len"
         elif self.me.id in {230473666}:
             name = "Ваня"
         elif self.me.id in {887255479}:
             name = "Кира"
-        elif self.me.id in {1266917477}:
-            name = "Артур"
         else:
             name = self.me.first_name
         if self.me.id in self.su:
