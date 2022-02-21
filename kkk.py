@@ -21,7 +21,7 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        self.su = self.db.get("su", "users", [])
+        self.su = self.db.get("su", "users", {})
         self.me = await client.get_me()
 
     async def tms(self, m, i):
