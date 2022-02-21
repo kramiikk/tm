@@ -22,7 +22,7 @@ class KramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.su = self.db.get("su", "users", [])
-        self.mu = self.db.get("su", {})
+        self.mu = self.db.get("su", "users", {})
         self.me = await client.get_me()
 
     async def tms(self, m, i):
@@ -106,8 +106,6 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         args = m.text
         name = "Монарх"
-        if self.me.id in self.su:
-            wnm = self.mu["name"]
         try:
             if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
                 if "одержал" in m.text:
