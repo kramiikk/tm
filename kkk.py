@@ -192,7 +192,7 @@ class KramiikkMod(loader.Module):
             elif m.message.casefold().startswith("/my_toad") and m.sender_id == self.me.id:
                 await self.bmj(m)
             elif (
-                m.message.startswith((name, f"@{self.me.username}", wnm))
+                m.message.startswith((name, f"@{self.me.username}"))
                 and "инфо" in m.message
                 and m.sender_id in {1785723159}
             ):
@@ -277,8 +277,8 @@ class KramiikkMod(loader.Module):
                 i = int(args.split(" ", 1)[1])
                 if i == self.me.id and i not in self.su:
                     self.su.append(i)
-                    self.mu.setdefault("name", self.me.first_name)
-                    await m.respond(f"{self.me.first_name} запомните")
+                    self.mu.setdefault("name", name)
+                    await m.respond(f"{name} запомните")
                     self.db.set("su", "users", self.su)
                     self.db.set("su", "names", self.mu)
                     return
