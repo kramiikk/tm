@@ -298,5 +298,7 @@ class KramiikkMod(loader.Module):
                     self.mu.append(i)
                     await m.respond(f"👻 {i} успешно добавлен")
                 self.db.set("su", "name", self.mu)
+                i = self.mu[]
+                await m.respond(i)
         finally:
             return
