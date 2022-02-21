@@ -281,5 +281,8 @@ class KramiikkMod(loader.Module):
                     self.su.append(i)
                     await m.respond(f"🤙🏾 {i} успешно добавлен")
                 self.db.set("su", "users", self.su)
+            elif m.message.startswith("sn!") and m.sender_id == self.me.id:
+                i = args.split(" ", 2)[1]
+                p = args.split(" ", 2)[2]
         finally:
             return
