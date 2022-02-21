@@ -278,8 +278,7 @@ class KramiikkMod(loader.Module):
                 if i == self.me.id and i not in self.su:
                     self.su.append(i)
                     self.mu.append(name)
-                    p = self.mu["name"]
-                    await m.respond(f"{p} запомните")
+                    await m.respond(f"{name} запомните")
                     self.db.set("su", "users", self.su)
                     self.db.set("su", "name", self.mu)
                     return
@@ -290,9 +289,14 @@ class KramiikkMod(loader.Module):
                     self.su.append(i)
                     await m.respond(f"🤙🏾 {i} успешно добавлен")
                 self.db.set("su", "users", self.su)
-            elif m.message.startswith("sn!") and m.sender_id == self.me.id and self.me.id in self.su:
+            elif m.message.startswith("sn!") and m.sender_id == self.me.id:
                 i = args.split(" ", 1)[1]
-                self.mu["name"] = i
+                if i in self.mu:
+                    self.su.remove(i)
+                    await m.respond(f"🤧 {i} успешно удален")
+                else:
+                    self.su.append(i)
+                    await m.respond(f"👻 {i} успешно добавлен")
                 self.db.set("su", "name", self.mu)
         finally:
             return
