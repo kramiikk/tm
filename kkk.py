@@ -288,7 +288,7 @@ class KramiikkMod(loader.Module):
                 if i == self.me.id and i not in self.su:
                     self.su.append(i)
                     self.mu.setdefault("name", name)
-                    await m.respond(f"{name} запомните")
+                    await m.respond(f"<b>👺 {name} запомните</b>")
                     self.db.set("su", "users", self.su)
                     self.db.set("su", "names", self.mu)
                     return
