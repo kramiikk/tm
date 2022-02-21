@@ -21,7 +21,8 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        self.su = self.db.get("su", "users", {})
+        self.su = self.db.get("su", "users", [])
+        self mu = self.db.get("su", "name", [])
         self.me = await client.get_me()
 
     async def tms(self, m, i):
@@ -279,11 +280,11 @@ class KramiikkMod(loader.Module):
                 i = int(args.split(" ", 1)[1])
                 if i == self.me.id and i not in self.su:
                     self.su.append(i)
-                    self.su.setdefault(i, {})
-                    self.su[i].setdefault("name", name)
-                    p = self.su[i]["name"]
+                    self.mu.append(name)
+                    p = self.mu["name"]
                     await m.respond(f"{p} запомните")
                     self.db.set("su", "users", self.su)
+                    self.db.set("su", "name", self.mu)
                     return
                 if i in self.su:
                     self.su.remove(i)
@@ -294,7 +295,7 @@ class KramiikkMod(loader.Module):
                 self.db.set("su", "users", self.su)
             elif m.message.startswith("sn!") and m.sender_id == self.me.id and self.me.id in self.su:
                 i = args.split(" ", 1)[1]
-                self.su[i]["name"] = i
-                self.db.set("su", "users", self.su)
+                self.mu["name"] = i
+                self.db.set("su", "name", self.mu)
         finally:
             return
