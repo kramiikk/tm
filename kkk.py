@@ -210,8 +210,6 @@ class KramiikkMod(loader.Module):
                 m.sender_id in {1785723159, 1261343954} or m.sender_id in self.su
             ):
                 cmn = "<b>реанимировать жабу</b>"
-                if ("напади" or "работа" or "подземелье") in m.message:
-                    await m.respond(cmn)
                 reply = await m.get_reply_message()
                 if "напиши в" in m.message:
                     i = args.split(" ", 4)[3]
@@ -220,7 +218,6 @@ class KramiikkMod(loader.Module):
                     s = args.split(" ", 4)[4]
                     if reply:
                         s = reply
-                    await self.client.send_message(i, cmn)
                     await self.client.send_message(i, s)
                 elif "напиши" in m.message:
                     mmsg = args.split(" ", 2)[2]
@@ -240,17 +237,15 @@ class KramiikkMod(loader.Module):
                     p = "Ваше"
                     await self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
                     await self.err(m, p)
-                    if "Ближний бой: Пусто" in RSP.text:
-                        await m.respond("скрафтить клюв цапли")
-                    if "Дальний бой: Пусто" in RSP.text:
-                        await m.respond("скрафтить букашкомет")
-                    if "Наголовник: Пусто" in RSP.text:
-                        await m.respond("скрафтить наголовник из клюва цапли")
-                    if "Нагрудник: Пусто" in RSP.text:
-                        await m.respond("скрафтить нагрудник из клюва цапли")
-                    if "Налапники: Пусто" in RSP.text:
-                        await m.respond("скрафтить налапники из клюва цапли")
+                    if "Пусто" in RSP.text:
+                        await m.respond("<b>скрафтить клюв цапли</b>")
+                        await m.respond("<b>скрафтить букашкомет</b>")
+                        await m.respond("<b>скрафтить наголовник из клюва цапли</b>")
+                        await m.respond("<b>скрафтить нагрудник из клюва цапли</b>")
+                        await m.respond("<b>скрафтить налапники из клюва цапли</b>")
                 else:
+                    if ("напади" or "подземелье") in m.message:
+                        await m.respond(cmn)
                     i = args.split(" ", 1)[1]
                     if i in ded:
                         await m.reply(ded[i])
@@ -308,6 +303,7 @@ class KramiikkMod(loader.Module):
         finally:
             return
 ded = {
+    "го кв": "<b>начать клановую войну</b>",
     "напади": "<b>напасть на клан</b>",
     "подземелье": "<b>отправиться в золотое подземелье</b>",
     "карту": "<b>отправить карту</b>",
