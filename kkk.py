@@ -251,9 +251,9 @@ class KramiikkMod(loader.Module):
                     if "Налапники: Пусто" in RSP.text:
                         await m.respond("скрафтить налапники из клюва цапли")
                 else:
-                    for a in args.split(" ", 1)[1]:
-                        if a in ded:
-                            await m.reply(ded[a])
+                    i = args.split(" ", 1)[1]
+                    if i in ded:
+                        await m.reply(ded[i])
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
