@@ -77,7 +77,7 @@ class InlineGgMod(loader.Module):
         await asyncio.sleep(13)
         await call.edit(self.strings('tired'), reply_markup=[[{
             'text': '💔 Не нажимай!',
-            'url': 'https://t.me/+PGb_kTUvwYcyN2Qy'
+            'url': 'https://t.me/c/1533843733/32519'
         }]])
         await call.unload()
 
