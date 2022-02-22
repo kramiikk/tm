@@ -13,14 +13,8 @@ class QazGrammarMod(loader.Module):
 
     @loader.owner
     async def qgcmd(self, m):
-        jup = await m.get_reply_message()
-        egz = utils.get_args_raw(m)
-        if not egz:
-            jzb = jup.raw_text
-        else:
-            jzb = egz
         jup = ""
-        for a in jzb:
+        for a in utils.get_args_raw(m):
             if a.lower() in alp:
                 arp = alp[a.lower()]
                 if a.isupper():
