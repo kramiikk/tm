@@ -302,6 +302,8 @@ class KramiikkMod(loader.Module):
                 self.db.set("su", "names", self.mu)
         finally:
             return
+
+
 ded = {
     "го кв": "<b>начать клановую войну</b>",
     "напади": "<b>напасть на клан</b>",
