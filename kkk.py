@@ -210,7 +210,8 @@ class KramiikkMod(loader.Module):
                 m.sender_id in {1785723159, 1261343954} or m.sender_id in self.su
             ):
                 cmn = "<b>реанимировать жабу</b>"
-                await m.respond(cmn)
+                if ("напади" or "работа" or "подземелье") in m.message:
+                    await m.respond(cmn)
                 reply = await m.get_reply_message()
                 if "напиши в" in m.message:
                     i = args.split(" ", 4)[3]
@@ -221,6 +222,12 @@ class KramiikkMod(loader.Module):
                         s = reply
                     await self.client.send_message(i, cmn)
                     await self.client.send_message(i, s)
+                elif "напиши" in m.message:
+                    mmsg = args.split(" ", 2)[2]
+                    if reply:
+                        await reply.reply(mmsg)
+                    else:
+                        await m.respond(mmsg)
                 elif "арена" in m.message:
                     p = "•"
                     await self.client.send_message(m.chat_id, "<b>мои жабы</b>")
@@ -229,10 +236,6 @@ class KramiikkMod(loader.Module):
                     for i in capt:
                         await self.client.send_message(int(i), cmn)
                         await self.client.send_message(int(i), "<b>на арену</b>")
-                elif "напади" in m.message:
-                    await m.respond("напасть на клан")
-                elif "подземелье" in m.message:
-                    await m.respond("<b>отправиться в золотое подземелье</b>")
                 elif "снаряжение" in m.message:
                     p = "Ваше"
                     await self.client.send_message(m.chat_id, "<b>мое снаряжение</b>")
@@ -248,11 +251,9 @@ class KramiikkMod(loader.Module):
                     if "Налапники: Пусто" in RSP.text:
                         await m.respond("скрафтить налапники из клюва цапли")
                 else:
-                    mmsg = args.split(" ", 2)[2]
-                    if reply:
-                        await reply.reply(mmsg)
-                    else:
-                        await m.respond(mmsg)
+                    for a in args.split(" ", 1)[1]:
+                        if a in ded:
+                            await m.reply(ded[a])
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
@@ -306,3 +307,8 @@ class KramiikkMod(loader.Module):
                 self.db.set("su", "names", self.mu)
         finally:
             return
+ded = {
+    "напади": "<b>напасть на клан</b>",
+    "подземелье": "<b>отправиться в золотое подземелье</b>",
+    "карту": "<b>отправить карту</b>",
+}
