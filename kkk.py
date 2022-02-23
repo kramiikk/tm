@@ -22,7 +22,7 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        self.su = self.db.get("su", {})
+        self.su = self.db.get("Su", "su", {})
         self.me = await client.get_me()
 
     async def err(self, i, p):
@@ -193,7 +193,7 @@ class KramiikkMod(loader.Module):
                     self.su["users"].append(i)
                     self.su.setdefault("name", name)
                     await m.respond(f"👺 <code>{name}</code> <b>запомните</b>")
-                    self.db.set("su", self.su)
+                    self.db.set("Su", "su", self.su)
                     return
                 if i in self.su["users"]:
                     self.su["users"].remove(i)
@@ -201,11 +201,11 @@ class KramiikkMod(loader.Module):
                 else:
                     self.su["users"].append(i)
                     await m.respond(f"🤙🏾 {i} успешно добавлен")
-                self.db.set("su", self.su)
+                self.db.set("Su", "su", self.su)
             elif m.message.startswith("sn!") and m.sender_id == self.me.id:
                 self.su["name"] = args.split(" ", 1)[1]
                 await m.respond(f"👻 <code>{self.su}</code> <b>успешно изменён</b>")
-                self.db.set("su", self.su)
+                self.db.set("Su", "su", self.su)
         finally:
             return
 
