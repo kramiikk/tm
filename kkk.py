@@ -196,7 +196,7 @@ class KramiikkMod(loader.Module):
                     self.mu = name
                     await m.respond(f"👺 <code>{name}</code> <b>запомните</b>")
                     self.db.set("su", "users", self.su)
-                    self.db.set("su", "names", self.mu)
+                    self.db.set("su", "name", self.mu)
                     return
                 if i in self.su:
                     self.su.remove(i)
@@ -208,7 +208,7 @@ class KramiikkMod(loader.Module):
             elif m.message.startswith("sn!") and m.sender_id == self.me.id:
                 self.mu = args.split(" ", 1)[1]
                 await m.respond(f"👻 <code>{self.mu}</code> <b>успешно изменён</b>")
-                self.db.set("su", "names", self.mu)
+                self.db.set("su", "name", self.mu)
         finally:
             return
 
