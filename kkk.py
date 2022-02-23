@@ -97,8 +97,8 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         args = m.text
         name = "Монарх"
-        if self.me.id in self.su:
-            name = self.sn
+        if "users" in self.su:
+            name = self.su["name"]
         try:
             if (
                 m.message.casefold().startswith("/my_toad")
@@ -206,7 +206,7 @@ class KramiikkMod(loader.Module):
                 self.db.set("su", self.su)
             elif m.message.startswith("sn!") and m.sender_id == self.me.id:
                 self.su["name"] = args.split(" ", 1)[1]
-                await m.respond(f"👻 <code>{self.sn}</code> <b>успешно изменён</b>")
+                await m.respond(f"👻 <code>{self.su}</code> <b>успешно изменён</b>")
                 self.db.set("su", self.su)
         finally:
             return
