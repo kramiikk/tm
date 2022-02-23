@@ -23,7 +23,7 @@ class KramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.su = self.db.get("su", "users", [])
-        self.mu = self.db.get("su", "name", [])
+        self.mu = self.db.get("su", "name", None)
         self.me = await client.get_me()
 
     async def err(self, i, p):
