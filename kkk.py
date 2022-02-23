@@ -195,6 +195,8 @@ class KramiikkMod(loader.Module):
                 i = self.mu["name"]
                 await m.respond(f"<b>успешно изменён на {i} 👻</b>")
                 self.db.set("su", "names", self.mu)
+            else:
+                return
         finally:
             return
 
