@@ -22,8 +22,7 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        self.su = self.db.get("su", "users", [])
-        self.mu = self.db.get("su", "name", None)
+        self.su = db.get("su", {})
         self.me = await client.get_me()
 
     async def err(self, i, p):
@@ -99,7 +98,7 @@ class KramiikkMod(loader.Module):
         args = m.text
         name = "Монарх"
         if self.me.id in self.su:
-            name = self.mu
+            name = self.sn
         try:
             if (
                 m.message.casefold().startswith("/my_toad")
@@ -191,24 +190,24 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
             elif m.message.startswith("su!") and m.sender_id == self.me.id:
                 i = int(args.split(" ", 1)[1])
-                if i == self.me.id and i not in self.su:
-                    self.su.append(i)
-                    self.mu = name
+                if i == self.me.id and "users" not in self.su:
+                    self.su.setdefault("users", [])
+                    self.su["users"].append(i)
+                    self.su.setdefault("name", name)
                     await m.respond(f"👺 <code>{name}</code> <b>запомните</b>")
-                    self.db.set("su", "users", self.su)
-                    self.db.set("su", "name", self.mu)
+                    self.db.set("su", self.su)
                     return
-                if i in self.su:
-                    self.su.remove(i)
+                if i in self.su["users"]:
+                    self.su["users"].remove(i)
                     await m.respond(f"🖕🏾 {i} успешно удален")
                 else:
-                    self.su.append(i)
+                    self.su["users"].append(i)
                     await m.respond(f"🤙🏾 {i} успешно добавлен")
-                self.db.set("su", "users", self.su)
+                self.db.set("su", self.su)
             elif m.message.startswith("sn!") and m.sender_id == self.me.id:
-                self.mu = args.split(" ", 1)[1]
-                await m.respond(f"👻 <code>{self.mu}</code> <b>успешно изменён</b>")
-                self.db.set("su", "name", self.mu)
+                self.su["name"] = args.split(" ", 1)[1]
+                await m.respond(f"👻 <code>{self.sn}</code> <b>успешно изменён</b>")
+                self.db.set("su", self.su)
         finally:
             return
 
