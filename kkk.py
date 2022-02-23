@@ -22,7 +22,7 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        self.su = db.get("su", {})
+        self.su = self.db.get("su", {})
         self.me = await client.get_me()
 
     async def err(self, i, p):
