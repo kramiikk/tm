@@ -137,5 +137,7 @@ class SpyMod(loader.Module):
                     )
                     info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
                     await self.client.send_message(1655814348, info)
+            else:
+                return
         finally:
             return
