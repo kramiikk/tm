@@ -193,7 +193,7 @@ class KramiikkMod(loader.Module):
                 i = int(args.split(" ", 1)[1])
                 if i == self.me.id and i not in self.su:
                     self.su.append(i)
-                    self.mu.setdefault("name", name)
+                    self.mu.append(name)
                     await m.respond(f"<b>👺 {name} запомните</b>")
                     self.db.set("su", "users", self.su)
                     self.db.set("su", "names", self.mu)
@@ -206,9 +206,13 @@ class KramiikkMod(loader.Module):
                     await m.respond(f"🤙🏾 {i} успешно добавлен")
                 self.db.set("su", "users", self.su)
             elif m.message.startswith("sn!") and m.sender_id == self.me.id:
-                self.mu["name"] = args.split(" ", 1)[1]
-                i = self.mu["name"]
-                await m.respond(f"<b>успешно изменён на {i} 👻</b>")
+                i = args.split(" ", 1)[1]
+                if i in self.mu:
+                    self.mu.remove(i)
+                    await m.respond(f"<b>👻 {i} успешно удален</b>")
+                else:
+                    self.mu.append(i)
+                    await m.respond(f"🥵 {i} успешно добавлен")
                 self.db.set("su", "names", self.mu)
             else:
                 return
