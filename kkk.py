@@ -97,8 +97,6 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         args = m.text
         name = "Монарх"
-        if self.su["name"] in self.su:
-            name = self.su["name"]
         try:
             if (
                 m.message.casefold().startswith("/my_toad")
@@ -190,7 +188,7 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
             elif m.message.startswith("su!") and m.sender_id == self.me.id:
                 i = int(args.split(" ", 1)[1])
-                if i == self.me.id and "users" not in self.su:
+                if i == self.me.id:
                     self.su.setdefault("users", [])
                     self.su["users"].append(i)
                     self.su.setdefault("name", name)
