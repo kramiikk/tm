@@ -147,12 +147,12 @@ class KramiikkMod(loader.Module):
                 elif "black" in m.message:
                     i = m.chat_id
                     p = "•"
-                    await self.client.send_message(i, "<b>моя жабы</b>")
+                    await self.client.send_message(i, "<b>мои жабы</b>")
                     await self.err(i, p)
                     capt = re.findall(r"\| -100(\d+)", RSP.text)
                     for i in capt:
                         i = int(i)
-                        await self.client.send_message(i, "<b>мои жабы</b>")
+                        await self.client.send_message(i, "<b>моя жаба</b>")
                         await self.bmj(i)
                 elif "снаряжение" in m.message:
                     i = m.chat_id
