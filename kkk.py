@@ -53,9 +53,9 @@ class KramiikkMod(loader.Module):
         await self.err(i, p)
         jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
         if "Живая" not in RSP.text:
-            await i.respond("реанимировать жабу")
+            await self.client.send_message(i, "реанимировать жабу")
         p = "🏃‍♂️"
-        await i.respond("<b>жаба инфо</b>")
+        await self.client.send_message(i, "<b>жаба инфо</b>")
         await self.err(i, p)
         cmn = "работа крупье"
         if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
@@ -63,10 +63,10 @@ class KramiikkMod(loader.Module):
                 "В подземелье можно через 2ч" in RSP.text
                 and "Жабу можно отправить" in RSP.text
             ):
-                await i.respond(cmn)
+                await self.client.send_message(i, cmn)
             cmn = "отправиться в золотое подземелье"
             if "Можно отправиться" in RSP.text:
-                await i.respond(cmn)
+                await self.client.send_message(i, cmn)
             elif "В подземелье можно" in RSP.text:
                 txt = r"подземелье можно через (\d+)ч. (\d+)м."
                 await self.uku(i, cmn, txt)
@@ -75,22 +75,22 @@ class KramiikkMod(loader.Module):
                 txt = r"Откормить через (\d+)ч:(\d+)м"
                 await self.uku(i, cmn, txt)
             else:
-                await i.respond(cmn)
+                await self.client.send_message(i, cmn)
         else:
             if "работу можно" in RSP.text:
                 txt = r"будет через (\d+)ч:(\d+)м"
                 await self.uku(i, cmn, txt)
             elif "можно отправить" in RSP.text:
-                await i.respond(cmn)
+                await self.client.send_message(i, cmn)
             cmn = "покормить жабку"
             if "покормить через" in RSP.text:
                 txt = r"покормить через (\d+)ч:(\d+)м"
                 await self.uku(i, cmn, txt)
             else:
-                await i.respond(cmn)
+                await self.client.send_message(i, cmn)
         cmn = "завершить работу"
         if "жабу с работы" in RSP.text:
-            await i.respond(cmn)
+            await self.client.send_message(i, cmn)
         elif "жабу можно через" in RSP.text:
             txt = r"через (\d+) часов (\d+) минут"
             await self.uku(i, cmn, txt)
@@ -127,7 +127,7 @@ class KramiikkMod(loader.Module):
                     s = args.split(" ", 4)[4]
                     if reply:
                         s = reply
-                    await i.respond(s)
+                    await self.client.send_message(i, s)
                 elif "напиши" in m.message:
                     mmsg = args.split(" ", 2)[2]
                     if reply:
@@ -142,22 +142,22 @@ class KramiikkMod(loader.Module):
                     capt = re.findall(r"\| -100(\d+)", RSP.text)
                     for i in capt:
                         i = int(i)
-                        await i.respond(cmn)
-                        await i.respond("<b>на арену</b>")
+                        await self.client.send_message(i, cmn)
+                        await self.client.send_message(i, "<b>на арену</b>")
                 elif "black" in m.message:
                     i = m.chat_id
                     p = "•"
-                    await i.respond("<b>мои жабы</b>")
+                    await self.client.send_message(i, "<b>мои жабы</b>")
                     await self.err(i, p)
                     capt = re.findall(r"\| -100(\d+)", RSP.text)
                     for i in capt:
                         i = int(i)
-                        await i.respond("<b>моя жаба</b>")
+                        await self.client.send_message(i, "<b>моя жаба</b>")
                         await self.bmj(i)
                 elif "снаряжение" in m.message:
                     i = m.chat_id
                     p = "Ваше"
-                    await i.respond("<b>мое снаряжение</b>")
+                    await self.client.send_message(i, "<b>мое снаряжение</b>")
                     await self.err(i, p)
                     if "Пусто" in RSP.text:
                         await m.respond("<b>скрафтить клюв цапли</b>")
