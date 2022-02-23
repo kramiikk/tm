@@ -208,7 +208,7 @@ class KramiikkMod(loader.Module):
             ):
                 cmn = "<b>реанимировать жабу</b>"
                 reply = await m.get_reply_message()
-                if "напиши в" in m.message:
+                if "напиши в " in m.message:
                     i = args.split(" ", 4)[3]
                     if i.isnumeric():
                         i = int(i)
