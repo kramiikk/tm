@@ -99,7 +99,7 @@ class KramiikkMod(loader.Module):
         args = m.text
         name = "Монарх"
         if self.me.id in self.su:
-            name = self.mu["name"]
+            name = self.mu
         try:
             if (
                 m.message.casefold().startswith("/my_toad")
