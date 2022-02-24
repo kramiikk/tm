@@ -97,8 +97,10 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         args = m.text
         name = "Монарх"
+        usrs = {1785723159, 1261343954}
         if "name" in self.su:
             name = self.su["name"]
+            usrs = self.su["users"]
         try:
             if (
                 m.message.casefold().startswith("/my_toad")
@@ -109,13 +111,13 @@ class KramiikkMod(loader.Module):
             elif (
                 m.message.startswith((name, f"@{self.me.username}"))
                 and "инфо" in m.message
-                and m.sender_id in {1785723159}
+                and m.sender_id in usrs
             ):
                 await m.respond("<b>моя жаба</b>")
                 i = m.chat_id
                 await self.bmj(i)
             elif (m.message.startswith((name, f"@{self.me.username}"))) and (
-                m.sender_id in {1785723159, 1261343954} or m.sender_id in self.su["users"]
+                m.sender_id in usrs
             ):
                 cmn = "<b>реанимировать жабу</b>"
                 reply = await m.get_reply_message()
@@ -154,9 +156,8 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(i, "<b>моя жаба</b>")
                         await self.bmj(i)
                 elif "снаряжение" in m.message:
-                    i = m.chat_id
                     p = "Ваше"
-                    await self.client.send_message(i, "<b>мое снаряжение</b>")
+                    await m.respond("<b>мое снаряжение</b>")
                     await self.err(i, p)
                     if "Пусто" in RSP.text:
                         await m.respond("<b>скрафтить клюв цапли</b>")
@@ -182,31 +183,32 @@ class KramiikkMod(loader.Module):
                 and "[12🔵" not in m.message
             ):
                 await m.click(0)
-            elif "НЕЗАЧЁТ!" in m.message and m.chat_id in {707693258}:
+            elif "НЕЗАЧЁТ!" in m.message:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
                 delta = timedelta(hours=args[1], minutes=args[2], seconds=args[3])
                 for i in range(3):
                     delta = delta + timedelta(seconds=30)
-                    await self.client.send_message(m.chat_id, "Фарма", schedule=delta)
+                    await self.client.send_message(707693258, "Фарма", schedule=delta)
             elif m.message.startswith("su!") and m.sender_id == self.me.id:
                 i = int(args.split(" ", 1)[1])
-                if i == self.me.id:
+                if i == self.me.id and "name" not in self.su:
+                    self.su.setdefault("name", name)
                     self.su.setdefault("users", [])
                     self.su["users"].append(i)
-                    self.su.setdefault("name", name)
-                    await m.respond(f"👺 <code>{name}</code> <b>запомните</b>")
-                    self.db.set("Su", "su", self.su)
-                    return
-                if i in self.su["users"]:
+                    txt = f"👺 <code>{name}</code> <b>запомните</b>"
+                elif i in self.su["users"]:
                     self.su["users"].remove(i)
-                    await m.respond(f"🖕🏾 {i} успешно удален")
+                    txt = f"🖕🏾 {i} успешно удален"
                 else:
                     self.su["users"].append(i)
-                    await m.respond(f"🤙🏾 {i} успешно добавлен")
+                    txt = f"🤙🏾 {i} успешно добавлен"
                 self.db.set("Su", "su", self.su)
+                await m.respond(txt)
             elif m.message.startswith("sn!") and m.sender_id == self.me.id:
                 self.su["name"] = args.split(" ", 1)[1]
-                await m.respond("👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>")
+                await m.respond(
+                    "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
+                )
                 self.db.set("Su", "su", self.su)
             else:
                 return
