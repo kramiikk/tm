@@ -97,7 +97,7 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         args = m.text
         name = "Монарх"
-        if self.su["name"]:
+        if "name" in self.su:
             name = self.su["name"]
         try:
             if (
