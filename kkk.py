@@ -206,7 +206,7 @@ class KramiikkMod(loader.Module):
                 self.db.set("Su", "su", self.su)
             elif m.message.startswith("sn!") and m.sender_id == self.me.id:
                 self.su["name"] = args.split(" ", 1)[1]
-                await m.respond(f"👻 <code>{self.su}</code> <b>успешно изменён</b>")
+                await m.respond("👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>")
                 self.db.set("Su", "su", self.su)
         finally:
             return
