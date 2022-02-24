@@ -208,6 +208,8 @@ class KramiikkMod(loader.Module):
                 self.su["name"] = args.split(" ", 1)[1]
                 await m.respond("👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>")
                 self.db.set("Su", "su", self.su)
+            else:
+                return
         finally:
             return
 
