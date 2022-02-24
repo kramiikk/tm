@@ -156,6 +156,7 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(i, "<b>моя жаба</b>")
                         await self.bmj(i)
                 elif "снаряжение" in m.message:
+                    i = m.chat_id
                     p = "Ваше"
                     await m.respond("<b>мое снаряжение</b>")
                     await self.err(i, p)
