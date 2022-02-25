@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import random
 from datetime import timedelta
 
 from telethon import events
@@ -145,16 +146,6 @@ class KramiikkMod(loader.Module):
                         i = int(i)
                         await self.client.send_message(i, cmn)
                         await self.client.send_message(i, "<b>на арену</b>")
-                elif "black" in m.message:
-                    i = m.chat_id
-                    p = "•"
-                    await self.client.send_message(i, "<b>мои жабы</b>")
-                    await self.err(i, p)
-                    capt = re.findall(r"\| -100(\d+)", RSP.text)
-                    for i in capt:
-                        i = int(i)
-                        await self.client.send_message(i, "<b>моя жаба</b>")
-                        await self.bmj(i)
                 elif "снаряжение" in m.message:
                     i = m.chat_id
                     p = "Ваше"
@@ -177,6 +168,29 @@ class KramiikkMod(loader.Module):
             ):
                 await m.respond("реанимировать жабу")
                 await m.click(0)
+            elif (
+                "Банда получила" in m.message
+                or "Йоу, ваш клан" in m.message
+                and m.sender_id in {1124824021}
+            ):
+                i = m.chat_id
+                await self.client.send_message(
+                    i,
+                    "мой клан",
+                    schedule=timedelta(
+                        minutes=random.randint(1, 30), seconds=random.randint(1, 30)
+                    ),
+                )
+            elif "мой клан" in m.message and m.sender_id == self.me.id:
+                i = m.chat_id
+                p = "•"
+                await self.client.send_message(i, "<b>мои жабы</b>")
+                await self.err(i, p)
+                capt = re.findall(r"\| -100(\d+)", RSP.text)
+                for i in capt:
+                    i = int(i)
+                    await self.client.send_message(i, "<b>моя жаба</b>")
+                    await self.bmj(i)
             elif (
                 m.sender_id in {830605725}
                 and m.buttons
