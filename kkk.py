@@ -4,7 +4,7 @@ import re
 import random
 from datetime import timedelta
 
-from telethon import events
+from telethon import events, functions
 
 from .. import loader
 
@@ -52,6 +52,19 @@ class KramiikkMod(loader.Module):
         p = "🐸"
         await self.err(chat, p)
         jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
+        await self.client(
+            functions.messages.DeleteScheduledMessagesRequest(
+                chat,
+                id=[
+                    x.id
+                    for x in (
+                        await self.client(
+                            functions.messages.GetScheduledHistoryRequest(chat, 0)
+                        )
+                    ).messages
+                ],
+            )
+        )
         if "Живая" not in RSP.text:
             await self.client.send_message(chat, "реанимировать жабу")
         p = "🏃‍♂️"
