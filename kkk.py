@@ -17,9 +17,6 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    def __init__(self):
-        self.name = self.strings["name"]
-
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
@@ -31,7 +28,9 @@ class KramiikkMod(loader.Module):
             async with self.client.conversation(chat) as conv:
                 global RSP
                 RSP = await conv.wait_event(
-                    events.NewMessage(from_users=1124824021, chats=chat, pattern=pattern)
+                    events.NewMessage(
+                        from_users=1124824021, chats=chat, pattern=pattern
+                    )
                 )
         except asyncio.exceptions.TimeoutError:
             pass
@@ -73,8 +72,8 @@ class KramiikkMod(loader.Module):
         cmn = "<b>работа крупье</b>"
         if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
             if (
-                    "В подземелье можно через 2ч" in RSP.text
-                    and "Жабу можно отправить" in RSP.text
+                "В подземелье можно через 2ч" in RSP.text
+                and "Жабу можно отправить" in RSP.text
             ):
                 await self.client.send_message(chat, cmn)
             cmn = "<b>откормить жабку</b>"
@@ -110,9 +109,15 @@ class KramiikkMod(loader.Module):
             if "Пусто" in RSP.text:
                 await self.client.send_message(chat, "<b>скрафтить клюв цапли</b>")
                 await self.client.send_message(chat, "<b>скрафтить букашкомет</b>")
-                await self.client.send_message(chat, "<b>скрафтить наголовник из клюва цапли</b>")
-                await self.client.send_message(chat, "<b>скрафтить нагрудник из клюва цапли</b>")
-                await self.client.send_message(chat, "<b>скрафтить налапники из клюва цапли</b>")
+                await self.client.send_message(
+                    chat, "<b>скрафтить наголовник из клюва цапли</b>"
+                )
+                await self.client.send_message(
+                    chat, "<b>скрафтить нагрудник из клюва цапли</b>"
+                )
+                await self.client.send_message(
+                    chat, "<b>скрафтить налапники из клюва цапли</b>"
+                )
             await self.client.send_message(chat, cmn)
         elif "жабу с работы" in RSP.text:
             await self.client.send_message(chat, cmn)
@@ -130,22 +135,19 @@ class KramiikkMod(loader.Module):
             name = self.su["name"]
             users = self.su["users"]
         try:
-            if (
-                    m.message.casefold().startswith("/my_toad")
-                    and m.sender_id == me
-            ):
+            if m.message.casefold().startswith("/my_toad") and m.sender_id == me:
                 await self.bmj(chat)
             elif (
-                    m.message.startswith((name, f"@{self.me.username}"))
-                    and "инфо" in m.message
-                    and m.sender_id in users
+                m.message.startswith((name, f"@{self.me.username}"))
+                and "инфо" in m.message
+                and m.sender_id in users
             ):
                 await m.respond("<b>моя жаба</b>")
                 await self.bmj(chat)
             elif (
-                    "Банда получила" in m.message
-                    or "Йоу, ваш клан" in m.message
-                    and m.sender_id in {1124824021}
+                "Банда получила" in m.message
+                or "Йоу, ваш клан" in m.message
+                and m.sender_id in {1124824021}
             ):
                 await self.client.send_message(
                     chat,
@@ -164,7 +166,7 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(chat, "<b>моя жаба</b>")
                     await self.bmj(chat)
             elif (m.message.startswith((name, f"@{self.me.username}"))) and (
-                    m.sender_id in users
+                m.sender_id in users
             ):
                 cmn = "<b>реанимировать жабу</b>"
                 reply = await m.get_reply_message()
@@ -199,22 +201,24 @@ class KramiikkMod(loader.Module):
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
-                    f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 await m.respond("<b>реанимировать жабу</b>")
                 await m.click(0)
             elif (
-                    m.sender_id in {830605725}
-                    and m.buttons
-                    and "Ваше уважение" not in m.message
-                    and "[12🔵" not in m.message
+                m.sender_id in {830605725}
+                and m.buttons
+                and "Ваше уважение" not in m.message
+                and "[12🔵" not in m.message
             ):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
                 delta = timedelta(hours=args[1], minutes=args[2], seconds=33)
                 delta = delta + timedelta(seconds=33)
-                await self.client.send_message(707693258, "<b>Фарма</b>", schedule=delta)
+                await self.client.send_message(
+                    707693258, "<b>Фарма</b>", schedule=delta
+                )
             elif m.message.startswith("su!") and m.sender_id == me:
                 txt = int(args.split(" ", 1)[1])
                 if txt == me and "name" not in self.su:
