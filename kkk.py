@@ -35,18 +35,6 @@ class KramiikkMod(loader.Module):
         except asyncio.exceptions.TimeoutError:
             pass
 
-    async def uku(self, chat, cmn, txt):
-        time = re.search(
-            txt,
-            RSP.text,
-            re.IGNORECASE,
-        )
-        await self.client.send_message(
-            chat,
-            cmn,
-            schedule=timedelta(hours=int(time.group(1)), minutes=int(time.group(2))),
-        )
-
     async def bmj(self, chat):
         pattern = "🐸"
         await self.err(chat, pattern)
@@ -77,28 +65,16 @@ class KramiikkMod(loader.Module):
             ):
                 await self.client.send_message(chat, cmn)
             cmn = "<b>откормить жабку</b>"
-            if "(Откормить через" in RSP.text:
-                txt = r"Откормить через (\d+)ч:(\d+)м"
-                await self.uku(chat, cmn, txt)
-            else:
+            if "Можно откормить" in RSP.text:
                 await self.client.send_message(chat, cmn)
             cmn = "<b>отправиться в золотое подземелье</b>"
             if "Можно отправиться" in RSP.text:
                 await self.client.send_message(chat, cmn)
-            elif "В подземелье можно" in RSP.text:
-                txt = r"подземелье можно через (\d+)ч. (\d+)м."
-                await self.uku(chat, cmn, txt)
         else:
-            if "работу можно" in RSP.text:
-                txt = r"будет через (\d+)ч:(\d+)м"
-                await self.uku(chat, cmn, txt)
-            elif "можно отправить" in RSP.text:
+            if "можно отправить" in RSP.text:
                 await self.client.send_message(chat, cmn)
             cmn = "<b>покормить жабку</b>"
-            if "покормить через" in RSP.text:
-                txt = r"покормить через (\d+)ч:(\d+)м"
-                await self.uku(chat, cmn, txt)
-            else:
+            if "Жабу можно покормить" in RSP.text:
                 await self.client.send_message(chat, cmn)
         cmn = "<b>завершить работу</b>"
         if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
@@ -106,7 +82,7 @@ class KramiikkMod(loader.Module):
             pattern = "Ваше"
             await self.client.send_message(chat, "<b>мое снаряжение</b>")
             await self.err(chat, pattern)
-            if "Пусто" in RSP.text:
+            if "Пусто" in RSP.text and "Усилитель: Пусто" not in RSP.text:
                 await self.client.send_message(chat, "<b>скрафтить клюв цапли</b>")
                 await self.client.send_message(chat, "<b>скрафтить букашкомет</b>")
                 await self.client.send_message(
@@ -121,16 +97,13 @@ class KramiikkMod(loader.Module):
             await self.client.send_message(chat, cmn)
         elif "жабу с работы" in RSP.text:
             await self.client.send_message(chat, cmn)
-        elif "жабу можно через" in RSP.text:
-            txt = r"через (\d+) часов (\d+) минут"
-            await self.uku(chat, cmn, txt)
 
     async def watcher(self, m):
         args = m.text
+        chat = m.chat_id
         me = self.me.id
         name = self.me.username
         users = me
-        chat = m.chat_id
         if "name" in self.su:
             name = self.su["name"]
             users = self.su["users"]
