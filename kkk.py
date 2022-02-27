@@ -1,7 +1,7 @@
 import asyncio
 import logging
-import re
 import random
+import re
 from datetime import timedelta
 
 from telethon import events, functions
@@ -122,8 +122,9 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         args = m.text
-        name = "Монарх"
-        users = {1785723159, 1261343954}
+        me = self.me.id
+        name = self.me.username
+        users = me
         chat = m.chat_id
         if "name" in self.su:
             name = self.su["name"]
@@ -131,7 +132,7 @@ class KramiikkMod(loader.Module):
         try:
             if (
                     m.message.casefold().startswith("/my_toad")
-                    and m.sender_id == self.me.id
+                    and m.sender_id == me
             ):
                 await self.bmj(chat)
             elif (
@@ -153,7 +154,7 @@ class KramiikkMod(loader.Module):
                         minutes=random.randint(1, 30), seconds=random.randint(1, 30)
                     ),
                 )
-            elif "мой клан" in m.message and m.sender_id == self.me.id:
+            elif "мой клан" in m.message and m.sender_id == me:
                 pattern = "•"
                 await self.client.send_message(chat, "<b>мои жабы</b>")
                 await self.err(chat, pattern)
@@ -171,10 +172,10 @@ class KramiikkMod(loader.Module):
                     chat = args.split(" ", 4)[3]
                     if chat.isnumeric():
                         chat = int(chat)
-                    s = args.split(" ", 4)[4]
+                    msg = args.split(" ", 4)[4]
                     if reply:
-                        s = reply
-                    await self.client.send_message(chat, s)
+                        msg = reply
+                    await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
                     msg = args.split(" ", 2)[2]
                     if reply:
@@ -194,9 +195,9 @@ class KramiikkMod(loader.Module):
                 else:
                     if ("напади" or "подземелье") in m.message:
                         await m.respond(cmn)
-                    i = args.split(" ", 1)[1]
-                    if i in ded:
-                        await m.reply(ded[i])
+                    cmn = args.split(" ", 1)[1]
+                    if cmn in ded:
+                        await m.reply(ded[cmn])
             elif (
                     f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
@@ -211,26 +212,25 @@ class KramiikkMod(loader.Module):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
-                delta = timedelta(hours=args[1], minutes=args[2], seconds=13)
-                for i in range(3):
-                    delta = delta + timedelta(seconds=13)
-                    await self.client.send_message(707693258, "<b>Фарма</b>", schedule=delta)
-            elif m.message.startswith("su!") and m.sender_id == self.me.id:
-                i = int(args.split(" ", 1)[1])
-                if i == self.me.id and "name" not in self.su:
+                delta = timedelta(hours=args[1], minutes=args[2], seconds=33)
+                delta = delta + timedelta(seconds=33)
+                await self.client.send_message(707693258, "<b>Фарма</b>", schedule=delta)
+            elif m.message.startswith("su!") and m.sender_id == me:
+                txt = int(args.split(" ", 1)[1])
+                if txt == me and "name" not in self.su:
                     self.su.setdefault("name", name)
                     self.su.setdefault("users", [])
-                    self.su["users"].append(i)
-                    txt = f"👺 <code>{name}</code> <b>запомните</b>"
-                elif i in self.su["users"]:
-                    self.su["users"].remove(i)
-                    txt = f"🖕🏾 {i} <b>успешно удален</b>"
+                    self.su["users"].append(txt)
+                    msg = f"👺 <code>{name}</code> <b>запомните</b>"
+                elif txt in self.su["users"]:
+                    self.su["users"].remove(txt)
+                    msg = f"🖕🏾 {txt} <b>успешно удален</b>"
                 else:
-                    self.su["users"].append(i)
-                    txt = f"🤙🏾 {i} <b>успешно добавлен</b>"
+                    self.su["users"].append(txt)
+                    msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
                 self.db.set("Su", "su", self.su)
-                await m.respond(txt)
-            elif m.message.startswith("sn!") and m.sender_id == self.me.id:
+                await m.respond(msg)
+            elif m.message.startswith("sn!") and m.sender_id == me:
                 self.su["name"] = args.split(" ", 1)[1]
                 await m.respond(
                     "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
