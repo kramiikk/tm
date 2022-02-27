@@ -62,7 +62,7 @@ class KramiikkMod(loader.Module):
             if "можно отправить" in RSP.text:
                 await self.client.send_message(chat, cmn)
             cmn = "покормить жабку"
-            if "покормить через" in RSP.text:
+            if "Жабу можно покормить" in RSP.text:
                 await self.client.send_message(chat, cmn)
         cmn = "завершить работу"
         if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
