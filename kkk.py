@@ -102,7 +102,10 @@ class KramiikkMod(loader.Module):
             else:
                 await self.client.send_message(chat, cmn)
         cmn = "завершить работу"
-        if "жабу с работы" in RSP.text:
+        if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
+            cmn = "рейд старт"
+            await self.client.send_message(chat, cmn)
+        elif "жабу с работы" in RSP.text:
             await self.client.send_message(chat, cmn)
         elif "жабу можно через" in RSP.text:
             txt = r"через (\d+) часов (\d+) минут"
@@ -209,9 +212,9 @@ class KramiikkMod(loader.Module):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
-                delta = timedelta(hours=args[1], minutes=args[2], seconds=args[3])
+                delta = timedelta(hours=args[1], minutes=args[2], seconds=13)
                 for i in range(3):
-                    delta = delta + timedelta(seconds=30)
+                    delta = delta + timedelta(seconds=13)
                     await self.client.send_message(707693258, "Фарма", schedule=delta)
             elif m.message.startswith("su!") and m.sender_id == self.me.id:
                 i = int(args.split(" ", 1)[1])
