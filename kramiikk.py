@@ -23,8 +23,8 @@ class KramiikkMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        self.su = self.db.get("Su", "su", {})
         self.me = await client.get_me()
+        self.su = self.db.get("Su", "su", {})
 
     async def err(self, chat, p):
         try:
@@ -41,32 +41,32 @@ class KramiikkMod(loader.Module):
         await self.err(chat, p)
         jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
         if "Живая" not in RSP.text:
-            await self.client.send_message(chat, "реанимировать жабу")
+            await self.client.send_message(chat, "<b>реанимировать жабу</b>")
         p = "🏃‍♂️"
         await self.client.send_message(chat, "<b>жаба инфо</b>")
         await self.err(chat, p)
-        cmn = "работа крупье"
+        cmn = "<b>работа крупье</b>"
         if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
             if (
-                "В подземелье можно через 2ч" in RSP.text
+                "подземелье можно через 2ч" in RSP.text
                 and "Жабу можно отправить" in RSP.text
             ):
                 await self.client.send_message(chat, cmn)
-            cmn = "отправиться в золотое подземелье"
+            cmn = "<b>отправиться в золотое подземелье</b>"
             if "Можно отправиться" in RSP.text:
                 await self.client.send_message(chat, cmn)
-            cmn = "откормить жабку"
-            if "(Можно откормить)" in RSP.text:
+            cmn = "<b>откормить жабку</b>"
+            if "Можно откормить" in RSP.text:
                 await self.client.send_message(chat, cmn)
         else:
             if "можно отправить" in RSP.text:
                 await self.client.send_message(chat, cmn)
-            cmn = "покормить жабку"
+            cmn = "<b>покормить жабку</b>"
             if "Жабу можно покормить" in RSP.text:
                 await self.client.send_message(chat, cmn)
-        cmn = "завершить работу"
+        cmn = "<b>завершить работу</b>"
         if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
-            cmn = "рейд старт"
+            cmn = "<b>рейд старт</b>"
             await self.client.send_message(chat, cmn)
         elif "жабу с работы" in RSP.text:
             await self.client.send_message(chat, cmn)
@@ -108,7 +108,7 @@ class KramiikkMod(loader.Module):
             ):
                 await self.client.send_message(
                     chat,
-                    "мой клан",
+                    "<b>мой клан</b>",
                     schedule=timedelta(
                         minutes=random.randint(1, 30), seconds=random.randint(1, 30)
                     ),
@@ -170,7 +170,7 @@ class KramiikkMod(loader.Module):
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
-                await m.respond("реанимировать жабу")
+                await m.respond("<b>реанимировать жабу</b>")
                 await m.click(0)
             elif m.message.startswith("su!") and m.sender_id == self.me.id:
                 i = int(args.split(" ", 1)[1])
