@@ -98,7 +98,7 @@ class KramiikkMod(loader.Module):
             if m.message.casefold().startswith("/my_toad") and m.sender_id == me:
                 await self.bmj(chat)
             elif (
-                m.message.startswith((name, f"@{self.me.username}"))
+                m.message.casefold().startswith((name, f"@{self.me.username}"))
                 and "инфо" in m.message
                 and m.sender_id in users
             ):
@@ -116,7 +116,7 @@ class KramiikkMod(loader.Module):
                         minutes=random.randint(1, 30), seconds=random.randint(1, 30)
                     ),
                 )
-            elif "мой клан" in m.message and m.sender_id == me:
+            elif m.message.startswith("мой клан") and m.sender_id == me:
                 pattern = "•"
                 await self.client.send_message(chat, "<b>мои жабы</b>")
                 await self.err(chat, pattern)

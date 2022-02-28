@@ -128,7 +128,7 @@ class KramiikkMod(loader.Module):
                         minutes=random.randint(1, 30), seconds=random.randint(1, 30)
                     ),
                 )
-            elif "мой клан" in m.message and m.sender_id == me:
+            elif m.message.startswith("мой клан") and m.sender_id == me:
                 pattern = "•"
                 await self.client.send_message(chat, "<b>мои жабы</b>")
                 await self.err(chat, pattern)
