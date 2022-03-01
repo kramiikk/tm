@@ -111,18 +111,16 @@ class KramiikkMod(loader.Module):
             ) and "auto" in self.su:
                 await self.client.send_message(
                     1124824021,
-                    "<b>топ кланов</b>",
+                    "<b>мои жабы</b>",
                     schedule=timedelta(
                         minutes=random.randint(1, 30), seconds=random.randint(1, 30)
                     ),
                 )
-            elif m.message.startswith("топ кланов") and chat in {1124824021}:
-                await m.delete()
+            elif m.message.startswith("мои жабы") and chat in {1124824021}:
                 pattern = "•"
-                msg = await self.client.send_message(chat, "<b>мои жабы</b>")
-                await msg.delete()
                 await self.err(chat, pattern)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
+                await m.delete()
                 await RSP.delete()
                 for i in capt:
                     try:
