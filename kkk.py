@@ -108,15 +108,15 @@ class KramiikkMod(loader.Module):
                 "Банда получила" in m.message
                 or "Йоу, ваш клан" in m.message
                 and m.sender_id in {1124824021}
-            ):
+            ) and "auto" in self.su:
                 await self.client.send_message(
-                    chat,
-                    "<b>мой клан</b>",
+                    1124824021,
+                    "<b>топ кланов</b>",
                     schedule=timedelta(
                         minutes=random.randint(1, 30), seconds=random.randint(1, 30)
                     ),
                 )
-            elif "auto" in self.su and m.message.startswith("мой клан") and m.sender_id == me:
+            elif m.message.startswith("топ кланов") and chat in {1124824021}:
                 pattern = "•"
                 await self.client.send_message(chat, "<b>мои жабы</b>")
                 await self.err(chat, pattern)
@@ -204,16 +204,12 @@ class KramiikkMod(loader.Module):
                 )
                 self.db.set("Su", "su", self.su)
             elif m.message.startswith("sa!") and m.sender_id == me:
-                txt = int(args.split(" ", 1)[1])
                 if "auto" not in self.su:
-                    self.su.setdefault("auto", txt)
-                    msg = f"<b>Чат {txt} настроен. Автожаба активирована</b>"
-                elif txt in self.su["auto"]:
-                    self.su.pop("auto")
-                    msg = f"Автожаба деактивирована</b>"
+                    self.su.setdefault("auto", {})
+                    msg = "<b>Автожаба активирована</b>"
                 else:
-                    self.su["auto"] = txt
-                    msg = f"<b>Чат {txt} настроен. Автожаба активирована</b>"
+                    self.su.pop("auto")
+                    msg = "<b>Автожаба деактивирована"
                 self.db.set("Su", "su", self.su)
                 await m.respond(msg)
             else:
