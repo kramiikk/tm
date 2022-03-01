@@ -117,10 +117,13 @@ class KramiikkMod(loader.Module):
                     ),
                 )
             elif m.message.startswith("топ кланов") and chat in {1124824021}:
+                await m.delete()
                 pattern = "•"
-                await self.client.send_message(chat, "<b>мои жабы</b>")
+                msg = await self.client.send_message(chat, "<b>мои жабы</b>")
+                await msg.delete()
                 await self.err(chat, pattern)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
+                await RSP.delete()
                 for i in capt:
                     try:
                         chat = int(i)
@@ -128,8 +131,6 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     except:
                         pass
-                await m.delete()
-                await RSP.delete()
             elif (m.message.startswith((name, f"@{self.me.username}"))) and (
                 m.sender_id in users
             ):
