@@ -122,11 +122,11 @@ class KramiikkMod(loader.Module):
                 await self.err(chat, pattern)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
-                    chat = int(i)
-                    msg = await self.client.send_message(chat, "<b>моя жаба</b>")
-                    if msg:
+                    try:
+                        chat = int(i)
+                        msg = await self.client.send_message(chat, "<b>моя жаба</b>")
                         await self.bmj(chat)
-                    else:
+                    except:
                         pass
             elif (m.message.startswith((name, f"@{self.me.username}"))) and (
                 m.sender_id in users
