@@ -116,18 +116,6 @@ class KramiikkMod(loader.Module):
             ):
                 await m.respond("<b>моя жаба</b>")
                 await self.bmj(chat)
-            elif (
-                "Банда получила" in m.message
-                or "Йоу, ваш клан" in m.message
-                and m.sender_id in {1124824021}
-            ):
-                await self.client.send_message(
-                    chat,
-                    "<b>мой клан</b>",
-                    schedule=timedelta(
-                        minutes=random.randint(1, 30), seconds=random.randint(1, 30)
-                    ),
-                )
             elif m.message.startswith("мой клан") and m.sender_id == me:
                 pattern = "•"
                 await self.client.send_message(chat, "<b>мои жабы</b>")
