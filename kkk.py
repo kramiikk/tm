@@ -116,7 +116,7 @@ class KramiikkMod(loader.Module):
                         minutes=random.randint(1, 30), seconds=random.randint(1, 30)
                     ),
                 )
-            elif m.message.startswith("мой клан") and m.sender_id == me:
+            elif "auto" in self.su and m.message.startswith("мой клан") and m.sender_id == me:
                 pattern = "•"
                 await self.client.send_message(chat, "<b>мои жабы</b>")
                 await self.err(chat, pattern)
@@ -203,6 +203,19 @@ class KramiikkMod(loader.Module):
                     "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
                 )
                 self.db.set("Su", "su", self.su)
+            elif m.message.startswith("sa!") and m.sender_id == me:
+                txt = int(args.split(" ", 1)[1])
+                if "auto" not in self.su:
+                    self.su.setdefault("auto", txt)
+                    msg = f"<b>Чат {txt} настроен. Автожаба активирована</b>"
+                elif txt in self.su["auto"]:
+                    self.su.pop("auto")
+                    msg = f"Автожаба деактивирована</b>"
+                else:
+                    self.su["auto"] = txt
+                    msg = f"<b>Чат {txt} настроен. Автожаба активирована</b>"
+                self.db.set("Su", "su", self.su)
+                await m.respond(msg)
             else:
                 return
         finally:
