@@ -128,6 +128,8 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     except:
                         pass
+                await m.delete()
+                await RSP.delete()
             elif (m.message.startswith((name, f"@{self.me.username}"))) and (
                 m.sender_id in users
             ):
