@@ -120,10 +120,10 @@ class KramiikkMod(loader.Module):
             elif m.message.startswith("мои жабы") and chat in {1124824021}:
                 pattern = "•"
                 await self.err(chat, pattern)
-                capt = re.findall(r"\| -100(\d+)", RSP.text)
                 await self.client.send_read_acknowledge(chat)
                 await m.delete()
                 await RSP.delete()
+                capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
                     try:
                         chat = int(i)
