@@ -1,5 +1,4 @@
 import asyncio
-from email import charset
 import logging
 import random
 import re
