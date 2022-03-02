@@ -45,7 +45,7 @@ class KramiikkMod(loader.Module):
         await self.client.send_message(chat, "<b>жаба инфо</b>")
         await self.err(chat, pattern)
         cmn = "<b>работа крупье</b>"
-        if int(jab.group(1)) > 72 and int(jab.group(2)) > 3750:
+        if int(jab.group(1)) > 111 and int(jab.group(2)) > 3333:
             if (
                 "В подземелье можно через 2ч" in RSP.text
                 and "Жабу можно отправить" in RSP.text
@@ -57,6 +57,22 @@ class KramiikkMod(loader.Module):
             cmn = "<b>отправиться в золотое подземелье</b>"
             if "Можно отправиться" in RSP.text:
                 await self.client.send_message(chat, cmn)
+            else:
+                pattern = "Ваше"
+                await self.client.send_message(chat, "<b>мое снаряжение</b>")
+                await self.err(chat, pattern)
+                if "Пусто" in RSP.text and "Усилитель: Пусто" not in RSP.text:
+                    await self.client.send_message(chat, "<b>скрафтить клюв цапли</b>")
+                    await self.client.send_message(chat, "<b>скрафтить букашкомет</b>")
+                    await self.client.send_message(
+                        chat, "<b>скрафтить наголовник из клюва цапли</b>"
+                    )
+                    await self.client.send_message(
+                        chat, "<b>скрафтить нагрудник из клюва цапли</b>"
+                    )
+                    await self.client.send_message(
+                        chat, "<b>скрафтить налапники из клюва цапли</b>"
+                    )
         else:
             if "можно отправить" in RSP.text:
                 await self.client.send_message(chat, cmn)
@@ -66,21 +82,6 @@ class KramiikkMod(loader.Module):
         cmn = "<b>завершить работу</b>"
         if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
             cmn = "<b>рейд старт</b>"
-            pattern = "Ваше"
-            await self.client.send_message(chat, "<b>мое снаряжение</b>")
-            await self.err(chat, pattern)
-            if "Пусто" in RSP.text and "Усилитель: Пусто" not in RSP.text:
-                await self.client.send_message(chat, "<b>скрафтить клюв цапли</b>")
-                await self.client.send_message(chat, "<b>скрафтить букашкомет</b>")
-                await self.client.send_message(
-                    chat, "<b>скрафтить наголовник из клюва цапли</b>"
-                )
-                await self.client.send_message(
-                    chat, "<b>скрафтить нагрудник из клюва цапли</b>"
-                )
-                await self.client.send_message(
-                    chat, "<b>скрафтить налапники из клюва цапли</b>"
-                )
             await self.client.send_message(chat, cmn)
         elif "жабу с работы" in RSP.text:
             await self.client.send_message(chat, cmn)
