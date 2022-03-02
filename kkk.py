@@ -131,7 +131,7 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     except:
                         pass
-            elif (m.message.casefold.startswith(name) and (
+            elif (m.message.casefold().startswith(name) and (
                 m.sender_id in users
             ):
                 cmn = "<b>реанимировать жабу</b>"
