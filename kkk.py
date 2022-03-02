@@ -93,13 +93,13 @@ class KramiikkMod(loader.Module):
         name = self.me.username
         users = me
         if "name" in self.su:
-            name = self.su["name"]
+            name = self.su["name"].casefold()
             users = self.su["users"]
         try:
             if m.message.casefold().startswith("/my_toad") and m.sender_id == me:
                 await self.bmj(chat)
             elif (
-                m.message.casefold().startswith((name, f"@{self.me.username}"))
+                m.message.startswith((name, f"@{self.me.username}"))
                 and "инфо" in m.message
                 and m.sender_id in users
             ):
