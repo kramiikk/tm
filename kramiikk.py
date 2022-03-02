@@ -91,11 +91,11 @@ class KramiikkMod(loader.Module):
         chat = m.chat_id
         me = self.me.id
         if self.me.id in {547639600}:
-            name = "Нельс"
+            name = "нельс"
         elif self.me.id in {980699009}:
-            name = "Лена"
+            name = "лена"
         elif self.me.id in {230473666}:
-            name = "Ваня"
+            name = "ваня"
         else:
             name = self.me.first_name
         users = {1785723159, 1261343954}
@@ -138,9 +138,7 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     except:
                         pass
-            elif m.message.casefold().startswith(name) and (
-                m.sender_id in users
-            ):
+            elif m.message.casefold().startswith(name) and (m.sender_id in users):
                 cmn = "<b>реанимировать жабу</b>"
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
