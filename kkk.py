@@ -33,7 +33,7 @@ class KramiikkMod(loader.Module):
                     )
                 )
         except asyncio.exceptions.TimeoutError:
-            pass
+            return
 
     async def bmj(self, chat):
         pattern = "🐸"
