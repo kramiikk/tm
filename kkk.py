@@ -93,7 +93,7 @@ class KramiikkMod(loader.Module):
         name = self.me.username
         users = me
         if "name" in self.su:
-            name = self.su["name"].casefold()
+            name = self.su["name"]
             users = self.su["users"]
         try:
             if m.message.casefold().startswith("/my_toad") and m.sender_id == me:
