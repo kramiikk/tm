@@ -1,4 +1,5 @@
 import asyncio
+from email import charset
 import logging
 import random
 import re
@@ -120,7 +121,7 @@ class KramiikkMod(loader.Module):
                 pattern = "•"
                 await self.err(chat, pattern)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
-                await self.client.send_read_acknowledge()
+                await self.client.send_read_acknowledge(chat)
                 await m.delete()
                 await RSP.delete()
                 for i in capt:
