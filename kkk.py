@@ -45,7 +45,7 @@ class KramiikkMod(loader.Module):
         await self.client.send_message(chat, "<b>жаба инфо</b>")
         await self.err(chat, pattern)
         cmn = "<b>работа крупье</b>"
-        if int(jab.group(1)) > 111 and int(jab.group(2)) > 3333:
+        if int(jab.group(1)) > 111 and int(jab.group(2)) > 2222:
             if (
                 "В подземелье можно через 2ч" in RSP.text
                 and "Жабу можно отправить" in RSP.text
@@ -96,7 +96,7 @@ class KramiikkMod(loader.Module):
             name = self.su["name"]
             users = self.su["users"]
         try:
-            if m.message.casefold().startswith("/my_toad") and m.sender_id == me:
+            if m.message.startswith("/my_toad") and m.sender_id == me:
                 await self.bmj(chat)
             elif (
                 m.message.startswith((name, f"@{self.me.username}"))
@@ -106,8 +106,8 @@ class KramiikkMod(loader.Module):
                 await m.respond("<b>моя жаба</b>")
                 await self.bmj(chat)
             elif (
-                "Банда получила" in m.message
-                or "Йоу, ваш клан" in m.message
+                m.message.startswith(("Тебе жаба", "Йоу"))
+                or "Банда получила" in m.message
                 and m.sender_id in {1124824021}
             ) and "auto" in self.su:
                 await self.client.send_message(
@@ -201,7 +201,7 @@ class KramiikkMod(loader.Module):
                 self.db.set("Su", "su", self.su)
                 await m.respond(msg)
             elif m.message.startswith("sn!") and m.sender_id == me:
-                self.su["name"] = args.split(" ", 1)[1]
+                self.su["name"] = args.split(" ", 1)[1].casefold()
                 await m.respond(
                     "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
                 )
