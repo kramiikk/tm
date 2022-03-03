@@ -208,24 +208,7 @@ class emodjiMod(loader.Module):
                 "me", (await message.get_reply_message())
             )
             await message.edit("Ready!")
-        if self.truefalse == True:
-            text = message.text.lower()
-            txtnorm = dict(
-                zip(
-                    map(
-                        ord,
-                        "qwertyuiop[]asdfghjkl;'zxcvbnm/"
-                        'QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>',
-                    ),
-                    "йцукенгшщзхъфывапролджэячсмитьбю"
-                    "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ",
-                )
-            )
-            await message.delete()
-            txt = list(text.translate(txtnorm))
-            txt1 = txt[0].upper()
-            txt2 = txt1 + "".join(txt[1:])
-            await message.respond(txt2)
+        
         self.db.get("TestMod", "status")
         if self.chat != message.chat_id:
             return
