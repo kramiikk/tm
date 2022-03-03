@@ -106,7 +106,7 @@ class KramiikkMod(loader.Module):
                 await m.respond("<b>моя жаба</b>")
                 await self.bmj(chat)
             elif (
-                    m.message.startswith(("Тебе жаба", "Йоу"))
+                    m.message.startswith(("✅", "🛡", "📉"))
                     or "Банда получила" in m.message
                     and m.sender_id in {1124824021}
             ) and "auto" in self.su:
