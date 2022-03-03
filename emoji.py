@@ -9,7 +9,6 @@ class emodjiMod(loader.Module):
 
     async def client_ready(self, client, db):
         self.db = db
-        self.db.set("TestMod", "status", True)
 
     async def emojicmd(self, message):
         args = utils.get_args_raw(message)
@@ -118,28 +117,9 @@ class emodjiMod(loader.Module):
         t = "".join(d)
         await message.edit(t)
 
-    async def client_ready(self, client, db):
-        self.db = db
-        self.db.set("TestMod", "status", True)
-
     async def chatcmd(self, message):
         chat = str(message.chat_id)
         await message.respond(f"Айди чата: <code>{chat}</code>")
-
-    async def logcmd(self, message):
-        if utils.get_args_raw(message):
-            self.args = int(utils.get_args_raw(message))
-        else:
-            self.args = "me"
-        self.chat = message.chat_id
-        status = self.db.get("TestMod", "status")
-        if status is not False:
-            self.db.set("TestMod", "status", False)
-            await message.edit("<b>Логгер для этого чата включен!</b>")
-        else:
-            self.db.set("TestMod", "status", True)
-            await message.edit("<b>Логгер для этого чата выключен!</b>")
-        await message.delete()
 
     async def delmsgcmd(self, message):
         msg = [
@@ -193,27 +173,3 @@ class emodjiMod(loader.Module):
         )
         txte = txt.translate(txtnorm)
         await message.client.send_message("me", txte)
-
-    async def puntooncmd(self, message):
-        self.truefalse = True
-        await message.edit("<b>PuntoSw On.</b>")
-
-    async def puntooffcmd(self, message):
-        self.truefalse = False
-        await message.edit("<b>Punto Off.</b>")
-
-    async def watcher(self, message):
-        if message.text == "+":
-            await message.client.forward_messages(
-                "me", (await message.get_reply_message())
-            )
-            await message.edit("Ready!")
-        
-        self.db.get("TestMod", "status")
-        if self.chat != message.chat_id:
-            return
-        sender = await message.get_sender()
-        await message.client.send_message(
-            self.args,
-            f"<a href=tg://user?id={sender.id}>{sender.first_name}</a>: {message.text}",
-        )
