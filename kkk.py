@@ -108,7 +108,8 @@ class KramiikkMod(loader.Module):
             elif (
                 m.message.startswith(("Алло", "Йоу"))
                 and m.sender_id in {1124824021}
-            ) and "auto" in self.su:
+                and "auto" in self.su
+            ):
                 await self.client.send_message(
                     1124824021,
                     "<b>мои жабы</b>",
