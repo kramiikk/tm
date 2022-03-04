@@ -68,17 +68,8 @@ class KramiikkMod(loader.Module):
                 await self.client.send_message(chat, "<b>мое снаряжение</b>")
                 await self.err(chat, pattern)
                 if "Пусто" in RSP.text and "Усилитель: Пусто" not in RSP.text:
-                    await self.client.send_message(chat, "<b>скрафтить клюв цапли</b>")
-                    await self.client.send_message(chat, "<b>скрафтить букашкомет</b>")
-                    await self.client.send_message(
-                        chat, "<b>скрафтить наголовник из клюва цапли</b>"
-                    )
-                    await self.client.send_message(
-                        chat, "<b>скрафтить нагрудник из клюва цапли</b>"
-                    )
-                    await self.client.send_message(
-                        chat, "<b>скрафтить налапники из клюва цапли</b>"
-                    )
+                    for cmn in dgn:
+                        await self.client.send_message(chat, f"<b>скрафтить {cmn}</b>")
         else:
             if "можно отправить" in RSP.text:
                 await self.client.send_message(chat, cmn)
@@ -103,13 +94,11 @@ class KramiikkMod(loader.Module):
                 and "инфо" in m.message
                 and m.sender_id in users
             ):
+                for cmn in dgn:
+                    await self.client.send_message(chat, f"<b>скрафтить {cmn}</b>")
                 await m.respond("<b>моя жаба</b>")
                 await self.bmj(chat)
-            elif (
-                m.message.startswith(("✅", "🛡", "📉"))
-                or "Банда получила" in m.message
-                and m.sender_id in {1124824021}
-            ) and "auto" in self.su:
+            elif m.message.startswith(("✅", "🛡", "📉")) and m.sender_id in {1124824021} and "auto" in self.su:
                 await self.client.send_message(
                     1124824021,
                     "<b>мои жабы</b>",
@@ -225,3 +214,5 @@ ded = {
     "карту": "<b>отправить карту</b>",
     "туса": "<b>жабу на тусу</b>",
 }
+
+dgn = ["клюв цапли", "букашкомет", "наголовник из клюва цапли", "нагрудник из клюва цапли", "налапники из клюва цапли"]
