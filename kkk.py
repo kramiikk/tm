@@ -44,6 +44,11 @@ class KramiikkMod(loader.Module):
         pattern = "🏃‍♂️"
         await self.client.send_message(chat, "<b>жаба инфо</b>")
         await self.err(chat, pattern)
+        if "жабу с работы" in RSP.text:
+            cmn = "<b>завершить работу</b>"
+        if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
+            cmn = "<b>рейд старт</b>"
+        await self.client.send_message(chat, cmn)
         cmn = "<b>работа крупье</b>"
         if int(jab.group(1)) > 111 and int(jab.group(2)) > 2222:
             if (
@@ -79,13 +84,6 @@ class KramiikkMod(loader.Module):
             cmn = "<b>покормить жабку</b>"
             if "Жабу можно покормить" in RSP.text:
                 await self.client.send_message(chat, cmn)
-        if "жабу с работы" in RSP.text:
-            cmn = "<b>завершить работу</b>"
-            await self.client.send_message(chat, cmn)
-        if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
-            cmn = "<b>рейд старт</b>"
-            await self.client.send_message(chat, cmn)
-
     async def watcher(self, m):
         args = m.text
         chat = m.chat_id
