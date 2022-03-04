@@ -46,9 +46,10 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         if "жабу с работы" in RSP.text:
             cmn = "<b>завершить работу</b>"
+            await self.client.send_message(chat, cmn)
         if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
             cmn = "<b>рейд старт</b>"
-        await self.client.send_message(chat, cmn)
+            await self.client.send_message(chat, cmn)
         cmn = "<b>работа крупье</b>"
         if int(jab.group(1)) > 111 and int(jab.group(2)) > 2222:
             if (
