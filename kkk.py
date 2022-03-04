@@ -83,8 +83,6 @@ class KramiikkMod(loader.Module):
             cmn = "<b>завершить работу</b>"
         elif "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
             cmn = "<b>рейд старт</b>"
-        else:
-            cmn = "<b>рейд инфо</b>"
         await self.client.send_message(chat, cmn)
 
     async def watcher(self, m):
