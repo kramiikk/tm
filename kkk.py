@@ -56,11 +56,11 @@ class KramiikkMod(loader.Module):
                 and "Жабу можно отправить" in RSP.text
             ):
                 await self.client.send_message(chat, cmn)
-            cmn = "<b>откормить жабку</b>"
             if "Можно откормить" in RSP.text:
+                cmn = "<b>откормить жабку</b>"
                 await self.client.send_message(chat, cmn)
-            cmn = "<b>отправиться в золотое подземелье</b>"
             if "Можно отправиться" in RSP.text:
+                cmn = "<b>отправиться в золотое подземелье</b>"
                 await self.client.send_message(chat, cmn)
             else:
                 pattern = "Ваше"
@@ -81,9 +81,10 @@ class KramiikkMod(loader.Module):
         else:
             if "можно отправить" in RSP.text:
                 await self.client.send_message(chat, cmn)
-            cmn = "<b>покормить жабку</b>"
             if "Жабу можно покормить" in RSP.text:
+                cmn = "<b>покормить жабку</b>"
                 await self.client.send_message(chat, cmn)
+
     async def watcher(self, m):
         args = m.text
         chat = m.chat_id
