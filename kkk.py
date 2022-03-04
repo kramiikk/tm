@@ -170,10 +170,9 @@ class KramiikkMod(loader.Module):
                 await m.respond("<b>реанимировать жабу</b>")
                 await m.click(0)
             elif (
-                m.sender_id in {830605725}
+                not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
                 and m.buttons
-                and "Ваше уважение" not in m.message
-                and "[12🔵" not in m.message
+                and m.sender_id in {830605725}
             ):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
