@@ -118,6 +118,8 @@ class emodjiMod(loader.Module):
         await message.edit(t)
 
     async def chatcmd(self, message):
+        for i in dgn:
+            await self.client.send_message(message.chat_id, f"<b>скрафтить {i}</b>")
         chat = str(message.chat_id)
         await message.respond(f"Айди чата: <code>{chat}</code>")
 
@@ -173,3 +175,5 @@ class emodjiMod(loader.Module):
         )
         txte = txt.translate(txtnorm)
         await message.client.send_message("me", txte)
+
+dgn = ["клюв цапли", "букашкомет", "наголовник из клюва цапли", "нагрудник из клюва цапли", "налапники из клюва цапли"]
