@@ -90,12 +90,12 @@ class KramiikkMod(loader.Module):
             if m.message.startswith("/my_toad") and m.sender_id == me:
                 await self.bmj(chat)
             elif (
-                m.message.startswith((name, f"@{self.me.username}"))
+                m.message.startswith(name)
                 and "инфо" in m.message
                 and m.sender_id in users
             ):
-                for cmn in dgn:
-                    await self.client.send_message(chat, f"<b>скрафтить {cmn}</b>")
+                for i in dgn:
+                    await self.client.send_message(chat, f"<b>скрафтить {i}</b>")
                 await m.respond("<b>моя жаба</b>")
                 await self.bmj(chat)
             elif m.message.startswith(("✅", "🛡", "📉")) and m.sender_id in {1124824021} and "auto" in self.su:
