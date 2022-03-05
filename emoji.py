@@ -9,6 +9,7 @@ class emodjiMod(loader.Module):
 
     async def client_ready(self, client, db):
         self.db = db
+        self.client = client
 
     async def emojicmd(self, message):
         args = utils.get_args_raw(message)
