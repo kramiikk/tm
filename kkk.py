@@ -160,7 +160,7 @@ class KramiikkMod(loader.Module):
                     capt = re.findall(r"\| -100(\d+)", RSP.text)
                     for i in capt:
                         chat = int(i)
-                        await self.client.send_message(chat, cmn)
+                        await self.client.send_message(chat, hlt)
                         await self.client.send_message(chat, "<b>на арену</b>")
                 else:
                     if ("напади" or "подземелье") in m.message:
