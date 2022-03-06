@@ -92,7 +92,7 @@ class KramiikkMod(loader.Module):
             users = self.su["users"]
         try:
             if (
-                m.message.startswith(("✅", "🛡", "📉"))
+                m.message.startswith(("✅", "📉"))
                 and m.sender_id in {1124824021}
                 and "auto" in self.su
             ):
