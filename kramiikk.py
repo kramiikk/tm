@@ -10,6 +10,28 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
+hlt = "реанимировать жабу"
+
+ded = {
+    "жабу с работы": "завершить работу",
+    "можно покормить": "покормить жабку",
+    "жаба в данже": "рейд старт",
+    "можно отправить": "работа крупье",
+    "Можно откормить": "откормить жабку",
+    "Можно отправиться": "отправиться в золотое подземелье",
+    "го кв": "начать клановую войну",
+    "напади": "напасть на клан",
+    "подземелье": "отправиться в золотое подземелье",
+    "карту": "отправить карту",
+    "туса": "жабу на тусу",
+    "Ближний бой: Пусто": "клюв цапли",
+    "Дальний бой: Пусто": "букашкомет",
+    "Наголовник: Пусто": "наголовник из клюва цапли",
+    "Нагрудник: Пусто": "нагрудник из клюва цапли",
+    "Налапники: Пусто": "налапники из клюва цапли",
+    "Банда: Пусто": "взять жабу",
+}
+
 
 @loader.tds
 class KramiikkMod(loader.Module):
@@ -40,86 +62,62 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
         if "Живая" not in RSP.text:
-            await self.client.send_message(chat, "<b>реанимировать жабу</b>")
+            await self.client.send_message(chat, hlt)
         pattern = "🏃‍♂️"
-        await self.client.send_message(chat, "<b>жаба инфо</b>")
+        await self.client.send_message(chat, "жаба инфо")
         await self.err(chat, pattern)
-        cmn = "<b>работа крупье</b>"
+        txt = "жабу с работы"
+        if txt in RSP.text:
+            await self.client.send_message(chat, ded[txt])
+        txt = "жаба в данже"
+        if txt in RSP.text and int(jab.group(1)) > 100:
+            await self.client.send_message(chat, ded[txt])
+        txt = "можно отправить"
         if int(jab.group(1)) > 111 and int(jab.group(2)) > 2222:
-            if (
-                "В подземелье можно через 2ч" in RSP.text
-                and "Жабу можно отправить" in RSP.text
-            ):
-                await self.client.send_message(chat, cmn)
-            cmn = "<b>откормить жабку</b>"
-            if "Можно откормить" in RSP.text:
-                await self.client.send_message(chat, cmn)
-            cmn = "<b>отправиться в золотое подземелье</b>"
-            if "Можно отправиться" in RSP.text:
-                await self.client.send_message(chat, cmn)
+            if "В подземелье можно через 2ч" in RSP.text and txt in RSP.text:
+                await self.client.send_message(chat, ded[txt])
+            txt = "Можно откормить"
+            if txt in RSP.text:
+                await self.client.send_message(chat, ded[txt])
+            txt = "Можно отправиться"
+            if txt in RSP.text:
+                await self.client.send_message(chat, ded[txt])
             else:
                 pattern = "Ваше"
-                await self.client.send_message(chat, "<b>мое снаряжение</b>")
+                await self.client.send_message(chat, "мое снаряжение")
                 await self.err(chat, pattern)
-                if "Пусто" in RSP.text and "Усилитель: Пусто" not in RSP.text:
-                    await self.client.send_message(chat, "<b>скрафтить клюв цапли</b>")
-                    await self.client.send_message(chat, "<b>скрафтить букашкомет</b>")
-                    await self.client.send_message(
-                        chat, "<b>скрафтить наголовник из клюва цапли</b>"
-                    )
-                    await self.client.send_message(
-                        chat, "<b>скрафтить нагрудник из клюва цапли</b>"
-                    )
-                    await self.client.send_message(
-                        chat, "<b>скрафтить налапники из клюва цапли</b>"
-                    )
+                for i in (i for i in ded if i in RSP.text):
+                    await self.client.send_message(chat, "скрафтить " + ded[i])
         else:
-            if "можно отправить" in RSP.text:
-                await self.client.send_message(chat, cmn)
-            cmn = "<b>покормить жабку</b>"
-            if "Жабу можно покормить" in RSP.text:
-                await self.client.send_message(chat, cmn)
-        cmn = "<b>завершить работу</b>"
-        if "Ваша жаба в данже" in RSP.text and int(jab.group(1)) > 100:
-            cmn = "<b>рейд старт</b>"
-            await self.client.send_message(chat, cmn)
-        elif "жабу с работы" in RSP.text:
-            await self.client.send_message(chat, cmn)
+            if txt in RSP.text:
+                await self.client.send_message(chat, ded[txt])
+            txt = "можно покормить"
+            if txt in RSP.text:
+                await self.client.send_message(chat, ded[txt])
 
     async def watcher(self, m):
         args = m.text
         chat = m.chat_id
         me = self.me.id
-        if self.me.id in {547639600}:
-            name = "нельс"
-        elif self.me.id in {980699009}:
+        if self.me.id in {980699009}:
             name = "лена"
         elif self.me.id in {230473666}:
             name = "ваня"
         else:
             name = self.me.first_name
-        users = {1785723159, 1261343954}
         if "name" in self.su:
             name = self.su["name"]
             users = self.su["users"]
+        users = {1785723159, 1261343954}
         try:
-            if m.message.startswith("/my_toad") and m.sender_id == me:
-                await self.bmj(chat)
-            elif (
-                m.message.casefold().startswith(name)
-                and "инфо" in m.message
-                and m.sender_id in users
-            ):
-                await m.respond("<b>моя жаба</b>")
-                await self.bmj(chat)
-            elif (
-                m.message.startswith(("Алло", "Йоу"))
+            if (
+                m.message.startswith(("✅", "🛡", "📉"))
                 and m.sender_id in {1124824021}
                 and "auto" in self.su
             ):
                 await self.client.send_message(
                     1124824021,
-                    "<b>мои жабы</b>",
+                    "мои жабы",
                     schedule=timedelta(
                         minutes=random.randint(1, 30), seconds=random.randint(1, 30)
                     ),
@@ -134,12 +132,12 @@ class KramiikkMod(loader.Module):
                 for i in capt:
                     try:
                         chat = int(i)
-                        msg = await self.client.send_message(chat, "<b>моя жаба</b>")
+                        await self.client.send_message(chat, "моя жаба")
                         await self.bmj(chat)
-                    except:
+                        await self.client.send_message(chat, "<b>на арену</b>")
+                    finally:
                         pass
             elif m.message.casefold().startswith(name) and (m.sender_id in users):
-                cmn = "<b>реанимировать жабу</b>"
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
                     chat = args.split(" ", 4)[3]
@@ -155,26 +153,16 @@ class KramiikkMod(loader.Module):
                         await reply.reply(msg)
                     else:
                         await m.respond(msg)
-                elif "арена" in m.message:
-                    chat = m.chat_id
-                    pattern = "•"
-                    await self.client.send_message(chat, "<b>мои жабы</b>")
-                    await self.err(chat, pattern)
-                    capt = re.findall(r"\| -100(\d+)", RSP.text)
-                    for i in capt:
-                        chat = int(i)
-                        await self.client.send_message(chat, cmn)
-                        await self.client.send_message(chat, "<b>на арену</b>")
                 else:
                     if ("напади" or "подземелье") in m.message:
-                        await m.respond(cmn)
+                        await m.respond(hlt)
                     cmn = args.split(" ", 1)[1]
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
-                await m.respond("<b>реанимировать жабу</b>")
+                await m.respond(hlt)
                 await m.click(0)
             elif m.message.startswith("su!") and m.sender_id == me:
                 txt = int(args.split(" ", 1)[1])
@@ -210,12 +198,3 @@ class KramiikkMod(loader.Module):
                 return
         finally:
             return
-
-
-ded = {
-    "го кв": "<b>начать клановую войну</b>",
-    "напади": "<b>напасть на клан</b>",
-    "подземелье": "<b>отправиться в золотое подземелье</b>",
-    "карту": "<b>отправить карту</b>",
-    "туса": "<b>жабу на тусу</b>",
-}

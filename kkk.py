@@ -106,9 +106,9 @@ class KramiikkMod(loader.Module):
             users = self.su["users"]
         try:
             if (
-                    m.message.startswith(("✅", "🛡", "📉"))
-                    and m.sender_id in {1124824021}
-                    and "auto" in self.su
+                m.message.startswith(("✅", "🛡", "📉"))
+                and m.sender_id in {1124824021}
+                and "auto" in self.su
             ):
                 await self.client.send_message(
                     1124824021,
@@ -155,14 +155,14 @@ class KramiikkMod(loader.Module):
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
-                    f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 await m.respond(hlt)
                 await m.click(0)
             elif (
-                    not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
-                    and m.buttons
-                    and m.sender_id in {830605725}
+                not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
+                and m.buttons
+                and m.sender_id in {830605725}
             ):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
