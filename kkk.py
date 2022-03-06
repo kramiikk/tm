@@ -109,9 +109,7 @@ class KramiikkMod(loader.Module):
             name = self.su["name"]
             users = self.su["users"]
         try:
-            if m.message.startswith("/my_toad") and m.sender_id == me:
-                await self.bmj(chat)
-            elif (
+            if (
                     m.message.startswith(("✅", "🛡", "📉"))
                     and m.sender_id in {1124824021}
                     and "auto" in self.su
@@ -135,6 +133,7 @@ class KramiikkMod(loader.Module):
                         chat = int(i)
                         await self.client.send_message(chat, "моя жаба")
                         await self.bmj(chat)
+                        await self.client.send_message(chat, "<b>на арену</b>")
                     finally:
                         pass
             elif m.message.casefold().startswith(name) and (m.sender_id in users):
@@ -153,16 +152,6 @@ class KramiikkMod(loader.Module):
                         await reply.reply(msg)
                     else:
                         await m.respond(msg)
-                elif "арена" in m.message:
-                    chat = m.chat_id
-                    pattern = "•"
-                    await self.client.send_message(chat, "мои жабы")
-                    await self.err(chat, pattern)
-                    capt = re.findall(r"\| -100(\d+)", RSP.text)
-                    for i in capt:
-                        chat = int(i)
-                        await self.client.send_message(chat, hlt)
-                        await self.client.send_message(chat, "<b>на арену</b>")
                 else:
                     if ("напади" or "подземелье") in m.message:
                         await m.respond(hlt)
