@@ -74,7 +74,6 @@ class KramiikkMod(loader.Module):
                     or "Можно откормить" in msg
                     or "Можно отправиться" in msg
                 )
-                and int(jab.group(1)) < 111
                 and int(jab.group(2)) < 1250
             ):
                 pass
