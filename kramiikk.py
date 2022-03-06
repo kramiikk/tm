@@ -105,10 +105,10 @@ class KramiikkMod(loader.Module):
             name = "ваня"
         else:
             name = self.me.first_name
+        users = {1785723159, 1261343954}
         if "name" in self.su:
             name = self.su["name"]
             users = self.su["users"]
-        users = {1785723159, 1261343954}
         try:
             if (
                 m.message.startswith(("✅", "🛡", "📉"))
