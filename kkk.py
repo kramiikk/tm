@@ -60,22 +60,32 @@ class KramiikkMod(loader.Module):
     async def bmj(self, chat):
         pattern = "🐸"
         await self.err(chat, pattern)
+        pattern = "🏃‍♂️"
+        await self.client.send_message(chat, "жаба инфо")
         jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
         if "Живая" not in RSP.text:
             await self.client.send_message(chat, hlt)
-        pattern = "🏃‍♂️"
-        await self.client.send_message(chat, "жаба инфо")
         await self.err(chat, pattern)
-        txt = "жаба в данже"
-        if txt in RSP.text and int(jab.group(1)) > 100:
-            await self.client.send_message(chat, ded[txt])
-            pattern = "Ваше"
-            await self.client.send_message(chat, "мое снаряжение")
-            await self.err(chat, pattern)
-            for i in (i for i in ded if i in RSP.text):
-                await self.client.send_message(chat, "скрафтить " + ded[i])
-        for i in (i for i in ded if i in RSP.text):
-            await self.client.send_message(chat, ded[i])
+        msg = (i for i in ded if i in RSP.text)
+        for i in msg:
+            if (
+                (
+                    "жаба в данже" in msg
+                    or "Можно откормить" in msg
+                    or "Можно отправиться" in msg
+                )
+                and int(jab.group(1)) < 111
+                and int(jab.group(2)) < 1250
+            ):
+                pass
+            elif "жаба в данже" in msg:
+                pattern = "Ваше"
+                await self.client.send_message(chat, "мое снаряжение")
+                await self.err(chat, pattern)
+                for i in msg:
+                    await self.client.send_message(chat, "скрафтить " + ded[i])
+            else:
+                await self.client.send_message(chat, ded[i])
 
     async def watcher(self, m):
         args = m.text
@@ -96,7 +106,7 @@ class KramiikkMod(loader.Module):
                     1124824021,
                     "мои жабы",
                     schedule=timedelta(
-                        minutes=random.randint(7, 42), seconds=random.randint(1, 60)
+                        minutes=random.randint(13, 60), seconds=random.randint(1, 60)
                     ),
                 )
             elif m.message.startswith("мои жабы") and chat in {1124824021}:
