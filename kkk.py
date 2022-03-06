@@ -114,7 +114,7 @@ class KramiikkMod(loader.Module):
                     1124824021,
                     "мои жабы",
                     schedule=timedelta(
-                        minutes=random.randint(7, 42), seconds=random.randint(1, 30)
+                        minutes=random.randint(7, 42), seconds=random.randint(1, 60)
                     ),
                 )
             elif m.message.startswith("мои жабы") and chat in {1124824021}:
