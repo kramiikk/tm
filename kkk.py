@@ -86,12 +86,9 @@ class KramiikkMod(loader.Module):
                 pattern = "Ваше"
                 await self.client.send_message(chat, "мое снаряжение")
                 await self.err(chat, pattern)
-                if "Пусто" in RSP.text and "Усилитель: Пусто" not in RSP.text:
-                    for i in ded:
-                        if i in ded:
-                            await self.client.send_message(chat, "скрафтить " + ded[i])
-                        else:
-                            return
+                msg = (i for i in ded if i in RSP.text)
+                for i in msg:
+                    await self.client.send_message(chat, "скрафтить " + ded[i])
         else:
             if txt in RSP.text:
                 await self.client.send_message(chat, ded[txt])
