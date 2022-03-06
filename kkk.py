@@ -68,14 +68,9 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         msg = (i for i in ded if i in RSP.text)
         for i in msg:
-            if (
-                (
-                    "жаба в данже" in msg
-                    or "Можно откормить" in msg
-                    or "Можно отправиться" in msg
-                )
-                and int(jab.group(2)) < 1250
-            ):
+            if ("Можно откормить" in msg or "Можно отправиться" in msg) and int(
+                jab.group(2)
+            ) < 1250:
                 pass
             elif "жаба в данже" in msg:
                 pattern = "Ваше"
