@@ -13,15 +13,15 @@ logger = logging.getLogger(__name__)
 hlt = "реанимировать жабу"
 
 ded = {
-    "жабу с работы": "завершить работу",
-    "можно покормить": "покормить жабку",
     "жаба в данже": "рейд старт",
-    "можно отправить": "работа крупье",
+    "жабу с работы": "завершить работу",
     "Можно откормить": "откормить жабку",
+    "можно покормить": "покормить жабку",
     "Можно отправиться": "отправиться в золотое подземелье",
+    "можно отправить": "работа крупье",
+    "подземелье": "отправиться в золотое подземелье",
     "го кв": "начать клановую войну",
     "напади": "напасть на клан",
-    "подземелье": "отправиться в золотое подземелье",
     "карту": "отправить карту",
     "туса": "жабу на тусу",
     "Ближний бой: Пусто": "клюв цапли",
@@ -66,34 +66,16 @@ class KramiikkMod(loader.Module):
         pattern = "🏃‍♂️"
         await self.client.send_message(chat, "жаба инфо")
         await self.err(chat, pattern)
-        txt = "жабу с работы"
-        if txt in RSP.text:
-            await self.client.send_message(chat, ded[txt])
         txt = "жаба в данже"
         if txt in RSP.text and int(jab.group(1)) > 100:
             await self.client.send_message(chat, ded[txt])
-        txt = "можно отправить"
-        if int(jab.group(1)) > 111 and int(jab.group(2)) > 2222:
-            if "В подземелье можно через 2ч" in RSP.text and txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
-            txt = "Можно откормить"
-            if txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
-            txt = "Можно отправиться"
-            if txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
-            else:
-                pattern = "Ваше"
-                await self.client.send_message(chat, "мое снаряжение")
-                await self.err(chat, pattern)
-                for i in (i for i in ded if i in RSP.text):
-                    await self.client.send_message(chat, "скрафтить " + ded[i])
-        else:
-            if txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
-            txt = "можно покормить"
-            if txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
+            pattern = "Ваше"
+            await self.client.send_message(chat, "мое снаряжение")
+            await self.err(chat, pattern)
+            for i in (i for i in ded if i in RSP.text):
+                await self.client.send_message(chat, "скрафтить " + ded[i])
+        for i in (i for i in ded if i in RSP.text):
+            await self.client.send_message(chat, ded[i])
 
     async def watcher(self, m):
         args = m.text
