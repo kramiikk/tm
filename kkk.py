@@ -12,14 +12,6 @@ logger = logging.getLogger(__name__)
 
 hlt = "реанимировать жабу"
 
-dgn = [
-    "клюв цапли",
-    "букашкомет",
-    "наголовник из клюва цапли",
-    "нагрудник из клюва цапли",
-    "налапники из клюва цапли",
-]
-
 ded = {
     "жабу с работы": "завершить работу",
     "можно покормить": "покормить жабку",
@@ -32,6 +24,12 @@ ded = {
     "подземелье": "отправиться в золотое подземелье",
     "карту": "отправить карту",
     "туса": "жабу на тусу",
+    "Ближний бой: Пусто": "клюв цапли",
+    "Дальний бой: Пусто": "букашкомет",
+    "Наголовник: Пусто": "наголовник из клюва цапли",
+    "Нагрудник: Пусто": "нагрудник из клюва цапли",
+    "Налапники: Пусто": "налапники из клюва цапли",
+    "Банда: Пусто": "взять жабу",
 }
 
 
@@ -89,8 +87,9 @@ class KramiikkMod(loader.Module):
                 await self.client.send_message(chat, "мое снаряжение")
                 await self.err(chat, pattern)
                 if "Пусто" in RSP.text and "Усилитель: Пусто" not in RSP.text:
-                    for i in dgn:
-                        await self.client.send_message(chat, f"скрафтить {i}")
+                    msg = (i for i in ded if i in ded)
+                    for i in msg:
+                        await self.client.send_message(chat, "скрафтить " + ded[txt])
         else:
             if txt in RSP.text:
                 await self.client.send_message(chat, ded[txt])
