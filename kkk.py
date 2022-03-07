@@ -76,8 +76,8 @@ class KramiikkMod(loader.Module):
                 pattern = "Ваше"
                 await self.client.send_message(chat, "мое снаряжение")
                 await self.err(chat, pattern)
-                for i in msg:
-                    await self.client.send_message(chat, "скрафтить " + ded[i])
+                for cmn in msg:
+                    await self.client.send_message(chat, "скрафтить " + ded[cmn])
             else:
                 await self.client.send_message(chat, ded[i])
 
