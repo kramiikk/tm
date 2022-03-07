@@ -154,7 +154,6 @@ class KramiikkMod(loader.Module):
             elif "НЕЗАЧЁТ!" in m.message:
                 args = [int(x) for x in m.text.split() if x.isnumeric()]
                 delta = timedelta(hours=args[1], minutes=args[2], seconds=33)
-                delta = delta + timedelta(seconds=33)
                 await self.client.send_message(
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
