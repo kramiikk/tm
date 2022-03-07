@@ -13,15 +13,15 @@ logger = logging.getLogger(__name__)
 hlt = "реанимировать жабу"
 
 ded = {
-    "жабу с работы": "завершить работу",
-    "можно покормить": "покормить жабку",
     "жаба в данже": "рейд старт",
-    "можно отправить": "работа крупье",
+    "жабу с работы": "завершить работу",
     "Можно откормить": "откормить жабку",
+    "можно покормить": "покормить жабку",
     "Можно отправиться": "отправиться в золотое подземелье",
+    "можно отправить": "работа крупье",
+    "золото": "отправиться в золотое подземелье",
     "го кв": "начать клановую войну",
     "напади": "напасть на клан",
-    "подземелье": "отправиться в золотое подземелье",
     "карту": "отправить карту",
     "туса": "жабу на тусу",
     "Ближний бой: Пусто": "клюв цапли",
@@ -55,45 +55,31 @@ class KramiikkMod(loader.Module):
                     )
                 )
         except asyncio.exceptions.TimeoutError:
-            return
+            pass
 
     async def bmj(self, chat):
         pattern = "🐸"
         await self.err(chat, pattern)
+        pattern = "🏃‍♂️"
+        await self.client.send_message(chat, "жаба инфо")
         jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
         if "Живая" not in RSP.text:
             await self.client.send_message(chat, hlt)
-        pattern = "🏃‍♂️"
-        await self.client.send_message(chat, "жаба инфо")
         await self.err(chat, pattern)
-        txt = "жабу с работы"
-        if txt in RSP.text:
-            await self.client.send_message(chat, ded[txt])
-        txt = "жаба в данже"
-        if txt in RSP.text and int(jab.group(1)) > 100:
-            await self.client.send_message(chat, ded[txt])
-        txt = "можно отправить"
-        if int(jab.group(1)) > 111 and int(jab.group(2)) > 2222:
-            if "В подземелье можно через 2ч" in RSP.text and txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
-            txt = "Можно откормить"
-            if txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
-            txt = "Можно отправиться"
-            if txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
-            else:
+        msg = (i for i in ded if i in RSP.text)
+        for i in msg:
+            if (i == "Можно откормить" or i == "Можно отправиться") and int(
+                jab.group(2)
+            ) < 1250:
+                pass
+            elif "жаба в данже" in msg:
                 pattern = "Ваше"
                 await self.client.send_message(chat, "мое снаряжение")
                 await self.err(chat, pattern)
-                for i in (i for i in ded if i in RSP.text):
+                for i in msg:
                     await self.client.send_message(chat, "скрафтить " + ded[i])
-        else:
-            if txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
-            txt = "можно покормить"
-            if txt in RSP.text:
-                await self.client.send_message(chat, ded[txt])
+            else:
+                await self.client.send_message(chat, ded[i])
 
     async def watcher(self, m):
         args = m.text
@@ -111,7 +97,7 @@ class KramiikkMod(loader.Module):
             users = self.su["users"]
         try:
             if (
-                m.message.startswith(("✅", "🛡", "📉"))
+                m.message.startswith(("✅", "📉"))
                 and m.sender_id in {1124824021}
                 and "auto" in self.su
             ):
@@ -119,7 +105,7 @@ class KramiikkMod(loader.Module):
                     1124824021,
                     "мои жабы",
                     schedule=timedelta(
-                        minutes=random.randint(7, 42), seconds=random.randint(1, 60)
+                        minutes=random.randint(13, 60), seconds=random.randint(1, 60)
                     ),
                 )
             elif m.message.startswith("мои жабы") and chat in {1124824021}:
@@ -134,8 +120,7 @@ class KramiikkMod(loader.Module):
                         chat = int(i)
                         await self.client.send_message(chat, "моя жаба")
                         await self.bmj(chat)
-                        await self.client.send_message(chat, "<b>на арену</b>")
-                    finally:
+                    except:
                         pass
             elif m.message.casefold().startswith(name) and (m.sender_id in users):
                 reply = await m.get_reply_message()
