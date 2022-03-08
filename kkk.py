@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 hlt = "реанимировать жабу"
 
 ded = {
-    "жаба в данже": "рейд старт",
     "жабу с работы": "завершить работу",
     "Можно откормить": "откормить жабку",
     "можно покормить": "покормить жабку",
     "Можно отправиться": "отправиться в золотое подземелье",
+    "жаба в данже": "рейд старт",
     "можно отправить": "работа крупье",
     "золото": "отправиться в золотое подземелье",
     "го кв": "начать клановую войну",
@@ -69,10 +69,10 @@ class KramiikkMod(loader.Module):
         msg = (i for i in ded if i in RSP.text)
         for i in msg:
             if (i == "Можно откормить" or i == "Можно отправиться") and int(
-                    jab.group(2)
+                jab.group(2)
             ) < 1250:
                 pass
-            elif "жаба в данже" in msg:
+            elif "Можно откормить" in msg:
                 pattern = "Ваше"
                 await self.client.send_message(chat, "мое снаряжение")
                 await self.err(chat, pattern)
@@ -92,9 +92,9 @@ class KramiikkMod(loader.Module):
             users = self.su["users"]
         try:
             if (
-                    m.message.startswith(("✅", "📉"))
-                    and m.sender_id in {1124824021}
-                    and "auto" in self.su
+                m.message.startswith(("✅", "📉"))
+                and m.sender_id in {1124824021}
+                and "auto" in self.su
             ):
                 await self.client.send_message(
                     1124824021,
@@ -104,11 +104,10 @@ class KramiikkMod(loader.Module):
                     ),
                 )
             elif m.message.startswith("мои жабы") and chat in {1124824021}:
+                await m.delete()
                 pattern = "•"
                 await self.err(chat, pattern)
                 await self.client.send_read_acknowledge(chat)
-                await m.delete()
-                await RSP.delete()
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
                     try:
@@ -118,15 +117,17 @@ class KramiikkMod(loader.Module):
                         await self.client.send_message(chat, "<b>на арену</b>")
                     finally:
                         pass
+                await RSP.delete()
             elif m.message.casefold().startswith(name) and (m.sender_id in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
                     chat = args.split(" ", 4)[3]
                     if chat.isnumeric():
                         chat = int(chat)
-                    msg = args.split(" ", 4)[4]
                     if reply:
                         msg = reply
+                    else:
+                        msg = args.split(" ", 4)[4]
                     await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
                     msg = args.split(" ", 2)[2]
@@ -141,14 +142,14 @@ class KramiikkMod(loader.Module):
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
-                    f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 await m.respond(hlt)
                 await m.click(0)
             elif (
-                    not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
-                    and m.buttons
-                    and m.sender_id in {830605725}
+                not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
+                and m.buttons
+                and m.sender_id in {830605725}
             ):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
