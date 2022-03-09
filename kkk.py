@@ -10,15 +10,17 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
-hlt = "реанимировать жабу"
-
 ded = {
+    "Нужна реанимация": "реанимировать жабу",
+    "Настроение: Хорошее": "использовать леденцы 4",
     "жабу с работы": "завершить работу",
     "Можно откормить": "откормить жабку",
     "можно покормить": "покормить жабку",
     "Можно отправиться": "отправиться в золотое подземелье",
     "жаба в данже": "рейд старт",
     "можно отправить": "работа крупье",
+    "Можно на арену": "на арену",
+    "Используйте атаку": "на арену",
     "золото": "отправиться в золотое подземелье",
     "го кв": "начать клановую войну",
     "напади": "напасть на клан",
@@ -58,26 +60,26 @@ class KramiikkMod(loader.Module):
             pass
 
     async def bmj(self, chat):
+        msg = (i for i in ded if i in RSP.text)
         pattern = "🐸"
         await self.err(chat, pattern)
         pattern = "🏃‍♂️"
         await self.client.send_message(chat, "жаба инфо")
-        jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
-        if "Живая" not in RSP.text:
-            await self.client.send_message(chat, hlt)
-        await self.err(chat, pattern)
-        msg = (i for i in ded if i in RSP.text)
         for i in msg:
-            if (i == "Можно откормить" or i == "Можно отправиться") and int(
-                jab.group(2)
-            ) < 1250:
-                pass
-            elif "Можно откормить" in msg:
+            await self.client.send_message(chat, ded[i])
+        jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
+        await self.err(chat, pattern)
+        for i in msg:
+            if "Можно откормить" in msg:
                 pattern = "Ваше"
                 await self.client.send_message(chat, "мое снаряжение")
                 await self.err(chat, pattern)
                 for cmn in msg:
                     await self.client.send_message(chat, "скрафтить " + ded[cmn])
+            if (i == "Можно откормить" or i == "Можно отправиться") and int(
+                jab.group(2)
+            ) < 1250:
+                pass
             else:
                 await self.client.send_message(chat, ded[i])
 
@@ -109,15 +111,14 @@ class KramiikkMod(loader.Module):
                 await self.err(chat, pattern)
                 await self.client.send_read_acknowledge(chat)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
+                await RSP.delete()
                 for i in capt:
                     try:
                         chat = int(i)
                         await self.client.send_message(chat, "моя жаба")
                         await self.bmj(chat)
-                        await self.client.send_message(chat, "<b>на арену</b>")
                     finally:
                         pass
-                await RSP.delete()
             elif m.message.casefold().startswith(name) and (m.sender_id in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
@@ -136,15 +137,13 @@ class KramiikkMod(loader.Module):
                     else:
                         await m.respond(msg)
                 else:
-                    if ("напади" or "подземелье") in m.message:
-                        await m.respond(hlt)
                     cmn = args.split(" ", 1)[1]
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
-                await m.respond(hlt)
+                await m.respond("реанимировать жабу")
                 await m.click(0)
             elif (
                 not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
