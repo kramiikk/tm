@@ -98,9 +98,9 @@ class KramiikkMod(loader.Module):
                 await m.delete()
                 pattern = "•"
                 await self.err(chat, pattern)
+                await RSP.delete()
                 await self.client.send_read_acknowledge(chat)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
-                await RSP.delete()
                 for i in capt:
                     try:
                         chat = int(i)
