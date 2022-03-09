@@ -67,7 +67,7 @@ class KramiikkMod(loader.Module):
         await self.client.send_message(chat, "жаба инфо")
         pattern = "🏃‍♂️"
         await self.err(chat, pattern)
-        if "Можно откормить" in RSP.text:
+        if "работы" in RSP.text:
             pattern = "Ваше"
             await self.client.send_message(chat, "мое снаряжение")
             await self.err(chat, pattern)
