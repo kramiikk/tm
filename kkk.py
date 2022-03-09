@@ -60,15 +60,16 @@ class KramiikkMod(loader.Module):
             pass
 
     async def bmj(self, chat):
-        msg = (i for i in ded if i in RSP.text)
         pattern = "🐸"
         await self.err(chat, pattern)
         pattern = "🏃‍♂️"
         await self.client.send_message(chat, "жаба инфо")
+        msg = (i for i in ded if i in RSP.text)
         for i in msg:
             await self.client.send_message(chat, ded[i])
         jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
         await self.err(chat, pattern)
+        msg = (i for i in ded if i in RSP.text)
         for i in msg:
             if "Можно откормить" in msg:
                 pattern = "Ваше"
