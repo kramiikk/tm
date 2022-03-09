@@ -64,26 +64,17 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         pattern = "🏃‍♂️"
         await self.client.send_message(chat, "жаба инфо")
-        msg = (i for i in ded if i in RSP.text)
-        for i in msg:
+        for i in (i for i in ded if i in RSP.text):
             await self.client.send_message(chat, ded[i])
-        jab = re.search(r"Ур.+: (\d+)[\s\S]*Бу.+: (\d+)", RSP.text)
         await self.err(chat, pattern)
-        msg = (i for i in ded if i in RSP.text)
-        for i in msg:
-            if "Можно откормить" in msg:
-                pattern = "Ваше"
-                await self.client.send_message(chat, "мое снаряжение")
-                await self.err(chat, pattern)
-                for cmn in msg:
-                    await self.client.send_message(chat, "скрафтить " + ded[cmn])
-            if (
-                (i == "Можно откормить" and i != "можно покормить")
-                or i == "Можно отправиться"
-            ) and int(jab.group(2)) < 1250:
-                pass
-            else:
-                await self.client.send_message(chat, ded[i])
+        if "Можно откормить" in RSP.text:
+            pattern = "Ваше"
+            await self.client.send_message(chat, "мое снаряжение")
+            await self.err(chat, pattern)
+            for i in (i for i in ded if i in RSP.text):
+                await self.client.send_message(chat, "скрафтить " + ded[i])
+        for i in (i for i in ded if i in RSP.text):
+            await self.client.send_message(chat, ded[i])
 
     async def watcher(self, m):
         args = m.text
