@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from telethon import events
 
-from .. import loader
+from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,41 @@ class KramiikkMod(loader.Module):
         self.db = db
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
+
+    async def sacmd(self, m):
+        if "auto" not in self.su:
+            self.su.setdefault("auto", {})
+            msg = "<b>Автожаба активирована</b>"
+        else:
+            self.su.pop("auto")
+            msg = "<b>Автожаба деактивирована"
+        self.db.set("Su", "su", self.su)
+        await utils.answer(m, msg)
+
+    async def sucmd(self, m):
+        args = utils.get_args_raw(m)
+        txt = int(args)
+        if txt == self.me.id and "name" not in self.su:
+            self.su.setdefault("name", self.me.username)
+            self.su.setdefault("users", [])
+            self.su["users"].append(txt)
+            msg = f"👺 <code>{self.me.username}</code> <b>запомните</b>"
+        elif txt in self.su["users"]:
+            self.su["users"].remove(txt)
+            msg = f"🖕🏾 {txt} <b>успешно удален</b>"
+        else:
+            self.su["users"].append(txt)
+            msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
+        self.db.set("Su", "su", self.su)
+        await utils.answer(m, msg)
+
+    async def sncmd(self, m):
+        args = utils.get_args_raw(m)
+        self.su["name"] = args
+        await utils.answer(
+            m, "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
+        )
+        self.db.set("Su", "su", self.su)
 
     async def err(self, chat, pattern):
         try:
@@ -149,36 +184,6 @@ class KramiikkMod(loader.Module):
                 await self.client.send_message(
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
-            elif m.message.startswith("su!") and m.sender_id == me:
-                txt = int(args.split(" ", 1)[1])
-                if txt == me and "name" not in self.su:
-                    self.su.setdefault("name", name)
-                    self.su.setdefault("users", [])
-                    self.su["users"].append(txt)
-                    msg = f"👺 <code>{name}</code> <b>запомните</b>"
-                elif txt in self.su["users"]:
-                    self.su["users"].remove(txt)
-                    msg = f"🖕🏾 {txt} <b>успешно удален</b>"
-                else:
-                    self.su["users"].append(txt)
-                    msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
-                self.db.set("Su", "su", self.su)
-                await m.respond(msg)
-            elif m.message.startswith("sn!") and m.sender_id == me:
-                self.su["name"] = args.split(" ", 1)[1].casefold()
-                await m.respond(
-                    "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
-                )
-                self.db.set("Su", "su", self.su)
-            elif m.message.startswith("sa!") and m.sender_id == me:
-                if "auto" not in self.su:
-                    self.su.setdefault("auto", {})
-                    msg = "<b>Автожаба активирована</b>"
-                else:
-                    self.su.pop("auto")
-                    msg = "<b>Автожаба деактивирована"
-                self.db.set("Su", "su", self.su)
-                await m.respond(msg)
             else:
                 return
         finally:
