@@ -76,7 +76,7 @@ class KramiikkMod(loader.Module):
 
     async def sncmd(self, m):
         args = utils.get_args_raw(m)
-        self.su["name"] = args
+        self.su["name"] = args.casefold()
         await utils.answer(
             m, "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
         )
