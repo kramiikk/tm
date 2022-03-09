@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 ded = {
     "Нужна реанимация": "реанимировать жабу",
-    "Настроение: Хорошее": "использовать леденцы 4",
+    "Хорошее": "использовать леденцы 4",
     "жабу с работы": "завершить работу",
     "Можно откормить": "откормить жабку",
     "можно покормить": "покормить жабку",
@@ -62,19 +62,19 @@ class KramiikkMod(loader.Module):
     async def bmj(self, chat):
         pattern = "🐸"
         await self.err(chat, pattern)
-        pattern = "🏃‍♂️"
         await self.client.send_message(chat, "жаба инфо")
         for i in (i for i in ded if i in RSP.text):
             await self.client.send_message(chat, ded[i])
+        pattern = "🏃‍♂️"
         await self.err(chat, pattern)
+        for i in (i for i in ded if i in RSP.text):
+            await self.client.send_message(chat, ded[i])
         if "Можно откормить" in RSP.text:
             pattern = "Ваше"
             await self.client.send_message(chat, "мое снаряжение")
             await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
                 await self.client.send_message(chat, "скрафтить " + ded[i])
-        for i in (i for i in ded if i in RSP.text):
-            await self.client.send_message(chat, ded[i])
 
     async def watcher(self, m):
         args = m.text
