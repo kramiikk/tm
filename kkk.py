@@ -57,7 +57,10 @@ class KramiikkMod(loader.Module):
                     )
                 )
             for i in (i for i in ded if i in RSP.text):
-                await self.client.send_message(chat, ded[i])
+                try:
+                    await self.client.send_message(chat, ded[i])
+                finally:
+                    pass
         except asyncio.exceptions.TimeoutError:
             pass
 
