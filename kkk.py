@@ -77,9 +77,10 @@ class KramiikkMod(loader.Module):
                 await self.err(chat, pattern)
                 for cmn in msg:
                     await self.client.send_message(chat, "скрафтить " + ded[cmn])
-            if (i == "Можно откормить" or i == "Можно отправиться") and int(
-                jab.group(2)
-            ) < 1250:
+            if (
+                (i == "Можно откормить" and i != "можно покормить")
+                or i == "Можно отправиться"
+            ) and int(jab.group(2)) < 1250:
                 pass
             else:
                 await self.client.send_message(chat, ded[i])
