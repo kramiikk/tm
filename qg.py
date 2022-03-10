@@ -58,9 +58,7 @@ class FbackMod(loader.Module):
         self._cancel.add(InlineKeyboardButton("🚫 Отмена", callback_data="fb_cancel"))
 
         self.__doc__ = (
-            "Feedback bot\n"
-            f"Your feeback link: t.me/{self.inline._bot_username}?start=feedback\n"
-            "You can freely share it"
+            f"Your feeback link: t.me/{self.inline._bot_username}?start\n"
         )
 
     async def aiogram_watcher(self, message: AiogramMessage) -> None:
