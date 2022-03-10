@@ -45,7 +45,6 @@ class KramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.su = db.get("Su", "su", {})
-        self.sf = db.get("Su", "sf", {})
         self.me = await client.get_me()
 
     async def sacmd(self, m):
@@ -63,15 +62,15 @@ class KramiikkMod(loader.Module):
         msg = utils.get_args_raw(m)
         key = msg.split(" / ")[0]
         val = msg.split(" / ")[1]
-        if chatid not in self.sf:
-            self.sf.setdefault(chatid, {})
-        if key not in self.sf[chatid]:
-            self.sf[chatid].setdefault(key, val)
+        if chatid not in self.su:
+            self.su.setdefault(chatid, {})
+        if key not in self.su[chatid]:
+            self.su[chatid].setdefault(key, val)
             msg = "<b>активирована</b>"
         else:
-            self.sf[chatid].pop(key)
+            self.su[chatid].pop(key)
             msg = "<b>деактивирована</b>"
-        self.db.set("Su", "sf", self.sf)
+        self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
     async def sncmd(self, m):
@@ -203,10 +202,10 @@ class KramiikkMod(loader.Module):
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
             else:
-                if chatid in self.sf:
-                    for i in (i for i in self.sf[chatid] if i in m.message):
+                if chatid in self.su:
+                    for i in (i for i in self.su[chatid] if i in m.message):
                         try:
-                            await self.client.send_message(chat, self.sf[chatid][i])
+                            await self.client.send_message(chat, self.su[chatid][i])
                         finally:
                             pass
         finally:
