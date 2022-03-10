@@ -56,7 +56,7 @@ class FeedbackMod(loader.Module):
         self._markup = InlineKeyboardMarkup()
         self._markup.add(
             InlineKeyboardButton(
-                "✍️ Нажмите чтобы написать", callback_data="fb_leave_message"
+                "✍️ Отлично, можете отправить сообщение", callback_data="fb_leave_message"
             )
         )
 
