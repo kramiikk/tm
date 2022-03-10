@@ -59,9 +59,9 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def sfcmd(self, m):
-        key = utils.get_args_raw(m)
-        key = key.split(" / ")[0]
-        val = key.split(" / ")[1]
+        msg = utils.get_args_raw(m)
+        key = msg.split(" / ")[0]
+        val = msg.split(" / ")[1]
         if key not in self.sf:
             self.sf.setdefault(key, val)
             msg = "<b>активирована</b>"
