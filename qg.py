@@ -1,16 +1,15 @@
 # scope: inline
-# scope: geektg_min 3.1.16
-# scope: geektg_only
-
 
 import abc
-from .. import loader, utils
 import logging
 import time
+
+from aiogram.types import (CallbackQuery, InlineKeyboardButton,
+                           InlineKeyboardMarkup)
+from aiogram.types import Message as AiogramMessage
 from telethon.utils import get_display_name
 
-from aiogram.types import Message as AiogramMessage
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class FeedbackMod(loader.Module):
             "<b>🚫 Не <u>разбивайте</u> текст на нескоько сообщений</b>\n"
             "<b>✅ Отправьте послание одним сообщением</b>"
         ),
-        "enter_message": "✍️ <b>Нажмите чтобы написать</b>",
+        "enter_message": "✍️ Отлично, можете отправить сообщение",
         "sent": "✅ <b>Ваше сообщение отправлено</b>",
     }
 
@@ -56,7 +55,7 @@ class FeedbackMod(loader.Module):
         self._markup = InlineKeyboardMarkup()
         self._markup.add(
             InlineKeyboardButton(
-                "✍️ Отлично, можете отправить сообщение", callback_data="fb_leave_message"
+                "✍️ <b>Нажмите чтобы написать</b>", callback_data="fb_leave_message"
             )
         )
 
