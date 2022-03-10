@@ -89,8 +89,8 @@ class FbackMod(loader.Module):
             return
 
         if (
-            call.from_user.id in self._ratelimit
-            and self._ratelimit[call.from_user.id] > time.time()
+                call.from_user.id in self._ratelimit
+                and self._ratelimit[call.from_user.id] > time.time()
         ):
             await call.answer(
                 f"Сообщение можно отправить через {self._ratelimit[call.from_user.id] - time.time():.0f} секунд",
