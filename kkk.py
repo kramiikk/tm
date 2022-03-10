@@ -59,11 +59,13 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def sfcmd(self, m):
+        chatid = str(m.chat_id)
         msg = utils.get_args_raw(m)
         key = msg.split(" / ")[0]
         val = msg.split(" / ")[1]
         if key not in self.sf:
-            self.sf.setdefault(key, val)
+            self.sf.setdefault(chatid, {})
+            self.sf[chatid].setdefault(key, val)
             msg = "<b>активирована</b>"
         else:
             self.sf.pop(key)
@@ -127,6 +129,7 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         msg = m.text
         chat = m.chat_id
+        chatid = str(chat)
         me = self.me.id
         name = self.me.username
         users = me
@@ -199,10 +202,11 @@ class KramiikkMod(loader.Module):
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
             else:
-                for i in (i for i in self.sf if i in m.message):
-                    try:
-                        await self.client.send_message(chat, self.sf[i])
-                    finally:
-                        pass
+                if chatid in self.sf:
+                    for i in (i for i in self.sf[chatid] if i in m.message):
+                        try:
+                            await self.client.send_message(chat, self.sf[chatid][i])
+                        finally:
+                            pass
         finally:
             return
