@@ -103,7 +103,7 @@ class FeedbackMod(loader.Module):
             and self._ratelimit[call.from_user.id] > time.time()
         ):
             await call.answer(
-                f"Следующее сообщение можно отправить через {self._ratelimit[call.from_user.id] - time.time():.0f} секунд",
+                f"Сообщение можно отправить через {self._ratelimit[call.from_user.id] - time.time():.0f} секунд",
                 show_alert=True,
             )
             return
