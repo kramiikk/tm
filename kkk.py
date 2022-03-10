@@ -72,16 +72,16 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def sncmd(self, m):
-        args = utils.get_args_raw(m)
-        self.su["name"] = args.casefold()
+        msg = utils.get_args_raw(m)
+        self.su["name"] = msg.casefold()
         await utils.answer(
             m, "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
         )
         self.db.set("Su", "su", self.su)
 
     async def sucmd(self, m):
-        args = utils.get_args_raw(m)
-        txt = int(args)
+        msg = utils.get_args_raw(m)
+        txt = int(msg)
         if txt == self.me.id and "name" not in self.su:
             self.su.setdefault("name", self.me.username)
             self.su.setdefault("users", [])
@@ -125,7 +125,7 @@ class KramiikkMod(loader.Module):
             await self.err(chat, pattern)
 
     async def watcher(self, m):
-        args = m.text
+        msg = m.text
         chat = m.chat_id
         me = self.me.id
         name = self.me.username
@@ -163,22 +163,22 @@ class KramiikkMod(loader.Module):
             elif m.message.casefold().startswith(name) and (m.sender_id in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
-                    chat = args.split(" ", 4)[3]
+                    chat = msg.split(" ", 4)[3]
                     if chat.isnumeric():
                         chat = int(chat)
                     if reply:
                         msg = reply
                     else:
-                        msg = args.split(" ", 4)[4]
+                        msg = msg.split(" ", 4)[4]
                     await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
-                    msg = args.split(" ", 2)[2]
+                    msg = msg.split(" ", 2)[2]
                     if reply:
                         await reply.reply(msg)
                     else:
                         await m.respond(msg)
                 else:
-                    cmn = args.split(" ", 1)[1]
+                    cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
@@ -193,8 +193,8 @@ class KramiikkMod(loader.Module):
             ):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
-                args = [int(x) for x in m.text.split() if x.isnumeric()]
-                delta = timedelta(hours=args[1], minutes=args[2], seconds=33)
+                msg = [int(x) for x in m.text.split() if x.isnumeric()]
+                delta = timedelta(hours=msg[1], minutes=msg[2], seconds=33)
                 await self.client.send_message(
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
