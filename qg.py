@@ -4,8 +4,7 @@ import abc
 import logging
 import time
 
-from aiogram.types import (CallbackQuery, InlineKeyboardButton,
-                           InlineKeyboardMarkup)
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types import Message as AiogramMessage
 from telethon.utils import get_display_name
 
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @loader.tds
-class FeedbackMod(loader.Module):
+class FbackMod(loader.Module):
     """yoooh"""
 
     __metaclass__ = abc.ABCMeta
@@ -46,9 +45,6 @@ class FeedbackMod(loader.Module):
         self._me = (await client.get_me()).id
         self._name = utils.escape_html(get_display_name(await client.get_me()))
 
-        if not hasattr(self, "inline"):
-            raise Exception("GeekTG Only")
-
         self._bot = self.inline._bot
         self._ratelimit = {}
         self._markup = InlineKeyboardMarkup()
@@ -68,7 +64,7 @@ class FeedbackMod(loader.Module):
         )
 
     async def aiogram_watcher(self, message: AiogramMessage) -> None:
-        if message.text == "/start feedback":
+        if message.text == "/start":
             await message.answer(
                 self.strings("/start").format(self._name), reply_markup=self._markup
             )
