@@ -23,7 +23,7 @@ class FbackMod(loader.Module):
     strings = {
         "name": "Fback",
         "/start": "🤵‍♀️ <b>Привет. Это бот обратной связи с {}. Прочитайте /nometa, прежде чем продолжить.</b>\n<b>Вы можете отправлять только одно сообщение в минуту.</b>",
-        "/nometa": (
+        "/note": (
             "👨‍🎓 <b><u>Правила общения в Интернете:</u></b>\n\n"
             "🚫 <b>Не <u>пишите</u> просто 'Привет'</b>\n"
             "🚫 <b>Не <u>отправляйте</u> рекламу</b>\n"
@@ -63,8 +63,8 @@ class FbackMod(loader.Module):
             await message.answer(
                 self.strings("/start").format(self._name), reply_markup=self._markup
             )
-        elif message.text == "/nometa":
-            await message.answer(self.strings("/nometa"), reply_markup=self._markup)
+        elif message.text == "/note":
+            await message.answer(self.strings("/note"), reply_markup=self._markup)
         elif self.inline.gs(message.from_user.id) == "send":
             await self._bot.forward_message(
                 self._me, message.chat.id, message.message_id
