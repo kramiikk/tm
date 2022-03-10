@@ -45,6 +45,7 @@ class KramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.su = db.get("Su", "su", {})
+        self.sf = db.get("Su", "sf", {})
         self.me = await client.get_me()
 
     async def sacmd(self, m):
@@ -53,9 +54,30 @@ class KramiikkMod(loader.Module):
             msg = "<b>Автожаба активирована</b>"
         else:
             self.su.pop("auto")
-            msg = "<b>Автожаба деактивирована"
+            msg = "<b>Автожаба деактивирована</b>"
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
+
+    async def sfcmd(self, m):
+        key = utils.get_args_raw(m)
+        key = key.split("/")[0]
+        val = key.split("/")[1]
+        if key not in self.sf:
+            self.sf.setdefault(key, val)
+            msg = "<b>активирована</b>"
+        else:
+            self.sf.pop(key)
+            msg = "<b>деактивирована</b>"
+        self.db.set("Su", "sf", self.sf)
+        await utils.answer(m, msg)
+
+    async def sncmd(self, m):
+        args = utils.get_args_raw(m)
+        self.su["name"] = args.casefold()
+        await utils.answer(
+            m, "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
+        )
+        self.db.set("Su", "su", self.su)
 
     async def sucmd(self, m):
         args = utils.get_args_raw(m)
@@ -73,14 +95,6 @@ class KramiikkMod(loader.Module):
             msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
-
-    async def sncmd(self, m):
-        args = utils.get_args_raw(m)
-        self.su["name"] = args.casefold()
-        await utils.answer(
-            m, "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
-        )
-        self.db.set("Su", "su", self.su)
 
     async def err(self, chat, pattern):
         try:
@@ -185,6 +199,10 @@ class KramiikkMod(loader.Module):
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
             else:
-                return
+                for i in (i for i in self.sf if i in m.message):
+                    try:
+                        await self.client.send_message(chat, self.sf[i])
+                    finally:
+                        pass
         finally:
             return
