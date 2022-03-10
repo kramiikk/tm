@@ -4,7 +4,8 @@ import abc
 import logging
 import time
 
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import (CallbackQuery, InlineKeyboardButton,
+                           InlineKeyboardMarkup)
 from aiogram.types import Message as AiogramMessage
 from telethon.utils import get_display_name
 
@@ -29,7 +30,7 @@ class FbackMod(loader.Module):
             "🚫 <b>Не <u>адресуйте</u> оскорбления</b>\n"
             "✅ <b>Отправьте послание одним сообщением</b>"
         ),
-        "enter_message": "✍️ <b>Отлично, можете отправить сообщение</b>",
+        "enter": "✍️ <b>Отлично, можете отправить сообщение</b>",
         "sent": "✅ <b>Ваше сообщение отправлено</b>",
     }
 
@@ -49,13 +50,11 @@ class FbackMod(loader.Module):
         self._ratelimit = {}
         self._markup = InlineKeyboardMarkup()
         self._markup.add(
-            InlineKeyboardButton(
-                "✍️ Нажмите чтобы написать", callback_data="fb_leave_message"
-            )
+            InlineKeyboardButton("✍️ Нажмите чтобы написать", callback_data="leave")
         )
 
         self._cancel = InlineKeyboardMarkup()
-        self._cancel.add(InlineKeyboardButton("🚫 Отмена", callback_data="fb_cancel"))
+        self._cancel.add(InlineKeyboardButton("🚫 Отмена", callback_data="cancel"))
 
         self.__doc__ = f"Your feeback link: t.me/{self.inline._bot_username}?start\n"
 
@@ -66,7 +65,7 @@ class FbackMod(loader.Module):
             )
         elif message.text == "/nometa":
             await message.answer(self.strings("/nometa"), reply_markup=self._markup)
-        elif self.inline.gs(message.from_user.id) == "fb_send_message":
+        elif self.inline.gs(message.from_user.id) == "send":
             await self._bot.forward_message(
                 self._me, message.chat.id, message.message_id
             )
@@ -79,14 +78,14 @@ class FbackMod(loader.Module):
         Handles button clicks
         @allow: all
         """
-        if call.data == "fb_cancel":
+        if call.data == "cancel":
             self.inline.ss(call.from_user.id, False)
             await self._bot.delete_message(
                 call.message.chat.id, call.message.message_id
             )
             return
 
-        if call.data != "fb_leave_message":
+        if call.data != "leave":
             return
 
         if (
@@ -99,11 +98,11 @@ class FbackMod(loader.Module):
             )
             return
 
-        self.inline.ss(call.from_user.id, "fb_send_message")
+        self.inline.ss(call.from_user.id, "send")
         await self._bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text=self.strings("enter_message"),
+            text=self.strings("enter"),
             parse_mode="HTML",
             disable_web_page_preview=True,
             reply_markup=self._cancel,
