@@ -235,7 +235,8 @@ class KramiikkMod(loader.Module):
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
             elif chatid in self.su:
-                if str(idu) in self.su[chatid]:
+                idu = str(idu)
+                if idu in self.su[chatid]:
                     for i in (i for i in self.su[chatid][idu] if i in m.message):
                         await utils.answer(m, self.su[chatid][idu][i])
                 for i in (i for i in self.su[chatid] if i in m.message):
