@@ -72,6 +72,10 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
+    async def sicmd(self, m):
+        chatid = str(m.chat_id)
+        await utils.answer(m, self.su[chatid])
+
     async def sncmd(self, m):
         msg = utils.get_args_raw(m)
         self.su["name"] = msg.casefold()
