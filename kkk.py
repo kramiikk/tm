@@ -206,12 +206,13 @@ class KramiikkMod(loader.Module):
                 await self.client.send_message(
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
+            elif chatid in self.su:
+                for i in (i for i in self.su[chatid] if i in m.message):
+                    try:
+                        await utils.answer(m, self.su[chatid][i])
+                    finally:
+                        pass
             else:
-                if chatid in self.su:
-                    for i in (i for i in self.su[chatid] if i in m.message):
-                        try:
-                            await self.client.send_message(chat, self.su[chatid][i])
-                        finally:
-                            pass
+                return
         finally:
             return
