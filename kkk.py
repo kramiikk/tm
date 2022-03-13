@@ -74,8 +74,9 @@ class KramiikkMod(loader.Module):
 
     async def sicmd(self, m):
         chatid = str(m.chat_id)
-        text = self.su[chatid]
-        await utils.answer(m, f"{text}")
+        for i in self.su[chatid]:
+            msg += f"<b>• {i}</b>\n"
+        await utils.answer(m, f"<b>filters: {len(self.su[chatid])}\n\n{msg}</b>")
 
     async def sncmd(self, m):
         msg = utils.get_args_raw(m)
