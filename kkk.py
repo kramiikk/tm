@@ -74,6 +74,7 @@ class KramiikkMod(loader.Module):
 
     async def sicmd(self, m):
         chatid = str(m.chat_id)
+        msg = ""
         for i in self.su[chatid]:
             msg += f"<b>• {i}</b>\n"
         await utils.answer(m, f"<b>filters: {len(self.su[chatid])}\n\n{msg}</b>")
