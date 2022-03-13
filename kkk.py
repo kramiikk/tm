@@ -91,7 +91,7 @@ class KramiikkMod(loader.Module):
         if chatid not in self.su:
             self.su.setdefault(chatid, {})
         if idu not in self.su[chatid]:
-            self.su.setdefault(idu, {})
+            self.su[chatid].setdefault(idu, {})
         if key not in self.su[chatid][idu]:
             self.su[chatid][idu].setdefault(key, msg.split(" / ")[2])
             msg = "<b>активирована</b>"
