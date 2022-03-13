@@ -48,6 +48,7 @@ class KramiikkMod(loader.Module):
         self.me = await client.get_me()
 
     async def sacmd(self, m):
+        """будет смотреть за вашими жабами"""
         if "auto" not in self.su:
             self.su.setdefault("auto", {})
             msg = "<b>Автожаба активирована</b>"
@@ -57,7 +58,16 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
+    async def sicmd(self, m):
+        """список фильтров"""
+        chatid = str(m.chat_id)
+        msg = ""
+        for i in self.su[chatid]:
+            msg += f"<b>• {i}</b>\n"
+        await utils.answer(m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{msg}</b>")
+
     async def sfcmd(self, m):
+        """добавить фильтры, пример 'текст / ответ'"""
         chatid = str(m.chat_id)
         msg = utils.get_args_raw(m)
         key = msg.split(" / ")[0]
@@ -72,14 +82,27 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
-    async def sicmd(self, m):
+    async def stcmd(self, m):
+        """фильтр на юзера, пример 'ид / текст / ответ'"""
         chatid = str(m.chat_id)
-        msg = ""
-        for i in self.su[chatid]:
-            msg += f"<b>• {i}</b>\n"
-        await utils.answer(m, f"<b>filters: {len(self.su[chatid])}\n\n{msg}</b>")
+        msg = utils.get_args_raw(m)
+        idu = msg.split(" / ")[0]
+        key = msg.split(" / ")[1]
+        if chatid not in self.su:
+            self.su.setdefault(chatid, {})
+        if idu not in self.su[chatid]:
+            self.su.setdefault(idu, {})
+        if key not in self.su[chatid][idu]:
+            self.su[chatid][idu].setdefault(key, msg.split(" / ")[2])
+            msg = "<b>активирована</b>"
+        else:
+            self.su[chatid][idu].pop(key)
+            msg = "<b>деактивирована</b>"
+        self.db.set("Su", "su", self.su)
+        await utils.answer(m, msg)
 
     async def sncmd(self, m):
+        """ник для команд"""
         msg = utils.get_args_raw(m)
         self.su["name"] = msg.casefold()
         await utils.answer(
@@ -88,6 +111,7 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
 
     async def sucmd(self, m):
+        """добавляет пользователей для управление акк"""
         msg = utils.get_args_raw(m)
         txt = int(msg)
         if txt == self.me.id and "name" not in self.su:
@@ -105,6 +129,7 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def err(self, chat, pattern):
+        """работа с ответом жабабота"""
         try:
             async with self.client.conversation(chat) as conv:
                 global RSP
@@ -113,15 +138,16 @@ class KramiikkMod(loader.Module):
                         from_users=1124824021, chats=chat, pattern=pattern
                     )
                 )
-            for i in (i for i in ded if i in RSP.text):
-                try:
+            try:
+                for i in (i for i in ded if i in RSP.text):
                     await self.client.send_message(chat, ded[i])
-                finally:
-                    pass
+            finally:
+                pass
         except asyncio.exceptions.TimeoutError:
             pass
 
     async def bmj(self, chat):
+        """алгоритм жабабота"""
         pattern = "🐸"
         await self.err(chat, pattern)
         await self.client.send_message(chat, "жаба инфо")
@@ -136,6 +162,7 @@ class KramiikkMod(loader.Module):
         msg = m.text
         chat = m.chat_id
         chatid = str(chat)
+        idu = m.sender_id
         me = self.me.id
         name = self.me.username
         users = me
@@ -145,7 +172,7 @@ class KramiikkMod(loader.Module):
         try:
             if (
                 m.message.startswith(("✅", "📉"))
-                and m.sender_id in {1124824021}
+                and idu in {1124824021}
                 and "auto" in self.su
             ):
                 await self.client.send_message(
@@ -169,7 +196,7 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     finally:
                         pass
-            elif m.message.casefold().startswith(name) and (m.sender_id in users):
+            elif m.message.casefold().startswith(name) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
                     chat = msg.split(" ", 4)[3]
@@ -198,7 +225,7 @@ class KramiikkMod(loader.Module):
             elif (
                 not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
                 and m.buttons
-                and m.sender_id in {830605725}
+                and idu in {830605725}
             ):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
@@ -208,6 +235,9 @@ class KramiikkMod(loader.Module):
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
             elif chatid in self.su:
+                if idu in self.su[chatid]:
+                    for i in (i for i in self.su[chatid][idu] if i in m.message):
+                        await utils.answer(m, self.su[chatid][idu][i])
                 for i in (i for i in self.su[chatid] if i in m.message):
                     await utils.answer(m, self.su[chatid][i])
             else:
