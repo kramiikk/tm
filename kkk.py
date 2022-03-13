@@ -61,11 +61,10 @@ class KramiikkMod(loader.Module):
         chatid = str(m.chat_id)
         msg = utils.get_args_raw(m)
         key = msg.split(" / ")[0]
-        val = msg.split(" / ")[1]
         if chatid not in self.su:
             self.su.setdefault(chatid, {})
         if key not in self.su[chatid]:
-            self.su[chatid].setdefault(key, val)
+            self.su[chatid].setdefault(key, msg.split(" / ")[1])
             msg = "<b>активирована</b>"
         else:
             self.su[chatid].pop(key)
