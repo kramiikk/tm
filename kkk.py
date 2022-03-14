@@ -96,7 +96,7 @@ class KramiikkMod(loader.Module):
             self.su[chatid][idu].setdefault(key, msg.split(" / ")[2])
             msg = "<b>активирована</b>"
         else:
-            self.su[chatid][idu].pop(key)
+            self.su[chatid][idu].pop(msg.split(" / ")[0])
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
