@@ -51,10 +51,10 @@ class KramiikkMod(loader.Module):
         """будет смотреть за вашими жабами"""
         if "auto" not in self.su:
             self.su.setdefault("auto", {})
-            msg = "<b>Автожаба активирована</b>"
+            msg = "<b>активирована</b>"
         else:
             self.su.pop("auto")
-            msg = "<b>Автожаба деактивирована</b>"
+            msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
@@ -74,10 +74,12 @@ class KramiikkMod(loader.Module):
             self.su.setdefault(chatid, {})
         if key not in self.su[chatid]:
             self.su[chatid].setdefault(key, msg.split(" / ")[1])
-            msg = "<b>активирована</b>"
+            msg = "<b>добавлен</b>"
         else:
             self.su[chatid].pop(key)
-            msg = "<b>деактивирована</b>"
+            msg = "<b>удален</b>"
+        if self.su[chatid] == {}:
+            self.su.pop(chatid)
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
