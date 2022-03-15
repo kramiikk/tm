@@ -58,19 +58,16 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
-    async def sicmd(self, m):
-        """список фильтров"""
-        chatid = str(m.chat_id)
-        msg = ""
-        for i in self.su[chatid]:
-            msg += f"<b>• {i}</b>\n"
-        await utils.answer(m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{msg}</b>")
-
     async def sfcmd(self, m):
         """добавить фильтры, пример 'текст / ответ'"""
         chatid = str(m.chat_id)
         msg = utils.get_args_raw(m)
         key = msg.split(" / ")[0]
+        if not msg:
+            txt = ""
+            for i in self.su[chatid]:
+                txt += f"<b>• {i}</b>\n"
+            return await utils.answer(m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{txt}</b>")
         if chatid not in self.su:
             self.su.setdefault(chatid, {})
         if key not in self.su[chatid]:
