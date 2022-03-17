@@ -163,7 +163,6 @@ class KramiikkMod(loader.Module):
         chat = m.chat_id
         chatid = str(chat)
         idu = m.sender_id
-        me = self.me.id
         if self.me.id in {980699009}:
             name = "лена"
         elif self.me.id in {230473666}:
@@ -172,7 +171,7 @@ class KramiikkMod(loader.Module):
             name = "кира"
         else:
             name = self.me.first_name
-        users = me
+        users = {1785723159}
         if "name" in self.su:
             name = self.su["name"]
             users = self.su["users"]
