@@ -138,11 +138,6 @@ class KramiikkMod(loader.Module):
                         from_users=1124824021, chats=chat, pattern=pattern
                     )
                 )
-            try:
-                for i in (i for i in ded if i in RSP.text):
-                    await self.client.send_message(chat, ded[i])
-            finally:
-                pass
         except asyncio.exceptions.TimeoutError:
             pass
 
@@ -150,13 +145,25 @@ class KramiikkMod(loader.Module):
         """алгоритм жабабота"""
         pattern = "🐸"
         await self.err(chat, pattern)
+        for i in (i for i in ded if i in RSP.text):
+            await self.client.send_message(chat, ded[i])
+        jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
         await self.client.send_message(chat, "жаба инфо")
         pattern = "🏃‍♂️"
         await self.err(chat, pattern)
+        for i in (i for i in ded if i in RSP.text):
+            if (
+                int(jab.group(1)) < 111
+                or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
+            ) and (i == "Можно откормить" or i == "Можно отправиться"):
+                continue
+            await self.client.send_message(chat, ded[i])
         if "работы" in RSP.text:
             pattern = "Ваше"
             await self.client.send_message(chat, "мое снаряжение")
             await self.err(chat, pattern)
+            for i in (i for i in ded if i in RSP.text):
+                await self.client.send_message(chat, ded[i])
 
     async def watcher(self, m):
         msg = m.text
