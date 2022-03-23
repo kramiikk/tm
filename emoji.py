@@ -174,3 +174,59 @@ class emodjiMod(loader.Module):
         )
         txte = txt.translate(txtnorm)
         await message.client.send_message("me", txte)
+
+    @loader.owner
+    async def qgcmd(self, m):
+        jup = ""
+        for a in utils.get_args_raw(m):
+            if a.lower() in alp:
+                arp = alp[a.lower()]
+                if a.isupper():
+                    arp = arp.upper()
+            else:
+                arp = a
+            jup += arp
+        await utils.answer(m, jup)
+
+
+alp = {
+    "а": "a",
+    "ә": "ä",
+    "б": "b",
+    "в": "v",
+    "г": "g",
+    "ғ": "ğ",
+    "д": "d",
+    "е": "e",
+    "ж": "j",
+    "з": "z",
+    "и": "i",
+    "й": "y",
+    "к": "k",
+    "қ": "k",
+    "л": "l",
+    "м": "m",
+    "н": "n",
+    "ң": "ń",
+    "о": "o",
+    "ө": "ö",
+    "п": "p",
+    "р": "r",
+    "с": "s",
+    "т": "t",
+    "у": "w",
+    "ұ": "u",
+    "ү": "ü",
+    "ф": "f",
+    "х": "h",
+    "һ": "h",
+    "ы": "ı",
+    "і": "i",
+    "ч": "ch",
+    "ц": "ts",
+    "ш": "c",
+    "щ": "cc",
+    "э": "e",
+    "я": "ya",
+}
+
