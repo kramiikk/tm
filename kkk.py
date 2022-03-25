@@ -54,10 +54,6 @@ class KramiikkMod(loader.Module):
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
 
-    async def inline__handler(self, call: CallbackQuery) -> None:
-        await call.edit("<b>мой клан</b>")
-        await call.unload()
-
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
         if "auto" not in self.su:
@@ -227,11 +223,11 @@ class KramiikkMod(loader.Module):
                         msg = msg.split(" ", 4)[4]
                     await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
-                    await self.inline.form(
+                    msg = await self.inline.form(
                         "<b>моя жаба</b>",
                         message=m,
                     )
-                    self.inline__handler()
+                    await msg.edit("<b>мой клан</b>")
                     msg = msg.split(" ", 2)[2]
                     if reply:
                         await reply.reply(msg)
