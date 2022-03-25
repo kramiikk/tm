@@ -237,7 +237,7 @@ class KramiikkMod(loader.Module):
                     await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
                     await self.inline.form(
-                        self.strings("<b>моя жаба</b>"),
+                        "<b>моя жаба</b>",
                         message=m,
                         reply_markup=[
                             [
