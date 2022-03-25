@@ -223,10 +223,7 @@ class KramiikkMod(loader.Module):
                         msg = msg.split(" ", 4)[4]
                     await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
-                    await self.inline.form(
-                        "<b>моя жаба</b>",
-                        message=m,
-                    )
+                    await self.inline.form("<b>моя жаба</b>")
                     msg = msg.split(" ", 2)[2]
                     if reply:
                         await reply.reply(msg)
