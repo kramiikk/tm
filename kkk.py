@@ -231,7 +231,7 @@ class KramiikkMod(loader.Module):
                         "<b>моя жаба</b>",
                         message=m,
                     )
-                    await self.inline__handler()
+                    self.inline__handler()
                     msg = msg.split(" ", 2)[2]
                     if reply:
                         await reply.reply(msg)
