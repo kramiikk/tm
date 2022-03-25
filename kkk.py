@@ -54,17 +54,8 @@ class KramiikkMod(loader.Module):
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
 
-    async def inline_close(self, call: CallbackQuery) -> None:
-        await call.close()
-
-    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
-        if not correct:
-            await call.answer("Азал*н л*х")
-            return
-        await call.edit(
-            self.strings("tir"),
-            reply_markup=[[{"text": "💔 Не нажимай!", "url": "https://t.me/k_uat"}]],
-        )
+    async def inline__handler(self, call: CallbackQuery) -> None:
+        await call.edit("<b>мой клан</b>")
         await call.unload()
 
     async def sacmd(self, m):
@@ -239,22 +230,8 @@ class KramiikkMod(loader.Module):
                     await self.inline.form(
                         "<b>моя жаба</b>",
                         message=m,
-                        reply_markup=[
-                            [
-                                {
-                                    "text": "🤠 Az*lon g*y",
-                                    "callback": self.inline__handler,
-                                    "args": (True,),
-                                },
-                                {
-                                    "text": "💃 Ballerina",
-                                    "callback": self.inline__handler,
-                                    "args": (False,),
-                                },
-                            ]
-                        ],
-                        force_me=False,
                     )
+                    await self.inline__handler()
                     msg = msg.split(" ", 2)[2]
                     if reply:
                         await reply.reply(msg)
