@@ -6,7 +6,6 @@ from datetime import timedelta
 
 from aiogram.types import *
 from telethon import events
-from telethon.tl.types import *
 
 from .. import loader, utils
 
@@ -170,7 +169,7 @@ class KramiikkMod(loader.Module):
         except asyncio.exceptions.TimeoutError:
             pass
 
-    async def bmj(self, chat, m):
+    async def bmj(self, chat):
         """алгоритм жабабота"""
         pattern = "🐸"
         await self.err(chat, pattern)
@@ -182,8 +181,8 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
             if (
-                int(jab.group(1)) < 111
-                or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
+                    int(jab.group(1)) < 111
+                    or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
             await self.client.send_message(chat, ded[i])
@@ -207,9 +206,9 @@ class KramiikkMod(loader.Module):
             users = self.su["users"]
         try:
             if (
-                m.message.startswith(("✅", "📉"))
-                and idu in {1124824021}
-                and "auto" in self.su
+                    m.message.startswith(("✅", "📉"))
+                    and idu in {1124824021}
+                    and "auto" in self.su
             ):
                 await self.client.send_message(
                     1124824021,
@@ -255,15 +254,15 @@ class KramiikkMod(loader.Module):
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
-                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+                    f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 msg = "реанимировать жабу"
                 await self.hrs(m, msg)
                 await m.click(0)
             elif (
-                not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
-                and m.buttons
-                and idu in {830605725}
+                    not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
+                    and m.buttons
+                    and idu in {830605725}
             ):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
