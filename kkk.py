@@ -55,6 +55,27 @@ class KramiikkMod(loader.Module):
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
 
+    async def hrs(self, m, msg):
+        await self.inline.form(
+            msg,
+            message=m,
+            reply_markup=[
+                [
+                    {
+                        "text": "🧠",
+                        "callback": self.inline__handler,
+                        "args": (True,),
+                    },
+                    {
+                        "text": "🗿",
+                        "callback": self.inline__handler,
+                        "args": (False,),
+                    },
+                ]
+            ],
+            force_me=False,
+        )
+
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
         if "auto" not in self.su:
@@ -64,7 +85,7 @@ class KramiikkMod(loader.Module):
             self.su.pop("auto")
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
-        await self.inline.form(msg, message=m)
+        await self.hrs(msg)
 
     async def sfcmd(self, m):
         """добавить фильтры, пример 'текст / ответ'"""
@@ -89,7 +110,7 @@ class KramiikkMod(loader.Module):
         if self.su[chatid] == {}:
             self.su.pop(chatid)
         self.db.set("Su", "su", self.su)
-        await self.inline.form(msg, message=m)
+        await self.hrs(msg)
 
     async def stcmd(self, m):
         """фильтр на юзера, пример 'ид / текст / ответ'"""
@@ -108,16 +129,14 @@ class KramiikkMod(loader.Module):
             self.su[chatid][idu].pop(msg.split(" / ")[0])
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
-        await self.inline.form(msg, message=m)
+        await self.hrs(msg)
 
     async def sncmd(self, m):
         """ник для команд"""
         msg = utils.get_args_raw(m)
         self.su["name"] = msg.casefold()
-        await self.inline.form(
-            "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>",
-            message=m,
-        )
+        msg = "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
+        await self.hrs(msg)
         self.db.set("Su", "su", self.su)
 
     async def sucmd(self, m):
@@ -136,7 +155,7 @@ class KramiikkMod(loader.Module):
             self.su["users"].append(txt)
             msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        await self.inline.form(msg, message=m)
+        await self.hrs(msg)
 
     async def err(self, chat, pattern):
         """работа с ответом жабабота"""
@@ -156,9 +175,11 @@ class KramiikkMod(loader.Module):
         pattern = "🐸"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
-            await self.inline.form(ded[i], message=m)
+            msg = ded[i]
+            await self.hrs(msg)
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        await self.inline.form("жаба инфо", message=m)
+        msg = "жаба инфо"
+        await self.hrs(msg)
         pattern = "🏃‍♂️"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
@@ -167,13 +188,15 @@ class KramiikkMod(loader.Module):
                 or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
-            await self.inline.form(ded[i], message=m)
+            msg = ded[i]
+            await self.hrs(msg)
         if "работы" in RSP.text:
             pattern = "Ваше"
             await self.client.send_message(chat, "мое снаряжение")
             await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
-                await self.inline.form(ded[i], message=m)
+                msg = ded[i]
+                await self.hrs(msg)
 
     async def watcher(self, m):
         msg = m.text
@@ -223,51 +246,14 @@ class KramiikkMod(loader.Module):
                         msg = reply
                     else:
                         msg = msg.split(" ", 4)[4]
-                    async with self.client.conversation(chat):
-                        await self.inline.form(
-                            msg,
-                            message=m,
-                            reply_markup=[
-                                [
-                                    {
-                                        "text": "🧠",
-                                        "callback": self.inline__handler,
-                                        "args": (True,),
-                                    },
-                                    {
-                                        "text": "🗿",
-                                        "callback": self.inline__handler,
-                                        "args": (False,),
-                                    },
-                                ]
-                            ],
-                            force_me=False,
-                        )
+                    await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
                     async with self.client.conversation(chat):
                         msg = msg.split(" ", 2)[2]
                         if reply:
                             await reply.reply(msg)
                         else:
-                            await self.inline.form(
-                                msg,
-                                message=m,
-                                reply_markup=[
-                                    [
-                                        {
-                                            "text": "🧠",
-                                            "callback": self.inline__handler,
-                                            "args": (True,),
-                                        },
-                                        {
-                                            "text": "🗿",
-                                            "callback": self.inline__handler,
-                                            "args": (False,),
-                                        },
-                                    ]
-                                ],
-                                force_me=False,
-                            )
+                            await self.hrs(msg)
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
@@ -275,7 +261,8 @@ class KramiikkMod(loader.Module):
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
-                await self.inline.form("реанимировать жабу", message=m)
+                msg = "реанимировать жабу"
+                await self.hrs(msg)
                 await m.click(0)
             elif (
                 not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
