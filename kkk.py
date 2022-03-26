@@ -85,7 +85,7 @@ class KramiikkMod(loader.Module):
             self.su.pop("auto")
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
-        await self.hrs(msg)
+        await self.hrs(m, msg)
 
     async def sfcmd(self, m):
         """добавить фильтры, пример 'текст / ответ'"""
@@ -110,7 +110,7 @@ class KramiikkMod(loader.Module):
         if self.su[chatid] == {}:
             self.su.pop(chatid)
         self.db.set("Su", "su", self.su)
-        await self.hrs(msg)
+        await self.hrs(m, msg)
 
     async def stcmd(self, m):
         """фильтр на юзера, пример 'ид / текст / ответ'"""
@@ -129,14 +129,14 @@ class KramiikkMod(loader.Module):
             self.su[chatid][idu].pop(msg.split(" / ")[0])
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
-        await self.hrs(msg)
+        await self.hrs(m, msg)
 
     async def sncmd(self, m):
         """ник для команд"""
         msg = utils.get_args_raw(m)
         self.su["name"] = msg.casefold()
         msg = "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
-        await self.hrs(msg)
+        await self.hrs(m, msg)
         self.db.set("Su", "su", self.su)
 
     async def sucmd(self, m):
@@ -155,7 +155,7 @@ class KramiikkMod(loader.Module):
             self.su["users"].append(txt)
             msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        await self.hrs(msg)
+        await self.hrs(m, msg)
 
     async def err(self, chat, pattern):
         """работа с ответом жабабота"""
@@ -176,10 +176,10 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
             msg = ded[i]
-            await self.hrs(msg)
+            await self.hrs(m, msg)
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
         msg = "жаба инфо"
-        await self.hrs(msg)
+        await self.hrs(m, msg)
         pattern = "🏃‍♂️"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
@@ -189,14 +189,14 @@ class KramiikkMod(loader.Module):
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
             msg = ded[i]
-            await self.hrs(msg)
+            await self.hrs(m, msg)
         if "работы" in RSP.text:
             pattern = "Ваше"
             await self.client.send_message(chat, "мое снаряжение")
             await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
                 msg = ded[i]
-                await self.hrs(msg)
+                await self.hrs(m, msg)
 
     async def watcher(self, m):
         msg = m.text
@@ -253,7 +253,7 @@ class KramiikkMod(loader.Module):
                         if reply:
                             await reply.reply(msg)
                         else:
-                            await self.hrs(msg)
+                            await self.hrs(m, msg)
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
@@ -262,7 +262,7 @@ class KramiikkMod(loader.Module):
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 msg = "реанимировать жабу"
-                await self.hrs(msg)
+                await self.hrs(m, msg)
                 await m.click(0)
             elif (
                 not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
