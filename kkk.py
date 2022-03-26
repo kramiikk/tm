@@ -154,7 +154,7 @@ class KramiikkMod(loader.Module):
         except asyncio.exceptions.TimeoutError:
             pass
 
-    async def bmj(self, chat):
+    async def bmj(self, chat, m):
         """алгоритм жабабота"""
         pattern = "🐸"
         await self.err(chat, pattern)
@@ -232,7 +232,29 @@ class KramiikkMod(loader.Module):
                     if reply:
                         await reply.reply(msg)
                     else:
-                        await self.inline.form(msg, message=m)
+                        await self.inline.form(
+                            msg,
+                            message=m,
+                            reply_markup=[
+                                [
+                                    {
+                                        "text": "🧠",
+                                        "callback": self.inline__handler,
+                                        "args": (True,),
+                                    },
+                                    {
+                                        "text": "🗿",
+                                        "callback": self.inline__handler,
+                                        "args": (False,),
+                                    },
+                                    {
+                                        "text": "👨‍🚒",
+                                        "callback": self.inline_close,
+                                    },
+                                ]
+                            ],
+                            force_me=False,
+                        )
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
