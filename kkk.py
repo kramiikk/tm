@@ -45,7 +45,13 @@ class KramiikkMod(loader.Module):
         if not correct:
             await call.answer("good")
             return
-        await call.edit("<b>мой клан</b>")
+        async with self._client.conversation("@toadbot") as conv:
+            m = await conv.send_message("мои жабы")
+            r = await conv.get_response()
+            await m.delete()
+            await r.delete()
+        msg = r.text
+        await call.edit(msg)
         await call.unload()
 
     async def client_ready(self, client, db):
@@ -181,8 +187,8 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
             if (
-                    int(jab.group(1)) < 111
-                    or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
+                int(jab.group(1)) < 111
+                or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
             await self.client.send_message(chat, ded[i])
@@ -206,9 +212,9 @@ class KramiikkMod(loader.Module):
             users = self.su["users"]
         try:
             if (
-                    m.message.startswith(("✅", "📉"))
-                    and idu in {1124824021}
-                    and "auto" in self.su
+                m.message.startswith(("✅", "📉"))
+                and idu in {1124824021}
+                and "auto" in self.su
             ):
                 await self.client.send_message(
                     1124824021,
@@ -254,15 +260,15 @@ class KramiikkMod(loader.Module):
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
-                    f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 msg = "реанимировать жабу"
                 await self.hrs(m, msg)
                 await m.click(0)
             elif (
-                    not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
-                    and m.buttons
-                    and idu in {830605725}
+                not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
+                and m.buttons
+                and idu in {830605725}
             ):
                 await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
