@@ -42,12 +42,9 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def inline_close(self, call: CallbackQuery) -> None:
-        await call.close()
-
     async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
-            await call.answer("<b>мои жабы</b>")
+            await call.answer("good")
             return
         await call.edit("<b>мой клан</b>")
         await call.unload()
@@ -226,12 +223,7 @@ class KramiikkMod(loader.Module):
                         msg = reply
                     else:
                         msg = msg.split(" ", 4)[4]
-                    await self.client.send_message(chat, msg)
-                elif "напиши" in m.message:
-                    msg = msg.split(" ", 2)[2]
-                    if reply:
-                        await reply.reply(msg)
-                    else:
+                    async with self.client.conversation(chat):
                         await self.inline.form(
                             msg,
                             message=m,
@@ -247,14 +239,35 @@ class KramiikkMod(loader.Module):
                                         "callback": self.inline__handler,
                                         "args": (False,),
                                     },
-                                    {
-                                        "text": "👨‍🚒",
-                                        "callback": self.inline_close,
-                                    },
                                 ]
                             ],
                             force_me=False,
                         )
+                elif "напиши" in m.message:
+                    async with self.client.conversation(chat):
+                        msg = msg.split(" ", 2)[2]
+                        if reply:
+                            await reply.reply(msg)
+                        else:
+                            await self.inline.form(
+                                msg,
+                                message=m,
+                                reply_markup=[
+                                    [
+                                        {
+                                            "text": "🧠",
+                                            "callback": self.inline__handler,
+                                            "args": (True,),
+                                        },
+                                        {
+                                            "text": "🗿",
+                                            "callback": self.inline__handler,
+                                            "args": (False,),
+                                        },
+                                    ]
+                                ],
+                                force_me=False,
+                            )
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
