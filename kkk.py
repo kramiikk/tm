@@ -40,13 +40,17 @@ ded = {
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
 
-    strings = {"name": "Kramiikk", "tir": "👉"}
+    strings = {"name": "Kramiikk"}
 
-    def get(self, *args) -> dict:
-        return self.db.get(self.strings["name"], *args)
+    async def inline_close(self, call: CallbackQuery) -> None:
+        await call.close()
 
-    def set(self, *args) -> None:
-        return self.db.set(self.strings["name"], *args)
+    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
+        if not correct:
+            await call.answer("<b>мои жабы</b>")
+            return
+        await call.edit("<b>мой клан</b>")
+        await call.unload()
 
     async def client_ready(self, client, db):
         self.client = client
