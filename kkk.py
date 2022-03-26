@@ -45,7 +45,7 @@ class KramiikkMod(loader.Module):
         if not correct:
             await call.answer("good")
             return
-        async with self._client.conversation("@toadbot") as conv:
+        async with self.client.conversation("@toadbot") as conv:
             m = await conv.send_message("мои жабы")
             r = await conv.get_response()
             await m.delete()
