@@ -175,11 +175,9 @@ class KramiikkMod(loader.Module):
         pattern = "🐸"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
-            msg = ded[i]
-            await self.hrs(m, msg)
+            await self.client.send_message(chat, ded[i])
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        msg = "жаба инфо"
-        await self.hrs(m, msg)
+        await self.client.send_message(chat, "жаба инфо")
         pattern = "🏃‍♂️"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
@@ -188,15 +186,13 @@ class KramiikkMod(loader.Module):
                 or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
-            msg = ded[i]
-            await self.hrs(m, msg)
+            await self.client.send_message(chat, ded[i])
         if "работы" in RSP.text:
             pattern = "Ваше"
             await self.client.send_message(chat, "мое снаряжение")
             await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
-                msg = ded[i]
-                await self.hrs(m, msg)
+                await self.client.send_message(chat, ded[i])
 
     async def watcher(self, m):
         msg = m.text
