@@ -67,7 +67,7 @@ class KramiikkMod(loader.Module):
             self.su.pop("auto")
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
-        await utils.answer(m, msg)
+        await self.inline.form(msg, message=m)
 
     async def sfcmd(self, m):
         """добавить фильтры, пример 'текст / ответ'"""
@@ -92,7 +92,7 @@ class KramiikkMod(loader.Module):
         if self.su[chatid] == {}:
             self.su.pop(chatid)
         self.db.set("Su", "su", self.su)
-        await utils.answer(m, msg)
+        await self.inline.form(msg, message=m)
 
     async def stcmd(self, m):
         """фильтр на юзера, пример 'ид / текст / ответ'"""
@@ -111,14 +111,15 @@ class KramiikkMod(loader.Module):
             self.su[chatid][idu].pop(msg.split(" / ")[0])
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
-        await utils.answer(m, msg)
+        await self.inline.form(msg, message=m)
 
     async def sncmd(self, m):
         """ник для команд"""
         msg = utils.get_args_raw(m)
         self.su["name"] = msg.casefold()
-        await utils.answer(
-            m, "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
+        await self.inline.form(
+            "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>",
+            message=m,
         )
         self.db.set("Su", "su", self.su)
 
@@ -138,7 +139,7 @@ class KramiikkMod(loader.Module):
             self.su["users"].append(txt)
             msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        await utils.answer(m, msg)
+        await self.inline.form(msg, message=m)
 
     async def err(self, chat, pattern):
         """работа с ответом жабабота"""
@@ -158,9 +159,9 @@ class KramiikkMod(loader.Module):
         pattern = "🐸"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
-            await self.client.send_message(chat, ded[i])
+            await self.inline.form(ded[i], message=m)
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        await self.client.send_message(chat, "жаба инфо")
+        await self.inline.form("жаба инфо", message=m)
         pattern = "🏃‍♂️"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
@@ -169,13 +170,13 @@ class KramiikkMod(loader.Module):
                 or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
-            await self.client.send_message(chat, ded[i])
+            await self.inline.form(ded[i], message=m)
         if "работы" in RSP.text:
             pattern = "Ваше"
             await self.client.send_message(chat, "мое снаряжение")
             await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
-                await self.client.send_message(chat, ded[i])
+                await self.inline.form(ded[i], message=m)
 
     async def watcher(self, m):
         msg = m.text
@@ -227,12 +228,11 @@ class KramiikkMod(loader.Module):
                         msg = msg.split(" ", 4)[4]
                     await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
-                    await self.inline.form("<b>моя жаба</b>")
                     msg = msg.split(" ", 2)[2]
                     if reply:
                         await reply.reply(msg)
                     else:
-                        await m.respond(msg)
+                        await self.inline.form(msg, message=m)
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
@@ -240,7 +240,7 @@ class KramiikkMod(loader.Module):
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
-                await m.respond("реанимировать жабу")
+                await self.inline.form("реанимировать жабу", message=m)
                 await m.click(0)
             elif (
                 not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
