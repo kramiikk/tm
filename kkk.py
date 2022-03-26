@@ -43,7 +43,7 @@ class KramiikkMod(loader.Module):
 
     async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
-            await call.answer("good")
+            await call.answer("🤹")
             return
         async with self.client.conversation("@toadbot") as conv:
             m = await conv.send_message("мои жабы")
@@ -67,7 +67,7 @@ class KramiikkMod(loader.Module):
             reply_markup=[
                 [
                     {
-                        "text": "🧠",
+                        "text": "📜",
                         "callback": self.inline__handler,
                         "args": (True,),
                     },
