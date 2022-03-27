@@ -34,29 +34,55 @@ ded = {
     "Банда: Пусто": "взять жабу",
 }
 
+
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
 
     strings = {"name": "Kramiikk"}
 
-    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
-        if not correct:
-            return await call.answer("good")
-        async with self.client.conversation("@toadbot") as conv:
-            m = await conv.send_message("мои жабы")
-            r = await conv.get_response()
-            await m.delete()
-            await r.delete()
-        msg = r.text
-        await call.edit(msg)
-        await call.unload()
+    async def bmj(self, chat):
+        """алгоритм жабабота"""
+        pattern = "🐸"
+        await self.err(chat, pattern)
+        for i in (i for i in ded if i in RSP.text):
+            await self.client.send_message(chat, ded[i])
+        jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
+        await self.client.send_message(chat, "жаба инфо")
+        pattern = "🏃‍♂️"
+        await self.err(chat, pattern)
+        for i in (i for i in ded if i in RSP.text):
+            if (
+                int(jab.group(1)) < 111
+                or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
+            ) and (i == "Можно откормить" or i == "Можно отправиться"):
+                continue
+            await self.client.send_message(chat, ded[i])
+        if "работы" in RSP.text:
+            pattern = "Ваше"
+            await self.client.send_message(chat, "мое снаряжение")
+            await self.err(chat, pattern)
+            for i in (i for i in ded if i in RSP.text):
+                await self.client.send_message(chat, ded[i])
 
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
+
+    async def err(self, chat, pattern):
+        """работа с ответом жабабота"""
+        try:
+            async with self.client.conversation(chat) as conv:
+                global RSP
+                RSP = await conv.wait_event(
+                    events.NewMessage(
+                        from_users=1124824021, chats=chat, pattern=pattern
+                    )
+                )
+        except asyncio.exceptions.TimeoutError:
+            pass
 
     async def hrs(self, m, msg):
         await self.inline.form(
@@ -78,6 +104,27 @@ class KramiikkMod(loader.Module):
             ],
             force_me=False,
         )
+
+    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
+        if not correct:
+            s = await self.client.get_messages(1767017980, limit=42)
+            msg = "<b>Сейчас в кв:\n</b>"
+            t = await self.client.send_message(1782816965, "Сезон кланов золото")
+            for i in s:
+                await self.tms(t, i)
+                if "VS" in i.text and timedelta(days=0) <= MS < timedelta(
+                    hours=4, minutes=3
+                ):
+                    msg += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
+        else:
+            async with self.client.conversation("@toadbot") as conv:
+                m = await conv.send_message("мои жабы")
+                r = await conv.get_response()
+                await m.delete()
+                await r.delete()
+            msg = r.text
+            await call.edit(msg)
+        await call.unload()
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
@@ -160,42 +207,11 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await self.hrs(m, msg)
 
-    async def err(self, chat, pattern):
-        """работа с ответом жабабота"""
-        try:
-            async with self.client.conversation(chat) as conv:
-                global RSP
-                RSP = await conv.wait_event(
-                    events.NewMessage(
-                        from_users=1124824021, chats=chat, pattern=pattern
-                    )
-                )
-        except asyncio.exceptions.TimeoutError:
-            pass
-
-    async def bmj(self, chat):
-        """алгоритм жабабота"""
-        pattern = "🐸"
-        await self.err(chat, pattern)
-        for i in (i for i in ded if i in RSP.text):
-            await self.client.send_message(chat, ded[i])
-        jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        await self.client.send_message(chat, "жаба инфо")
-        pattern = "🏃‍♂️"
-        await self.err(chat, pattern)
-        for i in (i for i in ded if i in RSP.text):
-            if (
-                int(jab.group(1)) < 111
-                or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
-            ) and (i == "Можно откормить" or i == "Можно отправиться"):
-                continue
-            await self.client.send_message(chat, ded[i])
-        if "работы" in RSP.text:
-            pattern = "Ваше"
-            await self.client.send_message(chat, "мое снаряжение")
-            await self.err(chat, pattern)
-            for i in (i for i in ded if i in RSP.text):
-                await self.client.send_message(chat, ded[i])
+    async def tms(self, t, i):
+        global MS
+        MS = timedelta(
+            hours=t.date.hour, minutes=t.date.minute, seconds=t.date.second
+        ) - timedelta(hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second)
 
     async def watcher(self, m):
         msg = m.text

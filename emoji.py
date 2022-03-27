@@ -230,12 +230,6 @@ alp = {
     "я": "ya",
 }
 
-# async def tms(self, t, i):
-#     global MS
-#     MS = timedelta(
-#         hours=t.date.hour, minutes=t.date.minute, seconds=t.date.second
-#     ) - timedelta(hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second)
-
 # src = f"Клан Вадим и его жабехи Состав:"
 #     msg = f"жмякнул {call.from_user.id}\n\nКлан Вадим и его жабехи:\n"
 #     get = await self.client.get_messages(1655814348, search=src)
@@ -252,14 +246,3 @@ alp = {
 #                     ger = re.search(r"а: (.+)", p.text).group(1)
 #                     msg += f" Жаба: {ger}"
 #     await call.edit(msg)
-
-# s = await self.client.get_messages(1767017980, limit=42)
-#     txt = "<b>Сейчас в кв:\n</b>"
-#     t = await self.client.send_message(1782816965, "Сезон кланов золото")
-#     for i in s:
-#         await self.tms(t, i)
-#         if "VS" in i.text and timedelta(days=0) <= MS < timedelta(
-#             hours=4, minutes=3
-#         ):
-#             txt += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
-#     await call.edit(txt)
