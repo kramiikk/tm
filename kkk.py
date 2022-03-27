@@ -4,7 +4,6 @@ import random
 import re
 from datetime import timedelta
 
-import requests
 from aiogram.types import *
 from telethon import events
 
@@ -20,18 +19,6 @@ phrases = [
     "мои жабы",
     "выкинуть жабу",
 ]
-
-
-async def photo() -> str:
-    tag = "nsfw"
-    while tag == "nsfw":
-        img = (
-            await utils.run_sync(requests.get, "https://nekos.moe/api/v1/random/image")
-        ).json()["images"][0]
-        tag = "nsfw" if img["nsfw"] else "sfw"
-
-    return f'https://nekos.moe/image/{img["id"]}.jpg'
-
 
 logger = logging.getLogger(__name__)
 
@@ -102,12 +89,6 @@ class KramiikkMod(loader.Module):
                 ]
             ],
             force_me=False,
-        )
-        await asyncio.sleep(3)
-        await self.inline.gallery(
-            caption=lambda: f"<i>{random.choice(phrases)}</i>",
-            message=m,
-            next_handler=photo,
         )
 
     async def sacmd(self, m):
