@@ -68,7 +68,7 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def inline__handler(self, call: CallbackQuery, correct: bool, m) -> None:
+    async def inline__handler(self, m, call: CallbackQuery, correct: bool) -> None:
         if not correct:
             await self.inline.gallery(
                 caption=lambda: f"<i>{random.choice(phrases)}</i> {random.choice(faces)}",
@@ -98,12 +98,12 @@ class KramiikkMod(loader.Module):
                 [
                     {
                         "text": "📜",
-                        "callback": self.inline__handler(m),
+                        "callback": self.inline__handler,
                         "args": (True,),
                     },
                     {
                         "text": "🗿",
-                        "callback": self.inline__handler(m),
+                        "callback": self.inline__handler,
                         "args": (False,),
                     },
                 ]
