@@ -229,20 +229,3 @@ alp = {
     "э": "e",
     "я": "ya",
 }
-
-# src = f"Клан Вадим и его жабехи Состав:"
-#     msg = f"жмякнул {call.from_user.id}\n\nКлан Вадим и его жабехи:\n"
-#     get = await self.client.get_messages(1655814348, search=src)
-#     for i in get:
-#         ids = re.search(r"id: (.+)", i.text).group(1)
-#         reg = re.findall(r"\n(\d+)", i.text)
-#         for s in reg:
-#             src = f"{ids} {s} Уровень:"
-#             get = await self.client.get_messages(1655814348, search=src)
-#             for p in get:
-#                 ger = re.search(r"ь: (\d+)", p.text)
-#                 msg += f"\nУровень: {ger.group(1)}"
-#                 if "Жаба:" in p.text:
-#                     ger = re.search(r"а: (.+)", p.text).group(1)
-#                     msg += f" Жаба: {ger}"
-#     await call.edit(msg)

@@ -117,12 +117,22 @@ class KramiikkMod(loader.Module):
                 ):
                     msg += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
         else:
-            async with self.client.conversation("@toadbot") as conv:
-                m = await conv.send_message("мои жабы")
-                r = await conv.get_response()
-                await m.delete()
-                await r.delete()
-            msg = r.text
+            src = f"Клан Вадим и его жабехи Состав:"
+            msg = f"Клан Вадим и его жабехи:\n"
+            get = await self.client.get_messages(1655814348, search=src)
+            for i in get:
+                ids = re.search(r"id: (.+)", i.text).group(1)
+                reg = re.findall(r"\n(\d+)", i.text)
+                for s in reg:
+                    src = f"{ids} {s} Уровень:"
+                    get = await self.client.get_messages(1655814348, search=src)
+                    for p in get:
+                        ger = re.search(r"ь: (\d+)", p.text)
+                        msg += f"\nУровень: {ger.group(1)}"
+                        if "Жаба:" in p.text:
+                            ger = re.search(r"а: (.+)", p.text).group(1)
+                            msg += f" Жаба: {ger}"
+            msg += f"\n\n{call.from_user.id}"
         await call.edit(msg)
         await call.unload()
 
