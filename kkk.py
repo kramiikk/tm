@@ -2,9 +2,9 @@ import asyncio
 import logging
 import random
 import re
-import requests
 from datetime import timedelta
 
+import requests
 from aiogram.types import *
 from telethon import events
 
@@ -68,7 +68,7 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
+    async def inline__handler(self, call: CallbackQuery, correct: bool, m) -> None:
         if not correct:
             await self.inline.gallery(
                 caption=lambda: f"<i>{random.choice(phrases)}</i> {random.choice(faces)}",
