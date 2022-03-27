@@ -98,12 +98,12 @@ class KramiikkMod(loader.Module):
                 [
                     {
                         "text": "📜",
-                        "callback": self.inline__handler,
+                        "callback": self.inline__handler(m),
                         "args": (True,),
                     },
                     {
                         "text": "🗿",
-                        "callback": self.inline__handler,
+                        "callback": self.inline__handler(m),
                         "args": (False,),
                     },
                 ]
