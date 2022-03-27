@@ -2,9 +2,9 @@ import asyncio
 import logging
 import random
 import re
+import requests
 from datetime import timedelta
 
-import requests
 from aiogram.types import *
 from telethon import events
 
