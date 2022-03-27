@@ -70,11 +70,7 @@ class KramiikkMod(loader.Module):
 
     async def inline__handler(self, m, call: CallbackQuery, correct: bool) -> None:
         if not correct:
-            await self.inline.gallery(
-                caption=lambda: f"<i>{random.choice(phrases)}</i> {random.choice(faces)}",
-                message=m,
-                next_handler=photo,
-            )
+            return await call.answer("good")
         async with self.client.conversation("@toadbot") as conv:
             m = await conv.send_message("мои жабы")
             r = await conv.get_response()
@@ -109,6 +105,12 @@ class KramiikkMod(loader.Module):
                 ]
             ],
             force_me=False,
+        )
+        await asyncio.sleep(3)
+        await self.inline.gallery(
+            caption=lambda: f"<i>{random.choice(phrases)}</i> {random.choice(faces)}",
+            message=m,
+            next_handler=photo,
         )
 
     async def sacmd(self, m):
