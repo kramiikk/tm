@@ -10,18 +10,15 @@ from telethon import events
 
 from .. import loader, utils
 
-phrases = ["Uwu", "Senpai", "Uff", "Meow", "Bonk", "Ara-ara", "Hewwo", "You're cute!"]
-
-faces = [
-    "ʕ•ᴥ•ʔ",
-    "(ᵔᴥᵔ)",
-    "(◕‿◕✿)",
-    "(づ￣ ³￣)づ",
-    "♥‿♥",
-    "~(˘▾˘~)",
-    "(｡◕‿◕｡)",
-    "｡◕‿◕｡",
-    "ಠ‿↼",
+phrases = [
+    "моя жаба",
+    "жаба дня",
+    "топ жаб",
+    "топ кланов",
+    "взять жабу",
+    "жаба инфо",
+    "мои жабы",
+    "выкинуть жабу",
 ]
 
 
@@ -68,7 +65,7 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def inline__handler(self, m, call: CallbackQuery, correct: bool) -> None:
+    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
             return await call.answer("good")
         async with self.client.conversation("@toadbot") as conv:
@@ -108,7 +105,7 @@ class KramiikkMod(loader.Module):
         )
         await asyncio.sleep(3)
         await self.inline.gallery(
-            caption=lambda: f"<i>{random.choice(phrases)}</i> {random.choice(faces)}",
+            caption=lambda: f"<i>{random.choice(phrases)}</i>",
             message=m,
             next_handler=photo,
         )
