@@ -9,17 +9,6 @@ from telethon import events
 
 from .. import loader, utils
 
-phrases = [
-    "моя жаба",
-    "жаба дня",
-    "топ жаб",
-    "топ кланов",
-    "взять жабу",
-    "жаба инфо",
-    "мои жабы",
-    "выкинуть жабу",
-]
-
 logger = logging.getLogger(__name__)
 
 ded = {
@@ -44,7 +33,6 @@ ded = {
     "Налапники: Пусто": "скрафтить налапники из клюва цапли",
     "Банда: Пусто": "взять жабу",
 }
-
 
 @loader.tds
 class KramiikkMod(loader.Module):
