@@ -134,6 +134,24 @@ class KramiikkMod(loader.Module):
                             msg += f" Жаба: {ger}"
             msg += f"\n\n{call.from_user.id}"
         await call.edit(msg)
+        await asyncio.sleep(10)
+        await call.edit(
+            "tired",
+            reply_markup=[
+                [
+                    {
+                        "text": "📜",
+                        "callback": self.inline__handler,
+                        "args": (True,),
+                    },
+                    {
+                        "text": "🗿",
+                        "callback": self.inline__handler,
+                        "args": (False,),
+                    },
+                ]
+            ],
+        )
         await call.unload()
 
     async def sacmd(self, m):
