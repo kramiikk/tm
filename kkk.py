@@ -4,10 +4,37 @@ import random
 import re
 from datetime import timedelta
 
+import requests
 from aiogram.types import *
 from telethon import events
 
 from .. import loader, utils
+
+phrases = ["Uwu", "Senpai", "Uff", "Meow", "Bonk", "Ara-ara", "Hewwo", "You're cute!"]
+
+faces = [
+    "ʕ•ᴥ•ʔ",
+    "(ᵔᴥᵔ)",
+    "(◕‿◕✿)",
+    "(づ￣ ³￣)づ",
+    "♥‿♥",
+    "~(˘▾˘~)",
+    "(｡◕‿◕｡)",
+    "｡◕‿◕｡",
+    "ಠ‿↼",
+]
+
+
+async def photo() -> str:
+    tag = "nsfw"
+    while tag == "nsfw":
+        img = (
+            await utils.run_sync(requests.get, "https://nekos.moe/api/v1/random/image")
+        ).json()["images"][0]
+        tag = "nsfw" if img["nsfw"] else "sfw"
+
+    return f'https://nekos.moe/image/{img["id"]}.jpg'
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +70,11 @@ class KramiikkMod(loader.Module):
 
     async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
-            await call.answer("🤹")
-            return
+            await self.inline.gallery(
+                caption=lambda: f"<i>{random.choice(phrases)}</i> {random.choice(faces)}",
+                message=m,
+                next_handler=photo,
+            )
         async with self.client.conversation("@toadbot") as conv:
             m = await conv.send_message("мои жабы")
             r = await conv.get_response()
