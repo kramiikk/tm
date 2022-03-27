@@ -123,7 +123,7 @@ class KramiikkMod(loader.Module):
                 await m.delete()
                 await r.delete()
             msg = r.text
-            await call.edit(msg)
+        await call.edit(msg)
         await call.unload()
 
     async def sacmd(self, m):
