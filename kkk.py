@@ -136,7 +136,7 @@ class KramiikkMod(loader.Module):
         await call.edit(msg)
         await asyncio.sleep(10)
         await call.edit(
-            "tired",
+            "моя жаба",
             reply_markup=[
                 [
                     {
