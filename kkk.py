@@ -152,7 +152,6 @@ class KramiikkMod(loader.Module):
                 ]
             ],
         )
-        await call.unload()
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
