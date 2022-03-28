@@ -57,7 +57,7 @@ class KramiikkMod(loader.Module):
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
             await self.client.send_message(chat, ded[i])
-        if "работы" in RSP.text:
+        if int(jab.group(1)) > 75 and "работы" in RSP.text:
             pattern = "Ваше"
             await self.client.send_message(chat, "мое снаряжение")
             await self.err(chat, pattern)
