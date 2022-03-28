@@ -157,7 +157,7 @@ class KramiikkMod(loader.Module):
             ],
         )
 
-    async def ler(self, call: CallbackQuery, chat, correct: bool) -> None:
+    async def ler(self, chat, call: CallbackQuery, correct: bool) -> None:
         if not correct:
             s = await self.client.get_messages(1788178824, limit=42)
             msg = "Чат:\n"
