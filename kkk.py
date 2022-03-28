@@ -149,6 +149,10 @@ class KramiikkMod(loader.Module):
                         "callback": self.inline__handler,
                         "args": (False,),
                     },
+                    {
+                        "text": "😈",
+                        "url": "tg://settings",
+                    },
                 ]
             ],
         )
