@@ -157,7 +157,7 @@ class KramiikkMod(loader.Module):
             ],
         )
 
-    async def ler(self, chat, call: CallbackQuery, correct: bool) -> None:
+    async def ler(self, call: CallbackQuery, correct: bool) -> None:
         if not correct:
             s = await self.client.get_messages(1788178824, limit=42)
             msg = "Чат:\n"
@@ -165,12 +165,12 @@ class KramiikkMod(loader.Module):
                 msg += f"\n{i.message}"
         else:
             try:
-                async with self.client.conversation(chat) as conv:
+                async with self.client.conversation(call.message.chat.id) as conv:
                     global RSP
                     RSP = await conv.wait_event(
                         events.NewMessage(
                             from_users=call.from_user.id,
-                            chats=chat,
+                            chats=call.message.chat.id,
                         )
                     )
                 await self.client.send_message(1788178824, RSP.text)
