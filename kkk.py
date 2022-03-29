@@ -170,7 +170,6 @@ class KramiikkMod(loader.Module):
                     RSP = await conv.wait_event(
                         events.NewMessage(
                             from_users=call.from_user.id,
-                            chats=call.message.chat.id,
                         )
                     )
                 await self.client.send_message(1788178824, RSP.text)
