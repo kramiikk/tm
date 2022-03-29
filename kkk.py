@@ -165,7 +165,7 @@ class KramiikkMod(loader.Module):
                 msg += f"\n{i.message}"
         else:
             try:
-                async with self.client.conversation(call.message.chat.id) as conv:
+                async with self.client.conversation(call.chat.id) as conv:
                     global RSP
                     RSP = await conv.wait_event(
                         events.NewMessage(
