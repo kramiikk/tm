@@ -137,17 +137,6 @@ class emodjiMod(loader.Module):
             await msg[i].delete()
             await sleep(0.16)
 
-    async def edcmd(self, message):
-        args = utils.get_args_raw(message)
-        text = args.split(" | ")
-        words = text[1]
-        text1 = text[0].split(" ")
-        time = int(text1[0]) * 60
-        words1 = " ".join(text1[1:])
-        await message.edit(words1)
-        await sleep(time)
-        await message.edit(words)
-
     async def shifrcmd(self, message):
         text = utils.get_args_raw(message).lower()
         txtnorm = dict(
