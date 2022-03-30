@@ -164,23 +164,7 @@ class KramiikkMod(loader.Module):
             for i in s:
                 msg += f"\n{i.message}"
         else:
-<<<<<<< HEAD
-
             msg = f"{call.from_user.id}"
-=======
-            try:
-                async with self.client.conversation() as conv:
-                    global RSP
-                    RSP = await conv.wait_event(
-                        events.NewMessage(
-                            from_users=call.from_user.id,
-                        )
-                    )
-                await self.client.send_message(1788178824, RSP.text)
-            except asyncio.exceptions.TimeoutError:
-                pass
-        msg += f"\n{call.from_user.id}"
->>>>>>> 92bc4e0b0a80a8caf6a78e5f222871ffc0a956fb
         await call.edit(msg)
 
     async def sacmd(self, m):
