@@ -13,7 +13,7 @@ from aiogram.types import Message as AiogramMessage
 from telethon.utils import get_display_name
 
 from .. import loader, utils
-from ..inline.types import InlineQuery
+from ..inline import InlineQuery
 
 logger = logging.getLogger(__name__)
 
