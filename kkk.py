@@ -4,7 +4,6 @@ import random
 import re
 from datetime import timedelta
 
-from aiogram.types import *
 from telethon import events
 
 from .. import loader, utils
@@ -46,9 +45,9 @@ class KramiikkMod(loader.Module):
         pattern = "🐸"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
-            await self.client.send_message(chat, ded[i])
+            await utils.answer(chat, ded[i])
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        await self.client.send_message(chat, "жаба инфо")
+        await utils.answer(chat, "жаба инфо")
         pattern = "🏃‍♂️"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
@@ -57,13 +56,13 @@ class KramiikkMod(loader.Module):
                 or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
-            await self.client.send_message(chat, ded[i])
+            await utils.answer(chat, ded[i])
         if "работы" in RSP.text:
             pattern = "Ваше"
-            await self.client.send_message(chat, "мое снаряжение")
+            await utils.answer(chat, "мое снаряжение")
             await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
-                await self.client.send_message(chat, ded[i])
+                await utils.answer(chat, ded[i])
 
     async def client_ready(self, client, db):
         self.client = client
@@ -84,89 +83,6 @@ class KramiikkMod(loader.Module):
         except asyncio.exceptions.TimeoutError:
             pass
 
-    async def hrs(self, m, msg):
-        await self.inline.form(
-            msg,
-            message=m,
-            reply_markup=[
-                [
-                    {
-                        "text": "📜",
-                        "callback": self.inline__handler,
-                        "args": (True,),
-                    },
-                    {
-                        "text": "🗿",
-                        "callback": self.inline__handler,
-                        "args": (False,),
-                    },
-                ]
-            ],
-            force_me=False,
-        )
-
-    async def inline__handler(self, call: CallbackQuery, correct: bool) -> None:
-        if not correct:
-            s = await self.client.get_messages(1767017980, limit=42)
-            msg = "<b>Сейчас в кв:\n</b>"
-            t = await self.client.send_message(1782816965, "Сезон кланов золото")
-            for i in s:
-                await self.tms(t, i)
-                if "VS" in i.text and timedelta(days=0) <= MS < timedelta(
-                    hours=4, minutes=3
-                ):
-                    msg += f"\n{i.message}\n<i>Время кв: {MS}</i>\n"
-        else:
-            src = f"Клан Вадим и его жабехи Состав:"
-            msg = f"Клан Вадим и его жабехи:\n"
-            get = await self.client.get_messages(1655814348, search=src)
-            for i in get:
-                ids = re.search(r"id: (.+)", i.text).group(1)
-                reg = re.findall(r"\n(\d+)", i.text)
-                for s in reg:
-                    src = f"{ids} {s} Уровень:"
-                    get = await self.client.get_messages(1655814348, search=src)
-                    for p in get:
-                        ger = re.search(r"ь: (\d+)", p.text)
-                        msg += f"\nУровень: {ger.group(1)}"
-                        if "Жаба:" in p.text:
-                            ger = re.search(r"а: (.+)", p.text).group(1)
-                            msg += f" Жаба: {ger}"
-            msg += f"\n\n{call.from_user.id}"
-        await call.edit(msg)
-        await asyncio.sleep(10)
-        await call.edit(
-            "нажми",
-            reply_markup=[
-                [
-                    {
-                        "text": "📜",
-                        "callback": self.ler,
-                        "args": (True,),
-                    },
-                    {
-                        "text": "😈",
-                        "url": "t.me/k_uat",
-                    },
-                    {
-                        "text": "🗿",
-                        "callback": self.ler,
-                        "args": (False,),
-                    },
-                ]
-            ],
-        )
-
-    async def ler(self, call: CallbackQuery, correct: bool) -> None:
-        if not correct:
-            s = await self.client.get_messages(1788178824, limit=42)
-            msg = "Чат:\n"
-            for i in s:
-                msg += f"\n{i.message}"
-        else:
-            msg = f"{call.from_user.id}"
-        await call.edit(msg)
-
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
         if "auto" not in self.su:
@@ -176,7 +92,7 @@ class KramiikkMod(loader.Module):
             self.su.pop("auto")
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
-        await self.hrs(m, msg)
+        await utils.answer(m, msg)
 
     async def sfcmd(self, m):
         """добавить фильтры, пример 'текст / ответ'"""
@@ -201,7 +117,7 @@ class KramiikkMod(loader.Module):
         if self.su[chatid] == {}:
             self.su.pop(chatid)
         self.db.set("Su", "su", self.su)
-        await self.hrs(m, msg)
+        await utils.answer(m, msg)
 
     async def stcmd(self, m):
         """фильтр на юзера, пример 'ид / текст / ответ'"""
@@ -220,14 +136,14 @@ class KramiikkMod(loader.Module):
             self.su[chatid][idu].pop(msg.split(" / ")[0])
             msg = "<b>деактивирована</b>"
         self.db.set("Su", "su", self.su)
-        await self.hrs(m, msg)
+        await utils.answer(m, msg)
 
     async def sncmd(self, m):
         """ник для команд"""
         msg = utils.get_args_raw(m)
         self.su["name"] = msg.casefold()
         msg = "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
-        await self.hrs(m, msg)
+        await utils.answer(m, msg)
         self.db.set("Su", "su", self.su)
 
     async def sucmd(self, m):
@@ -246,13 +162,7 @@ class KramiikkMod(loader.Module):
             self.su["users"].append(txt)
             msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        await self.hrs(m, msg)
-
-    async def tms(self, t, i):
-        global MS
-        MS = timedelta(
-            hours=t.date.hour, minutes=t.date.minute, seconds=t.date.second
-        ) - timedelta(hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second)
+        await utils.answer(m, msg)
 
     async def watcher(self, m):
         msg = m.text
@@ -288,7 +198,7 @@ class KramiikkMod(loader.Module):
                 for i in capt:
                     try:
                         chat = int(i)
-                        await self.client.send_message(chat, "моя жаба")
+                        await utils.answer(chat, "моя жаба")
                         await self.bmj(chat)
                     finally:
                         pass
@@ -302,14 +212,14 @@ class KramiikkMod(loader.Module):
                         msg = reply
                     else:
                         msg = msg.split(" ", 4)[4]
-                    await self.client.send_message(chat, msg)
+                    await utils.answer(chat, msg)
                 elif "напиши" in m.message:
                     async with self.client.conversation(chat):
                         msg = msg.split(" ", 2)[2]
                         if reply:
                             await reply.reply(msg)
                         else:
-                            await self.hrs(m, msg)
+                            await utils.answer(m, msg)
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
@@ -318,10 +228,10 @@ class KramiikkMod(loader.Module):
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 msg = "реанимировать жабу"
-                await self.hrs(m, msg)
+                await utils.answer(m, msg)
                 await m.click(0)
             elif (
-                not m.message.endswith(("[1👴🐝]", "[1🦠🐝]", "👑🐝"))
+                not m.message.endswith(("[1🏳‍🌈🐝]","[1👴🐝]", "[1🦠🐝]", "👑🐝"))
                 and m.buttons
                 and idu in {830605725}
             ):
