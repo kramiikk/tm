@@ -40,16 +40,16 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def bmj(self):
+    async def bmj(self, chat):
         """алгоритм жабабота"""
         pattern = "🐸"
-        await self.err(pattern)
+        await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
             await utils.answer(RSP, ded[i])
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
         await utils.answer(RSP, "жаба инфо")
         pattern = "🏃‍♂️"
-        await self.err(pattern)
+        await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
             if (
                     int(jab.group(1)) < 111
@@ -60,7 +60,7 @@ class KramiikkMod(loader.Module):
         if "работы" in RSP.text:
             pattern = "Ваше"
             await utils.answer(RSP, "мое снаряжение")
-            await self.err(pattern)
+            await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
                 await utils.answer(RSP, ded[i])
 
