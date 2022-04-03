@@ -256,5 +256,6 @@ class KramiikkMod(loader.Module):
                 return
             else:
                 return
+            return
         finally:
             return
