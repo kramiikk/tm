@@ -63,7 +63,6 @@ class KramiikkMod(loader.Module):
             await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
                 await utils.answer(RSP, ded[i])
-        return
 
     async def client_ready(self, client, db):
         self.client = client
@@ -203,7 +202,6 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     finally:
                         pass
-                return
             elif m.message.casefold().startswith(name) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
@@ -222,12 +220,10 @@ class KramiikkMod(loader.Module):
                             await reply.reply(msg)
                         else:
                             await utils.answer(m, msg)
-                        return
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
                         await m.reply(ded[cmn])
-                    return
             elif (
                     f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
@@ -253,7 +249,6 @@ class KramiikkMod(loader.Module):
                         await utils.answer(m, self.su[chatid][idu][i])
                 for i in (i for i in self.su[chatid] if i in m.message):
                     await utils.answer(m, self.su[chatid][i])
-                return
             else:
                 return
             return
