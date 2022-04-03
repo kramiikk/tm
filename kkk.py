@@ -169,9 +169,8 @@ class KramiikkMod(loader.Module):
         chat = m.chat_id
         chatid = str(chat)
         idu = m.sender_id
-        me = self.me.id
         name = self.me.username
-        users = me
+        users = self.me.id
         if "name" in self.su:
             name = self.su["name"]
             users = self.su["users"]

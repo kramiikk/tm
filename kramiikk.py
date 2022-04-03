@@ -45,9 +45,9 @@ class KramiikkMod(loader.Module):
         pattern = "🐸"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
-            await self.client.send_message(chat, ded[i])
+            await utils.answer(RSP, ded[i])
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        await self.client.send_message(chat, "жаба инфо")
+        await utils.answer(RSP, "жаба инфо")
         pattern = "🏃‍♂️"
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
@@ -56,13 +56,13 @@ class KramiikkMod(loader.Module):
                 or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
-            await self.client.send_message(chat, ded[i])
-        if int(jab.group(1)) > 75 and "работы" in RSP.text:
+            await utils.answer(RSP, ded[i])
+        if "работы" in RSP.text:
             pattern = "Ваше"
-            await self.client.send_message(chat, "мое снаряжение")
+            await utils.answer(RSP, "мое снаряжение")
             await self.err(chat, pattern)
             for i in (i for i in ded if i in RSP.text):
-                await self.client.send_message(chat, ded[i])
+                await utils.answer(RSP, ded[i])
 
     async def client_ready(self, client, db):
         self.client = client
@@ -81,7 +81,7 @@ class KramiikkMod(loader.Module):
                     )
                 )
         except asyncio.exceptions.TimeoutError:
-            pass
+            return
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
@@ -187,7 +187,7 @@ class KramiikkMod(loader.Module):
                 and idu in {1124824021}
                 and "auto" in self.su
             ):
-                await self.client.send_message(
+                return await self.client.send_message(
                     1124824021,
                     "мои жабы",
                     schedule=timedelta(
@@ -218,7 +218,7 @@ class KramiikkMod(loader.Module):
                         msg = reply
                     else:
                         msg = msg.split(" ", 4)[4]
-                    await self.client.send_message(chat, msg)
+                    return await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
                     async with self.client.conversation(chat):
                         msg = msg.split(" ", 2)[2]
@@ -235,7 +235,7 @@ class KramiikkMod(loader.Module):
             ):
                 msg = "реанимировать жабу"
                 await utils.answer(m, msg)
-                await m.click(0)
+                return await m.click(0)
             elif chatid in self.su:
                 idu = str(idu)
                 if idu in self.su[chatid]:
@@ -245,5 +245,6 @@ class KramiikkMod(loader.Module):
                     await utils.answer(m, self.su[chatid][i])
             else:
                 return
+            return
         finally:
             return
