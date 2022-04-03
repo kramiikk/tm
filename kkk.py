@@ -181,7 +181,7 @@ class KramiikkMod(loader.Module):
                     and idu in {1124824021}
                     and "auto" in self.su
             ):
-                await self.client.send_message(
+                return await self.client.send_message(
                     1124824021,
                     "мои жабы",
                     schedule=timedelta(
@@ -202,6 +202,7 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     finally:
                         pass
+                return
             elif m.message.casefold().startswith(name) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
@@ -212,7 +213,7 @@ class KramiikkMod(loader.Module):
                         msg = reply
                     else:
                         msg = msg.split(" ", 4)[4]
-                    await utils.answer(chat, msg)
+                    return await utils.answer(chat, msg)
                 elif "напиши" in m.message:
                     async with self.client.conversation(chat):
                         msg = msg.split(" ", 2)[2]
@@ -220,26 +221,27 @@ class KramiikkMod(loader.Module):
                             await reply.reply(msg)
                         else:
                             await utils.answer(m, msg)
+                        return
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
-                        await m.reply(ded[cmn])
+                        return await m.reply(ded[cmn])
             elif (
                     f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 msg = "реанимировать жабу"
                 await utils.answer(m, msg)
-                await m.click(0)
+                return await m.click(0)
             elif (
                     not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
                     and m.buttons
                     and idu in {830605725}
             ):
-                await m.click(0)
+                return await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
                 msg = [int(x) for x in m.text.split() if x.isnumeric()]
                 delta = timedelta(hours=msg[1], minutes=msg[2], seconds=33)
-                await self.client.send_message(
+                return await self.client.send_message(
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
             elif chatid in self.su:
@@ -249,6 +251,7 @@ class KramiikkMod(loader.Module):
                         await utils.answer(m, self.su[chatid][idu][i])
                 for i in (i for i in self.su[chatid] if i in m.message):
                     await utils.answer(m, self.su[chatid][i])
+                return
             else:
                 return
         finally:
