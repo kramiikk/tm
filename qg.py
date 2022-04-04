@@ -1,9 +1,6 @@
-__version__ = (1, 1, 1)
-
 # scope: inline_content
 # meta developer: @kramiikk
 import logging
-from asyncio import sleep
 
 from aiogram.types import InlineQueryResultArticle, InputTextMessageContent
 from telethon.tl.functions.channels import JoinChannelRequest
@@ -294,7 +291,6 @@ class AirMod(loader.Module):
                 await self.inline.bot.send_message(
                     self.me, message.text, parse_mode="HTML"
                 )
-                await sleep(1)
             for chat in self.forwards:
                 await self.client.send_message(chat, message.text)
         return
