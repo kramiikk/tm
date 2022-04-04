@@ -52,12 +52,12 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
             if (
-                int(jab.group(1)) < 111
-                or (int(jab.group(1)) > 111 and int(jab.group(2)) < 2222)
+                int(jab.group(1)) < 123
+                or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
             await utils.answer(RSP, ded[i])
-        if "работы" in RSP.text:
+        if int(jab.group(1)) > 123 and "работы" in RSP.text:
             pattern = "Ваше"
             await utils.answer(RSP, "мое снаряжение")
             await self.err(chat, pattern)
