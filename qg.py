@@ -201,8 +201,9 @@ class AirAlertMod(loader.Module):
     async def alertforwardcmd(self, message: Message) -> None:
         """Перенаправление предупреждений в другие чаты. Для добавления/удаления введите команду с ссылкой на чат.
         Для просмотра чатов введите команду без аргументов"""
-        chat = int(utils.get_args_raw(message))
-        if not chat:
+        text = utils.get_args_raw(message)
+        chat = int(text)
+        if not text:
             chats = "<b>Текущие чаты для перенаправления: </b>"
             for chat in self.forwards:
                 chats += f"\n{chat}"
