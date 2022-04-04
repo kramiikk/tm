@@ -175,27 +175,7 @@ class AirMod(loader.Module):
         self.client = client
         self.regions = db.get("AirAlert", "regions", [])
         self.bot_id = (await self.inline.bot.get_me()).id
-        self.forwards = db.get("AirAlert", "forwards", [])
         self.me = (await client.get_me()).id
-
-    async def alertforwardcmd(self, m) -> None:
-        """Перенаправление предупреждений в другие чаты. Для добавления/удаления введите команду с ссылкой на чат.
-        Для просмотра чатов введите команду без аргументов"""
-        text = utils.get_args_raw(m)
-        if not text:
-            chats = "<b>Текущие чаты для перенаправления: </b>"
-            for chat in self.forwards:
-                chats += f"\n{chat}"
-            return await utils.answer(m, chats)
-        chat = int(text)
-        if chat in self.forwards:
-            self.forwards.remove(chat)
-            self.db.set("AirAlert", "forwards", self.forwards)
-            await utils.answer(m, "<b>Чат успешно удален для перенаправления</b>")
-        else:
-            self.forwards.append(chat)
-            self.db.set("AirAlert", "forwards", self.forwards)
-            await utils.answer(m, "<b>Чат успешно установлен для перенаправления</b>")
 
     async def alert_inline_handler(self, query: GeekInlineQuery) -> None:
         """Выбор регионов.
@@ -255,8 +235,8 @@ class AirMod(loader.Module):
         ):
             for _ in range(3):
                 await self.inline.bot.send_message(self.me, m.text, parse_mode="HTML")
-            for chat in self.forwards:
-                await self.client.send_message(chat, m.text)
+        elif "Куат" in m.message:
+            await self.inline.bot.send_message(1785723159, m.text, parse_mode="HTML")
         return
 
 
