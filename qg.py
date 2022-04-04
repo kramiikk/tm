@@ -3,7 +3,6 @@
 import logging
 
 from aiogram.types import InlineQueryResultArticle, InputTextMessageContent
-from telethon.tl.types import Message
 
 from .. import loader  # noqa
 
@@ -179,26 +178,24 @@ class AirMod(loader.Module):
         self.forwards = db.get("AirAlert", "forwards", [])
         self.me = (await client.get_me()).id
 
-    async def alertforwardcmd(self, message: Message) -> None:
+    async def alertforwardcmd(self, m) -> None:
         """Перенаправление предупреждений в другие чаты. Для добавления/удаления введите команду с ссылкой на чат.
         Для просмотра чатов введите команду без аргументов"""
-        text = utils.get_args_raw(message)
+        text = utils.get_args_raw(m)
         if not text:
             chats = "<b>Текущие чаты для перенаправления: </b>"
             for chat in self.forwards:
                 chats += f"\n{chat}"
-            return await utils.answer(message, chats)
+            return await utils.answer(m, chats)
         chat = int(text)
         if chat in self.forwards:
             self.forwards.remove(chat)
             self.db.set("AirAlert", "forwards", self.forwards)
-            await utils.answer(message, "<b>Чат успешно удален для перенаправления</b>")
+            await utils.answer(m, "<b>Чат успешно удален для перенаправления</b>")
         else:
             self.forwards.append(chat)
             self.db.set("AirAlert", "forwards", self.forwards)
-            await utils.answer(
-                message, "<b>Чат успешно установлен для перенаправления</b>"
-            )
+            await utils.answer(m, "<b>Чат успешно установлен для перенаправления</b>")
 
     async def alert_inline_handler(self, query: GeekInlineQuery) -> None:
         """Выбор регионов.
@@ -230,15 +227,15 @@ class AirMod(loader.Module):
         ]
         await query.answer(res, cache_time=0)
 
-    async def watcher(self, message: Message) -> None:
+    async def watcher(self, m) -> None:
         if (
-            getattr(message, "out", False)
-            and getattr(message, "via_bot_id", False)
-            and message.via_bot_id == self.bot_id
-            and "⌛ Редактирование региона" in getattr(message, "raw_text", "")
+            getattr(m, "out", False)
+            and getattr(m, "via_bot_id", False)
+            and m.via_bot_id == self.bot_id
+            and "⌛ Редактирование региона" in getattr(m, "raw_text", "")
         ):
             self.regions = self.db.get("AirAlert", "regions", [])
-            region = message.raw_text[25:]
+            region = m.raw_text[25:]
             state = "добавлен"
             if region not in self.regions:
                 self.regions.append(region)
@@ -248,21 +245,18 @@ class AirMod(loader.Module):
             self.db.set("AirAlert", "regions", self.regions)
             n = "\n"
             res = f"<b>Регион <code>{region}</code> успешно {state}</b>{n}"
-            await self.inline.form(res, message=message)
+            await self.inline.form(res, message=m)
         if (
-            getattr(message, "peer_id", False)
-            and getattr(message.peer_id, "channel_id", 0) == 1766138888
+            getattr(m, "peer_id", False)
+            and getattr(m.peer_id, "channel_id", 0) == 1766138888
             and (
-                "all" in self.regions
-                or any(reg in message.raw_text for reg in self.regions)
+                "all" in self.regions or any(reg in m.raw_text for reg in self.regions)
             )
         ):
             for _ in range(3):
-                await self.inline.bot.send_message(
-                    self.me, message.text, parse_mode="HTML"
-                )
+                await self.inline.bot.send_message(self.me, m.text, parse_mode="HTML")
             for chat in self.forwards:
-                await self.client.send_message(chat, message.text)
+                await self.client.send_message(chat, m.text)
         return
 
 
