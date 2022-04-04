@@ -241,6 +241,8 @@ class KramiikkMod(loader.Module):
                 return await self.client.send_message(
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
+            elif "НЕЗАЧЁТ!" in m.message:
+                await m.react("🔥")
             elif chatid in self.su:
                 idu = str(idu)
                 if idu in self.su[chatid]:

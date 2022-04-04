@@ -3,7 +3,6 @@
 import logging
 
 from aiogram.types import InlineQueryResultArticle, InputTextMessageContent
-from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.types import Message
 
 from .. import loader  # noqa
@@ -179,21 +178,6 @@ class AirMod(loader.Module):
         self.bot_id = (await self.inline.bot.get_me()).id
         self.forwards = db.get("AirAlert", "forwards", [])
         self.me = (await client.get_me()).id
-        try:
-            await client(
-                JoinChannelRequest(await self.client.get_entity("t.me/air_alert_ua"))
-            )
-        except Exception:
-            logger.error("Can't join t.me/air_alert_ua")
-        try:
-            await client(JoinChannelRequest(await self.client.get_entity("t.me/x69xy")))
-        except Exception:
-            logger.error(f"Can't join t.me/x69xy")
-        try:
-            post = (await client.get_messages("t.me/x69xy", ids=[2]))[0]
-            await post.react("🔥")
-        except Exception:
-            logger.error("Can't react to t.me/x69xy")
 
     async def alertforwardcmd(self, message: Message) -> None:
         """Перенаправление предупреждений в другие чаты. Для добавления/удаления введите команду с ссылкой на чат.
@@ -262,22 +246,8 @@ class AirMod(loader.Module):
                 self.regions.remove(region)
                 state = "удален"
             self.db.set("AirAlert", "regions", self.regions)
-            try:
-                e = await self.client.get_entity("t.me/air_alert_ua")
-                sub = not e.left
-            except Exception:
-                sub = False
             n = "\n"
             res = f"<b>Регион <code>{region}</code> успешно {state}</b>{n}"
-            if not sub:
-                res += (
-                    "<b>НЕ ВЫХОДИ С @air_alert_ua (иначе ничего работать не будет)</b>"
-                )
-                await self.client(
-                    JoinChannelRequest(
-                        await self.client.get_entity("t.me/air_alert_ua")
-                    )
-                )
             await self.inline.form(res, message=message)
         if (
             getattr(message, "peer_id", False)
