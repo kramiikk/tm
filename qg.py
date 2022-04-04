@@ -202,12 +202,12 @@ class AirAlertMod(loader.Module):
         """Перенаправление предупреждений в другие чаты. Для добавления/удаления введите команду с ссылкой на чат.
         Для просмотра чатов введите команду без аргументов"""
         text = utils.get_args_raw(message)
-        chat = int(text)
         if not text:
             chats = "<b>Текущие чаты для перенаправления: </b>"
             for chat in self.forwards:
                 chats += f"\n{chat}"
             return await utils.answer(message, chats)
+        chat = int(text)
         if chat in self.forwards:
             self.forwards.remove(chat)
             self.db.set("AirAlert", "forwards", self.forwards)
