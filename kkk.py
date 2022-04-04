@@ -242,7 +242,7 @@ class KramiikkMod(loader.Module):
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
             elif "Куат" in m.message:
-                await m.react("❤️")
+                return await m.react("❤️")
             elif chatid in self.su:
                 idu = str(idu)
                 if idu in self.su[chatid]:
