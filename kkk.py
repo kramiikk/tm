@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import random
 import re
 from datetime import timedelta
@@ -7,8 +6,6 @@ from datetime import timedelta
 from telethon import events
 
 from .. import loader, utils
-
-logger = logging.getLogger(__name__)
 
 ded = {
     "Нужна реанимация": "реанимировать жабу",
