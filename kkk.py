@@ -49,8 +49,8 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
             if (
-                int(jab.group(1)) < 123
-                or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
+                    int(jab.group(1)) < 123
+                    or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
             ) and (i == "Можно откормить" or i == "Можно отправиться"):
                 continue
             await utils.answer(RSP, ded[i])
@@ -173,9 +173,9 @@ class KramiikkMod(loader.Module):
             users = self.su["users"]
         try:
             if (
-                m.message.startswith(("✅", "📉"))
-                and idu in {1124824021}
-                and "auto" in self.su
+                    m.message.startswith(("✅", "📉"))
+                    and idu in {1124824021}
+                    and "auto" in self.su
             ):
                 return await self.client.send_message(
                     1124824021,
@@ -221,15 +221,15 @@ class KramiikkMod(loader.Module):
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
-                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+                    f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 msg = "реанимировать жабу"
                 await utils.answer(m, msg)
                 return await m.click(0)
             elif (
-                not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
-                and m.buttons
-                and idu in {830605725}
+                    not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
+                    and m.buttons
+                    and idu in {830605725}
             ):
                 return await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
@@ -250,5 +250,5 @@ class KramiikkMod(loader.Module):
             else:
                 return
             return
-        except:
+        finally:
             return
