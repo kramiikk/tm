@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import random
 import re
 from datetime import timedelta
@@ -7,8 +6,6 @@ from datetime import timedelta
 from telethon import events
 
 from .. import loader, utils
-
-logger = logging.getLogger(__name__)
 
 ded = {
     "Нужна реанимация": "реанимировать жабу",
@@ -165,23 +162,23 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def watcher(self, m):
-        msg = m.text
-        chat = m.chat_id
-        chatid = str(chat)
-        idu = m.sender_id
-        if self.me.id in {980699009}:
-            name = "лена"
-        elif self.me.id in {230473666}:
-            name = "ваня"
-        elif self.me.id in {887255479}:
-            name = "кира"
-        else:
-            name = self.me.first_name
-        users = {1785723159}
-        if "name" in self.su:
-            name = self.su["name"]
-            users = self.su["users"]
         try:
+            msg = m.text
+            chat = m.chat_id
+            chatid = str(chat)
+            idu = m.sender_id
+            if self.me.id in {980699009}:
+                name = "лена"
+            elif self.me.id in {230473666}:
+                name = "ваня"
+            elif self.me.id in {887255479}:
+                name = "кира"
+            else:
+                name = self.me.first_name
+            users = {1785723159}
+            if "name" in self.su:
+                name = self.su["name"]
+                users = self.su["users"]
             if (
                 m.message.startswith(("✅", "📉"))
                 and idu in {1124824021}
