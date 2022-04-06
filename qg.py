@@ -1,6 +1,5 @@
 # scope: inline_content
 # meta developer: @kramiikk
-import logging
 
 from aiogram.types import InlineQueryResultArticle, InputTextMessageContent
 
@@ -13,8 +12,6 @@ except ImportError:
     from .. import utils  # noqa
     from ..inline.types import GeekInlineQuery  # noqa
     from ..utils import rand  # noqa
-
-logger = logging.getLogger(__name__)
 
 ua = [
     "all",
