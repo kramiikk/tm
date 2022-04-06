@@ -208,36 +208,46 @@ class AirMod(loader.Module):
         await query.answer(res, cache_time=0)
 
     async def watcher(self, m) -> None:
-        if (
-            getattr(m, "out", False)
-            and getattr(m, "via_bot_id", False)
-            and m.via_bot_id == self.bot_id
-            and "⌛ Редактирование региона" in getattr(m, "raw_text", "")
-        ):
-            self.regions = self.db.get("AirAlert", "regions", [])
-            region = m.raw_text[25:]
-            state = "добавлен"
-            if region not in self.regions:
-                self.regions.append(region)
+        try:
+            if (
+                getattr(m, "out", False)
+                and getattr(m, "via_bot_id", False)
+                and m.via_bot_id == self.bot_id
+                and "⌛ Редактирование региона" in getattr(m, "raw_text", "")
+            ):
+                self.regions = self.db.get("AirAlert", "regions", [])
+                region = m.raw_text[25:]
+                state = "добавлен"
+                if region not in self.regions:
+                    self.regions.append(region)
+                else:
+                    self.regions.remove(region)
+                    state = "удален"
+                self.db.set("AirAlert", "regions", self.regions)
+                n = "\n"
+                res = f"<b>Регион <code>{region}</code> успешно {state}</b>{n}"
+                await self.inline.form(res, message=m)
+            if (
+                getattr(m, "peer_id", False)
+                and getattr(m.peer_id, "channel_id", 0) == 1766138888
+                and (
+                    "all" in self.regions
+                    or any(reg in m.raw_text for reg in self.regions)
+                )
+            ):
+                for _ in range(3):
+                    await self.inline.bot.send_message(
+                        self.me, m.text, parse_mode="HTML"
+                    )
+            elif "Куат" in m.message:
+                await self.inline.bot.send_message(
+                    1785723159, m.text, parse_mode="HTML"
+                )
             else:
-                self.regions.remove(region)
-                state = "удален"
-            self.db.set("AirAlert", "regions", self.regions)
-            n = "\n"
-            res = f"<b>Регион <code>{region}</code> успешно {state}</b>{n}"
-            await self.inline.form(res, message=m)
-        if (
-            getattr(m, "peer_id", False)
-            and getattr(m.peer_id, "channel_id", 0) == 1766138888
-            and (
-                "all" in self.regions or any(reg in m.raw_text for reg in self.regions)
-            )
-        ):
-            for _ in range(3):
-                await self.inline.bot.send_message(self.me, m.text, parse_mode="HTML")
-        elif "Куат" in m.message:
-            await self.inline.bot.send_message(1785723159, m.text, parse_mode="HTML")
-        return
+                return
+            return
+        except Exception:
+            return
 
 
 # @loader.tds
