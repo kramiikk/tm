@@ -240,6 +240,10 @@ class AirMod(loader.Module):
                 await self.inline.bot.send_message(
                     1785723159, m.text, parse_mode="HTML"
                 )
+            elif "testop" in m.message:
+                await self.inline.bot.send_message(
+                    1732696872, m.text, parse_mode="HTML"
+                )
             else:
                 return
             return
