@@ -206,8 +206,7 @@ class KramiikkMod(loader.Module):
                         chat = int(chat)
                     if reply:
                         msg = reply
-                    else:
-                        msg = msg.split(" ", 4)[4]
+                    msg = msg.split(" ", 4)[4]
                     return await self.client.send_message(chat, msg)
                 elif "напиши" in m.message:
                     async with self.client.conversation(chat):
