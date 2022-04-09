@@ -30,6 +30,8 @@ ded = {
     "Банда: Пусто": "взять жабу",
 }
 
+RSP = None
+
 
 @loader.tds
 class KramiikkMod(loader.Module):
@@ -71,7 +73,6 @@ class KramiikkMod(loader.Module):
         """работа с ответом жабабота"""
         try:
             async with self.client.conversation(chat) as conv:
-                global RSP
                 RSP = await conv.wait_event(
                     events.NewMessage(
                         from_users=1124824021, chats=chat, pattern=pattern
