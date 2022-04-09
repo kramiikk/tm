@@ -213,8 +213,7 @@ class KramiikkMod(loader.Module):
                         msg = msg.split(" ", 2)[2]
                         if reply:
                             await reply.reply(msg)
-                        else:
-                            await utils.answer(m, msg)
+                        await utils.answer(m, msg)
                 else:
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
