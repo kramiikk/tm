@@ -78,7 +78,7 @@ class KramiikkMod(loader.Module):
                         from_users=1124824021, chats=chat, pattern=pattern
                     )
                 )
-                RSP = RSP
+                RSP = msg
         except asyncio.exceptions.TimeoutError:
             return
 
