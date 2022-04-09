@@ -30,8 +30,6 @@ ded = {
     "Банда: Пусто": "взять жабу",
 }
 
-RSP = None
-
 
 @loader.tds
 class KramiikkMod(loader.Module):
@@ -51,8 +49,8 @@ class KramiikkMod(loader.Module):
         await self.err(chat, pattern)
         for i in (i for i in ded if i in RSP.text):
             if (
-                int(jab.group(1)) < 123
-                or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
+                    int(jab.group(1)) < 123
+                    or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
             ) and i in ("Можно откормить", "Можно отправиться"):
                 continue
             await utils.answer(RSP, ded[i])
@@ -73,12 +71,12 @@ class KramiikkMod(loader.Module):
         """работа с ответом жабабота"""
         try:
             async with self.client.conversation(chat) as conv:
-                msg = await conv.wait_event(
+                global RSP
+                RSP = await conv.wait_event(
                     events.NewMessage(
                         from_users=1124824021, chats=chat, pattern=pattern
                     )
                 )
-                RSP = msg
         except asyncio.exceptions.TimeoutError:
             return
 
@@ -175,9 +173,9 @@ class KramiikkMod(loader.Module):
                 name = self.su["name"]
                 users = self.su["users"]
             if (
-                m.message.startswith(("✅", "📉"))
-                and idu in {1124824021}
-                and "auto" in self.su
+                    m.message.startswith(("✅", "📉"))
+                    and idu in {1124824021}
+                    and "auto" in self.su
             ):
                 return await self.client.send_message(
                     1124824021,
@@ -203,9 +201,9 @@ class KramiikkMod(loader.Module):
             elif m.message.casefold().startswith(name) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
+                    chat = msg.split(" ", 4)[3]
                     if chat.isnumeric():
                         chat = int(chat)
-                    chat = msg.split(" ", 4)[3]
                     if reply:
                         msg = reply
                     msg = msg.split(" ", 4)[4]
@@ -221,15 +219,15 @@ class KramiikkMod(loader.Module):
                     if cmn in ded:
                         await m.reply(ded[cmn])
             elif (
-                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
+                    f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 msg = "реанимировать жабу"
                 await utils.answer(m, msg)
                 return await m.click(0)
             elif (
-                not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
-                and m.buttons
-                and idu in {830605725}
+                    not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
+                    and m.buttons
+                    and idu in {830605725}
             ):
                 return await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
