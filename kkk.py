@@ -201,9 +201,9 @@ class KramiikkMod(loader.Module):
             elif m.message.casefold().startswith(name) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
-                    chat = msg.split(" ", 4)[3]
                     if chat.isnumeric():
                         chat = int(chat)
+                    chat = msg.split(" ", 4)[3]
                     if reply:
                         msg = reply
                     msg = msg.split(" ", 4)[4]
