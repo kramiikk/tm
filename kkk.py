@@ -184,7 +184,7 @@ class KramiikkMod(loader.Module):
                         minutes=random.randint(13, 60), seconds=random.randint(1, 60)
                     ),
                 )
-            elif m.message.startswith("мои жабы") and chat in {1124824021}:
+            if m.message.startswith("мои жабы") and chat in {1124824021}:
                 await m.delete()
                 pattern = "•"
                 await self.err(chat, pattern)
@@ -208,7 +208,7 @@ class KramiikkMod(loader.Module):
                         msg = reply
                     msg = msg.split(" ", 4)[4]
                     return await self.client.send_message(chat, msg)
-                elif "напиши" in m.message:
+                if "напиши" in m.message:
                     async with self.client.conversation(chat):
                         msg = msg.split(" ", 2)[2]
                         if reply:
