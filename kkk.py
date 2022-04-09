@@ -51,7 +51,7 @@ class KramiikkMod(loader.Module):
             if (
                 int(jab.group(1)) < 123
                 or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
-            ) and (i == "Можно откормить" or i == "Можно отправиться"):
+            ) and i in ("Можно откормить", "Можно отправиться"):
                 continue
             await utils.answer(RSP, ded[i])
         if int(jab.group(1)) > 123 and "работы" in RSP.text:
