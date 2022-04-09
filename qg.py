@@ -251,13 +251,6 @@ class AirMod(loader.Module):
             return
 
 
-
-
-
-
-
-
-
 #         r = "🦅 Heads" if randint(0, 1) else "🪙 Tails"
 #         await query.answer(
 #             [
@@ -330,11 +323,6 @@ class AirMod(loader.Module):
 #         )
 #         await asyncio.sleep(time)
 #         await query.edit(words)
-
-
-
-
-
 
 
 #         if call.data != "leave":
