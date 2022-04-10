@@ -247,5 +247,7 @@ class KramiikkMod(loader.Module):
             else:
                 return
             return
-        except Exception:
-            return
+        except Exception as e:
+            return await self.client.send_message(
+                "me", f"Неизвестная мне ошибка:\n{' '.join(e.args)}"
+            )
