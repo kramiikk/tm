@@ -98,7 +98,9 @@ class SpyMod(loader.Module):
                                 lira = re.search(r"Топ 35 кланов (.+) лиге", s.message)
                                 lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
                     if "деревян" not in lira.casefold():
-                        return await self.client.send_message(1767017980, f"В поиске {lira}")
+                        return await self.client.send_message(
+                            1767017980, f"В поиске {lira}"
+                        )
             elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
                 klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
                 src = f"Топ 35 кланов {klan.group(1)}"
