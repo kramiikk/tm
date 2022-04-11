@@ -21,7 +21,6 @@ class SpyMod(loader.Module):
 
     async def client_ready(self, client, db):
         self.client = client
-        self.db = db
 
     async def tms(self, m, i):
         global MS
@@ -37,15 +36,17 @@ class SpyMod(loader.Module):
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
         except asyncio.exceptions.TimeoutError:
-            pass
+            return
 
     async def watcher(self, m):
         try:
-            if m.message.startswith("Йоу,") and m.sender_id in {1124824021}:
+            if m.message.startswith(("Очень", "Клан")) and m.sender_id in {1124824021}:
                 if "одержал" in m.text:
-                    klan = re.search(r"клан (.+) одержал[\s\S]* (\d+):(\d+)!", m.text)
+                    klan = re.search(r"Клан (.+) одержал[\s\S]* (\d+):(\d+)", m.text)
+                elif "проиграли" in m.text:
+                    klan = re.search(r", (.+), вы[\s\S]* (\d+):(\d+)", m.text)
                 else:
-                    klan = re.search(r", (.+) в этот[\s\S]* (\d+):(\d+)", m.text)
+                    return
                 s = await self.client.get_messages(
                     1767017980, search=f"VS {klan.group(1)}"
                 )
@@ -61,12 +62,12 @@ class SpyMod(loader.Module):
                         if int(klan.group(2)) < int(klan.group(3)):
                             chet = "".join(reversed(chet))
                         tog = f"🏆 {p.group(1)}\n             {chet}\n🔻 {p.group(2)}"
-                        if (klan.group(1) == p.group(1) and "слабее" in m.text) or (
+                        if (klan.group(1) == p.group(1) and "проиграли" in m.text) or (
                             klan.group(1) != p.group(1) and "одержал" in m.text
                         ):
                             tog = f"🏆 {p.group(2)}\n             {chet}\n🔻 {p.group(1)}"
                         await i.reply(tog)
-                ms = re.findall(r"•(<.+?(\d+).+>)", m.text)
+                ms = re.findall(r"•.+(<.+?(\d+).+>)", m.text)
                 tog = f"Chat id: {m.chat_id}\n\nСостав {klan.group(1)}:"
                 for i in ms:
                     tog += f"\n{i[0]} {i[1]}"
@@ -139,5 +140,7 @@ class SpyMod(loader.Module):
                     await self.client.send_message(1655814348, info)
             else:
                 return
-        finally:
-            return
+        except Exception as e:
+            return await self.client.send_message(
+                "me", f"Неизвестная мне ошибка:\n{' '.join(e.args)}"
+            )
