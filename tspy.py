@@ -20,6 +20,7 @@ class SpyMod(loader.Module):
         self.name = self.strings["name"]
 
     async def client_ready(self, client, db):
+        self.db = db
         self.client = client
 
     async def tms(self, m, i):
