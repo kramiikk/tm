@@ -134,13 +134,12 @@ class SpyMod(loader.Module):
             ) and len(m.message) in {17, 8}:
                 p = "🐸"
                 await self.err(m, p)
-                if "Имя жабы" in RSP.text:
-                    reg = re.search(
-                        r": (.+)[\s\S]*У.+: (.+)[\s\S]*сс.+: (.+)",
-                        RSP.raw_text,
-                    )
-                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
-                    return await self.client.send_message(1655814348, info)
+                reg = re.search(
+                    r": (.+)[\s\S]*У.+: (.+)[\s\S]*сс.+: (.+)",
+                    RSP.text,
+                )
+                info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
+                return await self.client.send_message(1655814348, info)
             else:
                 return
         except Exception as e:
