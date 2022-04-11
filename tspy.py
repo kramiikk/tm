@@ -98,7 +98,9 @@ class SpyMod(loader.Module):
                                 lira = re.search(r"Топ 35 кланов (.+) лиге", s.message)
                                 lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
                     if "деревян" not in lira.casefold():
-                        return await self.client.send_message(1767017980, f"В поиске {lira}")
+                        return await self.client.send_message(
+                            1767017980, f"В поиске {lira}"
+                        )
             elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
                 klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
                 src = f"Топ 35 кланов {klan.group(1)}"
@@ -134,7 +136,7 @@ class SpyMod(loader.Module):
                 await self.err(m, p)
                 if "Имя жабы" in RSP.text:
                     reg = re.search(
-                        r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
+                        r": (.+)[\s\S]*У.+: (.+)[\s\S]*сс.+: (.+)",
                         RSP.raw_text,
                     )
                     info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
@@ -142,6 +144,4 @@ class SpyMod(loader.Module):
             else:
                 return
         except Exception as e:
-            return await self.client.send_message(
-                "me", f"Неизвестная мне ошибка:\n{' '.join(e.args)}"
-            )
+            return await self.client.send_message("me", f"Ошибка:\n{' '.join(e.args)}")
