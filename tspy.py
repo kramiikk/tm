@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import re
 from datetime import timedelta
 
@@ -7,17 +6,12 @@ from telethon import events
 
 from .. import loader
 
-logger = logging.getLogger(__name__)
-
 
 @loader.tds
 class SpyMod(loader.Module):
     """Слежка за кланами в Жабаботе."""
 
     strings = {"name": "spy"}
-
-    def __init__(self):
-        self.name = self.strings["name"]
 
     async def client_ready(self, client, db):
         self.db = db
@@ -82,7 +76,7 @@ class SpyMod(loader.Module):
                     src = f"{m.chat_id} {m.sender_id} Клан:"
                     lira = None
                     ms = await self.client.get_messages(1655814348, search=src)
-                    for i in ms:
+                    for i in (i for i in ms if "деревян" not in i.text.casefold()):
                         if "Усилитель:" in i.message:
                             klan = re.search(
                                 r"Лига: (.+)\nУсилитель: (.+)\n\nКлан: (.+)", i.text
@@ -94,13 +88,14 @@ class SpyMod(loader.Module):
                             p = await self.client.get_messages(1782816965, search=src)
                             if p.total == 0:
                                 return
-                            for s in p:
-                                lira = re.search(r"Топ 35 кланов (.+) лиге", s.message)
+                            for i in p:
+                                lira = re.search(r"Топ 35 кланов (.+) лиге", i.message)
                                 lira = f"{klan.group(1)}\nЛига: {lira.group(1)}"
-                    if "деревян" not in lira.casefold():
                         return await self.client.send_message(
                             1767017980, f"В поиске {lira}"
                         )
+                    return
+                return
             elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
                 klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
                 src = f"Топ 35 кланов {klan.group(1)}"
@@ -123,6 +118,7 @@ class SpyMod(loader.Module):
                     for i in capt:
                         tog += f"\n{i}"
                     return await self.client.send_message(1655814348, tog)
+                return
             elif m.message.casefold().startswith(("мой клан", "@toadbot мой клан")):
                 p = "Клан"
                 await self.err(m, p)
@@ -134,16 +130,15 @@ class SpyMod(loader.Module):
             ) and len(m.message) in {17, 8}:
                 p = "🐸"
                 await self.err(m, p)
-                if "Имя жабы" in RSP.text:
-                    reg = re.search(
-                        r"жабы: (.+)[\s\S]*й жабы: (.+)[\s\S]*Класс: (.+)",
-                        RSP.raw_text,
-                    )
-                    info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
-                    return await self.client.send_message(1655814348, info)
+                reg = re.search(
+                    r": (.+)[\s\S]*У.+: (.+)[\s\S]*сс.+: (.+)",
+                    RSP.text,
+                )
+                info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
+                return await self.client.send_message(1655814348, info)
             else:
                 return
         except Exception as e:
             return await self.client.send_message(
-                "me", f"Неизвестная мне ошибка:\n{' '.join(e.args)}"
+                "me", f"[spy] Ошибка:\n{' '.join(e.args)}"
             )
