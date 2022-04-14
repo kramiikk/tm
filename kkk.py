@@ -69,7 +69,8 @@ class KramiikkMod(loader.Module):
         """работа с ответом жабабота"""
         try:
             async with self.client.conversation(chat, exclusive=False) as conv:
-                await conv.send_message(cmn)
+                msg = await conv.send_message(cmn)
+                await msg.delete()
                 global RSP
                 RSP = await conv.get_response()
                 await conv.cancel_all()
