@@ -70,13 +70,10 @@ class KramiikkMod(loader.Module):
     async def err(self, chat, pattern):
         """работа с ответом жабабота"""
         try:
-            async with self.client.conversation(chat) as conv:
+            async with self.client.conversation(chat, exclusive=False) as conv:
                 global RSP
-                RSP = await conv.wait_event(
-                    events.NewMessage(
-                        from_users=1124824021, chats=chat, pattern=pattern
-                    )
-                )
+                RSP = await conv.get_response()
+                await conv.cancel_all()
         except asyncio.exceptions.TimeoutError:
             return
 
