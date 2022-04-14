@@ -39,25 +39,28 @@ class KramiikkMod(loader.Module):
 
     async def bmj(self, chat):
         """алгоритм жабабота"""
-        cmn = "моя жаба"
-        await self.err(chat, cmn)
-        for i in (i for i in ded if i in RSP.text):
-            await utils.answer(RSP, ded[i])
-        jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        cmn = "жаба инфо"
-        await self.err(chat, cmn)
-        for i in (i for i in ded if i in RSP.text):
-            if (
-                int(jab.group(1)) < 123
-                or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
-            ) and i in ("Можно откормить", "Можно отправиться"):
-                continue
-            await utils.answer(RSP, ded[i])
-        if int(jab.group(1)) > 123 and "работы" in RSP.text:
-            cmn = "мое снаряжение"
+        try:
+            cmn = "моя жаба"
             await self.err(chat, cmn)
             for i in (i for i in ded if i in RSP.text):
                 await utils.answer(RSP, ded[i])
+            jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
+            cmn = "жаба инфо"
+            await self.err(chat, cmn)
+            for i in (i for i in ded if i in RSP.text):
+                if (
+                    int(jab.group(1)) < 123
+                    or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
+                ) and i in ("Можно откормить", "Можно отправиться"):
+                    continue
+                await utils.answer(RSP, ded[i])
+            if int(jab.group(1)) > 123 and "работы" in RSP.text:
+                cmn = "мое снаряжение"
+                await self.err(chat, cmn)
+                for i in (i for i in ded if i in RSP.text):
+                    await utils.answer(RSP, ded[i])
+        except asyncio.exceptions.TimeoutError:
+            return
 
     async def client_ready(self, client, db):
         self.client = client
@@ -144,10 +147,10 @@ class KramiikkMod(loader.Module):
         """добавляет пользователей для управление акк"""
         msg = utils.get_args_raw(m)
         txt = int(msg)
-        if txt == self.me.id and "name" not in self.su:
+        if not msg:
             self.su.setdefault("name", self.me.username)
             self.su.setdefault("users", [])
-            self.su["users"].append(txt)
+            self.su["users"].append(self.me.id)
             msg = f"👺 <code>{self.me.username}</code> <b>запомните</b>"
         elif txt in self.su["users"]:
             self.su["users"].remove(txt)
