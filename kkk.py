@@ -39,14 +39,13 @@ class KramiikkMod(loader.Module):
 
     async def bmj(self, chat):
         """алгоритм жабабота"""
-        pattern = "🐸"
-        await self.err(chat, pattern)
+        cmn = "моя жаба"
+        await self.err(chat, cmn)
         for i in (i for i in ded if i in RSP.text):
             await utils.answer(RSP, ded[i])
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        await utils.answer(RSP, "жаба инфо")
-        pattern = "🏃‍♂️"
-        await self.err(chat, pattern)
+        cmn = "жаба инфо"
+        await self.err(chat, cmn)
         for i in (i for i in ded if i in RSP.text):
             if (
                 int(jab.group(1)) < 123
@@ -55,9 +54,8 @@ class KramiikkMod(loader.Module):
                 continue
             await utils.answer(RSP, ded[i])
         if int(jab.group(1)) > 123 and "работы" in RSP.text:
-            pattern = "Ваше"
-            await utils.answer(RSP, "мое снаряжение")
-            await self.err(chat, pattern)
+            cmn = "мое снаряжение"
+            await self.err(chat, cmn)
             for i in (i for i in ded if i in RSP.text):
                 await utils.answer(RSP, ded[i])
 
@@ -67,10 +65,11 @@ class KramiikkMod(loader.Module):
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
 
-    async def err(self, chat, pattern):
+    async def err(self, chat, cmn):
         """работа с ответом жабабота"""
         try:
             async with self.client.conversation(chat, exclusive=False) as conv:
+                await conv.send_message(cmn)
                 global RSP
                 RSP = await conv.get_response()
                 await conv.cancel_all()
@@ -174,27 +173,26 @@ class KramiikkMod(loader.Module):
                 and idu in {1124824021}
                 and "auto" in self.su
             ):
-                return await self.client.send_message(
-                    1124824021,
+                await self.client.send_message(
+                    idu,
                     "мои жабы",
                     schedule=timedelta(
-                        minutes=random.randint(13, 60), seconds=random.randint(1, 60)
+                        minutes=random.randint(33, 55), seconds=random.randint(1, 60)
                     ),
                 )
-            if m.message.startswith("мои жабы") and chat in {1124824021}:
-                await m.delete()
-                pattern = "•"
-                await self.err(chat, pattern)
+                chat = idu
+                cmn = m.text
+                await self.err(chat, cmn)
+                await self.client.send_read_acknowledge(idu)
                 await RSP.delete()
-                await self.client.send_read_acknowledge(chat)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
                     try:
                         chat = int(i)
-                        await self.client.send_message(chat, "моя жаба")
                         await self.bmj(chat)
                     finally:
                         pass
+                return
             elif m.message.casefold().startswith(name) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
@@ -214,6 +212,7 @@ class KramiikkMod(loader.Module):
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
                         await m.reply(ded[cmn])
+                return
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
