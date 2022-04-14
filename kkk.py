@@ -173,18 +173,19 @@ class KramiikkMod(loader.Module):
                 and idu in {1124824021}
                 and "auto" in self.su
             ):
-                await self.client.send_message(
+                return await self.client.send_message(
                     idu,
-                    "мои жабы",
+                    "🇺🇦",
                     schedule=timedelta(
                         minutes=random.randint(33, 55), seconds=random.randint(1, 60)
                     ),
                 )
-                chat = idu
-                cmn = m.text
-                await self.err(chat, cmn)
+            elif "🇺🇦" in m.message and chat in {1124824021}:
+                await m.delete()
+                cmn = "мои жабы"
+                resp = await self.err(chat, cmn)
                 await self.client.send_read_acknowledge(idu)
-                await RSP.delete()
+                await resp.delete()
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
                     try:
