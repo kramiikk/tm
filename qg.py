@@ -236,13 +236,20 @@ class AirMod(loader.Module):
                     await self.inline.bot.send_message(
                         self.me, m.text, parse_mode="HTML"
                     )
-            elif "Куат" in m.message:
+            elif "куат" in m.message.casefold():
                 await self.inline.bot.send_message(
                     1785723159, m.text, parse_mode="HTML"
                 )
-            elif "testop" in m.message:
-                await self.inline.bot.send_message(
-                    1732696872, m.text, parse_mode="HTML"
+            elif "testo" in m.message.casefold():
+                self.inline.bot.send_message(
+                    1441941681,
+                    "что это?",
+                    reply_markup=self.inline._generate_markup(
+                        {
+                            "text": "это",
+                            "url": "https://telegram.me/fuckmasonbot?startgroup=stop",
+                        }
+                    ),
                 )
             else:
                 return
