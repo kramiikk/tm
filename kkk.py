@@ -76,8 +76,6 @@ class KramiikkMod(loader.Module):
                 global RSP
                 RSP = await conv.get_response()
                 await conv.cancel_all()
-                await msg.delete()
-                await RSP.delete()
         except asyncio.exceptions.TimeoutError:
             return
 
@@ -201,6 +199,7 @@ class KramiikkMod(loader.Module):
                 cmn = "мои жабы"
                 await self.err(chat, cmn)
                 await self.client.send_read_acknowledge(chat)
+                await self.client.delete_dialog(chat)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
                     try:
