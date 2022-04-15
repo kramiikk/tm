@@ -141,7 +141,7 @@ class KramiikkMod(loader.Module):
         msg = utils.get_args_raw(m)
         txt = "db:\n"
         if not msg:
-            for i in self.db:
+            for i in self.db[HikkaDL]:
                 txt = f"\n•{i}"
             return await utils.answer(m, txt)
         self.su["name"] = msg.casefold()
