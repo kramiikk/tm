@@ -72,10 +72,12 @@ class KramiikkMod(loader.Module):
         """работа с ответом жабабота"""
         try:
             async with self.client.conversation(chat, exclusive=False) as conv:
-                await conv.send_message(cmn)
+                msg = await conv.send_message(cmn)
                 global RSP
                 RSP = await conv.get_response()
                 await conv.cancel_all()
+                await msg.delete()
+                await RSP.delete()
         except asyncio.exceptions.TimeoutError:
             return
 
@@ -186,9 +188,8 @@ class KramiikkMod(loader.Module):
             elif "🇺🇦" in m.message and chat in {1124824021}:
                 await m.delete()
                 cmn = "мои жабы"
-                resp = await self.err(chat, cmn)
+                await self.err(chat, cmn)
                 await self.client.send_read_acknowledge(chat)
-                await resp.delete()
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
                     try:
