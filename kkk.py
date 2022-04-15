@@ -245,7 +245,7 @@ class KramiikkMod(loader.Module):
                 return await self.client.send_message(
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
-            elif ("Куат", "куат") in m.message:
+            elif "куат" in m.message.casefold():
                 return await m.react("❤️")
             elif chatid in self.su:
                 idu = str(idu)
