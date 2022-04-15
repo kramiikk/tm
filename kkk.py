@@ -139,9 +139,14 @@ class KramiikkMod(loader.Module):
     async def sncmd(self, m):
         """ник для команд"""
         msg = utils.get_args_raw(m)
+        txt = "db:\n"
+        if not msg:
+            for i in self.db:
+                txt = f"\n•{i}"
+            return await utils.answer(m, txt)
         self.su["name"] = msg.casefold()
-        msg = "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
-        await utils.answer(m, msg)
+        txt = "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
+        await utils.answer(m, txt)
         self.db.set("Su", "su", self.su)
 
     async def sucmd(self, m):
