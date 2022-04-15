@@ -184,7 +184,7 @@ class KramiikkMod(loader.Module):
                 users = self.su["users"]
             if (
                 m.message.startswith(("✅", "📉"))
-                and idu in {1124824021}
+                and idu in (1124824021)
                 and "auto" in self.su
             ):
                 return await self.client.send_message(
@@ -194,7 +194,7 @@ class KramiikkMod(loader.Module):
                         minutes=random.randint(33, 55), seconds=random.randint(1, 60)
                     ),
                 )
-            elif "🇺🇦" in m.message and chat in {1124824021}:
+            elif "🇺🇦" in m.message and chat in (1124824021):
                 await m.delete()
                 cmn = "мои жабы"
                 await self.err(chat, cmn)
@@ -236,7 +236,7 @@ class KramiikkMod(loader.Module):
             elif (
                 not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
                 and m.buttons
-                and idu in {830605725}
+                and idu in (830605725)
             ):
                 return await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
