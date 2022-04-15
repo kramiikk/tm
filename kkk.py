@@ -144,7 +144,7 @@ class KramiikkMod(loader.Module):
             for i in self.db:
                 txt += f"\n•{i}"
             return await utils.answer(m, txt)
-        if msg == "db":
+        if "db" in msg.text:
             key = msg.split(" ")[1]
             for i in self.db[key]:
                 txt += f"\n•{i}"
