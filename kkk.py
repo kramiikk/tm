@@ -194,7 +194,7 @@ class KramiikkMod(loader.Module):
                         minutes=random.randint(33, 55), seconds=random.randint(1, 60)
                     ),
                 )
-            elif "🇺🇦" in m.message and chat in [1124824021]:
+            elif m.message.startswith("🇺🇦") and chat in [1124824021]:
                 await m.delete()
                 cmn = "мои жабы"
                 await self.err(chat, cmn)
