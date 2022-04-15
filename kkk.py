@@ -152,16 +152,17 @@ class KramiikkMod(loader.Module):
     async def sucmd(self, m):
         """добавляет пользователей для управление акк"""
         msg = utils.get_args_raw(m)
-        txt = int(msg)
         if not msg:
             self.su.setdefault("name", self.me.username)
             self.su.setdefault("users", [])
             self.su["users"].append(self.me.id)
             msg = f"👺 <code>{self.me.username}</code> <b>запомните</b>"
         elif txt in self.su["users"]:
+            txt = int(msg)
             self.su["users"].remove(txt)
             msg = f"🖕🏾 {txt} <b>успешно удален</b>"
         else:
+            txt = int(msg)
             self.su["users"].append(txt)
             msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
