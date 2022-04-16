@@ -4,8 +4,7 @@
 import abc
 import time
 
-from aiogram.types import (CallbackQuery, InlineKeyboardButton,
-                           InlineKeyboardMarkup)
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types import Message as AiogramMessage
 from telethon.utils import get_display_name
 
@@ -65,7 +64,7 @@ class FeedbackMod(loader.Module):
             )
         elif m.text == "/nometa":
             await m.answer(self.strings("/nometa"), reply_markup=self._markup)
-        elif m.text.startswith("/an") and m.from_user.id in self._me:
+        elif m.text.startswith("/an") and m.from_user.id == self._me:
             reply = await m.get_reply_message()
             if reply:
                 await self._bot.send_message(int(reply.text), m.split(" ", 1)[1])
