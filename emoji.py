@@ -30,7 +30,7 @@ class FeedbackMod(loader.Module):
             "<b>✅ Write your question in one message</b>"
         ),
         "enter_message": "✍️ <b>Enter your message here</b>",
-        "sent": "✅ <b>Your message has been sent to owner</b>",
+        "sent": "✅ <b>Your message has been sent</b>",
     }
 
     async def client_ready(self, client, db) -> None:
@@ -66,9 +66,8 @@ class FeedbackMod(loader.Module):
         elif m.text == "/nometa":
             await m.answer(self.strings("/nometa"), reply_markup=self._markup)
         elif m.text.startswith("/an") and m.from_user.id == self._me:
-            reply = await m.get_reply_message()
-            if reply:
-                await self._bot.send_message(int(reply.text), m.split(" ", 1)[1])
+            await self._bot.send_message(int(m.split(" ", 2)[1]), m.split(" ", 2)[2])
+            await m.answer(self.strings("sent"))
         elif self.inline.gs(m.from_user.id) == "fb_send_message":
             r = await self._bot.forward_message(self._me, m.chat.id, m.message_id)
             await r.answer(m.from_user.id)
