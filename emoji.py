@@ -61,20 +61,19 @@ class FeedbackMod(loader.Module):
             "You can freely share it"
         )
 
-    async def aiogram_watcher(self, message: AiogramMessage) -> None:
-        if message.text == "/start feedback":
-            await message.answer(
+    async def aiogram_watcher(self, m: AiogramMessage) -> None:
+        if m.text == "/start":
+            await m.answer(
                 self.strings("/start").format(self._name), reply_markup=self._markup
             )
-        elif message.text == "/nometa":
-            await message.answer(self.strings("/nometa"), reply_markup=self._markup)
-        elif self.inline.gs(message.from_user.id) == "fb_send_message":
-            await self._bot.forward_message(
-                self._me, message.chat.id, message.message_id
-            )
-            await message.answer(self.strings("sent"))
-            self._ratelimit[message.from_user.id] = time.time() + 60
-            self.inline.ss(message.from_user.id, False)
+        elif m.text == "/nometa":
+            await m.answer(self.strings("/nometa"), reply_markup=self._markup)
+        elif self.inline.gs(m.from_user.id) == "fb_send_message":
+            await self._bot.forward_message(self._me, m.chat.id, m.message_id)
+            await self._bot.send_message(self._me, m.from_user.id, parse_mode="HTML")
+            await m.answer(self.strings("sent"))
+            self._ratelimit[m.from_user.id] = time.time() + 60
+            self.inline.ss(m.from_user.id, False)
 
     async def feedback_callback_handler(self, call: CallbackQuery) -> None:
         """
