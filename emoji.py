@@ -66,7 +66,7 @@ class FeedbackMod(loader.Module):
         elif m.text == "/nometa":
             await m.answer(self.strings("/nometa"), reply_markup=self._markup)
         elif m.text.startswith("/an") and m.from_user.id == self._me:
-            await self._bot.send_message(int(m.split(" ", 2)[1]), m.split(" ", 2)[2])
+            await self._bot.send_message(int(m.text.split(" ", 2)[1]), m.text.split(" ", 2)[2])
             await m.answer(self.strings("sent"))
         elif self.inline.gs(m.from_user.id) == "fb_send_message":
             r = await self._bot.forward_message(self._me, m.chat.id, m.message_id)
