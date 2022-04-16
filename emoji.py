@@ -71,7 +71,7 @@ class FeedbackMod(loader.Module):
                 await self._bot.send_message(int(reply.text), m.split(" ", 1)[1])
         elif self.inline.gs(m.from_user.id) == "fb_send_message":
             r = await self._bot.forward_message(self._me, m.chat.id, m.message_id)
-            await self._bot.send_message(self._me, m.from_user.id, reply_to=r)
+            await utils.answer(r, m.from_user.id)
             await m.answer(self.strings("sent"))
             self._ratelimit[m.from_user.id] = time.time() + 60
             self.inline.ss(m.from_user.id, False)
