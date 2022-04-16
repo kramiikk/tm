@@ -241,6 +241,7 @@ class AirMod(loader.Module):
                     1785723159, m.text, parse_mode="HTML"
                 )
             elif "testo" in m.message.casefold():
+                await utils.answer(m, "hi")
                 await self.inline.bot.send_message(
                     int(-1001441941681),
                     "что это?",
