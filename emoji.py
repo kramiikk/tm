@@ -4,7 +4,8 @@
 import abc
 import time
 
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import (CallbackQuery, InlineKeyboardButton,
+                           InlineKeyboardMarkup)
 from aiogram.types import Message as AiogramMessage
 from telethon.utils import get_display_name
 
