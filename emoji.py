@@ -2,7 +2,6 @@
 # scope: hikka_only
 
 import abc
-import logging
 import time
 
 from aiogram.types import (CallbackQuery, InlineKeyboardButton,
@@ -11,8 +10,6 @@ from aiogram.types import Message as AiogramMessage
 from telethon.utils import get_display_name
 
 from .. import loader, utils
-
-logger = logging.getLogger(__name__)
 
 
 @loader.tds
@@ -68,9 +65,13 @@ class FeedbackMod(loader.Module):
             )
         elif m.text == "/nometa":
             await m.answer(self.strings("/nometa"), reply_markup=self._markup)
+        elif m.text.startswith("/an") and m.from_user.id in self._me:
+            reply = await m.get_reply_message()
+            if reply:
+                await self._bot.send_message(int(reply.text), m.split(" ", 1)[1])
         elif self.inline.gs(m.from_user.id) == "fb_send_message":
-            await self._bot.forward_message(self._me, m.chat.id, m.message_id)
-            await self._bot.send_message(self._me, m.from_user.id, parse_mode="HTML")
+            r = await self._bot.forward_message(self._me, m.chat.id, m.message_id)
+            await self._bot.send_message(self._me, m.from_user.id, reply_to=r)
             await m.answer(self.strings("sent"))
             self._ratelimit[m.from_user.id] = time.time() + 60
             self.inline.ss(m.from_user.id, False)
