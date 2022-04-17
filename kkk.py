@@ -81,6 +81,9 @@ class KramiikkMod(loader.Module):
             except asyncio.exceptions.TimeoutError:
                 RSP = await self.client.get_messages(chat, search=src)
             await conv.cancel_all()
+            if chat not in [1403626354]:
+                await msg.delete()
+                await RSP.delete()
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
@@ -179,7 +182,6 @@ class KramiikkMod(loader.Module):
                 await m.delete()
                 cmn = "мои жабы"
                 await self.err(chat, cmn)
-                await self.client.delete_dialog(chat)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
                     try:
