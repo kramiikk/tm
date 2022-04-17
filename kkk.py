@@ -178,6 +178,7 @@ class KramiikkMod(loader.Module):
                 await m.delete()
                 cmn = "мои жабы"
                 await self.err(chat, cmn)
+                await self.client.send_read_acknowledge(chat)
                 capt = re.findall(r"\| -100(\d+)", RSP.text)
                 for i in capt:
                     try:
