@@ -79,7 +79,7 @@ class KramiikkMod(loader.Module):
                 global RSP
                 RSP = await conv.get_response()
             except asyncio.exceptions.TimeoutError:
-                RSP = await self.client.get_messages(chat, search=src)
+                RSP = await self.client.get_messages(chat, search=" ")
             await conv.cancel_all()
             if chat not in [1403626354]:
                 await msg.delete()
