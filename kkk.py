@@ -39,28 +39,25 @@ class KramiikkMod(loader.Module):
 
     async def bmj(self, chat):
         """алгоритм жабабота"""
-        try:
-            cmn = "моя жаба"
+        cmn = "моя жаба"
+        await self.err(chat, cmn)
+        for i in (i for i in ded if i in RSP.text):
+            await utils.answer(RSP, ded[i])
+        jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
+        cmn = "жаба инфо"
+        await self.err(chat, cmn)
+        for i in (i for i in ded if i in RSP.text):
+            if (
+                int(jab.group(1)) < 123
+                or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
+            ) and i in ("Можно откормить", "Можно отправиться"):
+                continue
+            await utils.answer(RSP, ded[i])
+        if int(jab.group(1)) > 123 and "работы" in RSP.text:
+            cmn = "мое снаряжение"
             await self.err(chat, cmn)
             for i in (i for i in ded if i in RSP.text):
                 await utils.answer(RSP, ded[i])
-            jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-            cmn = "жаба инфо"
-            await self.err(chat, cmn)
-            for i in (i for i in ded if i in RSP.text):
-                if (
-                    int(jab.group(1)) < 123
-                    or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
-                ) and i in ("Можно откормить", "Можно отправиться"):
-                    continue
-                await utils.answer(RSP, ded[i])
-            if int(jab.group(1)) > 123 and "работы" in RSP.text:
-                cmn = "мое снаряжение"
-                await self.err(chat, cmn)
-                for i in (i for i in ded if i in RSP.text):
-                    await utils.answer(RSP, ded[i])
-        except asyncio.exceptions.TimeoutError:
-            return
 
     async def client_ready(self, client, db):
         self.client = client
@@ -171,13 +168,12 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def watcher(self, m):
+        msg = m.text
+        chat = m.chat_id
+        chatid = str(chat)
+        idu = m.sender_id
+        users = self.su["users"]
         try:
-            msg = m.text
-            chat = m.chat_id
-            chatid = str(chat)
-            idu = m.sender_id
-            name = self.su["name"]
-            users = self.su["users"]
             if m.message.startswith("🇺🇦") and chat in [1124824021]:
                 await m.delete()
                 cmn = "мои жабы"
@@ -201,7 +197,7 @@ class KramiikkMod(loader.Module):
                         minutes=random.randint(33, 55), seconds=random.randint(1, 60)
                     ),
                 )
-            elif m.message.casefold().startswith(name) and (idu in users):
+            elif m.message.casefold().startswith(self.su["name"]) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
                     chat = msg.split(" ", 4)[3]
