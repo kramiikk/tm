@@ -73,14 +73,14 @@ class KramiikkMod(loader.Module):
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
-        try:
-            async with self.client.conversation(chat, exclusive=False) as conv:
+        async with self.client.conversation(chat, exclusive=False) as conv:
+            try:
                 msg = await conv.send_message(cmn)
                 global RSP
                 RSP = await conv.get_response()
-                await conv.cancel_all()
-        except asyncio.exceptions.TimeoutError:
-            return
+            except asyncio.exceptions.TimeoutError:
+                RSP = await self.client.get_messages(chat, search=src)
+            await conv.cancel_all()
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
