@@ -67,6 +67,9 @@ class KramiikkMod(loader.Module):
         self.db = db
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
+        if "name" not in self.su:
+            self.su.setdefault("name", self.me.username)
+            self.su.setdefault("users", [self.me.id])
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
@@ -99,9 +102,7 @@ class KramiikkMod(loader.Module):
             txt = ""
             for i in self.su[chatid]:
                 txt += f"<b>• {i}</b>\n"
-            await utils.answer(
-                m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{txt}</b>"
-            )
+            await utils.answer(m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{txt}</b>")
         if chatid not in self.su:
             self.su.setdefault(chatid, {})
         if key not in self.su[chatid]:
@@ -155,12 +156,7 @@ class KramiikkMod(loader.Module):
     async def sucmd(self, m):
         """добавляет пользователей для управление акк"""
         msg = utils.get_args_raw(m)
-        if not msg:
-            self.su.setdefault("name", self.me.username)
-            self.su.setdefault("users", [])
-            self.su["users"].append(self.me.id)
-            msg = f"👺 <code>{self.me.username}</code> <b>запомните</b>"
-        elif txt in self.su["users"]:
+        if txt in self.su["users"]:
             txt = int(msg)
             self.su["users"].remove(txt)
             msg = f"🖕🏾 {txt} <b>успешно удален</b>"
@@ -177,24 +173,9 @@ class KramiikkMod(loader.Module):
             chat = m.chat_id
             chatid = str(chat)
             idu = m.sender_id
-            name = self.me.username
-            users = self.me.id
-            if "name" in self.su:
-                name = self.su["name"]
-                users = self.su["users"]
-            if (
-                m.message.startswith(("✅", "📉"))
-                and idu in [1124824021]
-                and "auto" in self.su
-            ):
-                await self.client.send_message(
-                    idu,
-                    "🇺🇦",
-                    schedule=timedelta(
-                        minutes=random.randint(33, 55), seconds=random.randint(1, 60)
-                    ),
-                )
-            elif m.message.startswith("🇺🇦") and chat in [1124824021]:
+            name = self.su["name"]
+            users = self.su["users"]
+            if m.message.startswith("🇺🇦") and chat in [1124824021]:
                 await m.delete()
                 cmn = "мои жабы"
                 await self.err(chat, cmn)
@@ -206,6 +187,18 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     finally:
                         pass
+            elif (
+                m.message.startswith(("✅", "📉"))
+                and idu in [1124824021]
+                and "auto" in self.su
+            ):
+                await self.client.send_message(
+                    idu,
+                    "🇺🇦",
+                    schedule=timedelta(
+                        minutes=random.randint(33, 55), seconds=random.randint(1, 60)
+                    ),
+                )
             elif m.message.casefold().startswith(name) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
