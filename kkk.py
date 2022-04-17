@@ -99,9 +99,7 @@ class KramiikkMod(loader.Module):
             txt = ""
             for i in self.su[chatid]:
                 txt += f"<b>• {i}</b>\n"
-            await utils.answer(
-                m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{txt}</b>"
-            )
+            await utils.answer(m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{txt}</b>")
         if chatid not in self.su:
             self.su.setdefault(chatid, {})
         if key not in self.su[chatid]:
