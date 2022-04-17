@@ -99,7 +99,7 @@ class KramiikkMod(loader.Module):
             txt = ""
             for i in self.su[chatid]:
                 txt += f"<b>• {i}</b>\n"
-            return await utils.answer(
+            await utils.answer(
                 m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{txt}</b>"
             )
         if chatid not in self.su:
@@ -187,7 +187,7 @@ class KramiikkMod(loader.Module):
                 and idu in [1124824021]
                 and "auto" in self.su
             ):
-                return await self.client.send_message(
+                await self.client.send_message(
                     idu,
                     "🇺🇦",
                     schedule=timedelta(
@@ -206,7 +206,6 @@ class KramiikkMod(loader.Module):
                         await self.bmj(chat)
                     finally:
                         pass
-                return
             elif m.message.casefold().startswith(name) and (idu in users):
                 reply = await m.get_reply_message()
                 if "напиши в " in m.message:
@@ -226,27 +225,26 @@ class KramiikkMod(loader.Module):
                     cmn = msg.split(" ", 1)[1]
                     if cmn in ded:
                         await m.reply(ded[cmn])
-                return
             elif (
                 f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
             ):
                 msg = "реанимировать жабу"
                 await utils.answer(m, msg)
-                return await m.click(0)
+                await m.click(0)
             elif (
                 not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
                 and m.buttons
                 and idu in [830605725]
             ):
-                return await m.click(0)
+                await m.click(0)
             elif "НЕЗАЧЁТ!" in m.message:
                 msg = [int(x) for x in m.text.split() if x.isnumeric()]
                 delta = timedelta(hours=msg[1], minutes=msg[2], seconds=33)
-                return await self.client.send_message(
+                await self.client.send_message(
                     707693258, "<b>Фарма</b>", schedule=delta
                 )
             elif "куат" in m.message.casefold():
-                return await m.react("❤️")
+                await m.react("❤️")
             elif chatid in self.su:
                 idu = str(idu)
                 if idu in self.su[chatid]:
