@@ -111,7 +111,7 @@ class KramiikkMod(loader.Module):
 
     async def client_ready(self, client, db):
         fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": await self.abj(m),
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
             "✅": self.bbj(idu),
             "📉": self.bbj(idu),
             self.su["name"]: self.cbj(m, msg),
