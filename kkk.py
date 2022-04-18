@@ -117,6 +117,7 @@ class KramiikkMod(loader.Module):
         if "name" not in self.su:
             self.su.setdefault("name", self.me.username)
             self.su.setdefault("users", [self.me.id])
+            self.db.set("Su", "su", self.su)
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
@@ -231,7 +232,7 @@ class KramiikkMod(loader.Module):
             f"Сейчас выбирает ход: {self.me.first_name}": self.dbj(m),
         }
         try:
-            if idu in [1124824021] or idu in users:
+            if idu in [1124824021, 1785723159] or idu in users:
                 for i in (i for i in fff if i in m.message.casefold()):
                     return await fff[i]
             if chatid in self.su:
