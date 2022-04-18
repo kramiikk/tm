@@ -110,13 +110,6 @@ class KramiikkMod(loader.Module):
                 await utils.answer(RSP, ded[i])
 
     async def client_ready(self, client, db):
-        fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "✅": self.bbj(idu),
-            "📉": self.bbj(idu),
-            self.su["name"]: self.cbj(m, msg),
-            f"Сейчас выбирает ход: {self.me.first_name}": self.dbj(m),
-        }
         self.client = client
         self.db = db
         self.su = db.get("Su", "su", {})
@@ -230,6 +223,13 @@ class KramiikkMod(loader.Module):
         chatid = str(chat)
         idu = m.sender_id
         users = self.su["users"]
+        fff = {
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
+            "✅": self.bbj(idu),
+            "📉": self.bbj(idu),
+            self.su["name"]: self.cbj(m, msg),
+            f"Сейчас выбирает ход: {self.me.first_name}": self.dbj(m),
+        }
         try:
             if idu in [1124824021] or idu in users:
                 for i in (i for i in fff if i in m.message):
