@@ -37,7 +37,7 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def abj(self, m):
+    async def abj(self, chat, m):
         await m.delete()
         cmn = "мои жабы"
         await self.err(chat, cmn)
