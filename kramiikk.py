@@ -37,16 +37,65 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
+    async def abj(self, chat, m):
+        await m.delete()
+        cmn = "мои жабы"
+        await self.err(chat, cmn)
+        await self.client.send_read_acknowledge(m.chat_id)
+        capt = re.findall(r"\| -100(\d+)", RSP.text)
+        for i in capt:
+            try:
+                chat = int(i)
+                await self.bmj(chat)
+            finally:
+                pass
+
+    async def bbj(self, idu, m):
+        if m.message.startswith(("✅", "📉")) and "auto" in self.su:
+            await self.client.send_message(
+                idu,
+                "💑👩‍❤️‍👨👨‍❤️‍👨💑",
+                schedule=timedelta(
+                    minutes=random.randint(33, 55), seconds=random.randint(1, 60)
+                ),
+            )
+
+    async def cbj(self, m, msg):
+        if m.message.casefold().startswith(self.su["name"]):
+            reply = await m.get_reply_message()
+            if "напиши в " in m.message:
+                chat = msg.split(" ", 4)[3]
+                if chat.isnumeric():
+                    chat = int(chat)
+                if reply:
+                    msg = reply
+                txt = msg.split(" ", 4)[4]
+                return await self.client.send_message(chat, txt)
+            if "напиши" in m.message:
+                txt = msg.split(" ", 2)[2]
+                if reply:
+                    await reply.reply(txt)
+                await utils.answer(m, txt)
+            else:
+                cmn = msg.split(" ", 1)[1]
+                if cmn in ded:
+                    await m.reply(ded[cmn])
+
+    async def dbj(self, m):
+        if m.buttons:
+            txt = "реанимировать жабу"
+            await utils.answer(m, txt)
+            await m.click(0)
+
     async def bmj(self, chat):
         """алгоритм жабабота"""
-        pattern = "🐸"
-        await self.err(chat, pattern)
+        cmn = "моя жаба"
+        await self.err(chat, cmn)
         for i in (i for i in ded if i in RSP.text):
             await utils.answer(RSP, ded[i])
         jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        await utils.answer(RSP, "жаба инфо")
-        pattern = "🏃‍♂️"
-        await self.err(chat, pattern)
+        cmn = "жаба инфо"
+        await self.err(chat, cmn)
         for i in (i for i in ded if i in RSP.text):
             if (
                 int(jab.group(1)) < 123
@@ -55,9 +104,8 @@ class KramiikkMod(loader.Module):
                 continue
             await utils.answer(RSP, ded[i])
         if int(jab.group(1)) > 123 and "работы" in RSP.text:
-            pattern = "Ваше"
-            await utils.answer(RSP, "мое снаряжение")
-            await self.err(chat, pattern)
+            cmn = "мое снаряжение"
+            await self.err(chat, cmn)
             for i in (i for i in ded if i in RSP.text):
                 await utils.answer(RSP, ded[i])
 
@@ -66,19 +114,24 @@ class KramiikkMod(loader.Module):
         self.db = db
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
+        if "name" not in self.su:
+            self.su.setdefault("name", self.me.username)
+            self.su.setdefault("users", [self.me.id])
+            self.db.set("Su", "su", self.su)
 
-    async def err(self, chat, pattern):
+    async def err(self, chat, cmn):
         """работа с ответом жабабота"""
-        try:
-            async with self.client.conversation(chat) as conv:
+        async with self.client.conversation(chat, exclusive=False) as conv:
+            try:
+                msg = await conv.send_message(cmn)
                 global RSP
-                RSP = await conv.wait_event(
-                    events.NewMessage(
-                        from_users=1124824021, chats=chat, pattern=pattern
-                    )
-                )
-        except asyncio.exceptions.TimeoutError:
-            return
+                RSP = await conv.get_response()
+            except asyncio.exceptions.TimeoutError:
+                RSP = await self.client.get_messages(chat, search=" ")
+            await conv.cancel_all()
+            if chat not in [1403626354]:
+                await msg.delete()
+                await RSP.delete()
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
@@ -100,9 +153,7 @@ class KramiikkMod(loader.Module):
             txt = ""
             for i in self.su[chatid]:
                 txt += f"<b>• {i}</b>\n"
-            return await utils.answer(
-                m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{txt}</b>"
-            )
+            await utils.answer(m, f"<b>Фильтры: {len(self.su[chatid])}\n\n{txt}</b>")
         if chatid not in self.su:
             self.su.setdefault(chatid, {})
         if key not in self.su[chatid]:
@@ -138,109 +189,59 @@ class KramiikkMod(loader.Module):
     async def sncmd(self, m):
         """ник для команд"""
         msg = utils.get_args_raw(m)
+        txt = "db:\n"
+        if not msg:
+            for i in self.db:
+                txt += f"\n•{i}"
+            return await utils.answer(m, txt)
+        if "db" in msg:
+            key = msg.split(" ")[1]
+            for i in self.db[key]:
+                txt += f"\n•{i}"
+            return await utils.answer(m, txt)
         self.su["name"] = msg.casefold()
-        msg = "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
-        await utils.answer(m, msg)
+        txt = "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
+        await utils.answer(m, txt)
         self.db.set("Su", "su", self.su)
 
     async def sucmd(self, m):
         """добавляет пользователей для управление акк"""
         msg = utils.get_args_raw(m)
-        txt = int(msg)
-        if txt == self.me.id and "name" not in self.su:
-            self.su.setdefault("name", self.me.username)
-            self.su.setdefault("users", [])
-            self.su["users"].append(txt)
-            msg = f"👺 <code>{self.me.username}</code> <b>запомните</b>"
-        elif txt in self.su["users"]:
+        if txt in self.su["users"]:
+            txt = int(msg)
             self.su["users"].remove(txt)
             msg = f"🖕🏾 {txt} <b>успешно удален</b>"
         else:
+            txt = int(msg)
             self.su["users"].append(txt)
             msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
     async def watcher(self, m):
+        msg = m.text
+        chat = m.chat_id
+        chatid = str(chat)
+        idu = m.sender_id
+        users = self.su["users"]
+        fff = {
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(chat, m),
+            "✅": self.bbj(idu, m),
+            "📉": self.bbj(idu, m),
+            self.su["name"]: self.cbj(m, msg),
+            f"Сейчас выбирает ход: {self.me.first_name}": self.dbj(m),
+        }
         try:
-            msg = m.text
-            chat = m.chat_id
-            chatid = str(chat)
-            idu = m.sender_id
-            if self.me.id in {980699009}:
-                name = "лена"
-            elif self.me.id in {230473666}:
-                name = "ваня"
-            elif self.me.id in {887255479}:
-                name = "кира"
-            else:
-                name = self.me.first_name
-            users = {1785723159}
-            if "name" in self.su:
-                name = self.su["name"]
-                users = self.su["users"]
-            if (
-                m.message.startswith(("✅", "📉"))
-                and idu in {1124824021}
-                and "auto" in self.su
-            ):
-                return await self.client.send_message(
-                    1124824021,
-                    "мои жабы",
-                    schedule=timedelta(
-                        minutes=random.randint(13, 60), seconds=random.randint(1, 60)
-                    ),
-                )
-            if m.message.startswith("мои жабы") and chat in {1124824021}:
-                await m.delete()
-                pattern = "•"
-                await self.err(chat, pattern)
-                await RSP.delete()
-                await self.client.send_read_acknowledge(chat)
-                capt = re.findall(r"\| -100(\d+)", RSP.text)
-                for i in capt:
-                    try:
-                        chat = int(i)
-                        await self.client.send_message(chat, "моя жаба")
-                        await self.bmj(chat)
-                    finally:
-                        pass
-            elif m.message.casefold().startswith(name) and (idu in users):
-                reply = await m.get_reply_message()
-                if "напиши в " in m.message:
-                    chat = msg.split(" ", 4)[3]
-                    if chat.isnumeric():
-                        chat = int(chat)
-                    if reply:
-                        msg = reply
-                    else:
-                        msg = msg.split(" ", 4)[4]
-                    return await self.client.send_message(chat, msg)
-                if "напиши" in m.message:
-                    msg = msg.split(" ", 2)[2]
-                    if reply:
-                        await reply.reply(msg)
-                    else:
-                        await utils.answer(m, msg)
-                else:
-                    cmn = msg.split(" ", 1)[1]
-                    if cmn in ded:
-                        await m.reply(ded[cmn])
-            elif (
-                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
-            ):
-                msg = "реанимировать жабу"
-                await utils.answer(m, msg)
-                return await m.click(0)
-            elif chatid in self.su:
+            if idu in [1124824021, 1785723159] or idu in users:
+                for i in (i for i in fff if i in m.message.casefold()):
+                    return await fff[i]
+            if chatid in self.su:
                 idu = str(idu)
                 if idu in self.su[chatid]:
                     for i in (i for i in self.su[chatid][idu] if i in m.message):
                         await utils.answer(m, self.su[chatid][idu][i])
                 for i in (i for i in self.su[chatid] if i in m.message):
                     await utils.answer(m, self.su[chatid][i])
-            else:
-                return
             return
-        except Exception:
-            return
+        except Exception as e:
+            return await self.client.send_message("me", f"Error:\n{' '.join(e.args)}")
