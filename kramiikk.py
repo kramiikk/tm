@@ -82,7 +82,7 @@ class KramiikkMod(loader.Module):
                     await m.reply(ded[cmn])
 
     async def dbj(self, m):
-        if m.buttons:
+        if "Сейчас выбирает ход: " in m.message and m.buttons:
             txt = "реанимировать жабу"
             await utils.answer(m, txt)
             await m.click(0)
@@ -229,7 +229,7 @@ class KramiikkMod(loader.Module):
             "✅": self.bbj(idu, m),
             "📉": self.bbj(idu, m),
             self.su["name"]: self.cbj(m, msg),
-            f"Сейчас выбирает ход: {self.me.first_name}": self.dbj(m),
+            self.me.first_name: self.dbj(m),
         }
         try:
             if idu in [1124824021, 1785723159] or idu in users:
