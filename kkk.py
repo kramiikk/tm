@@ -232,7 +232,7 @@ class KramiikkMod(loader.Module):
         }
         try:
             if idu in [1124824021] or idu in users:
-                for i in (i for i in fff if i in m.message):
+                for i in (i for i in fff if i in m.message.casefold()):
                     return await fff[i]
             if chatid in self.su:
                 idu = str(idu)
