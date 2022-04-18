@@ -34,6 +34,7 @@ class SpyMod(loader.Module):
             return
 
     async def watcher(self, m):
+        idu = m.sender_id
         try:
             if m.message.startswith(("Очень", "Клан")) and m.sender_id in {1124824021}:
                 if "одержал" in m.text:
@@ -136,6 +137,20 @@ class SpyMod(loader.Module):
                 )
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
                 return await self.client.send_message(1655814348, info)
+            elif (
+                not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
+                and m.buttons
+                and idu in [830605725]
+            ):
+                await m.click(0)
+            elif "НЕЗАЧЁТ!" in m.message:
+                msg = [int(x) for x in m.text.split() if x.isnumeric()]
+                delta = timedelta(hours=msg[1], minutes=msg[2], seconds=33)
+                await self.client.send_message(
+                    707693258, "<b>Фарма</b>", schedule=delta
+                )
+            elif "куат" in m.message.casefold():
+                await m.react("❤️")
             else:
                 return
         except Exception as e:

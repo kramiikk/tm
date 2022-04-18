@@ -37,6 +37,56 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
+    async def abj(self, chat, m):
+        await m.delete()
+        cmn = "мои жабы"
+        await self.err(chat, cmn)
+        await self.client.send_read_acknowledge(m.chat_id)
+        capt = re.findall(r"\| -100(\d+)", RSP.text)
+        for i in capt:
+            try:
+                chat = int(i)
+                await self.bmj(chat)
+            finally:
+                pass
+
+    async def bbj(self, idu):
+        if m.message.startswith(("✅", "📉")) and "auto" in self.su:
+            await self.client.send_message(
+                idu,
+                "💑👩‍❤️‍👨👨‍❤️‍👨💑",
+                schedule=timedelta(
+                    minutes=random.randint(33, 55), seconds=random.randint(1, 60)
+                ),
+            )
+
+    async def cbj(self, chat, idu, m, msg, users):
+        if m.message.casefold().startswith(self.su["name"]):
+            reply = await m.get_reply_message()
+            if "напиши в " in m.message:
+                chat = msg.split(" ", 4)[3]
+                if chat.isnumeric():
+                    chat = int(chat)
+                if reply:
+                    msg = reply
+                txt = msg.split(" ", 4)[4]
+                return await self.client.send_message(chat, txt)
+            if "напиши" in m.message:
+                txt = msg.split(" ", 2)[2]
+                if reply:
+                    await reply.reply(txt)
+                await utils.answer(m, txt)
+            else:
+                cmn = msg.split(" ", 1)[1]
+                if cmn in ded:
+                    await m.reply(ded[cmn])
+
+    async def dbj(self, m):
+        if m.buttons:
+            txt = "реанимировать жабу"
+            await utils.answer(m, txt)
+            await m.click(0)
+
     async def bmj(self, chat):
         """алгоритм жабабота"""
         cmn = "моя жаба"
@@ -60,6 +110,13 @@ class KramiikkMod(loader.Module):
                 await utils.answer(RSP, ded[i])
 
     async def client_ready(self, client, db):
+        fff = {
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": await self.abj(chat, m),
+            "✅": await self.bbj(idu),
+            "📉": await self.bbj(idu),
+            self.su["name"]: await self.cbj(chat, idu, m, msg, users),
+            f"Сейчас выбирает ход: {self.me.first_name}": await self.dbj(m),
+        }
         self.client = client
         self.db = db
         self.su = db.get("Su", "su", {})
@@ -174,80 +231,16 @@ class KramiikkMod(loader.Module):
         idu = m.sender_id
         users = self.su["users"]
         try:
-            if m.message.startswith("🇺🇦") and chat in [1124824021]:
-                await m.delete()
-                cmn = "мои жабы"
-                await self.err(chat, cmn)
-                await self.client.send_read_acknowledge(m.chat_id)
-                capt = re.findall(r"\| -100(\d+)", RSP.text)
-                for i in capt:
-                    try:
-                        chat = int(i)
-                        await self.bmj(chat)
-                    finally:
-                        pass
-            elif (
-                m.message.startswith(("✅", "📉"))
-                and idu in [1124824021]
-                and "auto" in self.su
-            ):
-                await self.client.send_message(
-                    idu,
-                    "🇺🇦",
-                    schedule=timedelta(
-                        minutes=random.randint(33, 55), seconds=random.randint(1, 60)
-                    ),
-                )
-            elif m.message.casefold().startswith(self.su["name"]) and (idu in users):
-                reply = await m.get_reply_message()
-                if "напиши в " in m.message:
-                    chat = msg.split(" ", 4)[3]
-                    if chat.isnumeric():
-                        chat = int(chat)
-                    if reply:
-                        msg = reply
-                    msg = msg.split(" ", 4)[4]
-                    return await self.client.send_message(chat, msg)
-                if "напиши" in m.message:
-                    msg = msg.split(" ", 2)[2]
-                    if reply:
-                        await reply.reply(msg)
-                    await utils.answer(m, msg)
-                else:
-                    cmn = msg.split(" ", 1)[1]
-                    if cmn in ded:
-                        await m.reply(ded[cmn])
-            elif (
-                f"Сейчас выбирает ход: {self.me.first_name}" in m.message and m.buttons
-            ):
-                msg = "реанимировать жабу"
-                await utils.answer(m, msg)
-                await m.click(0)
-            elif (
-                not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
-                and m.buttons
-                and idu in [830605725]
-            ):
-                await m.click(0)
-            elif "НЕЗАЧЁТ!" in m.message:
-                msg = [int(x) for x in m.text.split() if x.isnumeric()]
-                delta = timedelta(hours=msg[1], minutes=msg[2], seconds=33)
-                await self.client.send_message(
-                    707693258, "<b>Фарма</b>", schedule=delta
-                )
-            elif "куат" in m.message.casefold():
-                await m.react("❤️")
-            elif chatid in self.su:
+            if idu in [1124824021] or idu in users:
+                for i in (i for i in fff if i in m.message):
+                    return await fff[i]
+            if chatid in self.su:
                 idu = str(idu)
                 if idu in self.su[chatid]:
                     for i in (i for i in self.su[chatid][idu] if i in m.message):
                         await utils.answer(m, self.su[chatid][idu][i])
                 for i in (i for i in self.su[chatid] if i in m.message):
                     await utils.answer(m, self.su[chatid][i])
-            else:
-                return
             return
         except Exception as e:
-            return await self.client.send_message(
-                "me", f"Неизвестная мне ошибка:\n{' '.join(e.args)}"
-            )
+            return await self.client.send_message("me", f"Error:\n{' '.join(e.args)}")
