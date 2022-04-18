@@ -50,7 +50,7 @@ class KramiikkMod(loader.Module):
             finally:
                 pass
 
-    async def bbj(self, idu):
+    async def bbj(self, idu, m):
         if m.message.startswith(("✅", "📉")) and "auto" in self.su:
             await self.client.send_message(
                 idu,
@@ -225,8 +225,8 @@ class KramiikkMod(loader.Module):
         users = self.su["users"]
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "✅": self.bbj(idu),
-            "📉": self.bbj(idu),
+            "✅": self.bbj(idu, m),
+            "📉": self.bbj(idu, m),
             self.su["name"]: self.cbj(m, msg),
             f"Сейчас выбирает ход: {self.me.first_name}": self.dbj(m),
         }
