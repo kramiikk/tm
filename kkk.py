@@ -224,7 +224,7 @@ class KramiikkMod(loader.Module):
         idu = m.sender_id
         users = self.su["users"]
         fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(chat, m),
             "✅": self.bbj(idu, m),
             "📉": self.bbj(idu, m),
             self.su["name"]: self.cbj(m, msg),
