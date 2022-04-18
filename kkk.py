@@ -37,7 +37,7 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def abj(self, chat, m):
+    async def abj(self, m):
         await m.delete()
         cmn = "мои жабы"
         await self.err(chat, cmn)
@@ -60,7 +60,7 @@ class KramiikkMod(loader.Module):
                 ),
             )
 
-    async def cbj(self, chat, idu, m, msg, users):
+    async def cbj(self, m, msg):
         if m.message.casefold().startswith(self.su["name"]):
             reply = await m.get_reply_message()
             if "напиши в " in m.message:
@@ -111,10 +111,10 @@ class KramiikkMod(loader.Module):
 
     async def client_ready(self, client, db):
         fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": await self.abj(chat, m),
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": await self.abj(m),
             "✅": await self.bbj(idu),
             "📉": await self.bbj(idu),
-            self.su["name"]: await self.cbj(chat, idu, m, msg, users),
+            self.su["name"]: await self.cbj(m, msg),
             f"Сейчас выбирает ход: {self.me.first_name}": await self.dbj(m),
         }
         self.client = client
