@@ -176,14 +176,14 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def watcher(self, m):
-        users = self.su["users"]
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
             "✅": self.bbj(m),
             "📉": self.bbj(m),
+            self.su["name"]: self.cbj(m),
         }
         try:
-            if m.sender_id not in users:
+            if m.sender_id not in self.su["users"]:
                 return
             for i in (i for i in fff if i in m.text.casefold()):
                 return await fff[i]
