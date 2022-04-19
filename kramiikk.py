@@ -183,7 +183,6 @@ class KramiikkMod(loader.Module):
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(chat, m),
             "✅": self.bbj(idu, m),
             "📉": self.bbj(idu, m),
-            self.me.first_name: self.dbj(m),
         }
         try:
             if idu not in users:
