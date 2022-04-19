@@ -52,15 +52,16 @@ class KramiikkMod(loader.Module):
                 pass
 
     async def bbj(self, m):
-        if not m.text.startswith(("✅", "📉")) and "auto" not in self.su:
+        if not m.text.startswith("📉"):
             return
-        await self.client.send_message(
-            m.sender_id,
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑",
-            schedule=timedelta(
-                minutes=random.randint(33, 55), seconds=random.randint(1, 60)
-            ),
-        )
+        if "auto" in self.su:
+            await self.client.send_message(
+                m.sender_id,
+                "💑👩‍❤️‍👨👨‍❤️‍👨💑",
+                schedule=timedelta(
+                    minutes=random.randint(33, 55), seconds=random.randint(1, 60)
+                ),
+            )
 
     async def cbj(self, m):
         if not m.text.casefold().startswith(self.su["name"]):
@@ -179,7 +180,6 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "✅": self.bbj(m),
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
         }
