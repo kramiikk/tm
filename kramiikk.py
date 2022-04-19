@@ -61,25 +61,25 @@ class KramiikkMod(loader.Module):
             ),
         )
 
-    async def cbj(self, m, msg):
+    async def cbj(self, m):
         if not m.text.casefold().startswith(self.su["name"]):
             return
         reply = await m.get_reply_message()
-        if "напиши в " in msg:
-            chat = msg.split(" ", 4)[3]
+        if "напиши в " in m.text:
+            chat = m.text.split(" ", 4)[3]
             if chat.isnumeric():
                 chat = int(chat)
             if reply:
                 txt = reply
-            txt = msg.split(" ", 4)[4]
+            txt = m.text.split(" ", 4)[4]
             return await self.client.send_message(chat, txt)
-        if "напиши" in msg:
-            txt = msg.split(" ", 2)[2]
+        if "напиши" in m.text:
+            txt = m.text.split(" ", 2)[2]
             if reply:
                 await reply.reply(txt)
             await utils.answer(m, txt)
         else:
-            cmn = msg.split(" ", 1)[1]
+            cmn = m.text.split(" ", 1)[1]
             if cmn in ded:
                 await m.reply(ded[cmn])
 
@@ -137,7 +137,7 @@ class KramiikkMod(loader.Module):
             except asyncio.exceptions.TimeoutError:
                 RSP = await self.client.get_messages(chat, search=" ")
             await conv.cancel_all()
-            if chat not in [1403626354]:
+            if chat not in [1403626354, 1465870466]:
                 await txt.delete()
                 await RSP.delete()
 
@@ -175,7 +175,6 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def watcher(self, m):
-        msg = m.text
         chat = m.chat_id
         idu = m.sender_id
         users = self.su["users"]
@@ -187,9 +186,9 @@ class KramiikkMod(loader.Module):
         try:
             if idu not in users:
                 return
-            for i in (i for i in fff if i in msg.casefold()):
+            for i in (i for i in fff if i in m.text.casefold()):
                 return await fff[i]
-            if m.mentioned and "выбирает" in msg:
+            if m.mentioned and "выбирает" in m.text:
                 txt = "реанимировать жабу"
                 await utils.answer(m, txt)
                 return await m.click(0)
