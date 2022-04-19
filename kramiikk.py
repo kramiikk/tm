@@ -37,7 +37,8 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def abj(self, chat, m):
+    async def abj(self, m):
+        chat = m.chat_id
         await m.delete()
         cmn = "мои жабы"
         await self.err(chat, cmn)
@@ -50,11 +51,11 @@ class KramiikkMod(loader.Module):
             finally:
                 pass
 
-    async def bbj(self, idu, m):
+    async def bbj(self, m):
         if not m.text.startswith(("✅", "📉")) and "auto" not in self.su:
             return
         await self.client.send_message(
-            idu,
+            m.sender_id,
             "💑👩‍❤️‍👨👨‍❤️‍👨💑",
             schedule=timedelta(
                 minutes=random.randint(33, 55), seconds=random.randint(1, 60)
@@ -175,16 +176,14 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def watcher(self, m):
-        chat = m.chat_id
-        idu = m.sender_id
         users = self.su["users"]
         fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(chat, m),
-            "✅": self.bbj(idu, m),
-            "📉": self.bbj(idu, m),
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
+            "✅": self.bbj(m),
+            "📉": self.bbj(m),
         }
         try:
-            if idu not in users:
+            if m.sender_id not in users:
                 return
             for i in (i for i in fff if i in m.text.casefold()):
                 return await fff[i]
