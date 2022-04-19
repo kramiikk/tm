@@ -206,5 +206,5 @@ class KramiikkMod(loader.Module):
                 await utils.answer(m, txt)
                 return await m.click(0)
             return
-        except Exception as e:
+        finally:
             return
