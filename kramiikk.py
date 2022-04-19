@@ -140,7 +140,7 @@ class KramiikkMod(loader.Module):
                 txt = await conv.send_message(cmn)
                 RSP = await self.client.get_messages(chat, search=" ")
             await conv.cancel_all()
-            if chat not in [1403626354, 1465870466]:
+            if chat in [1124824021]:
                 await txt.delete()
                 await RSP.delete()
 
