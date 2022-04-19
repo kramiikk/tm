@@ -50,8 +50,8 @@ class KramiikkMod(loader.Module):
             finally:
                 pass
 
-    async def bbj(self, idu, msg):
-        if not msg.startswith(("✅", "📉")) and "auto" not in self.su:
+    async def bbj(self, idu, m):
+        if not m.text.startswith(("✅", "📉")) and "auto" not in self.su:
             return
         await self.client.send_message(
             idu,
@@ -62,7 +62,7 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m, msg):
-        if not msg.casefold().startswith(self.su["name"]):
+        if not m.text.casefold().startswith(self.su["name"]):
             return
         reply = await m.get_reply_message()
         if "напиши в " in msg:
