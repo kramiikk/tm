@@ -91,7 +91,7 @@ class KramiikkMod(loader.Module):
                 return
             jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
             if jab >= 50:
-                await utils.answer(m, f"отправить букашки {jab}")
+                await m.reply(f"отправить букашки {jab}")
         else:
             cmn = m.text.split(" ", 1)[1]
             if cmn in ded:
