@@ -78,7 +78,7 @@ class KramiikkMod(loader.Module):
         if "напиши" in m.text:
             txt = m.text.split(" ", 2)[2]
             if reply:
-                await reply.reply(txt)
+                return await reply.reply(txt)
             await utils.answer(m, txt)
         else:
             cmn = m.text.split(" ", 1)[1]
