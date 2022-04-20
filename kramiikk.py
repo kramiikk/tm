@@ -80,7 +80,7 @@ class KramiikkMod(loader.Module):
             if reply:
                 return await reply.reply(txt)
             await utils.answer(m, txt)
-        elif "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
+        elif "буках" in m.text:
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
             await self.err(chat, cmn)
