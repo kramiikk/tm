@@ -194,11 +194,15 @@ class KramiikkMod(loader.Module):
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
         }
-        if m.sender_id not in self.su["users"]:
-            return
         try:
+            if m.mentioned and "выбирает" in m.text:
+                txt = "реанимировать жабу"
+                await utils.answer(m, txt)
+                return await m.click(0)
+            if m.sender_id not in self.su["users"]:
+                return
             for i in (i for i in fff if i in m.text.casefold()):
                 return await fff[i]
             return
-        finally:
+        except:
             return
