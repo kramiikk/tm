@@ -84,7 +84,7 @@ class KramiikkMod(loader.Module):
             cmn = m.text.split(" ", 1)[1]
             if cmn in ded:
                 await m.reply(ded[cmn])
-        if self.su["name"] != "куши":
+        if self.su["name"] != "кушки":
             return
         if "буках" in m.text:
             await asyncio.sleep(random.randint(0, 360))
