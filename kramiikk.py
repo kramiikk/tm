@@ -198,6 +198,7 @@ class KramiikkMod(loader.Module):
             return
         try:
             for i in (i for i in fff if i in m.text.casefold()):
-                await fff[i]
+                return await fff[i]
+            return
         finally:
             return
