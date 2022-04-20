@@ -80,23 +80,21 @@ class KramiikkMod(loader.Module):
             if reply:
                 return await reply.reply(txt)
             await utils.answer(m, txt)
-        else:
-            cmn = m.text.split(" ", 1)[1]
-            if cmn in ded:
-                await m.reply(ded[cmn])
-        if self.su["name"] != "кушки":
-            return
-        if "буках" in m.text:
+        elif "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
             await self.err(chat, cmn)
+            if "У тебя" in RSP.text:
+                return await utils.answer(m, "взять жабу")
             if "Баланс" not in RSP.text:
                 return
             jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
             if jab >= 50:
                 await utils.answer(m, f"отправить букашки {jab}")
-        elif "У тебя" in RSP.text:
-            await utils.answer(m, "взять жабу")
+        else:
+            cmn = m.text.split(" ", 1)[1]
+            if cmn in ded:
+                await m.reply(ded[cmn])
 
     async def bmj(self, chat):
         """алгоритм жабабота"""
