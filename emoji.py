@@ -1,115 +1,165 @@
-# scope: inline_content
-# scope: hikka_only
+# import logging
+# from .. import loader
+# from telethon import events
+# import asyncio
+# from apscheduler.schedulers.asyncio import AsyncIOScheduler
+# from apscheduler.triggers.cron import CronTrigger
+# import re
+# from datetime import timedelta
 
-import abc
-import time
+# # requires: apscheduler
 
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.types import Message as AiogramMessage
-from telethon.utils import get_display_name
+# logger = logging.getLogger(__name__)
 
-from .. import loader, utils
+# @loader.tds
+# class SchedulerMod(loader.Module):
+#     """Шедулер"""
+#     strings = {'name': 'Scheduler'}
+
+#     async def client_ready(self, client, db):
+#         self.client = client
+#         self.db = db
+
+#         TOAD_STATION = -1001447960786
+#         TOM_REDDL = -1001441941681
+#         FROPPY = -1001403626354
+
+#         FARMS = {"Жабоботсво" : -543554726,
+#                 "Жабы Вероны" : -1001256439407,
+#                 "." : -1001409792751,
+#                 "жабы лена" : -1001419547228,
+#                 "Хэлло Вин!" : -1001426018704,
+#                 "Жабьи специи" : -1001499700136,
+#                 "LSDtoads" : -1001493923839,
+#                 "Жаботорт" : -1001436786642,
+#                 "Танцы по средам" : -1001481051409,
+#                 "IELTS" : -1001492669520,
+#                 "Домик в болоте " : -1001520533176,
+#                 "Космос нас ждет" : -1001460270560,
+#                 "Жабьи монстрики" : -1001427000422,
+#                 "Forbidden Frog" : -1001511984124,
+#                 "AstroFrog" : -1001575042525,
+#                 "Сжабки нелс(платон)" : -1001165420047,
+#                 "Жабочка" : -1001666737591,
+#                 "Сказочный донатер" : -1001648008859,
+#                 "Листик" : -1001685708710,
+#                 "Жабы аферисты Крам и бабушка" : -421815520,
+#                 "Сны лягушек" : -1001767427396,
+#                 "Курсы вышивания" : -1001760342148,
+#                 "Цыганка" : -1001714871513,
+#                 "Vitoad" : -1001771130958,
+#                 "Консилиум жаб" : -1001777552705,
+#                 "Дирижабль" : -1001264330106,
+#                 "Золотая жаба" : -1001787904496,
+#                 "Болотозавр" : -1001624280659,
+#                 "Багoboty" : -1001380664241,
+#                 "Осколок" : -1001289617428,
+#                 "Жабье Царство" : -714494521,
+#                 "Деревня жаб" : -668421956}
+
+#         async def feed_toad(chat):
+#             await client.send_message(chat, 'откормить жабу')
+#             async with client.conversation(chat) as conv:
+#                 response = conv.wait_event(events.NewMessage(incoming=True, from_users=1124824021, chats=chat))
+#                 await asyncio.sleep(3)
+#                 await client.send_message(chat, 'откормить жабку')
+#                 response = await response
+#                 next_food_hours = 4
+#                 next_food_minutes = 3
+#                 if "Откармливать жабу" in response.raw_text:
+
+#                    pattern = re.compile('через (.) ч:(.?.) мин', re.IGNORECASE) #паттерн времени
+#                    matcher = pattern.search(response.raw_text)
+
+#                    next_food_hours = int(matcher.group(1)) #получаем часы из сообщения
+#                    next_food_minutes = int(matcher.group(2)) #получаем минуты из сообщения
+
+#                 delta = timedelta(hours=next_food_hours, minutes=next_food_minutes)
+#                 await client.send_message(chat, 'откормить жабку', schedule=delta)
+
+#                 for number in range(5):
+#                    delta += timedelta(hours=4, minutes=3)
+#                    await client.send_message(chat, 'откормить жабку', schedule=delta)
+#                    await asyncio.sleep(1)
+
+#                 delta = timedelta(hours=1)
+#                 await client.send_message(chat, 'отправиться в золотое подземелье', schedule=delta)
+
+#                 for number in range(15):
+#                    delta += timedelta(hours=1, minutes=30)
+#                    await client.send_message(chat, 'отправиться в золотое подземелье', schedule=delta)
+#                    await asyncio.sleep(1)
 
 
-@loader.tds
-class FeedbackMod(loader.Module):
-    """Simple feedback bot for Hikka"""
+#         async def send_kid_to_kindergarten():
+#             await client.send_message(TOM_REDDL, 'отправить жабенка в детский сад')
+#             await client.send_message(TOAD_STATION, 'отправить жабенка в детский сад')
+#             await client.send_message(FROPPY, 'отправить жабенка в детский сад')
 
-    __metaclass__ = abc.ABCMeta
+#         async def send_kid_to_fighting():
+#             await client.send_message(TOM_REDDL, 'отправить жабенка на махач')
+#             await client.send_message(TOAD_STATION, 'отправить жабенка на махач')
+#             await client.send_message(FROPPY, 'отправить жабенка на махач')
 
-    strings = {
-        "name": "Feedback",
-        "/start": "🤵‍♀️ <b>Hello. I'm feedback bot of {}. Read /nometa before continuing</b>\n<b>You can send only one message per minute</b>",
-        "/nometa": (
-            "👨‍🎓 <b><u>Internet-talk rules:</u></b>\n\n"
-            "<b>🚫 Do <u>not</u> send just 'Hello'</b>\n"
-            "<b>🚫 Do <u>not</u> advertise</b>\n"
-            "<b>🚫 Do <u>not</u> insult</b>\n"
-            "<b>🚫 Do <u>not</u> split message</b>\n"
-            "<b>✅ Write your question in one message</b>"
-        ),
-        "enter_message": "✍️ <b>Enter your message here</b>",
-        "sent": "✅ <b>Your message has been sent</b>",
-    }
+#         async def feed_kid():
+#             await client.send_message(TOM_REDDL, 'покормить жабенка')
+#             await client.send_message(TOAD_STATION, 'покормить жабенка')
+#             await client.send_message(TOAD_STATION, '/dick@kraft28_bot')
+#             await client.send_message(FROPPY, 'покормить жабенка')
+#             await client.send_message(FROPPY, '/dick@kraft28_bot')
 
-    async def client_ready(self, client, db) -> None:
-        self._me = (await client.get_me()).id
-        self._name = utils.escape_html(get_display_name(await client.get_me()))
+#         async def kid_from_kindergarten():
+#             await client.send_message(TOAD_STATION, 'забрать жабенка')
+# #             await client.send_message(TOM_REDDL, 'забрать жабенка')
+#             await client.send_message(FROPPY, 'забрать жабенка')
 
-        if not hasattr(self, "inline"):
-            raise Exception("Hikka Only")
+#         async def feed_toads():
+#             await feed_toad(TOM_REDDL)
+#             await feed_toad(TOAD_STATION)
+#             await feed_toad(FROPPY)
 
-        self._bot = self.inline.bot
-        self._ratelimit = {}
-        self._markup = InlineKeyboardMarkup()
-        self._markup.add(
-            InlineKeyboardButton(
-                "✍️ Leave a message [1 per minute]", callback_data="fb_leave_message"
-            )
-        )
+#         async def best_toad_on_farms():
+#             for farm_name, farm_id in FARMS.items():
+#                 await asyncio.sleep(5)
+#                 await client.send_message(farm_id, 'жаба дня')
 
-        self._cancel = InlineKeyboardMarkup()
-        self._cancel.add(InlineKeyboardButton("🚫 Cancel", callback_data="fb_cancel"))
+#         async def collect_money():
+#             for farm_name, farm_id in FARMS.items():
+#                 await asyncio.sleep(5)
+#                 await client.send_message(farm_id, '!дайте буках')
 
-        self.__doc__ = (
-            "Feedback bot\n"
-            f"Your feeback link: t.me/{self.inline.bot_username}?start=feedback\n"
-            "You can freely share it"
-        )
+#         async def arena():
+#             await client.send_message(TOM_REDDL, 'на арену')
+#             await client.send_message(TOAD_STATION, 'на арену')
+#             await client.send_message(FROPPY, 'на арену')
 
-    async def aiogram_watcher(self, m: AiogramMessage) -> None:
-        if m.text == "/start":
-            await m.answer(
-                self.strings("/start").format(self._name), reply_markup=self._markup
-            )
-        elif m.text == "/nometa":
-            await m.answer(self.strings("/nometa"), reply_markup=self._markup)
-        elif m.text.startswith("/an") and m.from_user.id == self._me:
-            await self._bot.send_message(
-                int(m.text.split(" ", 2)[1]), m.text.split(" ", 2)[2]
-            )
-            await m.answer(self.strings("sent"))
-        elif self.inline.gs(m.from_user.id) == "fb_send_message":
-            r = await self._bot.forward_message(self._me, m.chat.id, m.message_id)
-            await r.answer(m.from_user.id)
-            await m.answer(self.strings("sent"))
-            self._ratelimit[m.from_user.id] = time.time() + 60
-            self.inline.ss(m.from_user.id, False)
+#         async def recover():
+#             await client.send_message(TOM_REDDL, 'реанимировать жабу')
+#             await client.send_message(TOAD_STATION, 'реанимировать жабу')
+#             await client.send_message(FROPPY, 'реанимировать жабу')
 
-    async def feedback_callback_handler(self, call: CallbackQuery) -> None:
-        """
-        Handles button clicks
-        @allow: all
-        """
-        if call.data == "fb_cancel":
-            self.inline.ss(call.from_user.id, False)
-            await self._bot.delete_message(
-                call.message.chat.id, call.message.message_id
-            )
-            return
+#         scheduler = AsyncIOScheduler()
+#         scheduler.add_job(send_kid_to_kindergarten, CronTrigger.from_crontab('03 6 * * *', timezone='Europe/Moscow'))
+#         scheduler.add_job(send_kid_to_fighting, CronTrigger.from_crontab('10 8 * * *', timezone='Europe/Moscow'))
+#         scheduler.add_job(kid_from_kindergarten, CronTrigger.from_crontab('6 12 * * *', timezone='Europe/Moscow'))
+#         scheduler.add_job(best_toad_on_farms, CronTrigger.from_crontab('15 0 * * *', timezone='Europe/Moscow'))
+# #        scheduler.add_job(collect_money, CronTrigger.from_crontab('0 9 * * *', timezone='Europe/Moscow'))
+# #         scheduler.add_job(arena, CronTrigger.from_crontab('5,10,15,20 8-21 * * *', timezone='Europe/Moscow'))
+# #         scheduler.add_job(recover, CronTrigger.from_crontab('3 8-21 * * *', timezone='Europe/Moscow'))
 
-        if call.data != "fb_leave_message":
-            return
+#         scheduler.start()
 
-        if (
-            call.from_user.id in self._ratelimit
-            and self._ratelimit[call.from_user.id] > time.time()
-        ):
-            await call.answer(
-                f"You can send next message in {self._ratelimit[call.from_user.id] - time.time():.0f} second(-s)",
-                show_alert=True,
-            )
-            return
+#         asyncio.get_event_loop().run_forever()
 
-        self.inline.ss(call.from_user.id, "fb_send_message")
-        await self._bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=self.strings("enter_message"),
-            parse_mode="HTML",
-            disable_web_page_preview=True,
-            reply_markup=self._cancel,
-        )
+#         elif m.text.startswith("/an") and m.from_user.id == self._me:
+#             await self._bot.send_message(
+#                 int(m.text.split(" ", 2)[1]), m.text.split(" ", 2)[2]
+#             )
+#             await m.answer(self.strings("sent"))
+#         elif self.inline.gs(m.from_user.id) == "fb_send_message":
+#             r = await self._bot.forward_message(self._me, m.chat.id, m.message_id)
+#             await r.answer(m.from_user.id)
+#             await m.answer(self.strings("sent"))
 
 
 #     async def emojicmd(self, message):
