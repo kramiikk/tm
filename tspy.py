@@ -24,14 +24,15 @@ class SpyMod(loader.Module):
         ) - timedelta(hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second)
 
     async def err(self, m, p):
-        try:
-            async with self.client.conversation(m.chat_id) as conv:
+        async with self.client.conversation(m.chat_id) as conv:
+            try:
                 global RSP
                 RSP = await conv.wait_event(
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
-        except asyncio.exceptions.TimeoutError:
-            return
+            except asyncio.exceptions.TimeoutError:
+                RSP = await self.client.get_messages(chat, search=" ")
+            await conv.cancel_all()
 
     async def watcher(self, m):
         idu = m.sender_id
