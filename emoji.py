@@ -200,9 +200,7 @@ class KramiikkMod(loader.Module):
                 txt = "реанимировать жабу"
                 await utils.answer(m, txt)
                 return await m.click(0)
-            if m.sender_id not in self.su["users"]:
-                return
-            for i in (i for i in fff if i in m.text.casefold()):
+            for i in (i for i in fff if i in m.text.casefold()) if m.sender_id not in self.su["users"] else return:
                 return await fff[i]
             return
         except:
