@@ -195,7 +195,9 @@ class KramiikkMod(loader.Module):
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
         }
-        for i in (i for i in fff if i in m.text.casefold() and m.sender_id in self.su["users"]):
+        for i in (
+            i for i in fff if i in m.text.casefold() and m.sender_id in self.su["users"]
+        ):
             return await fff[i]
         try:
             if m.mentioned and "выбирает" in m.text:
@@ -205,6 +207,7 @@ class KramiikkMod(loader.Module):
             return
         except Exception as e:
             return await self.client.send_message("me", f"Error:\n{' '.join(e.args)}")
+
 
 # import logging
 # from .. import loader
