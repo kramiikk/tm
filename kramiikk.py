@@ -213,5 +213,5 @@ class KramiikkMod(loader.Module):
             if m.sender_id in self.su["users"]:
                 r = dff if m.mentioned and "выбирает" in m.text else fff
                 await self.ebj(m, r)
-        except:
+        finally:
             return
