@@ -15,7 +15,6 @@ ded = {
     "можно покормить": "покормить жабку",
     "Можно отправиться": "отправиться в золотое подземелье",
     "жаба в данже": "рейд старт",
-    "можно отправить": self.su[job] if "job" in self.su else "работа крупье",
     "Используйте атаку": "на арену",
     "золото": "отправиться в золотое подземелье",
     "го кв": "начать клановую войну",
@@ -52,15 +51,11 @@ class KramiikkMod(loader.Module):
                 pass
 
     async def bbj(self, m):
-        if not m.text.startswith("📉"):
-            return
         if "auto" in self.su:
             await self.client.send_message(
                 m.sender_id,
                 "💑👩‍❤️‍👨👨‍❤️‍👨💑",
-                schedule=timedelta(
-                    minutes=random.randint(33, 55), seconds=random.randint(1, 60)
-                ),
+                schedule=timedelta(minutes=random.randint(42, 181)),
             )
 
     async def cbj(self, m):
@@ -126,15 +121,19 @@ class KramiikkMod(loader.Module):
                 ) and i in ("Можно откормить", "Можно отправиться"):
                     continue
                 await utils.answer(RSP, ded[i])
-            if int(jab.group(1)) > 123 and "работы" in RSP.text:
-                cmn = "мое снаряжение"
-                await self.err(chat, cmn)
-                if "🗡" not in RSP.text:
-                    return
-                for i in (i for i in ded if i in RSP.text):
-                    await utils.answer(RSP, ded[i])
+            if "можно отправить" in RSP.text:
+                await self.fdj(chat) if int(jab.group(1)) > 123 else self.bbj(m)
+                await utils.answer(RSP, self.su[job])
         finally:
             return
+
+    async def fdj(self, chat):
+        cmn = "мое снаряжение"
+        await self.err(chat, cmn)
+        if "🗡" not in RSP.text:
+            return
+        for i in (i for i in ded if i in RSP.text):
+            await utils.answer(RSP, ded[i])
 
     async def client_ready(self, client, db):
         self.client = client
