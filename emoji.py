@@ -48,7 +48,7 @@ class KramiikkMod(loader.Module):
             try:
                 chat = int(i)
                 await self.bmj(chat)
-            else:
+            except:
                 pass
 
     async def bbj(self, m):
