@@ -195,11 +195,9 @@ class KramiikkMod(loader.Module):
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
         }
-        for i in (
-            i for i in fff if i in m.text.casefold() and m.sender_id in self.su["users"]
-        ):
-            return await fff[i]
         try:
+            for i in (i for i in fff if i in m.text.casefold()) if m.sender_id in self.su["users"]:
+                return await fff[i]
             if m.mentioned and "выбирает" in m.text:
                 txt = "реанимировать жабу"
                 await utils.answer(m, txt)
