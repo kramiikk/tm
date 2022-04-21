@@ -48,7 +48,7 @@ class KramiikkMod(loader.Module):
             try:
                 chat = int(i)
                 await self.bmj(chat)
-            finally:
+            else:
                 pass
 
     async def bbj(self, m):
@@ -151,21 +151,18 @@ class KramiikkMod(loader.Module):
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
-        try:
-            async with self.client.conversation(chat, exclusive=False) as conv:
-                try:
-                    txt = await conv.send_message(cmn)
-                    global RSP
-                    RSP = await conv.get_response()
-                except asyncio.exceptions.TimeoutError:
-                    txt = await conv.send_message(cmn)
-                    RSP = await self.client.get_messages(chat, search=" ")
-                await conv.cancel_all()
-                if chat in [1124824021]:
-                    await txt.delete()
-                    await RSP.delete()
-        finally:
-            pass
+        async with self.client.conversation(chat, exclusive=False) as conv:
+            try:
+                txt = await conv.send_message(cmn)
+                global RSP
+                RSP = await conv.get_response()
+            except asyncio.exceptions.TimeoutError:
+                txt = await conv.send_message(cmn)
+                RSP = await self.client.get_messages(chat, search=" ")
+            await conv.cancel_all()
+            if chat in [1124824021]:
+                await txt.delete()
+                await RSP.delete()
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
