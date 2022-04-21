@@ -107,31 +107,34 @@ class KramiikkMod(loader.Module):
 
     async def bmj(self, chat):
         """алгоритм жабабота"""
-        cmn = "моя жаба"
-        await self.err(chat, cmn)
-        for i in (i for i in ded if i in RSP.text):
-            await utils.answer(RSP, ded[i])
-        jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
-        if not jab:
-            return
-        cmn = "жаба инфо"
-        await self.err(chat, cmn)
-        if "🏃‍♂️" not in RSP.text:
-            return
-        for i in (i for i in ded if i in RSP.text):
-            if (
-                int(jab.group(1)) < 123
-                or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
-            ) and i in ("Можно откормить", "Можно отправиться"):
-                continue
-            await utils.answer(RSP, ded[i])
-        if int(jab.group(1)) > 123 and "работы" in RSP.text:
-            cmn = "мое снаряжение"
+        try:
+            cmn = "моя жаба"
             await self.err(chat, cmn)
-            if "🗡" not in RSP.text:
-                return
             for i in (i for i in ded if i in RSP.text):
                 await utils.answer(RSP, ded[i])
+            jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
+            if not jab:
+                return
+            cmn = "жаба инфо"
+            await self.err(chat, cmn)
+            if "🏃‍♂️" not in RSP.text:
+                return
+            for i in (i for i in ded if i in RSP.text):
+                if (
+                    int(jab.group(1)) < 123
+                    or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
+                ) and i in ("Можно откормить", "Можно отправиться"):
+                    continue
+                await utils.answer(RSP, ded[i])
+            if int(jab.group(1)) > 123 and "работы" in RSP.text:
+                cmn = "мое снаряжение"
+                await self.err(chat, cmn)
+                if "🗡" not in RSP.text:
+                    return
+                for i in (i for i in ded if i in RSP.text):
+                    await utils.answer(RSP, ded[i])
+        finally:
+            return
 
     async def client_ready(self, client, db):
         self.client = client
