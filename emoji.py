@@ -208,7 +208,7 @@ class KramiikkMod(loader.Module):
                 if m.sender_id in self.su["users"]
                 else (i for i in dff if m.mentioned)
             ):
-                return await dff[i] if m.mentioned else fff[i]
+                return await dff[i]
             return
         except Exception as e:
             return await self.client.send_message("me", f"Error:\n{' '.join(e.args)}")
