@@ -15,7 +15,7 @@ ded = {
     "можно покормить": "покормить жабку",
     "Можно отправиться": "отправиться в золотое подземелье",
     "жаба в данже": "рейд старт",
-    "можно отправить": "работа крупье",
+    "можно отправить": self.su[job] if "job" in self.su else "работа крупье",
     "Используйте атаку": "на арену",
     "золото": "отправиться в золотое подземелье",
     "го кв": "начать клановую войну",
@@ -142,6 +142,7 @@ class KramiikkMod(loader.Module):
         self.su = db.get("Su", "su", {})
         self.me = await client.get_me()
         if "name" not in self.su:
+            self.su.setdefault("job", "работа крупье")
             self.su.setdefault("name", self.me.username)
             self.su.setdefault("users", [self.me.id, 1124824021, 1785723159])
             self.db.set("Su", "su", self.su)
@@ -178,11 +179,22 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await utils.answer(m, msg)
 
+    async def sjcmd(self, m):
+        """выбор работы"""
+        msg = utils.get_args_raw(m)
+        if "job" not in self.su:
+            self.su.setdefault("job", msg.casefold())
+        else:
+            self.su["job"] = msg.casefold()
+        txt = f"<b>Работа успешно изменена на</b> {self.su['job']}"
+        await utils.answer(m, txt)
+        self.db.set("Su", "su", self.su)
+
     async def sncmd(self, m):
         """ник для команд"""
         msg = utils.get_args_raw(m)
         self.su["name"] = msg.casefold()
-        txt = "👻 <code>" + self.su["name"] + "</code> <b>успешно изменён</b>"
+        txt = f"👻 <code>{self.su['job']}</code> <b>успешно изменён</b>"
         await utils.answer(m, txt)
         self.db.set("Su", "su", self.su)
 
