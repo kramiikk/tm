@@ -101,7 +101,7 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, "реанимировать жабу")
         return await m.click(0)
 
-    async def ebj(self, r):
+    async def ebj(self, m, r):
         for i in (i for i in r if i in m.text.casefold()):
             return await r[i]
 
