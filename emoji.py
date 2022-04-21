@@ -209,7 +209,7 @@ class KramiikkMod(loader.Module):
         try:
             if m.sender_id in self.su["users"]:
                 r = dff if m.mentioned and "выбирает" in m.text else fff
-                await self.ebj(r)
+                await self.ebj(m, r)
         except Exception as e:
             return await self.client.send_message("me", f"Error:\n{' '.join(e.args)}")
 
