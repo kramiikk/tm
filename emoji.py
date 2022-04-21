@@ -97,6 +97,10 @@ class KramiikkMod(loader.Module):
             if cmn in ded:
                 await m.reply(ded[cmn])
 
+    async def dbj(self, m):
+        await utils.answer(m, "реанимировать жабу")
+        return await m.click(0)
+
     async def bmj(self, chat):
         """алгоритм жабабота"""
         cmn = "моя жаба"
@@ -195,17 +199,16 @@ class KramiikkMod(loader.Module):
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
         }
+        dff = {
+            "выбирает": self.dbj(m),
+        }
         try:
             for i in (
                 (i for i in fff if i in m.text.casefold())
                 if m.sender_id in self.su["users"]
-                else None
+                else (i for i in dff if m.mentioned)
             ):
-                return await fff[i]
-            if m.mentioned and "выбирает" in m.text:
-                txt = "реанимировать жабу"
-                await utils.answer(m, txt)
-                return await m.click(0)
+                return await dff[i] if m.mentioned else fff[i]
             return
         except Exception as e:
             return await self.client.send_message("me", f"Error:\n{' '.join(e.args)}")
