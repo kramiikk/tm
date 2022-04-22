@@ -115,7 +115,6 @@ class KramiikkMod(loader.Module):
             if "🏃‍♂️" not in RSP.text:
                 return
             if "можно отправить" in RSP.text:
-                await (self.fdj(chat) if int(jab.group(1)) > 123 else self.bbj(m))
                 await utils.answer(RSP, self.su["job"])
             for i in (i for i in ded if i in RSP.text):
                 if (
@@ -193,7 +192,7 @@ class KramiikkMod(loader.Module):
         """ник для команд"""
         msg = utils.get_args_raw(m)
         self.su["name"] = msg.casefold()
-        txt = f"👻 <code>{self.su['job']}</code> <b>успешно изменён</b>"
+        txt = f"👻 <code>{self.su['name']}</code> <b>успешно изменён</b>"
         await utils.answer(m, txt)
         self.db.set("Su", "su", self.su)
 
