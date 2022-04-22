@@ -129,6 +129,9 @@ class KramiikkMod(loader.Module):
             self.su.setdefault("name", self.me.username)
             self.su.setdefault("users", [self.me.id, 1124824021, 1785723159])
             self.db.set("Su", "su", self.su)
+        if "job" not in self.su:
+            self.su.setdefault("job", "работа крупье")
+            self.db.set("Su", "su", self.su)
         if 1124824021 not in self.su["users"]:
             self.su["users"].append(1124824021)
             self.db.set("Su", "su", self.su)
