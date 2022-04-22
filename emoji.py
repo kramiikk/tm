@@ -83,11 +83,8 @@ class KramiikkMod(loader.Module):
         dff = {
             "выбирает": self.dbj(m),
         }
-        for i in (
-            i
-            for i in (dff if m.mentioned and "выбирает" in m.text else fff)
-            if i in m.text.casefold()
-        ):
+        r = dff if m.mentioned and "выбирает" in m.text else fff
+        for i in (i for i in r if i in m.text.casefold()):
             return await r[i]
 
     async def bmj(self, chat):
