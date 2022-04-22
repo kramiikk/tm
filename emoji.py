@@ -7,6 +7,7 @@ from telethon import events
 
 from .. import loader, utils
 
+
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
