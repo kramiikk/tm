@@ -147,6 +147,7 @@ class KramiikkMod(loader.Module):
             "Налапники: Пусто": "скрафтить налапники из клюва цапли",
             "Банда: Пусто": "взять жабу",
         }
+        self.ded = ded
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
