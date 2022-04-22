@@ -66,8 +66,8 @@ class KramiikkMod(loader.Module):
                 await m.reply(f"отправить букашки {jab}")
         else:
             cmn = m.text.split(" ", 1)[1]
-            if cmn in ded:
-                await m.reply(ded[cmn])
+            if cmn in self.ded:
+                await m.reply(self.ded[cmn])
 
     async def dbj(self, m):
         await utils.answer(m, "реанимировать жабу")
@@ -82,8 +82,8 @@ class KramiikkMod(loader.Module):
         try:
             cmn = "моя жаба"
             await self.err(chat, cmn)
-            for i in (i for i in ded if i in RSP.text):
-                await utils.answer(RSP, ded[i])
+            for i in (i for i in self.ded if i in RSP.text):
+                await utils.answer(RSP, self.ded[i])
             jab = re.search(r"У.+: (\d+)[\s\S]*Б.+: (\d+)", RSP.text)
             if not jab:
                 return
@@ -91,13 +91,13 @@ class KramiikkMod(loader.Module):
             await self.err(chat, cmn)
             if "🏃‍♂️" not in RSP.text:
                 return
-            for i in (i for i in ded if i in RSP.text):
+            for i in (i for i in self.ded if i in RSP.text):
                 if (
                     int(jab.group(1)) < 123
                     or (int(jab.group(1)) > 123 and int(jab.group(2)) < 3333)
                 ) and i in ("Можно откормить", "Можно отправиться"):
                     continue
-                await utils.answer(RSP, ded[i])
+                await utils.answer(RSP, self.ded[i])
         finally:
             return
 
@@ -106,8 +106,8 @@ class KramiikkMod(loader.Module):
         await self.err(chat, cmn)
         if "🗡" not in RSP.text:
             return
-        for i in (i for i in ded if i in RSP.text):
-            await utils.answer(RSP, ded[i])
+        for i in (i for i in self.ded if i in RSP.text):
+            await utils.answer(RSP, self.ded[i])
 
     async def client_ready(self, client, db):
         self.client = client
