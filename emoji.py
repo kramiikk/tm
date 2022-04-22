@@ -7,6 +7,7 @@ from telethon import events
 
 from .. import loader, utils
 
+
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
@@ -73,8 +74,20 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, "реанимировать жабу")
         return await m.click(0)
 
-    async def ebj(self, m, r):
-        for i in (i for i in r if i in m.text.casefold()):
+    async def ebj(self, m):
+        fff = {
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
+            "📉": self.bbj(m),
+            self.su["name"]: self.cbj(m),
+        }
+        dff = {
+            "выбирает": self.dbj(m),
+        }
+        for i in (
+            i
+            for i in (dff if m.mentioned and "выбирает" in m.text else fff)
+            if i in m.text.casefold()
+        ):
             return await r[i]
 
     async def bmj(self, chat):
@@ -208,18 +221,9 @@ class KramiikkMod(loader.Module):
         await utils.answer(m, msg)
 
     async def watcher(self, m):
-        fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "📉": self.bbj(m),
-            self.su["name"]: self.cbj(m),
-        }
-        dff = {
-            "выбирает": self.dbj(m),
-        }
         try:
             if m.sender_id in self.su["users"]:
-                r = dff if m.mentioned and "выбирает" in m.text else fff
-                await self.ebj(m, r)
+                await self.ebj(m)
         finally:
             return
 
