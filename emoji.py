@@ -114,6 +114,9 @@ class KramiikkMod(loader.Module):
             await self.err(chat, cmn)
             if "🏃‍♂️" not in RSP.text:
                 return
+            if "можно отправить" in RSP.text:
+                await self.fdj(chat) if int(jab.group(1)) > 123 else self.bbj(m)
+                await utils.answer(RSP, self.su[job])
             for i in (i for i in ded if i in RSP.text):
                 if (
                     int(jab.group(1)) < 123
@@ -121,9 +124,6 @@ class KramiikkMod(loader.Module):
                 ) and i in ("Можно откормить", "Можно отправиться"):
                     continue
                 await utils.answer(RSP, ded[i])
-            if "можно отправить" in RSP.text:
-                await self.fdj(chat) if int(jab.group(1)) > 123 else self.bbj(m)
-                await utils.answer(RSP, self.su[job])
         finally:
             return
 
