@@ -23,10 +23,10 @@ class KramiikkMod(loader.Module):
         cmn = "мои жабы"
         await self.err(chat, cmn)
         await self.client.send_read_acknowledge(chat)
-        capt = re.findall(r"(\d+) \| -100(\d+)", RSP.text)
-        for i in capt:
+        capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
+        for s in capt:
             try:
-                chat = int(i[1])
+                chat = int(s[1])
                 cmn = "моя жаба"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
@@ -38,13 +38,13 @@ class KramiikkMod(loader.Module):
                 await self.err(chat, cmn)
                 if "🏃‍♂️" not in RSP.text:
                     return
-                for s in (s for s in self.ded if s in RSP.text):
-                    if (int(i[0]) < 123 or int(jab) < 3333) and s in (
+                for i in (i for i in self.ded if i in RSP.text):
+                    if (int(s[0]) < 123 or int(jab) < 3333) and i in (
                         "Можно откормить",
                         "Можно отправиться",
                     ):
                         continue
-                    await RSP.respond(self.ded[s])
+                    await RSP.respond(self.ded[i])
             finally:
                 pass
 
