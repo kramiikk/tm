@@ -24,13 +24,17 @@ class KramiikkMod(loader.Module):
         await self.err(chat, cmn)
         await self.client.delete_dialog(chat)
         capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
+        if capt and "chats" in self.su:
+            capt = (s for s in self.su["chats"] if str(s) in RSP.text)
         for s in capt:
             try:
-                chat = int(s[1])
+                chat = (int(s[1]) if "auto" in self.su else s)
                 cmn = "моя жаба"
                 await self.err(chat, cmn)
-                for i in (i for i in self.ded if i in RSP.text):
-                    await RSP.respond(self.ded[i])
+                j = self.ded
+                e = RSP.text
+                k = RSP.respond(self.ded[i])
+                await self.jbj(e, j, k)
                 jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
                 if not jab:
                     return
@@ -49,11 +53,11 @@ class KramiikkMod(loader.Module):
                 pass
 
     async def bbj(self, m):
-        if "auto" in self.su:
+        if "auto" in self.su or "chats" in self.su:
             await self.client.send_message(
                 1124824021,
                 "💑👩‍❤️‍👨👨‍❤️‍👨💑",
-                schedule=timedelta(minutes=random.randint(42, 181)),
+                schedule=timedelta(minutes=random.randint(128, 247)),
             )
 
     async def cbj(self, m):
@@ -137,8 +141,10 @@ class KramiikkMod(loader.Module):
             "выбирает": self.dbj(m),
         }
         r = dff if m.mentioned and "выбирает" in m.text else fff
-        for i in (i for i in r if i in m.text.casefold()):
-            return await r[i]
+        j = r
+        e = m.text.casefold()):
+        k = r[i]
+        await self.jbj(e, j, k)
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
@@ -157,13 +163,20 @@ class KramiikkMod(loader.Module):
         await self.err(chat, cmn)
         if "🗡" not in RSP.text:
             return
-        for i in (i for i in self.ded if i in RSP.text):
-            await RSP.respond(self.ded[i])
+        j = self.ded
+        e = RSP.text
+        k = RSP.respond(self.ded[i])
+        await self.jbj(e, j, k)
+
+    async def jbj(self, e, j, k):
+        for i in (i for i in j if i in e):
+            await k
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
         if "auto" not in self.su:
             self.su.setdefault("auto", {})
+            self.su.pop("chats")
             msg = "<b>активирована</b>"
         else:
             self.su.pop("auto")
@@ -200,6 +213,19 @@ class KramiikkMod(loader.Module):
         else:
             self.su["users"].append(msg)
             txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
+        self.db.set("Su", "su", self.su)
+        await m.edit(txt)
+
+    async def svcmd(self, m):
+        """добавляет пользователей для управление акк"""
+        msg = m.peer_id if len(m.text)<9 else int(m.text.split(" ", 1)[1])
+        if msg in self.su["chats"]:
+            self.su["chats"].remove(msg)
+            txt = f"👶🏻 {msg} <b>чат успешно удален</b>"
+        else:
+            self.su["chats"].append(msg)
+            txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
+        self.su.pop("auto")
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
