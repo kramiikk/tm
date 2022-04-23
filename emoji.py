@@ -22,7 +22,7 @@ class KramiikkMod(loader.Module):
         await m.delete()
         cmn = "мои жабы"
         await self.err(chat, cmn)
-        await self.client.send_read_acknowledge(chat)
+        await self.client.delete_dialog(chat)
         capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
         for s in capt:
             try:
@@ -90,31 +90,6 @@ class KramiikkMod(loader.Module):
             if cmn in self.ded:
                 await m.reply(self.ded[cmn])
 
-    async def dbj(self, m):
-        await m.respond("реанимировать жабу")
-        return await m.click(0)
-
-    async def ebj(self, m):
-        fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "📉": self.bbj(m),
-            self.su["name"]: self.cbj(m),
-        }
-        dff = {
-            "выбирает": self.dbj(m),
-        }
-        r = dff if m.mentioned and "выбирает" in m.text else fff
-        for i in (i for i in r if i in m.text.casefold()):
-            return await r[i]
-
-    async def fdj(self, chat):
-        cmn = "мое снаряжение"
-        await self.err(chat, cmn)
-        if "🗡" not in RSP.text:
-            return
-        for i in (i for i in self.ded if i in RSP.text):
-            await RSP.respond(self.ded[i])
-
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
@@ -148,6 +123,23 @@ class KramiikkMod(loader.Module):
             "Банда: Пусто": "взять жабу",
         }
 
+    async def dbj(self, m):
+        await m.respond("реанимировать жабу")
+        return await m.click(0)
+
+    async def ebj(self, m):
+        fff = {
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
+            "📉": self.bbj(m),
+            self.su["name"]: self.cbj(m),
+        }
+        dff = {
+            "выбирает": self.dbj(m),
+        }
+        r = dff if m.mentioned and "выбирает" in m.text else fff
+        for i in (i for i in r if i in m.text.casefold()):
+            return await r[i]
+
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
@@ -159,9 +151,14 @@ class KramiikkMod(loader.Module):
                 txt = await conv.send_message(cmn)
                 RSP = await self.client.get_messages(chat, search=" ")
             await conv.cancel_all()
-            if chat.user_id and chat.user_id == 1124824021:
-                await txt.delete()
-                await RSP.delete()
+
+    async def fdj(self, chat):
+        cmn = "мое снаряжение"
+        await self.err(chat, cmn)
+        if "🗡" not in RSP.text:
+            return
+        for i in (i for i in self.ded if i in RSP.text):
+            await RSP.respond(self.ded[i])
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
