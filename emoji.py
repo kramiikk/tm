@@ -219,7 +219,9 @@ class KramiikkMod(loader.Module):
     async def svcmd(self, m):
         """добавляет пользователей для управление акк"""
         msg = m.peer_id if len(m.text)<9 else int(m.text.split(" ", 1)[1])
-        if msg in self.su["chats"]:
+        if "chats" not in self.su:
+            self.su.setdefault("chats", [msg])
+        elif msg in self.su["chats"]:
             self.su["chats"].remove(msg)
             txt = f"👶🏻 {msg} <b>чат успешно удален</b>"
         else:
