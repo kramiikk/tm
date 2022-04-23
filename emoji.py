@@ -11,10 +11,6 @@ from .. import loader
 logger = logging.getLogger(__name__)
 
 
-
-
-
-
 @loader.tds
 class KramiikkMod(loader.Module):
     """Алина, я люблю тебя!"""
