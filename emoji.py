@@ -142,7 +142,7 @@ class KramiikkMod(loader.Module):
         }
         r = dff if m.mentioned and "выбирает" in m.text else fff
         j = r
-        e = m.text.casefold()):
+        e = m.text.casefold()
         k = r[i]
         await self.jbj(e, j, k)
 
