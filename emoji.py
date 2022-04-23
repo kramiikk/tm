@@ -176,7 +176,8 @@ class KramiikkMod(loader.Module):
         """будет смотреть за вашими жабами"""
         if "auto" not in self.su:
             self.su.setdefault("auto", {})
-            self.su.pop("chats")
+            if "chats" in self.su:
+                self.su.pop("chats")
             msg = "<b>активирована</b>"
         else:
             self.su.pop("auto")
@@ -218,7 +219,7 @@ class KramiikkMod(loader.Module):
 
     async def svcmd(self, m):
         """добавляет пользователей для управление акк"""
-        msg = m.peer_id if len(m.text)<9 else int(m.text.split(" ", 1)[1])
+        msg = m.chat_id if len(m.text)<9 else int(m.text.split(" ", 1)[1])
         if "chats" not in self.su:
             self.su.setdefault("chats", [msg])
         elif msg in self.su["chats"]:
@@ -227,7 +228,8 @@ class KramiikkMod(loader.Module):
         else:
             self.su["chats"].append(msg)
             txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
-        self.su.pop("auto")
+        if "auto" in self.su:
+            self.su.pop("auto")
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
