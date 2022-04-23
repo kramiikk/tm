@@ -196,7 +196,7 @@ class KramiikkMod(loader.Module):
     async def sucmd(self, m):
         """добавляет пользователей для управление акк"""
         reply = await m.get_reply_message()
-        msg = reply.from_id if reply else m.text.split(" ", 1)[1]
+        msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
         if msg in self.su["users"]:
             self.su["users"].remove(msg)
             txt = f"🖕🏾 {msg} <b>успешно удален</b>"
