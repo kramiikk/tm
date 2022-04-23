@@ -195,17 +195,16 @@ class KramiikkMod(loader.Module):
 
     async def sucmd(self, m):
         """добавляет пользователей для управление акк"""
-        msg = m.text.split(" ", 1)[1]
+        reply = await m.get_reply_message()
+        msg = reply.from_id if reply else m.text.split(" ", 1)[1]
         if msg in self.su["users"]:
-            txt = int(msg)
-            self.su["users"].remove(txt)
-            msg = f"🖕🏾 {txt} <b>успешно удален</b>"
+            self.su["users"].remove(msg)
+            txt = f"🖕🏾 {txt} <b>успешно удален</b>"
         else:
-            txt = int(msg)
-            self.su["users"].append(txt)
-            msg = f"🤙🏾 {txt} <b>успешно добавлен</b>"
+            self.su["users"].append(msg)
+            txt = f"🤙🏾 {txt} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        await m.edit(msg)
+        await m.edit(txt)
 
     async def watcher(self, m):
         try:
