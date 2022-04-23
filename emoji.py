@@ -38,13 +38,13 @@ class KramiikkMod(loader.Module):
                 await self.err(chat, cmn)
                 if "🏃‍♂️" not in RSP.text:
                     return
-                for i in (i for i in self.ded if i in RSP.text):
-                    if (int(i[0]) < 123 or int(jab) < 3333) and i in (
+                for s in (s for s in self.ded if s in RSP.text):
+                    if (int(i[0]) < 123 or int(jab) < 3333) and s in (
                         "Можно откормить",
                         "Можно отправиться",
                     ):
                         continue
-                    await RSP.respond(self.ded[i])
+                    await RSP.respond(self.ded[s])
             finally:
                 pass
 
