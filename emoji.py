@@ -199,10 +199,10 @@ class KramiikkMod(loader.Module):
         msg = reply.from_id if reply else m.text.split(" ", 1)[1]
         if msg in self.su["users"]:
             self.su["users"].remove(msg)
-            txt = f"🖕🏾 {txt} <b>успешно удален</b>"
+            txt = f"🖕🏾 {msg} <b>успешно удален</b>"
         else:
             self.su["users"].append(msg)
-            txt = f"🤙🏾 {txt} <b>успешно добавлен</b>"
+            txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
