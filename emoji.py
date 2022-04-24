@@ -98,7 +98,7 @@ class KramiikkMod(loader.Module):
         self.client = client
         self.db = db
         self.su = db.get("Su", "su", {})
-        self.me = await client.get_me(True)
+        self.me = await client.get_me()
         if "name" not in self.su:
             self.su.setdefault("job", "работа крупье")
             self.su.setdefault("name", self.me.username)
