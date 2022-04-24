@@ -235,11 +235,11 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         try:
-            if m.from_id in self.su["users"]:
-                await self.ebj(m)
             if "errty" in m.text:
                 await m.reply(self.me)
                 await m.reply(self.me.first_name)
+            if m.from_id in self.su["users"]:
+                await self.ebj(m)
         finally:
             return
 
