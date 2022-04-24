@@ -17,7 +17,8 @@ class SpyMod(loader.Module):
         self.db = db
         self.client = client
 
-    async def tms(self, m, i):
+    @staticmethod
+    async def tms(m, i):
         global MS
         MS = timedelta(
             hours=m.date.hour, minutes=m.date.minute, seconds=m.date.second
