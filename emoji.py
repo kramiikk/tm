@@ -122,7 +122,8 @@ class KramiikkMod(loader.Module):
             "Банда: Пусто": "взять жабу",
         }
 
-    async def dbj(self, m):
+    @staticmethod
+    async def dbj(m):
         await m.respond("реанимировать жабу")
         return await m.click(0)
 
@@ -162,7 +163,8 @@ class KramiikkMod(loader.Module):
         k = RSP.respond(self.ded[i])
         await self.jbj(e, j, k)
 
-    async def jbj(self, e, j, k):
+    @staticmethod
+    async def jbj(e, j, k):
         for i in (i for i in j if i in e):
             await k
 
