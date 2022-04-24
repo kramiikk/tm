@@ -18,7 +18,7 @@ class KramiikkMod(loader.Module):
         cmn = "мои жабы"
         await self.err(chat, cmn)
         await self.client.delete_dialog(chat)
-        if "chats" not in self.su or "auto" not in self.su:
+        if "chats" not in self.su and "auto" not in self.su:
             return
         capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
         for s in capt:
