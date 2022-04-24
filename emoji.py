@@ -20,7 +20,7 @@ class KramiikkMod(loader.Module):
         await self.client.delete_dialog(chat)
         capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
         if capt and "chats" in self.su:
-            capt = (s for s in self.su["chats"] if str(s) in RSP.text)
+            capt = (i for i in self.su["chats"] if str(i) in RSP.text)
         for s in capt:
             try:
                 chat = int(s[1]) if "auto" in self.su else s
