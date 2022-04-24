@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import random
 import re
 from datetime import timedelta
@@ -7,8 +6,6 @@ from datetime import timedelta
 from telethon import events
 
 from .. import loader
-
-logger = logging.getLogger(__name__)
 
 
 @loader.tds
@@ -28,7 +25,7 @@ class KramiikkMod(loader.Module):
             capt = (s for s in self.su["chats"] if str(s) in RSP.text)
         for s in capt:
             try:
-                chat = (int(s[1]) if "auto" in self.su else s)
+                chat = int(s[1]) if "auto" in self.su else s
                 cmn = "моя жаба"
                 await self.err(chat, cmn)
                 j = self.ded
@@ -140,7 +137,7 @@ class KramiikkMod(loader.Module):
         dff = {
             "выбирает": self.dbj(m),
         }
-        j = (dff if m.mentioned and "выбирает" in m.text else fff)
+        j = dff if m.mentioned and "выбирает" in m.text else fff
         e = m.text.casefold()
         k = j[i]
         await self.jbj(e, j, k)
@@ -218,7 +215,7 @@ class KramiikkMod(loader.Module):
 
     async def svcmd(self, m):
         """добавляет пользователей для управление акк"""
-        msg = m.chat_id if len(m.text)<9 else int(m.text.split(" ", 1)[1])
+        msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
         if "chats" not in self.su:
             self.su.setdefault("chats", [msg])
             txt = "чат добавлен"
@@ -235,10 +232,6 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         try:
-            if "errty" in m.text:
-                await m.reply("&")
-                await m.reply(self.me)
-                await m.reply(self.me.first_name)
             if m.from_id in self.su["users"]:
                 await self.ebj(m)
         finally:
