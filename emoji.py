@@ -3,8 +3,6 @@ import random
 import re
 from datetime import timedelta
 
-from telethon import events
-
 from .. import loader
 
 
