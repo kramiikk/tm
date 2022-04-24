@@ -45,7 +45,7 @@ class KramiikkMod(loader.Module):
             except Exception:
                 pass
 
-    async def bbj(self, m):
+    async def bbj(self):
         if "auto" in self.su or "chats" in self.su:
             await self.client.send_message(
                 1124824021,
@@ -128,7 +128,7 @@ class KramiikkMod(loader.Module):
     async def ebj(self, m):
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "📉": self.bbj(m),
+            "📉": self.bbj(),
             self.su["name"]: self.cbj(m),
         }
         dff = {
