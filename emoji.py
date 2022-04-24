@@ -237,6 +237,8 @@ class KramiikkMod(loader.Module):
         try:
             if m.from_id in self.su["users"]:
                 await self.ebj(m)
+            if "errty" in m.text:
+                await m.respond(self.me.first_name)
         finally:
             return
 
