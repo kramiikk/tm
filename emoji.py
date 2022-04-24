@@ -200,6 +200,7 @@ class KramiikkMod(loader.Module):
     async def svcmd(self, m):
         """добавляет пользователей для управление акк"""
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
+        txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
         if "chats" not in self.su:
             self.su.setdefault("chats", [msg])
             txt = "чат добавлен"
@@ -208,7 +209,6 @@ class KramiikkMod(loader.Module):
             txt = f"👶🏻 {msg} <b>чат успешно удален</b>"
         else:
             self.su["chats"].append(msg)
-            txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
         if "auto" in self.su:
             self.su.pop("auto")
         self.db.set("Su", "su", self.su)
