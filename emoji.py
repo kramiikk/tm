@@ -140,7 +140,7 @@ class KramiikkMod(loader.Module):
         dff = {
             "выбирает": self.dbj(m),
         }
-        r = dff if m.mentioned and "выбирает" in m.text else fff
+        r = (dff if m.mentioned and "выбирает" in m.text else fff)
         j = r
         e = m.text.casefold()
         k = r[i]
