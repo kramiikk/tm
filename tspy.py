@@ -69,7 +69,7 @@ class SpyMod(loader.Module):
                 for i in ms:
                     tog += f"\n{i[0]} {i[1]}"
                 return await self.client.send_message(1655814348, tog)
-            elif m.message.casefold().startswith(
+            if m.message.casefold().startswith(
                 ("начать клановую войну", "@toadbot начать клановую войну")
             ) and len(m.message) in {21, 30}:
                 p = None
@@ -98,7 +98,7 @@ class SpyMod(loader.Module):
                         )
                     return
                 return
-            elif m.message.startswith("Алло") and m.sender_id in {1124824021}:
+            if m.message.startswith("Алло") and m.sender_id in {1124824021}:
                 klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
                 src = f"Топ 35 кланов {klan.group(1)}"
                 ms = await self.client.get_messages(1782816965, search=src)
@@ -121,13 +121,13 @@ class SpyMod(loader.Module):
                         tog += f"\n{i}"
                     return await self.client.send_message(1655814348, tog)
                 return
-            elif m.message.casefold().startswith(("мой клан", "@toadbot мой клан")):
+            if m.message.casefold().startswith(("мой клан", "@toadbot мой клан")):
                 p = "Клан"
                 await self.err(m, p)
                 klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
                 return await self.client.send_message(1655814348, info)
-            elif m.message.casefold().startswith(
+            if m.message.casefold().startswith(
                 ("моя жаба", "@toadbot моя жаба", "/my_toad")
             ) and len(m.message) in {17, 8}:
                 p = "🐸"
@@ -138,7 +138,7 @@ class SpyMod(loader.Module):
                 )
                 info = f"Chat id: {m.chat_id}\nUser id: {m.sender_id}\nЖаба: {reg.group(1)}\nУровень: {reg.group(2)}\nКласс: {reg.group(3)}"
                 return await self.client.send_message(1655814348, info)
-            elif (
+            if (
                 not m.message.endswith(("[1🏳‍🌈🐝]", "[1👴🐝]", "[1🦠🐝]", "👑🐝"))
                 and m.buttons
                 and idu in [830605725]
