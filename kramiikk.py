@@ -118,7 +118,8 @@ class KramiikkMod(loader.Module):
             "Банда: Пусто": "взять жабу",
         }
 
-    async def dbj(self, m):
+    @staticmethod
+    async def dbj(m):
         await m.respond("реанимировать жабу")
         return await m.click(0)
 
