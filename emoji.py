@@ -142,7 +142,7 @@ class KramiikkMod(loader.Module):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
             try:
-                txt = await conv.send_message(cmn)
+                await conv.send_message(cmn)
                 global RSP
                 RSP = await conv.get_response()
             except asyncio.exceptions.TimeoutError:
