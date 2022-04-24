@@ -26,10 +26,8 @@ class KramiikkMod(loader.Module):
                 chat = int(s[1]) if "auto" in self.su else s
                 cmn = "моя жаба"
                 await self.err(chat, cmn)
-                j = self.ded
-                e = RSP.text
-                k = RSP.respond(self.ded[i])
-                await self.jbj(e, j, k)
+                for i in (i for i in self.ded if i in RSP.text):
+                    await RSP.respond(self.ded[i])
                 jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
                 if not jab:
                     return
@@ -137,9 +135,8 @@ class KramiikkMod(loader.Module):
             "выбирает": self.dbj(m),
         }
         j = dff if m.mentioned and "выбирает" in m.text else fff
-        e = m.text.casefold()
-        k = j[i]
-        await self.jbj(e, j, k)
+        for i in (i for i in j if i in m.text.casefold()):
+            await j[i]
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
@@ -152,21 +149,6 @@ class KramiikkMod(loader.Module):
                 txt = await conv.send_message(cmn)
                 RSP = await self.client.get_messages(chat, search=" ")
             await conv.cancel_all()
-
-    async def fdj(self, chat):
-        cmn = "мое снаряжение"
-        await self.err(chat, cmn)
-        if "🗡" not in RSP.text:
-            return
-        j = self.ded
-        e = RSP.text
-        k = RSP.respond(self.ded[i])
-        await self.jbj(e, j, k)
-
-    @staticmethod
-    async def jbj(e, j, k):
-        for i in (i for i in j if i in e):
-            await k
 
     async def sacmd(self, m):
         """будет смотреть за вашими жабами"""
@@ -238,15 +220,7 @@ class KramiikkMod(loader.Module):
             return
 
 
-
 # # requires: apscheduler
-
-
-
-
-
-
-
 
 
 #                 delta = timedelta(hours=next_food_hours, minutes=next_food_minutes)
@@ -266,18 +240,6 @@ class KramiikkMod(loader.Module):
 #                    await asyncio.sleep(1)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 #         elif m.text.startswith("/an") and m.from_user.id == self._me:
 #             await self._bot.send_message(
 #                 int(m.text.split(" ", 2)[1]), m.text.split(" ", 2)[2]
@@ -289,11 +251,6 @@ class KramiikkMod(loader.Module):
 #             await m.answer(self.strings("sent"))
 
 
-
-
-
-
-
 #         txtnorm = dict(
 #             zip(
 #                 map(ord, "3ëjmqv9ô§üldйa¿42zэouəà>ý5eö$0¡<61¥g8tъ7"),
@@ -302,6 +259,3 @@ class KramiikkMod(loader.Module):
 #         )
 #         txte = txt.translate(txtnorm)
 #         await message.client.send_message("me", txte)
-
-
-
