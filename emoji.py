@@ -203,7 +203,6 @@ class KramiikkMod(loader.Module):
         txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
         if "chats" not in self.su:
             self.su.setdefault("chats", [msg])
-            txt = "чат добавлен"
         elif msg in self.su["chats"]:
             self.su["chats"].remove(msg)
             txt = f"👶🏻 {msg} <b>чат успешно удален</b>"
