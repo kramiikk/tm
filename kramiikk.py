@@ -58,7 +58,7 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m):
-        if not m.text.casefold().startswith(self.su["name"]):
+        if not m.text.casefold().startswith(self.su["name"]) and m.from_id not in self.su["users"]:
             return
         reply = await m.get_reply_message()
         if "напиши в " in m.text:
@@ -131,8 +131,6 @@ class KramiikkMod(loader.Module):
         return await m.click(0)
 
     async def ebj(self, m):
-        if m.from_id not in self.su["users"]:
-            return
         dff = {
             "выбирает": self.dbj(m),
         }
