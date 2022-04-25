@@ -44,9 +44,9 @@ class KramiikkMod(loader.Module):
                     ):
                         continue
                     await RSP.respond(self.ded[i])
-                return
             except Exception:
                 return
+        return
 
     async def bbj(self):
         if "auto" in self.su or "chats" in self.su:
