@@ -172,10 +172,7 @@ class KramiikkMod(loader.Module):
     async def sjcmd(self, m):
         """выбор работы"""
         msg = m.text.split(" ", 1)[1]
-        if "job" in self.su:
-            self.su["job"] = msg.casefold()
-        else:
-            self.su.setdefault("job", msg.casefold())
+        self.su.setdefault("job", msg.casefold())
         txt = f"<b>Работа изменена:</b> {self.su['job']}"
         self.db.set("Su", "su", self.su)
         return await m.edit(txt)
