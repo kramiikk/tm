@@ -157,7 +157,7 @@ class KramiikkMod(loader.Module):
             await conv.cancel_all()
 
     async def sacmd(self, m):
-        """будет смотреть за вашими жабами"""
+        """автожаба для всех чатов"""
         if "auto" in self.su:
             self.su.pop("auto")
             msg = "<b>деактивирована</b>"
@@ -202,7 +202,7 @@ class KramiikkMod(loader.Module):
         return await m.edit(txt)
 
     async def svcmd(self, m):
-        """добавляет пользователей для управление акк"""
+        """добавляет чат в автожабу"""
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
         txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
         if "chats" not in self.su:
