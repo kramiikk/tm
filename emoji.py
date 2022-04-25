@@ -152,7 +152,7 @@ class KramiikkMod(loader.Module):
                 global RSP
                 RSP = await conv.get_response()
             except asyncio.exceptions.TimeoutError:
-                txt = await conv.send_message(cmn)
+                await conv.send_message(cmn)
                 RSP = await self.client.get_messages(chat, search=" ")
             await conv.cancel_all()
 
@@ -224,44 +224,3 @@ class KramiikkMod(loader.Module):
             return
         finally:
             return
-
-
-# # requires: apscheduler
-
-
-#                 delta = timedelta(hours=next_food_hours, minutes=next_food_minutes)
-#                 await client.send_message(chat, 'откормить жабку', schedule=delta)
-
-#                 for number in range(5):
-#                    delta += timedelta(hours=4, minutes=3)
-#                    await client.send_message(chat, 'откормить жабку', schedule=delta)
-#                    await asyncio.sleep(1)
-
-#                 delta = timedelta(hours=1)
-#                 await client.send_message(chat, 'отправиться в золотое подземелье', schedule=delta)
-
-#                 for number in range(15):
-#                    delta += timedelta(hours=1, minutes=30)
-#                    await client.send_message(chat, 'отправиться в золотое подземелье', schedule=delta)
-#                    await asyncio.sleep(1)
-
-
-#         elif m.text.startswith("/an") and m.from_user.id == self._me:
-#             await self._bot.send_message(
-#                 int(m.text.split(" ", 2)[1]), m.text.split(" ", 2)[2]
-#             )
-#             await m.answer(self.strings("sent"))
-#         elif self.inline.gs(m.from_user.id) == "fb_send_message":
-#             r = await self._bot.forward_message(self._me, m.chat.id, m.message_id)
-#             await r.answer(m.from_user.id)
-#             await m.answer(self.strings("sent"))
-
-
-#         txtnorm = dict(
-#             zip(
-#                 map(ord, "3ëjmqv9ô§üldйa¿42zэouəà>ý5eö$0¡<61¥g8tъ7"),
-#                 "йцукенгшщзхъфывапролджэячсмитьбю. ?!,-:;7",
-#             )
-#         )
-#         txte = txt.translate(txtnorm)
-#         await message.client.send_message("me", txte)
