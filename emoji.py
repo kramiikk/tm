@@ -205,13 +205,13 @@ class KramiikkMod(loader.Module):
         """добавляет пользователей для управление акк"""
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
         txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
-        if "chats" in self.su:
-            self.su["chats"].append(msg)
+        if "chats" not in self.su:
+            self.su.setdefault("chats", [msg])
         elif msg in self.su["chats"]:
             self.su["chats"].remove(msg)
             txt = f"👶🏻 {msg} <b>чат успешно удален</b>"
         else:
-            self.su.setdefault("chats", [msg])
+            self.su["chats"].append(msg)
         if "auto" in self.su:
             self.su.pop("auto")
         self.db.set("Su", "su", self.su)
