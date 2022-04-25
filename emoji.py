@@ -199,7 +199,7 @@ class KramiikkMod(loader.Module):
         return await m.edit(txt)
 
     async def svcmd(self, m):
-        """добавляет чат в автожабу"""
+        """автожаба для выбранного чата"""
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
         txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
         if "chats" not in self.su:
