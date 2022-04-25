@@ -131,8 +131,6 @@ class KramiikkMod(loader.Module):
         return await m.click(0)
 
     async def ebj(self, m):
-        if m.from_id not in self.su["users"]:
-            return
         dff = {
             "выбирает": self.dbj(m),
         }
