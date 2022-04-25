@@ -68,12 +68,12 @@ class KramiikkMod(loader.Module):
                 chat = int(chat)
             if reply:
                 txt = reply
-            return await self.client.send_message(chat, txt)
-        if "напиши" in m.text:
+            await self.client.send_message(chat, txt)
+        elif "напиши" in m.text:
             txt = m.text.split(" ", 2)[2]
             if reply:
                 return await reply.reply(txt)
-            return await m.respond(txt)
+            await m.respond(txt)
         elif "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
             chat = m.peer_id
@@ -85,13 +85,11 @@ class KramiikkMod(loader.Module):
                 return
             jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
             if jab >= 50:
-                return await m.reply(f"отправить букашки {jab}")
-            return
+                await m.reply(f"отправить букашки {jab}")
         else:
             cmn = m.text.split(" ", 1)[1]
             if cmn in self.ded:
-                return await m.reply(self.ded[cmn])
-            return
+                await m.reply(self.ded[cmn])
         return
 
     async def client_ready(self, client, db):
@@ -222,7 +220,7 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         try:
             if m.from_id in self.su["users"]:
-                return await self.ebj(m)
+                await self.ebj(m)
             return
         finally:
             return
