@@ -49,13 +49,13 @@ class KramiikkMod(loader.Module):
         return
 
     async def bbj(self):
-        if "auto" in self.su or "chats" in self.su:
-            return await self.client.send_message(
-                1124824021,
-                "💑👩‍❤️‍👨👨‍❤️‍👨💑",
-                schedule=timedelta(minutes=random.randint(128, 247)),
-            )
-        return
+        if "auto" not in self.su or "chats" not in self.su:
+            return
+        return await self.client.send_message(
+            1124824021,
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑",
+            schedule=timedelta(minutes=random.randint(128, 2)),
+        )
 
     async def cbj(self, m):
         if not m.text.casefold().startswith(self.su["name"]):
@@ -68,12 +68,12 @@ class KramiikkMod(loader.Module):
                 chat = int(chat)
             if reply:
                 txt = reply
-            await self.client.send_message(chat, txt)
+            return await self.client.send_message(chat, txt)
         elif "напиши" in m.text:
             txt = m.text.split(" ", 2)[2]
             if reply:
                 return await reply.reply(txt)
-            await m.respond(txt)
+            return await m.respond(txt)
         elif "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
             chat = m.peer_id
@@ -84,13 +84,14 @@ class KramiikkMod(loader.Module):
             if "Баланс" not in RSP.text:
                 return
             jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
-            if jab >= 50:
-                await m.reply(f"отправить букашки {jab}")
+            if jab < 50:
+                return
+            return await m.reply(f"отправить букашки {jab}")
         else:
             cmn = m.text.split(" ", 1)[1]
-            if cmn in self.ded:
-                await m.reply(self.ded[cmn])
-        return
+            if cmn not in self.ded:
+                return
+            return await m.reply(self.ded[cmn])
 
     async def client_ready(self, client, db):
         self.client = client
@@ -141,8 +142,7 @@ class KramiikkMod(loader.Module):
         }
         j = dff if m.mentioned and "выбирает" in m.text else fff
         for i in (i for i in j if i in m.text.casefold()):
-            await j[i]
-        return
+            return await j[i]
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
@@ -186,7 +186,7 @@ class KramiikkMod(loader.Module):
         return await m.edit(txt)
 
     async def sucmd(self, m):
-        """добавляет пользователей для управление акк"""
+        """добавляет пользователей для управление"""
         reply = await m.get_reply_message()
         msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
         if msg in self.su["users"]:
@@ -215,9 +215,6 @@ class KramiikkMod(loader.Module):
         return await m.edit(txt)
 
     async def watcher(self, m):
-        try:
-            if m.from_id in self.su["users"]:
-                await self.ebj(m)
+        if m.from_id not in self.su["users"]:
             return
-        finally:
-            return
+        return await self.ebj(m)
