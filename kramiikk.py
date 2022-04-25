@@ -18,14 +18,10 @@ class KramiikkMod(loader.Module):
         cmn = "мои жабы"
         await self.err(chat, cmn)
         await self.client.delete_dialog(chat)
-        if "chats" not in self.su and "auto" not in self.su:
-            return
         capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
         for s in capt:
             try:
                 chat = int(s[1])
-                if "chats" in self.su and int(s[1]) not in self.su["chats"]:
-                    continue
                 cmn = "моя жаба"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
@@ -45,17 +41,15 @@ class KramiikkMod(loader.Module):
                         continue
                     await RSP.respond(self.ded[i])
             except Exception:
-                return
-        return
+                pass
 
-    async def bbj(self):
-        if "auto" in self.su or "chats" in self.su:
-            return await self.client.send_message(
+    async def bbj(self, m):
+        if "auto" in self.su:
+            await self.client.send_message(
                 1124824021,
                 "💑👩‍❤️‍👨👨‍❤️‍👨💑",
-                schedule=timedelta(minutes=random.randint(128, 247)),
+                schedule=timedelta(minutes=random.randint(42, 181)),
             )
-        return
 
     async def cbj(self, m):
         if not m.text.casefold().startswith(self.su["name"]):
@@ -63,13 +57,13 @@ class KramiikkMod(loader.Module):
         reply = await m.get_reply_message()
         if "напиши в " in m.text:
             chat = m.text.split(" ", 4)[3]
-            txt = m.text.split(" ", 4)[4]
             if chat.isnumeric():
                 chat = int(chat)
             if reply:
                 txt = reply
-            await self.client.send_message(chat, txt)
-        elif "напиши" in m.text:
+            txt = m.text.split(" ", 4)[4]
+            return await self.client.send_message(chat, txt)
+        if "напиши" in m.text:
             txt = m.text.split(" ", 2)[2]
             if reply:
                 return await reply.reply(txt)
@@ -90,7 +84,6 @@ class KramiikkMod(loader.Module):
             cmn = m.text.split(" ", 1)[1]
             if cmn in self.ded:
                 await m.reply(self.ded[cmn])
-        return
 
     async def client_ready(self, client, db):
         self.client = client
@@ -133,16 +126,15 @@ class KramiikkMod(loader.Module):
     async def ebj(self, m):
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "📉": self.bbj(),
+            "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
         }
         dff = {
             "выбирает": self.dbj(m),
         }
-        j = dff if m.mentioned and "выбирает" in m.text else fff
-        for i in (i for i in j if i in m.text.casefold()):
-            await j[i]
-        return
+        r = dff if m.mentioned and "выбирает" in m.text else fff
+        for i in (i for i in r if i in m.text.casefold()):
+            return await r[i]
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
@@ -152,38 +144,47 @@ class KramiikkMod(loader.Module):
                 global RSP
                 RSP = await conv.get_response()
             except asyncio.exceptions.TimeoutError:
-                await conv.send_message(cmn)
+                txt = await conv.send_message(cmn)
                 RSP = await self.client.get_messages(chat, search=" ")
             await conv.cancel_all()
 
+    async def fdj(self, chat):
+        cmn = "мое снаряжение"
+        await self.err(chat, cmn)
+        if "🗡" not in RSP.text:
+            return
+        for i in (i for i in self.ded if i in RSP.text):
+            await RSP.respond(self.ded[i])
+
     async def sacmd(self, m):
-        """автожаба для всех чатов"""
-        if "auto" in self.su:
+        """будет смотреть за вашими жабами"""
+        if "auto" not in self.su:
+            self.su.setdefault("auto", {})
+            msg = "<b>активирована</b>"
+        else:
             self.su.pop("auto")
             msg = "<b>деактивирована</b>"
-        else:
-            self.su.setdefault("auto", {})
-            if "chats" in self.su:
-                self.su.pop("chats")
-            msg = "<b>активирована</b>"
         self.db.set("Su", "su", self.su)
-        return await m.edit(msg)
+        await m.edit(msg)
 
     async def sjcmd(self, m):
         """выбор работы"""
         msg = m.text.split(" ", 1)[1]
-        self.su.setdefault("job", msg.casefold())
-        txt = f"<b>Работа изменена:</b> {self.su['job']}"
+        if "job" not in self.su:
+            self.su.setdefault("job", msg.casefold())
+        else:
+            self.su["job"] = msg.casefold()
+        txt = f"<b>Работа успешно изменена на</b> {self.su['job']}"
+        await m.edit(txt)
         self.db.set("Su", "su", self.su)
-        return await m.edit(txt)
 
     async def sncmd(self, m):
         """ник для команд"""
         msg = m.text.split(" ", 1)[1]
         self.su["name"] = msg.casefold()
         txt = f"👻 <code>{self.su['name']}</code> <b>успешно изменён</b>"
+        await m.edit(txt)
         self.db.set("Su", "su", self.su)
-        return await m.edit(txt)
 
     async def sucmd(self, m):
         """добавляет пользователей для управление акк"""
@@ -196,28 +197,11 @@ class KramiikkMod(loader.Module):
             self.su["users"].append(msg)
             txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        return await m.edit(txt)
-
-    async def svcmd(self, m):
-        """автожаба для выбранного чата"""
-        msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
-        txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
-        if "chats" not in self.su:
-            self.su.setdefault("chats", [msg])
-        elif msg in self.su["chats"]:
-            self.su["chats"].remove(msg)
-            txt = f"👶🏻 {msg} <b>чат успешно удален</b>"
-        else:
-            self.su["chats"].append(msg)
-        if "auto" in self.su:
-            self.su.pop("auto")
-        self.db.set("Su", "su", self.su)
-        return await m.edit(txt)
+        await m.edit(txt)
 
     async def watcher(self, m):
         try:
             if m.from_id in self.su["users"]:
                 await self.ebj(m)
-            return
         finally:
             return
