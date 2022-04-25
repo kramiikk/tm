@@ -131,13 +131,13 @@ class KramiikkMod(loader.Module):
         return await m.click(0)
 
     async def ebj(self, m):
+        dff = {
+            "выбирает": self.dbj(m),
+        }
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
             "📉": self.bbj(),
             self.su["name"]: self.cbj(m),
-        }
-        dff = {
-            "выбирает": self.dbj(m),
         }
         j = dff if m.mentioned and "выбирает" in m.text else fff
         for i in (i for i in j if i in m.text.casefold()):
