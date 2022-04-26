@@ -64,7 +64,7 @@ class KramiikkMod(loader.Module):
     async def cbj(self, m):
         if m.from_id not in self.su["users"]:
             return
-        if not m.text.startswith(self.su["name"]):
+        if not m.text.casefold().startswith(self.su["name"]):
             return
         if " " not in m.text:
             return
