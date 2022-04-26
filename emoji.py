@@ -63,10 +63,11 @@ class KramiikkMod(loader.Module):
 
     async def cbj(self, m):
         if (
-            (len(m.text) < len(self.su["name"]) + 5)
-            and not m.text.casefold().startswith(self.su["name"])
+            not m.text.casefold().startswith(self.su["name"])
             and m.from_id not in self.su["users"]
         ):
+            return
+        if len(m.text) < len(self.su["name"]) + 5:
             return
         reply = await m.get_reply_message()
         if "напиши в " in m.text:
