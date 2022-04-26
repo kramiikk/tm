@@ -85,8 +85,8 @@ class KramiikkMod(loader.Module):
                 return await reply.reply(txt)
             return await m.respond(txt)
         if "тыкпых" in m.text:
-            txt = re.search(r"\/(\d+)\/(\d+)", RSP.text)
-            if not txt:
+            reg = re.search(r"\/(\d+)\/(\d+)", m.text.split(" ", 2)[2])
+            if not reg:
                 return
             (
                 await self.client.get_messages(int(txt.group(1)), ids=int(txt.group(2)))
