@@ -83,9 +83,11 @@ class KramiikkMod(loader.Module):
             if reply:
                 return await reply.reply(txt)
             return await m.respond(txt)
-        if "тыкпых " in m.text:
+        if "тыкпых" in m.text:
             if reply:
                 return await reply.click(0)
+            if "тыкпых " not in m.text:
+              return
             reg = re.search(r"\/(\d+)\/(\d+)", m.text)
             if not reg:
               return
