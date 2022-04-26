@@ -87,9 +87,8 @@ class KramiikkMod(loader.Module):
             if reply:
                 return await reply.click(0)
             reg = re.search(r"\/(\d+)\/(\d+)", m.text)
-            (
-                await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
-            ).click(0)
+            mac = await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
+            await mac.click(0)
         if "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
