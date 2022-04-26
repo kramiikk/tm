@@ -50,8 +50,8 @@ class KramiikkMod(loader.Module):
                 return
         return
 
-    async def bbj(self):
-        if not m.text.casefold().startswith("📉") and m.from_id not in self.su["users"]:
+    async def bbj(self, m):
+        if not m.text.startswith("📉") and m.from_id not in self.su["users"]:
             return
         if "auto" not in self.su or "chats" not in self.su:
             return
@@ -62,6 +62,8 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m):
+        if len(m.text) < len(self.su["name"]) + 5:
+            return
         if (
             not m.text.casefold().startswith(self.su["name"])
             and m.from_id not in self.su["users"]
@@ -142,7 +144,7 @@ class KramiikkMod(loader.Module):
     async def ebj(self, m):
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "📉": self.bbj(),
+            "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
             "выбирает": self.dbj(m),
         }
