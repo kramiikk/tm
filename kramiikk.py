@@ -62,13 +62,14 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m):
-        if len(m.text) < len(self.su["name"]) + 5:
+        if " " not on m.text:
             return
         if (
             not m.text.casefold().startswith(self.su["name"])
             and m.from_id not in self.su["users"]
         ):
             return
+        chat = m.peer_id
         reply = await m.get_reply_message()
         if "напиши в " in m.text:
             chat = m.text.split(" ", 4)[3]
@@ -88,7 +89,6 @@ class KramiikkMod(loader.Module):
             await self.client.get_messages(chat, ids=int(txt))
         if "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
-            chat = m.peer_id
             cmn = "мой баланс"
             await self.err(chat, cmn)
             if "У тебя" in RSP.text:
