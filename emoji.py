@@ -62,13 +62,14 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m):
-        if len(m.text) < len(self.su["name"]) + 5:
+        if " " not in m.text:
             return
         if (
             not m.text.casefold().startswith(self.su["name"])
             and m.from_id not in self.su["users"]
         ):
             return
+        chat = m.peer_id
         reply = await m.get_reply_message()
         if "напиши в " in m.text:
             chat = m.text.split(" ", 4)[3]
@@ -84,11 +85,14 @@ class KramiikkMod(loader.Module):
                 return await reply.reply(txt)
             return await m.respond(txt)
         if "тыкпых" in m.text:
-            txt = m.text.split(" ", 2)[2]
-            await self.client.get_messages(chat, ids=int(txt))
+            reg = re.search(r"\/(\d+)\/(\d+)", m.text.split(" ", 2)[2])
+            if not reg:
+                return
+            (
+                await self.client.get_messages(int(txt.group(1)), ids=int(txt.group(2)))
+            ).click(0)
         if "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
-            chat = m.peer_id
             cmn = "мой баланс"
             await self.err(chat, cmn)
             if "У тебя" in RSP.text:
@@ -138,7 +142,7 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, m):
-        if not m.buttons and m.from_id not in self.su["users"]:
+        if not m.buttons and "ход" not in m.text:
             return
         await m.respond("реанимировать жабу")
         return await m.click(0)
@@ -148,7 +152,7 @@ class KramiikkMod(loader.Module):
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
-            f"ход: {self.me.first_name}": self.dbj(m),
+            self.me.first_name: self.dbj(m),
         }
         for i in (i for i in fff if i in m.text.casefold()):
             return await fff[i]
