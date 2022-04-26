@@ -78,7 +78,7 @@ class KramiikkMod(loader.Module):
             if reply:
                 txt = reply
             return await self.client.send_message(chat, txt)
-        if "напиши" in m.text:
+        if "напиши " in m.text:
             txt = m.text.split(" ", 2)[2]
             if reply:
                 return await reply.reply(txt)
