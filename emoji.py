@@ -134,9 +134,8 @@ class KramiikkMod(loader.Module):
             "Банда: Пусто": "взять жабу",
         }
 
-    @staticmethod
-    async def dbj(m):
-        if m.from_id not in self.su["users"]:
+    async def dbj(self, m):
+        if not m.buttons and m.from_id not in self.su["users"]:
             return
         await m.respond("реанимировать жабу")
         return await m.click(0)
@@ -146,7 +145,7 @@ class KramiikkMod(loader.Module):
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
-            "выбирает": self.dbj(m),
+            f"ход: {self.me.first_name}": self.dbj(m),
         }
         for i in (i for i in fff if i in m.text.casefold()):
             return await fff[i]
