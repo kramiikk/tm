@@ -157,7 +157,7 @@ class KramiikkMod(loader.Module):
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
-            self.me.id: self.dbj(m),
+            str(self.me.id): self.dbj(m),
         }
         for i in (i for i in fff if i in m.text.casefold()):
             return await fff[i]
