@@ -144,11 +144,10 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, m):
-        if f"ход: {self.me.first_name}" not in m.text:
+        if "ход:" not in m.text:
             return
         if not m.buttons:
             return
-        await m.respond("реанимировать жабу")
         return await m.click(0)
 
     async def ebj(self, m):
@@ -156,7 +155,7 @@ class KramiikkMod(loader.Module):
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
-            self.me.first_name: self.dbj(m),
+            self.me.id: self.dbj(m),
         }
         for i in (i for i in fff if i in m.text.casefold()):
             return await fff[i]
