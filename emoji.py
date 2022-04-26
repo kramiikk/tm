@@ -94,7 +94,7 @@ class KramiikkMod(loader.Module):
             if jab < 50:
                 return
             return await m.reply(f"отправить букашки {jab}")
-        cmn = m.text.split(" ", 1)[1]
+        cmn = (m.text.split(" ", 1)[1] if len(m.text) < len(self.su["name"]) + 1 else "65478314925")
         if cmn not in self.ded:
             return
         return await m.reply(self.ded[cmn])
