@@ -51,7 +51,9 @@ class KramiikkMod(loader.Module):
         return
 
     async def bbj(self, m):
-        if not m.text.startswith("📉") and m.from_id not in self.su["users"]:
+        if not m.text.startswith("📉"):
+            return
+        if m.from_id not in self.su["users"]:
             return
         if "auto" not in self.su or "chats" not in self.su:
             return
