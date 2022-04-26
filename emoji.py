@@ -65,9 +65,7 @@ class KramiikkMod(loader.Module):
         if (
             not m.text.casefold().startswith(self.su["name"])
             and m.from_id not in self.su["users"]
-        ):
-            return
-        if len(m.text) < len(self.su["name"]) + 5:
+        ) and len(m.text) < len(self.su["name"]) + 5:
             return
         reply = await m.get_reply_message()
         if "напиши в " in m.text:
