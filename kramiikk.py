@@ -62,12 +62,11 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m):
-        if " " not in m.text:
+        if m.from_id not in self.su["users"]:
             return
-        if (
-            not m.text.casefold().startswith(self.su["name"])
-            and m.from_id not in self.su["users"]
-        ):
+        if not m.text.startswith(self.su["name"]):
+            return
+        if " " not in m.text:
             return
         chat = m.peer_id
         reply = await m.get_reply_message()
@@ -144,7 +143,9 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, m):
-        if not m.buttons and f"ход: {self.me.first_name}" not in m.text:
+        if f"ход: {self.me.first_name}" not in m.text:
+            return
+        if not m.buttons:
             return
         await m.respond("реанимировать жабу")
         return await m.click(0)
