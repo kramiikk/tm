@@ -89,7 +89,7 @@ class KramiikkMod(loader.Module):
             if not reg:
                 return
             (
-                await self.client.get_messages(int(txt.group(1)), ids=int(txt.group(2)))
+                await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
             ).click(0)
         if "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
