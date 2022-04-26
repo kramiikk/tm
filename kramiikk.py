@@ -86,7 +86,7 @@ class KramiikkMod(loader.Module):
             return await m.respond(txt)
         if "тыкпых" in m.text:
             txt = m.text.split(" ", 2)[2]
-            await self.client.get_messages(chat, ids=int(txt))
+            await self.client.get_messages(chat, ids=int(txt)).click(0)
         if "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
