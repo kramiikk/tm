@@ -78,20 +78,21 @@ class KramiikkMod(loader.Module):
             if reply:
                 txt = reply
             return await self.client.send_message(chat, txt)
-        if "напиши" in m.text:
+        if "напиши " in m.text:
             txt = m.text.split(" ", 2)[2]
             if reply:
                 return await reply.reply(txt)
             return await m.respond(txt)
         if "тыкпых" in m.text:
             if reply:
-                return await reply.click(0)
+                return await reply.click()
+            if "тыкпых " not in m.text:
+              return
             reg = re.search(r"\/(\d+)\/(\d+)", m.text)
             if not reg:
-                return
-            (
-                await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
-            ).click(0)
+              return
+            mac = await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
+            await mac.click()
         if "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
