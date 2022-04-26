@@ -144,7 +144,7 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, m):
-        if not m.buttons and "ход" not in m.text:
+        if not m.buttons and f"ход: {self.me.first_name}" not in m.text:
             return
         await m.respond("реанимировать жабу")
         return await m.click(0)
