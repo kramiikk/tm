@@ -63,9 +63,8 @@ class KramiikkMod(loader.Module):
 
     async def cbj(self, m):
         if (
-            not m.text.casefold().startswith(self.su["name"])
+            not m.text.casefold().startswith(self.su["name"] + " ")
             and m.from_id not in self.su["users"]
-            and len(m.text) < len(self.su["name"]) + 2
         ):
             return
         reply = await m.get_reply_message()
@@ -95,8 +94,10 @@ class KramiikkMod(loader.Module):
             if jab < 50:
                 return
             return await m.reply(f"отправить букашки {jab}")
-        cmn = m.text.split(" ", 1)[1]
-        if cmn not in self.ded:
+        if (
+            len(m.text) < len(self.su["name"]) + 2
+            and m.text.split(" ", 1)[1] not in self.ded
+        ):
             return
         return await m.reply(self.ded[cmn])
 
