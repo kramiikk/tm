@@ -87,8 +87,6 @@ class KramiikkMod(loader.Module):
             if reply:
                 return await reply.click(0)
             reg = re.search(r"\/(\d+)\/(\d+)", m.text)
-            if not reg:
-                return
             (
                 await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
             ).click(0)
