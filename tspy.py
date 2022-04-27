@@ -66,12 +66,12 @@ class SpyMod(loader.Module):
         return await self.client.send_message(1655814348, tog)
 
     async def bww(self, m):
-        if (RSP.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак"))) or (
-            len(m.message) not in {21, 30}
-        ):
+        if len(m.message) not in {21, 30}:
             return
         p = None
         await self.err(m, p)
+        if (RSP.text.startswith(("Алло", "Ваш клан", "Для старта", "Чувак"))):
+            return
         src = f"{m.chat_id} {m.sender_id} Клан:"
         ms = await self.client.get_messages(1655814348, search=src)
         for i in (i for i in ms if "деревян" not in i.text.casefold()):
