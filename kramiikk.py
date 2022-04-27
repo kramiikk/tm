@@ -150,7 +150,7 @@ class KramiikkMod(loader.Module):
             return
         if not m.buttons:
             return
-        return await m.click(0)
+        return await m.click()
 
     async def ebj(self, m):
         fff = {
