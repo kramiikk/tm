@@ -35,15 +35,6 @@ class SpyMod(loader.Module):
                 RSP = await self.client.get_messages(m.chat_id, search=" ")
             return await conv.cancel_all()
 
-    async def rrr(self, m):
-        async with self.client.conversation(m.chat_id, exclusive=False) as conv:
-            try:
-                global RSP
-                RSP = await conv.get_response()
-            except asyncio.exceptions.TimeoutError:
-                RSP = await self.client.get_messages(m.chat_id, search=" ")
-            return await conv.cancel_all()
-
     async def aww(self, m):
         if m.from_id not in [1124824021]:
             return
@@ -68,7 +59,7 @@ class SpyMod(loader.Module):
             return
         p = None
         await self.err(m, p)
-        if "Отлично!" not in RSP.text:
+        if (not RSP) or ("Отлично!" not in RSP.text):
             return
         src = f"{m.chat_id} {m.from_id}"
         ms = await self.client.get_messages(1655814348, search=src)
@@ -109,8 +100,9 @@ class SpyMod(loader.Module):
         return await self.client.send_message(1655814348, tog)
 
     async def dww(self, m):
-        await self.rrr(m)
-        if "Опыт" not in RSP.text:
+        p = "Клан"
+        await self.err(m, p)
+        if not RSP:
             return
         klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
         info = f"Cid: {m.chat_id}\nUid: {m.from_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
