@@ -143,7 +143,7 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, m):
-        if ("ход: " not in m.text) and (not m.buttons):
+        if ("ход: " not in m.text) or (not m.buttons):
             return
         return await m.click()
 
@@ -170,7 +170,6 @@ class KramiikkMod(loader.Module):
                 global RSP
                 RSP = await conv.get_response()
             except asyncio.exceptions.TimeoutError:
-                await conv.send_message(cmn)
                 RSP = await self.client.get_messages(chat, search=" ")
             await conv.cancel_all()
 

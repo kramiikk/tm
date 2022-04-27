@@ -32,7 +32,7 @@ class SpyMod(loader.Module):
                     events.NewMessage(from_users=1124824021, chats=m.chat_id, pattern=p)
                 )
             except asyncio.exceptions.TimeoutError:
-                RSP = await self.client.get_messages(chat, search=" ")
+                RSP = await self.client.get_messages(m.chat_id, search=" ")
             await conv.cancel_all()
 
     async def watcher(self, m):
