@@ -18,13 +18,13 @@ class KramiikkMod(loader.Module):
         cmn = "мои жабы"
         await self.err(chat, cmn)
         await self.client.delete_dialog(chat)
-        if "chats" not in self.su and "auto" not in self.su:
+        if ("chats" not in self.su) and ("auto" not in self.su):
             return
         capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
         for s in capt:
             try:
                 chat = int(s[1])
-                if "chats" in self.su and int(s[1]) not in self.su["chats"]:
+                if ("chats" in self.su) and (int(s[1]) not in self.su["chats"]):
                     continue
                 cmn = "моя жаба"
                 await self.err(chat, cmn)
@@ -38,10 +38,7 @@ class KramiikkMod(loader.Module):
                 if "🏃‍♂️" not in RSP.text:
                     return
                 for i in (i for i in self.ded if i in RSP.text):
-                    if (int(s[0]) < 123 or int(jab) < 3333) and i in (
-                        "Можно откормить",
-                        "Можно отправиться",
-                    ):
+                    if (int(s[0]) < 123 or int(jab) < 3333) and (i in ("Можно откормить", "Можно отправиться")):
                         continue
                     await RSP.respond(self.ded[i])
             except Exception:
@@ -49,7 +46,7 @@ class KramiikkMod(loader.Module):
         return
 
     async def bbj(self, m):
-        if (not m.text.startswith("📉")) and ("auto" not in self.su or "chats" not in self.su) and (m.from_id not in self.su["users"]):
+        if (not m.text.startswith("📉")) or ("auto" not in self.su and "chats" not in self.su):
             return
         return await self.client.send_message(
             1124824021,
@@ -58,7 +55,7 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m):
-        if (m.from_id not in self.su["users"]) and (not m.text.casefold().startswith(self.su["name"])) and (" " not in m.text):
+        if (" " not in m.text) or (not m.text.casefold().startswith(self.su["name"])) or (m.from_id not in self.su["users"]):
             return
         chat = m.peer_id
         reply = await m.get_reply_message()
@@ -85,7 +82,7 @@ class KramiikkMod(loader.Module):
               return
             mac = await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
             await mac.click()
-        if "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
+        if ("буках" in m.text) and (self.su["name"] in ["кушки", "альберт"]):
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
             await self.err(chat, cmn)
