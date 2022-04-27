@@ -36,7 +36,7 @@ class SpyMod(loader.Module):
             await conv.cancel_all()
 
     async def aww(self, m):
-        if m.from_id not in {1124824021}:
+        if m.from_id not in [1124824021]:
             return
         if "одержал" in m.text:
             klan = re.search(r"н (.+) о[\s\S]*: (.+)[\s\S]* (\d+):(\d+)", m.text)
@@ -55,7 +55,7 @@ class SpyMod(loader.Module):
         return await self.client.send_message(1655814348, tog)
 
     async def bww(self, m):
-        if len(m.message) not in {21, 30}:
+        if len(m.message) not in [21, 30]:
             return
         p = None
         await self.err(m, p)
@@ -80,7 +80,7 @@ class SpyMod(loader.Module):
         return
 
     async def cww(self, m):
-        if m.from_id not in {1124824021}:
+        if m.from_id not in [1124824021]:
             return
         klan = re.search(r"клана (.+) нашелся враг (.+), пора", m.text)
         src = f"Топ 35 кланов {klan.group(1)}"
@@ -105,23 +105,14 @@ class SpyMod(loader.Module):
             tog += f"\n{i}"
         return await self.client.send_message(1655814348, tog)
 
-    async def dww(self, m):
-        p = "Клан"
-        await self.err(m, p)
-        klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
-        info = f"Cid: {m.chat_id}\nUid: {m.from_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
-        return await self.client.send_message(1655814348, info)
-
     async def eee(self, m):
         fff = {
-            "Очень": self.aww(m),
-            "Клан": self.aww(m),
-            "Эй, клан": self.aww(m),
+            "очень": self.aww(m),
+            "клан": self.aww(m),
+            "эй, клан": self.aww(m),
             "начать клановую войну": self.bww(m),
             "@toadbot начать клановую войну": self.bww(m),
-            "Алло": self.cww(m),
-            "мой клан": self.dww(m),
-            "@toadbot мой клан": self.dww(m),
+            "алло": self.cww(m),
         }
         for i in (i for i in fff if m.message.casefold().startswith(i)):
             return await fff[i]
