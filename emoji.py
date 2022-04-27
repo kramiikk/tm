@@ -171,7 +171,7 @@ class KramiikkMod(loader.Module):
                 RSP = await conv.get_response()
             except asyncio.exceptions.TimeoutError:
                 RSP = await self.client.get_messages(chat, search=" ")
-            await conv.cancel_all()
+            return await conv.cancel_all()
 
     async def sacmd(self, m):
         """автожаба для всех чатов"""
