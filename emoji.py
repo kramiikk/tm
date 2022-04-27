@@ -13,8 +13,6 @@ class KramiikkMod(loader.Module):
     strings = {"name": "Kramiikk"}
 
     async def abj(self, m):
-        if m.from_id not in self.su["users"]:
-            return
         chat = m.peer_id
         await m.delete()
         cmn = "мои жабы"
@@ -51,11 +49,7 @@ class KramiikkMod(loader.Module):
         return
 
     async def bbj(self, m):
-        if not m.text.startswith("📉"):
-            return
-        if m.from_id not in self.su["users"]:
-            return
-        if "auto" not in self.su or "chats" not in self.su:
+        if (not m.text.startswith("📉")) and ("auto" not in self.su or "chats" not in self.su) and (m.from_id not in self.su["users"]):
             return
         return await self.client.send_message(
             1124824021,
@@ -64,11 +58,7 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m):
-        if m.from_id not in self.su["users"]:
-            return
-        if not m.text.casefold().startswith(self.su["name"]):
-            return
-        if " " not in m.text:
+        if (m.from_id not in self.su["users"]) and (not m.text.casefold().startswith(self.su["name"])) and (" " not in m.text):
             return
         chat = m.peer_id
         reply = await m.get_reply_message()
@@ -146,11 +136,9 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, m):
-        if "ход:" not in m.text:
+        if ("ход: " not in m.text) and (not m.buttons):
             return
-        if not m.buttons:
-            return
-        return await m.click(0)
+        return await m.click()
 
     async def ebj(self, m):
         fff = {
@@ -159,7 +147,7 @@ class KramiikkMod(loader.Module):
             self.su["name"]: self.cbj(m),
             str(self.me.id): self.dbj(m),
         }
-        for i in (i for i in fff if i in m.text.casefold()):
+        for i in (i for i in fff if (i in m.text.casefold()) and (m.from_id in self.su["users"])):
             return await fff[i]
         return
 
