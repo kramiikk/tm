@@ -118,12 +118,12 @@ class SpyMod(loader.Module):
 
     async def eee(self, m):
         fff = {
-            "очень": self.aww(m),
-            "клан": self.aww(m),
+            "очень жаль": self.aww(m),
+            "одержал победу!": self.aww(m),
             "эй, клан": self.aww(m),
             "начать клановую войну": self.bww(m),
             "@toadbot начать клановую войну": self.bww(m),
-            "алло": self.cww(m),
+            "алло,": self.cww(m),
             "мой клан": self.dww(m),
             "@toadbot мой клан": self.dww(m),
         }
