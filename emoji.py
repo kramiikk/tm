@@ -38,7 +38,9 @@ class KramiikkMod(loader.Module):
                 if "🏃‍♂️" not in RSP.text:
                     return
                 for i in (i for i in self.ded if i in RSP.text):
-                    if (int(s[0]) < 123 or int(jab) < 3333) and (i in ("Можно откормить", "Можно отправиться")):
+                    if (int(s[0]) < 123 or int(jab) < 3333) and (
+                        i in ("Можно откормить", "Можно отправиться")
+                    ):
                         continue
                     await RSP.respond(self.ded[i])
             except Exception:
@@ -46,7 +48,9 @@ class KramiikkMod(loader.Module):
         return
 
     async def bbj(self, m):
-        if (not m.text.startswith("📉")) or ("auto" not in self.su and "chats" not in self.su):
+        if (not m.text.startswith("📉")) or (
+            "auto" not in self.su and "chats" not in self.su
+        ):
             return
         return await self.client.send_message(
             1124824021,
@@ -55,7 +59,11 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, m):
-        if (" " not in m.text) or (not m.text.casefold().startswith(self.su["name"])) or (m.from_id not in self.su["users"]):
+        if (
+            (" " not in m.text)
+            or (not m.text.casefold().startswith(self.su["name"]))
+            or (m.from_id not in self.su["users"])
+        ):
             return
         chat = m.peer_id
         reply = await m.get_reply_message()
@@ -76,11 +84,13 @@ class KramiikkMod(loader.Module):
             if reply:
                 return await reply.click()
             if "тыкпых " not in m.text:
-              return
+                return
             reg = re.search(r"\/(\d+)\/(\d+)", m.text)
             if not reg:
-              return
-            mac = await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
+                return
+            mac = await self.client.get_messages(
+                int(reg.group(1)), ids=int(reg.group(2))
+            )
             await mac.click()
         if ("буках" in m.text) and (self.su["name"] in ["кушки", "альберт"]):
             await asyncio.sleep(random.randint(0, 360))
@@ -144,7 +154,11 @@ class KramiikkMod(loader.Module):
             self.su["name"]: self.cbj(m),
             str(self.me.id): self.dbj(m),
         }
-        for i in (i for i in fff if (i in m.text.casefold()) and (m.from_id in self.su["users"])):
+        for i in (
+            i
+            for i in fff
+            if (i in m.text.casefold()) and (m.from_id in self.su["users"])
+        ):
             return await fff[i]
         return
 
