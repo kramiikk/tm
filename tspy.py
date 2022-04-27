@@ -25,7 +25,7 @@ class SpyMod(loader.Module):
         ) - timedelta(hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second)
 
     async def err(self, m, p):
-        async with self.client.conversation(m.chat_id) as conv:
+        async with self.client.conversation(m.chat_id, exclusive=False) as conv:
             try:
                 global RSP
                 RSP = await conv.wait_event(
