@@ -51,7 +51,9 @@ class KramiikkMod(loader.Module):
         return
 
     async def bbj(self, m):
-        if not m.text.startswith("📉") and m.from_id not in self.su["users"]:
+        if not m.text.startswith("📉"):
+            return
+        if m.from_id not in self.su["users"]:
             return
         if "auto" not in self.su or "chats" not in self.su:
             return
@@ -85,14 +87,14 @@ class KramiikkMod(loader.Module):
             return await m.respond(txt)
         if "тыкпых" in m.text:
             if reply:
-                return await reply.click(0)
+                return await reply.click()
             if "тыкпых " not in m.text:
               return
             reg = re.search(r"\/(\d+)\/(\d+)", m.text)
             if not reg:
               return
             mac = await self.client.get_messages(int(reg.group(1)), ids=int(reg.group(2)))
-            await mac.click(0)
+            await mac.click()
         if "буках" in m.text and self.su["name"] in ["кушки", "альберт"]:
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
@@ -144,11 +146,10 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, m):
-        if f"ход: {self.me.first_name}" not in m.text:
+        if "ход:" not in m.text:
             return
         if not m.buttons:
             return
-        await m.respond("реанимировать жабу")
         return await m.click(0)
 
     async def ebj(self, m):
@@ -156,7 +157,7 @@ class KramiikkMod(loader.Module):
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
             "📉": self.bbj(m),
             self.su["name"]: self.cbj(m),
-            self.me.first_name: self.dbj(m),
+            str(self.me.id): self.dbj(m),
         }
         for i in (i for i in fff if i in m.text.casefold()):
             return await fff[i]
