@@ -146,7 +146,9 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, m):
-        if "ход:" not in m.text:
+        if m.from_id not in self.su["users"]:
+            return
+        if "ход: " not in m.text:
             return
         if not m.buttons:
             return
