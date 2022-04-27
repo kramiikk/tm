@@ -55,7 +55,7 @@ class KramiikkMod(loader.Module):
         return await self.client.send_message(
             1124824021,
             "💑👩‍❤️‍👨👨‍❤️‍👨💑",
-            schedule=timedelta(minutes=random.randint(128, 2)),
+            schedule=timedelta(minutes=random.randint(128, 184)),
         )
 
     async def cbj(self, m):
