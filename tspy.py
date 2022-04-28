@@ -59,7 +59,7 @@ class SpyMod(loader.Module):
             return
         p = None
         await self.err(m, p)
-        if (not RSP) or ("Отлично!" not in RSP.text):
+        if "Отлично!" not in RSP.text:
             return
         src = f"{m.chat_id} {m.from_id}"
         ms = await self.client.get_messages(1655814348, search=src)
@@ -102,7 +102,7 @@ class SpyMod(loader.Module):
     async def dww(self, m):
         p = "Клан"
         await self.err(m, p)
-        if not RSP:
+        if p not in RSP.text:
             return
         klan = re.search(r"н (.+):[\s\S]*а: (.+)[\s\S]*ь: (.+)", RSP.text)
         info = f"Cid: {m.chat_id}\nUid: {m.from_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
