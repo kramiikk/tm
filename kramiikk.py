@@ -3,6 +3,8 @@ import random
 import re
 from datetime import timedelta
 
+from telethon.tl.types import Message
+
 from .. import loader
 
 
@@ -12,9 +14,9 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def abj(self, m):
-        chat = m.peer_id
-        await m.delete()
+    async def abj(self, message: Message):
+        chat = message.peer_id
+        await message.delete()
         cmn = "мои жабы"
         await self.err(chat, cmn)
         await self.client.delete_dialog(chat)
@@ -47,8 +49,8 @@ class KramiikkMod(loader.Module):
                 return
         return
 
-    async def bbj(self, m):
-        if (not m.text.startswith("📉")) or (
+    async def bbj(self, message: Message):
+        if (not message.text.startswith("📉")) or (
             "auto" not in self.su and "chats" not in self.su
         ):
             return
@@ -58,56 +60,56 @@ class KramiikkMod(loader.Module):
             schedule=timedelta(minutes=random.randint(128, 184)),
         )
 
-    async def cbj(self, m):
+    async def cbj(self, message: Message):
         if (
-            (" " not in m.text)
-            or (not m.text.casefold().startswith(self.su["name"]))
-            or (m.from_id not in self.su["users"])
+            (" " not in message.text)
+            or (not message.text.casefold().startswith(self.su["name"]))
+            or (message.from_id not in self.su["users"])
         ):
             return
-        chat = m.peer_id
-        reply = await m.get_reply_message()
-        if "напиши в " in m.text:
-            chat = m.text.split(" ", 4)[3]
-            txt = m.text.split(" ", 4)[4]
+        chat = message.peer_id
+        reply = await message.get_reply_message()
+        if "напиши в " in message.text:
+            chat = message.text.split(" ", 4)[3]
+            txt = message.text.split(" ", 4)[4]
             if chat.isnumeric():
                 chat = int(chat)
             if reply:
                 txt = reply
             return await self.client.send_message(chat, txt)
-        if "напиши " in m.text:
-            txt = m.text.split(" ", 2)[2]
+        if "напиши " in message.text:
+            txt = message.text.split(" ", 2)[2]
             if reply:
                 return await reply.reply(txt)
-            return await m.respond(txt)
-        if "тыкпых" in m.text:
+            return await message.respond(txt)
+        if "тыкпых" in message.text:
             if reply:
                 return await reply.click()
-            if "тыкпых " not in m.text:
+            if "тыкпых " not in message.text:
                 return
-            reg = re.search(r"\/(\d+)\/(\d+)", m.text)
+            reg = re.search(r"\/(\d+)\/(\d+)", message.text)
             if not reg:
                 return
             mac = await self.client.get_messages(
                 int(reg.group(1)), ids=int(reg.group(2))
             )
             await mac.click()
-        if ("буках" in m.text) and (self.su["name"] in ["кушки", "альберт"]):
+        if ("буках" in message.text) and (self.su["name"] in ["кушки", "альберт"]):
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
             await self.err(chat, cmn)
             if "У тебя" in RSP.text:
-                return await m.respond("взять жабу")
+                return await message.respond("взять жабу")
             if "Баланс" not in RSP.text:
                 return
             jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
             if jab < 50:
                 return
-            return await m.reply(f"отправить букашки {jab}")
-        cmn = m.text.split(" ", 1)[1]
+            return await message.reply(f"отправить букашки {jab}")
+        cmn = message.text.split(" ", 1)[1]
         if cmn not in self.ded:
             return
-        return await m.reply(self.ded[cmn])
+        return await message.reply(self.ded[cmn])
 
     async def client_ready(self, client, db):
         self.client = client
@@ -142,22 +144,22 @@ class KramiikkMod(loader.Module):
             "Банда: Пусто": "взять жабу",
         }
 
-    async def dbj(self, m):
-        if ("ход: " not in m.text) or (not m.buttons):
+    async def dbj(self, message: Message):
+        if ("ход: " not in message.text) or (not message.buttons):
             return
-        return await m.click()
+        return await message.click()
 
-    async def ebj(self, m):
+    async def ebj(self, message: Message):
         fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(m),
-            "📉": self.bbj(m),
-            self.su["name"]: self.cbj(m),
-            str(self.me.id): self.dbj(m),
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(message),
+            "📉": self.bbj(message),
+            self.su["name"]: self.cbj(message),
+            str(self.me.id): self.dbj(message),
         }
         for i in (
             i
             for i in fff
-            if (i in m.text.casefold()) and (m.from_id in self.su["users"])
+            if (i in message.text.casefold()) and (message.from_id in self.su["users"])
         ):
             return await fff[i]
         return
@@ -173,7 +175,7 @@ class KramiikkMod(loader.Module):
                 RSP = await self.client.get_messages(chat, search=" ")
             return await conv.cancel_all()
 
-    async def sacmd(self, m):
+    async def sacmd(self, message: Message):
         """автожаба для всех чатов"""
         if "auto" in self.su:
             self.su.pop("auto")
@@ -184,28 +186,28 @@ class KramiikkMod(loader.Module):
                 self.su.pop("chats")
             msg = "<b>активирована</b>"
         self.db.set("Su", "su", self.su)
-        return await m.edit(msg)
+        return await message.edit(msg)
 
-    async def sjcmd(self, m):
+    async def sjcmd(self, message: Message):
         """выбор работы"""
-        msg = m.text.split(" ", 1)[1]
+        msg = message.text.split(" ", 1)[1]
         self.su.setdefault("job", msg.casefold())
         txt = f"<b>Работа изменена:</b> {self.su['job']}"
         self.db.set("Su", "su", self.su)
-        return await m.edit(txt)
+        return await message.edit(txt)
 
-    async def sncmd(self, m):
+    async def sncmd(self, message: Message):
         """ник для команд"""
-        msg = m.text.split(" ", 1)[1]
+        msg = message.text.split(" ", 1)[1]
         self.su["name"] = msg.casefold()
         txt = f"👻 <code>{self.su['name']}</code> <b>успешно изменён</b>"
         self.db.set("Su", "su", self.su)
-        return await m.edit(txt)
+        return await message.edit(txt)
 
-    async def sucmd(self, m):
+    async def sucmd(self, message: Message):
         """добавляет пользователей для управление"""
-        reply = await m.get_reply_message()
-        msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
+        reply = await message.get_reply_message()
+        msg = reply.from_id if reply else int(message.text.split(" ", 1)[1])
         if msg in self.su["users"]:
             self.su["users"].remove(msg)
             txt = f"🖕🏾 {msg} <b>успешно удален</b>"
@@ -213,11 +215,15 @@ class KramiikkMod(loader.Module):
             self.su["users"].append(msg)
             txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        return await m.edit(txt)
+        return await message.edit(txt)
 
-    async def svcmd(self, m):
+    async def svcmd(self, message: Message):
         """автожаба для выбранного чата"""
-        msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
+        msg = (
+            message.chat_id
+            if len(message.text) < 9
+            else int(message.text.split(" ", 1)[1])
+        )
         txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
         if "chats" not in self.su:
             self.su.setdefault("chats", [msg])
@@ -229,7 +235,7 @@ class KramiikkMod(loader.Module):
         if "auto" in self.su:
             self.su.pop("auto")
         self.db.set("Su", "su", self.su)
-        return await m.edit(txt)
+        return await message.edit(txt)
 
-    async def watcher(self, m):
-        return await self.ebj(m)
+    async def watcher(self, message: Message):
+        return await self.ebj(message)
