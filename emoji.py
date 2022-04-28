@@ -149,12 +149,25 @@ class KramiikkMod(loader.Module):
             return
         return await message.click()
 
+    async def edj(self, message: Message):
+        msg = [int(x) for x in message.text.split() if x.isnumeric()]
+        delta = timedelta(hours=msg[1], minutes=msg[2], seconds=33)
+        for i in range(3):
+            delta += timedelta(minutes=msg[2])
+            await self.client.send_message(707693258, "<b>Фарма</b>", schedule=delta)
+        return
+
+    async def fdj(self, message: Message):
+        await message.react("❤️")
+
     async def ebj(self, message: Message):
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(message),
             "📉": self.bbj(message),
             self.su["name"]: self.cbj(message),
             str(self.me.id): self.dbj(message),
+            "❌ незачет": self.edj(message),
+            "куат": self.fdj(message),
         }
         for i in (
             i
