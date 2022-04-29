@@ -46,7 +46,7 @@ class KramiikkMod(loader.Module):
                         continue
                     await RSP.respond(self.ded[i])
             except Exception:
-                return
+                continue
         return
 
     async def bbj(self, message: Message):
