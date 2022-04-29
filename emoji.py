@@ -33,7 +33,7 @@ class KkkMod(loader.Module):
             "❌ незачет": self.edj(message),
             "куат": self.fdj(message),
         }
-        for i in (i for i in fff if (i in message.text.casefold())):
+        for i in (i for i in fff if i in message.text.casefold()):
             return await fff[i]
         return
 
