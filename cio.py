@@ -33,17 +33,17 @@ class SpyMod(loader.Module):
                 global RSP
                 RSP = await conv.wait_event(
                     events.NewMessage(
-                        from_users=1124824021, chats=message.chat_id, pattern=p
+                        from_users=1124824021, chats=message.peer_id, pattern=p
                     )
                 )
             except asyncio.exceptions.TimeoutError:
-                RSP = await self.client.get_messages(message.chat_id, search=" ")
+                RSP = await self.client.get_messages(message.peer_id, search=" ")
             return await conv.cancel_all()
 
     async def aww(self, message: Message):
         if message.from_id not in [1124824021]:
             return
-        return await self.client.send_message(m.peer_id, "Ого, вот это эпичная битва!")
+        return await self.client.send_message(message.peer_id, "Ого, вот это эпичная битва!")
 
     async def bww(self, message: Message):
         if len(message.message) not in [21, 30]:
@@ -52,12 +52,12 @@ class SpyMod(loader.Module):
         await self.err(message, p)
         if "Отлично!" not in RSP.text:
             return
-        return await self.client.send_message(m.peer_id, 'Удачной охоты')
+        return await self.client.send_message(message.peer_id, 'Удачной охоты')
 
     async def cww(self, message: Message):
         if message.from_id not in [1124824021]:
             return
-        return await self.client.send_message(m.peer_id, 'Алллоооо! Вас не слышшшшнноооо!')
+        return await self.client.send_message(message.peer_id, 'Алллоооо! Вас не слышшшшнноооо!')
 
     async def dww(self, message: Message):
         p = "Клан"
@@ -66,9 +66,9 @@ class SpyMod(loader.Module):
             return
         ms = await self.client.get_messages(1655814348, search="отправиться за картой")
         txt = "Крутой клан — крутой лид!"
-        for i in (i for i in ms if m.from_id not in [1124824021] and MS > timedelta(days=0, hours=8)):
+        for i in (i for i in ms if message.from_id not in [1124824021] and MS > timedelta(days=0, hours=8)):
             txt = 'За картой идите!'
-        return await self.client.send_message(m.peer_id, txt)
+        return await self.client.send_message(message.peer_id, txt)
 
     async def eee(self, message: Message):
         fff = {
