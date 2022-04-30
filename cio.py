@@ -72,7 +72,7 @@ class SpyMod(loader.Module):
                     txt = "Go! Go! Go!"
                 else:
                     txt = MS
-        return await message.reply(f"Пришло время похода {txt}")
+        return await i.reply(f"Пришло время похода {txt}")
 
     async def eee(self, message: Message):
         fff = {
