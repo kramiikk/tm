@@ -70,8 +70,6 @@ class SpyMod(loader.Module):
                 await self.tms(message, i)
                 if MS > timedelta(days=0, hours=8):
                     txt = "Go! Go! Go!"
-                else:
-                    txt = MS
         return await i.reply(f"Пришло время похода {txt}")
 
     async def eee(self, message: Message):
