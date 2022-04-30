@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class SpyMod(loader.Module):
-    """Слежка за кланами в Жабаботе.v2"""
+    """Слежка за кланами в Жабаботе.v3"""
 
     strings = {"name": "spy"}
 
@@ -65,7 +65,7 @@ class SpyMod(loader.Module):
         if p not in RSP.text:
             return
         if "Пойти" in RSP.text:
-            return await message.reply(text)
+            return await message.reply(txt)
         ms = await self.client.get_messages(message.chat_id, search="отправиться за картой", from_user=message.from_id)
         for i in ms:
             await self.tms(message, i)
