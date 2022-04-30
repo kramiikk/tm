@@ -18,8 +18,7 @@ class SpyMod(loader.Module):
         self.db = db
         self.client = client
 
-    @staticmethod
-    async def tms(message: Message, i):
+    async def tms(self, message: Message, i):
         global MS
         MS = timedelta(
             hours=message.date.hour,
@@ -60,14 +59,13 @@ class SpyMod(loader.Module):
         return await message.respond('Алллоооо! Вас не слышшшшнноооо!')
 
     async def dww(self, message: Message):
+        txt = "Крутой клан — крутой лид!"
         p = "Клан"
         await self.err(message, p)
-        if 'Пойти' not in RSP.text:
-            return
-        ms = await self.client.get_messages(message.chat_id, search="отправиться за картой")
-        txt = "Крутой клан — крутой лид!"
-        for i in (i for i in ms if message.from_id not in [1124824021] and MS > timedelta(days=0, hours=8)):
-            txt = 'За картой идите!'
+        if "Пойти" not in RSP.text:
+            ms = await self.client.get_messages(message.chat_id, search="отправиться за картой")
+            for i in (i for i in ms if message.from_id not in [1124824021] and MS > timedelta(days=0, hours=8)):
+                txt = 'За картой идите!'
         return await message.respond(txt)
 
     async def eee(self, message: Message):
