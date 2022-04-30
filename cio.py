@@ -43,7 +43,7 @@ class SpyMod(loader.Module):
     async def aww(self, message: Message):
         if message.from_id not in [1124824021]:
             return
-        return await await message.respond("Ого, вот это эпичная битва!")
+        return await message.respond("Ого, вот это эпичная битва!")
 
     async def bww(self, message: Message):
         if len(message.message) not in [21, 30]:
