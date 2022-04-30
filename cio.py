@@ -59,11 +59,11 @@ class SpyMod(loader.Module):
         return await message.respond('Алллоооо! Вас не слышшшшнноооо!')
 
     async def dww(self, message: Message):
-        if "Клан" not in message.text:
-            return
         txt = "Крутой клан — крутой лид!"
         p = "Клан"
         await self.err(message, p)
+        if "Клан" not in RSP.text:
+            return
         if "Пойти" not in RSP.text:
             ms = await self.client.get_messages(message.chat_id, search="отправиться за картой")
             for i in ms:
