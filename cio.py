@@ -52,12 +52,12 @@ class SpyMod(loader.Module):
         await self.err(message, p)
         if "Отлично!" not in RSP.text:
             return
-        return await self.client.send_message(message.peer_id, 'Удачной охоты')
+        return await message.respond('Удачной охоты')
 
     async def cww(self, message: Message):
         if message.from_id not in [1124824021]:
             return
-        return await self.client.send_message(message.peer_id, 'Алллоооо! Вас не слышшшшнноооо!')
+        return await message.respond('Алллоооо! Вас не слышшшшнноооо!')
 
     async def dww(self, message: Message):
         p = "Клан"
@@ -68,7 +68,7 @@ class SpyMod(loader.Module):
         txt = "Крутой клан — крутой лид!"
         for i in (i for i in ms if message.from_id not in [1124824021] and MS > timedelta(days=0, hours=8)):
             txt = 'За картой идите!'
-        return await self.client.send_message(message.peer_id, txt)
+        return await message.respond(txt)
 
     async def eee(self, message: Message):
         fff = {
