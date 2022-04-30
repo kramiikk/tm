@@ -59,6 +59,8 @@ class SpyMod(loader.Module):
         return await message.respond('Алллоооо! Вас не слышшшшнноооо!')
 
     async def dww(self, message: Message):
+        if "Клан" not in message.text:
+            return
         txt = "Крутой клан — крутой лид!"
         p = "Клан"
         await self.err(message, p)
