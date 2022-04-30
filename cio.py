@@ -64,12 +64,13 @@ class SpyMod(loader.Module):
         await self.err(message, p)
         if p not in RSP.text:
             return
-        if "Пойти" not in RSP.text:
-            ms = await self.client.get_messages(message.chat_id, search="отправиться за картой", from_user=message.from_id)
-            for i in ms:
-                await self.tms(message, i)
-                if MS < timedelta(days=0) or MS > timedelta(days=0, hours=8):
-                    txt = "Пришло время похода: Go! Go! Go!"
+        if "Пойти" in RSP.text:
+            return await message.reply(text)
+        ms = await self.client.get_messages(message.chat_id, search="отправиться за картой", from_user=message.from_id)
+        for i in ms:
+            await self.tms(message, i)
+            if MS < timedelta(days=0) or MS > timedelta(days=0, hours=8):
+                txt = "Пришло время похода: Go! Go! Go!"
         return await i.reply(txt)
 
     async def eee(self, message: Message):
