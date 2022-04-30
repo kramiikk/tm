@@ -74,7 +74,7 @@ class SpyMod(loader.Module):
             await self.tms(message, i)
         if MS < timedelta(days=0) or MS > timedelta(days=0, hours=8):
             return await i.reply(txt)
-        return await message.reply(text)
+        return await message.reply(txt)
 
     async def eee(self, message: Message):
         fff = {
