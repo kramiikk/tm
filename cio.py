@@ -69,8 +69,10 @@ class SpyMod(loader.Module):
             for i in (i for i in ms if message.from_id not in [1124824021]):
                 await self.tms(message, i)
                 if MS > timedelta(days=0, hours=8):
-                    txt = 'За картой идите!'
-        return await message.respond(txt)
+                    txt = "Go! Go! Go!"
+                else:
+                    txt = MS
+        return await ms.reply(f"Пришло время похода {txt}")
 
     async def eee(self, message: Message):
         fff = {
