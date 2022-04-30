@@ -37,13 +37,13 @@ class SpyMod(loader.Module):
                     )
                 )
             except asyncio.exceptions.TimeoutError:
-                RSP = await self.client.get_messages(message.peer_id, search=" ")
+                RSP = await self.client.get_messages(message.chat_id, search=" ")
             return await conv.cancel_all()
 
     async def aww(self, message: Message):
         if message.from_id not in [1124824021]:
             return
-        return await self.client.send_message(message.peer_id, "Ого, вот это эпичная битва!")
+        return await await message.respond("Ого, вот это эпичная битва!")
 
     async def bww(self, message: Message):
         if len(message.message) not in [21, 30]:
