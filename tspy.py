@@ -95,7 +95,7 @@ class SpyMod(loader.Module):
             ms = await self.client.get_messages(1782816965, search=src)
         for i in ms:
             ms = re.search(r"Топ 35 кланов (.+) лиге", i.text).group(1)
-        if "деревян" in ms.casefold():
+        if "деревян" in ms:
             return
         txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
         await self.client.send_message(1767017980, txt)
@@ -129,4 +129,6 @@ class SpyMod(loader.Module):
         return
 
     async def watcher(self, message: Message):
+        if not isinstance(message, Message):
+            return
         return await self.eee(message)
