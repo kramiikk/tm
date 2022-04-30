@@ -40,13 +40,13 @@ class KramiikkMod(loader.Module):
                 if "🏃‍♂️" not in RSP.text:
                     return
                 for i in (i for i in self.ded if i in RSP.text):
-                    if (int(s[0]) < 123 or int(jab) < 3333) and (
+                    if (int(s[0]) < 123 or (int(s[0]) >= 123 and int(jab) < 3333)) and (
                         i in ("Можно откормить", "Можно отправиться")
                     ):
                         continue
                     await RSP.respond(self.ded[i])
             except Exception:
-                continue
+                pass
         return
 
     async def bbj(self, message: Message):
