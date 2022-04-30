@@ -68,7 +68,7 @@ class SpyMod(loader.Module):
             ms = await self.client.get_messages(message.chat_id, search="отправиться за картой", from_user=message.from_id)
             for i in ms:
                 await self.tms(message, i)
-                if MS > timedelta(days=0, hours=8):
+                if MS > timedelta(days=0, hours=8) > timedelta(days=-1):
                     txt = "Пришло время похода: Go! Go! Go!"
         return await i.reply(txt)
 
