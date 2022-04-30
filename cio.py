@@ -42,7 +42,7 @@ class SpyMod(loader.Module):
     async def aww(self, message: Message):
         if message.from_id not in [1124824021]:
             return
-        return await message.respond("Ого, вот это эпичная битва!")
+        return await message.reply("Ого, вот это эпичная битва!")
 
     async def bww(self, message: Message):
         if len(message.message) not in [21, 30]:
@@ -51,12 +51,12 @@ class SpyMod(loader.Module):
         await self.err(message, p)
         if "Отлично!" not in RSP.text:
             return
-        return await message.respond('Удачной охоты')
+        return await message.reply('Удачной жатвы!')
 
     async def cww(self, message: Message):
         if message.from_id not in [1124824021]:
             return
-        return await message.respond('Алллоооо! Вас не слышшшшнноооо!')
+        return await message.reply('Алллоооо! Вас не слышшшшнноооо!')
 
     async def dww(self, message: Message):
         txt = "Крутой клан — крутой лид!"
