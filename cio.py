@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class SpyMod(loader.Module):
-    """Слежка за кланами в Жабаботе."""
+    """Слежка за кланами в Жабаботе.v1"""
 
     strings = {"name": "spy"}
 
