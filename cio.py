@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class SpyMod(loader.Module):
-    """Слежка за кланами в Жабаботе.v1.1.55"""
+    """Слежка за кланами в Жабаботе.v1.1.59"""
 
     strings = {"name": "spy"}
 
@@ -66,13 +66,15 @@ class SpyMod(loader.Module):
             return
         if "Пойти" in RSP.text:
             return await message.reply(txt)
+        txt = "Пришло время похода: Go! Go! Go!"
         ms = await self.client.get_messages(message.chat_id, search="отправиться за картой", from_user=message.from_id)
-        if ms:
-            for i in ms:
-                await self.tms(message, i)
-            if MS < timedelta(days=0) or MS > timedelta(days=0, hours=8):
-                txt = "Пришло время похода: Go! Go! Go!"
-        return await i.reply(txt)
+        if not ms:
+            return await message.reply(txt)
+        for i in ms:
+            await self.tms(message, i)
+        if MS < timedelta(days=0) or MS > timedelta(days=0, hours=8):
+            return await i.reply(txt)
+        return await message.reply(text)
 
     async def eee(self, message: Message):
         fff = {
