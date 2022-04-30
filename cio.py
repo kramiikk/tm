@@ -66,7 +66,7 @@ class SpyMod(loader.Module):
         await self.err(message, p)
         if "Пойти" not in RSP.text:
             ms = await self.client.get_messages(message.chat_id, search="отправиться за картой")
-            for i in (i for i in ms if message.from_id not in [1124824021]):
+            for i in ms:
                 await self.tms(message, i)
                 if MS > timedelta(days=0, hours=8):
                     txt = "Go! Go! Go!"
