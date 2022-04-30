@@ -62,7 +62,7 @@ class SpyMod(loader.Module):
         txt = "Крутой клан — крутой лид!"
         p = "Клан"
         await self.err(message, p)
-        if "Клан" not in RSP.text:
+        if p not in RSP.text:
             return
         if "Пойти" not in RSP.text:
             ms = await self.client.get_messages(message.chat_id, search="отправиться за картой")
