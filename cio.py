@@ -89,4 +89,6 @@ class SpyMod(loader.Module):
         return
 
     async def watcher(self, message: Message):
+        if not isinstance(Event, Message):
+            return
         return await self.eee(message)
