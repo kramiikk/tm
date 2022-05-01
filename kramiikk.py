@@ -238,4 +238,6 @@ class KramiikkMod(loader.Module):
         return await message.edit(txt)
 
     async def watcher(self, message: Message):
+        if not isinstance(message, Message):
+            return
         return await self.ebj(message)
