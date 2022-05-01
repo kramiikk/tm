@@ -54,7 +54,15 @@ class SpyMod(loader.Module):
             tog = f"{klan.group(1)} 🫂 {klan.group(2)}\n<i>                                    ничья</i>"
             return await self.client.send_message(1767017980, tog)
         await self.client.send_message(1767017980, tog)
-        tog = f"Cid: {message.chat_id}\n\nКлан: {klan.group(1)}"
+        p = await self.client.get_messages(
+            1782816965, search=f"35 кланов {klan.group(1)}"
+        )
+        if p.total == 0:
+            p = await self.client.get_messages(
+                1782816965, search=f"35 кланов {klan.group(2)}"
+            )
+        for i in p:
+            tog = f"Cid: {message.chat_id}\n\nКлан: {klan.group(1)}\nЛига: {re.search(r'кланов (.+) лиге', i.text).group(1)}"
         for i in re.findall(r"•.+(<.+?(\d+).+>)", message.text):
             tog += f"\n{i[0]} {i[1]}"
         return await self.client.send_message(1655814348, tog)
@@ -66,23 +74,21 @@ class SpyMod(loader.Module):
         await self.err(message, p)
         if "Отлично!" not in RSP.text:
             return
-        src = f"{message.chat_id} {message.from_id}"
-        ms = await self.client.get_messages(1655814348, search=src)
+        ms = await self.client.get_messages(
+            1655814348, search=f"{message.chat_id} {message.from_id} Лига"
+        )
         for i in (i for i in ms if "деревян" not in i.text.casefold()):
-            if "Усилитель:" in i.text:
-                klan = re.search(r"Лига: (.+)\nУсилитель: (.+)\n\nКлан: (.+)", i.text)
-                lira = f"{klan.group(3)}\nЛига: {klan.group(1)}\nУсилитель: {klan.group(2)}"
-            else:
-                klan = re.search(r"Клан: (.+)", i.text).group(1)
-                src = f"35 кланов {klan}"
-                p = await self.client.get_messages(1782816965, search=src)
-                if p.total == 0:
-                    return
-                for i in p:
-                    lira = re.search(r"кланов (.+) лиге", i.message).group(1)
-                    lira = f"{klan}\nЛига: {lira}"
-            return await self.client.send_message(1767017980, f"В поиске {lira}")
-        return
+            klan = re.search(r"Клан: (.+)", i.text).group(1)
+            liga = re.search(r"Лига: (.+)", i.text).group(1)
+            p = await self.client.get_messages(1782816965, search=f"35 кланов {klan}")
+        if p.total == 0:
+            txt = f"{klan}\nЛига: {liga}"
+        else:
+            for i in p:
+                txt = f"{klan}\nЛига: {re.search(r'кланов (.+) лиге', i.text).group(1)}"
+            if klan not in i.text:
+                txt = f"{klan}\nЛига: {liga}"
+        return await self.client.send_message(1767017980, f"В поиске {txt}")
 
     async def cww(self, message: Message):
         if message.from_id not in [1124824021]:
@@ -95,7 +101,7 @@ class SpyMod(loader.Module):
             ms = await self.client.get_messages(1782816965, search=src)
         for i in ms:
             lig = re.search(r"Топ 35 кланов (.+) лиге", i.text).group(1)
-        if not lig or "деревян" in lig.casefold() or klan.group(1) not in i.text:
+        if not lig or "деревян" in i.text.casefold() or klan.group(1) not in i.text:
             return
         txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {lig}"
         await self.client.send_message(1767017980, txt)
