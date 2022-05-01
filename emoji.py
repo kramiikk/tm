@@ -15,12 +15,13 @@ class KramiikkMod(loader.Module):
     strings = {"name": "Kramiikk"}
 
     async def abj(self, message: Message):
+        """автожаба"""
         chat = message.peer_id
         await message.delete()
         cmn = "мои жабы"
         await self.err(chat, cmn)
         await self.client.delete_dialog(chat)
-        if ("chats" not in self.su) and ("auto" not in self.su):
+        if "chats" not in self.su and "auto" not in self.su:
             return
         capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
         for s in capt:
@@ -28,13 +29,32 @@ class KramiikkMod(loader.Module):
                 chat = int(s[1])
                 if "chats" in self.su and int(s[1]) not in self.su["chats"]:
                     continue
-                await self.fbj(chat)
+                cmn = "моя жаба"
+                await self.err(chat, cmn)
+                for i in (i for i in self.ded if i in RSP.text):
+                    await RSP.respond(self.ded[i])
+                jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
+                if not jab:
+                    return
+                cmn = "жаба инфо"
+                await self.err(chat, cmn)
+                if "🏃‍♂️" not in RSP.text:
+                    return
+                for i in (i for i in self.ded if i in RSP.text):
+                    if (
+                        int(s[0]) < 123
+                        or (int(s[0]) >= 123 and int(jab) < 3333)
+                        and i in ("Можно откормить", "Можно отправиться")
+                    ):
+                        continue
+                    await RSP.respond(self.ded[i])
             except Exception:
                 pass
         return
 
     async def bbj(self, message: Message):
-        if (not message.text.startswith("📉")) or (
+        """отложки"""
+        if not message.text.startswith("📉") or (
             "auto" not in self.su and "chats" not in self.su
         ):
             return
@@ -45,10 +65,11 @@ class KramiikkMod(loader.Module):
         )
 
     async def cbj(self, message: Message):
+        """управление акком"""
         if (
-            (" " not in message.text)
-            or (not message.text.casefold().startswith(self.su["name"]))
-            or (message.from_id not in self.su["users"])
+            " " not in message.text
+            or not message.text.casefold().startswith(self.su["name"])
+            or message.from_id not in self.su["users"]
         ):
             return
         chat = message.peer_id
@@ -78,7 +99,7 @@ class KramiikkMod(loader.Module):
                 int(reg.group(1)), ids=int(reg.group(2))
             )
             await mac.click()
-        if ("буках" in message.text) and (self.su["name"] in ["кушки", "альберт"]):
+        if "буках" in message.text and self.su["name"] in ("кушки", "альберт"):
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
             await self.err(chat, cmn)
@@ -96,6 +117,7 @@ class KramiikkMod(loader.Module):
         return await message.reply(self.ded[cmn])
 
     async def client_ready(self, client, db):
+        """ready"""
         self.client = client
         self.db = db
         self.su = db.get("Su", "su", {})
@@ -129,11 +151,13 @@ class KramiikkMod(loader.Module):
         }
 
     async def dbj(self, message: Message):
-        if ("ход: " not in message.text) or (not message.buttons):
+        """поход"""
+        if "ход: " not in message.text or not message.buttons:
             return
         return await message.click()
 
     async def ebj(self, message: Message):
+        """алгоритм модуля"""
         fff = {
             "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(message),
             "📉": self.bbj(message),
@@ -143,29 +167,10 @@ class KramiikkMod(loader.Module):
         for i in (
             i
             for i in fff
-            if (i in message.text.casefold()) and (message.from_id in self.su["users"])
+            if i in message.text.casefold() and message.from_id in self.su["users"]
         ):
             return await fff[i]
         return
-
-    async def fbj(self, chat):
-        cmn = "моя жаба"
-        await self.err(chat, cmn)
-        for i in (i for i in self.ded if i in RSP.text):
-            await RSP.respond(self.ded[i])
-        jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
-        if not jab:
-            return
-        cmn = "жаба инфо"
-        await self.err(chat, cmn)
-        if "🏃‍♂️" not in RSP.text:
-            return
-        for i in (i for i in self.ded if i in RSP.text):
-            if (int(s[0]) < 123 or (int(s[0]) >= 123 and int(jab) < 3333)) and (
-                i in ("Можно откормить", "Можно отправиться")
-            ):
-                continue
-            await RSP.respond(self.ded[i])
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
