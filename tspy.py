@@ -94,12 +94,12 @@ class SpyMod(loader.Module):
             src = f"35 кланов {klan.group(2)}"
             ms = await self.client.get_messages(1782816965, search=src)
         for i in ms:
-            ms = re.search(r"Топ 35 кланов (.+) лиге", i.text).group(1)
-        if "деревян" in ms:
+            lig = re.search(r"Топ 35 кланов (.+) лиге", i.text).group(1)
+        (if not lig) or ("деревян" in lig.casefold()) or ({klan.group(1)} not in i.text):
             return
-        txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {ms}"
+        txt = f"⚡️{klan.group(1)} <b>VS</b> {klan.group(2)}\nЛига: {lig}"
         await self.client.send_message(1767017980, txt)
-        tog = f"Cid: {message.chat_id}\nКлан: {klan.group(1)}\nЛига: {ms}"
+        tog = f"Cid: {message.chat_id}\nКлан: {klan.group(1)}\nЛига: {lig}"
         for i in re.findall(r"<.+?id=(\d+)\">", message.text):
             tog += f"\n{i}"
         return await self.client.send_message(1655814348, tog)
