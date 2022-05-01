@@ -26,25 +26,9 @@ class KramiikkMod(loader.Module):
         for s in capt:
             try:
                 chat = int(s[1])
-                if ("chats" in self.su) and (int(s[1]) not in self.su["chats"]):
+                if "chats" in self.su and int(s[1]) not in self.su["chats"]:
                     continue
-                cmn = "моя жаба"
-                await self.err(chat, cmn)
-                for i in (i for i in self.ded if i in RSP.text):
-                    await RSP.respond(self.ded[i])
-                jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
-                if not jab:
-                    return
-                cmn = "жаба инфо"
-                await self.err(chat, cmn)
-                if "🏃‍♂️" not in RSP.text:
-                    return
-                for i in (i for i in self.ded if i in RSP.text):
-                    if (int(s[0]) < 123 or (int(s[0]) >= 123 and int(jab) < 3333)) and (
-                        i in ("Можно откормить", "Можно отправиться")
-                    ):
-                        continue
-                    await RSP.respond(self.ded[i])
+                await self.fbj(chat, message)
             except Exception:
                 pass
         return
@@ -164,6 +148,25 @@ class KramiikkMod(loader.Module):
             return await fff[i]
         return
 
+    async def fbj(self, chat, message: Message):
+        cmn = "моя жаба"
+        await self.err(chat, cmn)
+        for i in (i for i in self.ded if i in RSP.text):
+            await RSP.respond(self.ded[i])
+        jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
+        if not jab:
+            return
+        cmn = "жаба инфо"
+        await self.err(chat, cmn)
+        if "🏃‍♂️" not in RSP.text:
+            return
+        for i in (i for i in self.ded if i in RSP.text):
+            if (int(s[0]) < 123 or (int(s[0]) >= 123 and int(jab) < 3333)) and (
+                i in ("Можно откормить", "Можно отправиться")
+            ):
+                continue
+            await RSP.respond(self.ded[i])
+
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
@@ -238,4 +241,6 @@ class KramiikkMod(loader.Module):
         return await message.edit(txt)
 
     async def watcher(self, message: Message):
+        if not isinstance(message, Message):
+            return
         return await self.ebj(message)
