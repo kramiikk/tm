@@ -28,7 +28,7 @@ class KramiikkMod(loader.Module):
                 chat = int(s[1])
                 if "chats" in self.su and int(s[1]) not in self.su["chats"]:
                     continue
-                await self.fbj(chat, message)
+                await self.fbj(chat)
             except Exception:
                 pass
         return
@@ -148,7 +148,7 @@ class KramiikkMod(loader.Module):
             return await fff[i]
         return
 
-    async def fbj(self, chat, message: Message):
+    async def fbj(self, chat):
         cmn = "моя жаба"
         await self.err(chat, cmn)
         for i in (i for i in self.ded if i in RSP.text):
