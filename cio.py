@@ -97,4 +97,8 @@ class SpyMod(loader.Module):
             return
         return await self.eee(message)
         if message.chat_id == -1001767017980:
-            await client.send_message(-1001782816965, file="CAADAgAD5hYAAs6XCUsQv9JjJqukVwI", reply_to=message.id)
+            await self.client.send_message(
+                -1001782816965,
+                file="CAADAgAD5hYAAs6XCUsQv9JjJqukVwI",
+                reply_to=message.id,
+            )
