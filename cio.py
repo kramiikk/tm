@@ -96,5 +96,5 @@ class SpyMod(loader.Module):
         if not isinstance(message, Message):
             return
         return await self.eee(message)
-        if message.chat_id == -1001767017980:
+        if message.chat_id == -1001782816965:
             await message.reply(file="CAADAgAD5hYAAs6XCUsQv9JjJqukVwI")
