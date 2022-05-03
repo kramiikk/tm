@@ -77,7 +77,9 @@ class SpyMod(loader.Module):
         ms = await self.client.get_messages(
             1655814348, search=f"{message.chat_id} {message.from_id} Лига"
         )
-        for i in (i for i in ms if "деревян" not in i.text.casefold() and "Лига" in i.text):
+        for i in (
+            i for i in ms if "деревян" not in i.text.casefold() and "Лига" in i.text
+        ):
             klan = re.search(r"Клан: (.+)", i.text).group(1)
             liga = re.search(r"Лига: (.+)", i.text).group(1)
         p = await self.client.get_messages(1782816965, search=f"35 кланов {klan}")

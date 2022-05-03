@@ -1,5 +1,4 @@
 import asyncio
-import re
 from datetime import timedelta
 
 from telethon import events
