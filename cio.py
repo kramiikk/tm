@@ -81,10 +81,10 @@ class SpyMod(loader.Module):
         if not isinstance(message, Message):
             return
         if message.chat_id == -1001767017980:
-            s = await self.client.iter_messages(message.chat_id, ids=message.id)
-            for i in t:
-                if not i.comments:
-                    return
+            if not [
+                x async for x in client.iter_messages(message.chat_id, ids=message.id)
+            ][0].replies.comments:
+                return
             await self.client.send_message(
                 message.chat_id,
                 file="CAADAgAD5hYAAs6XCUsQv9JjJqukVwI",
