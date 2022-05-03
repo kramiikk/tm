@@ -51,7 +51,7 @@ class SpyMod(loader.Module):
             tog = f"🏆 {klan.group(2)}\n             {klan.group(3)}:{klan.group(4)}\n🔻 {klan.group(1)}"
         else:
             klan = re.search(r"н (.+),.+\n.+: (.+)", message.text)
-            tog = f"{klan.group(1)} 🫂 {klan.group(2)}\n<i>                                    ничья</i>"
+            tog = f"{klan.group(1)} 🫂 {klan.group(2)}"
             return await self.client.send_message(1767017980, tog)
         await self.client.send_message(1767017980, tog)
         p = await self.client.get_messages(
