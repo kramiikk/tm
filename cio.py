@@ -38,11 +38,6 @@ class SpyMod(loader.Module):
                 RSP = await self.client.get_messages(message.chat_id, search=" ")
             return await conv.cancel_all()
 
-    async def aww(self, message: Message):
-        if message.from_id not in [1124824021]:
-            return
-        return await message.reply("Ого, вот это эпичная битва!")
-
     async def bww(self, message: Message):
         if len(message.message) not in [21, 30]:
             return
@@ -50,21 +45,15 @@ class SpyMod(loader.Module):
         await self.err(message, p)
         if "Отлично!" not in RSP.text:
             return
-        return await message.reply("Удачной жатвы!")
-
-    async def cww(self, message: Message):
-        if message.from_id not in [1124824021]:
-            return
-        return await message.reply("Алллоооо! Вас не слышшшшнноооо!")
+        return await message.reply("Удачи!")
 
     async def dww(self, message: Message):
-        txt = "Крутой клан — крутой лид!"
         p = "Клан"
         await self.err(message, p)
         if p not in RSP.text:
             return
         if "Пойти" in RSP.text:
-            return await message.reply(txt)
+            return
         txt = "Пришло время похода: Go! Go! Go!"
         ms = await self.client.get_messages(
             message.chat_id, search="отправиться за картой", from_user=message.from_id
@@ -79,12 +68,8 @@ class SpyMod(loader.Module):
 
     async def eee(self, message: Message):
         fff = {
-            "очень жаль": self.aww(message),
-            "одержал победу!": self.aww(message),
-            "эй, клан": self.aww(message),
             "начать клановую войну": self.bww(message),
             "@toadbot начать клановую войну": self.bww(message),
-            "алло,": self.cww(message),
             "мой клан": self.dww(message),
             "@toadbot мой клан": self.dww(message),
         }
