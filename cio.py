@@ -82,7 +82,7 @@ class SpyMod(loader.Module):
             return
         if message.chat_id == -1001767017980:
             if not [
-                x async for x in client.iter_messages(message.chat_id, ids=message.id)
+                x async for x in self.client.iter_messages(message.chat_id, ids=message.id)
             ][0].replies.comments:
                 return
             await self.client.send_message(
