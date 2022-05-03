@@ -51,12 +51,12 @@ class SpyMod(loader.Module):
         await self.err(message, p)
         if "Отлично!" not in RSP.text:
             return
-        return await message.reply('Удачной жатвы!')
+        return await message.reply("Удачной жатвы!")
 
     async def cww(self, message: Message):
         if message.from_id not in [1124824021]:
             return
-        return await message.reply('Алллоооо! Вас не слышшшшнноооо!')
+        return await message.reply("Алллоооо! Вас не слышшшшнноооо!")
 
     async def dww(self, message: Message):
         txt = "Крутой клан — крутой лид!"
@@ -67,7 +67,9 @@ class SpyMod(loader.Module):
         if "Пойти" in RSP.text:
             return await message.reply(txt)
         txt = "Пришло время похода: Go! Go! Go!"
-        ms = await self.client.get_messages(message.chat_id, search="отправиться за картой", from_user=message.from_id)
+        ms = await self.client.get_messages(
+            message.chat_id, search="отправиться за картой", from_user=message.from_id
+        )
         if not ms:
             return await message.reply(txt)
         for i in ms:
@@ -95,3 +97,5 @@ class SpyMod(loader.Module):
         if not isinstance(message, Message):
             return
         return await self.eee(message)
+        if message.chat_id == -1001767017980:
+            await message.reply(file="CAADAgAD5hYAAs6XCUsQv9JjJqukVwI")
