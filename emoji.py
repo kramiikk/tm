@@ -31,7 +31,7 @@ class KramiikkMod(loader.Module):
                     continue
                 s = (
                     await client.get_messages(
-                        message.to_id, from_user="me", search="/my_toad"
+                        chat, from_user="me", search="/my_toad"
                     )
                 )[0]
                 ts = timedelta(
