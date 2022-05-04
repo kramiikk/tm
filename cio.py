@@ -87,7 +87,7 @@ class SpyMod(loader.Module):
                 return
             await self.client.send_message(
                 message.chat_id,
-                file="CAADAgAD-RkAAkMmkEs4hD9KtqzO4QI",
+                file="CAADAgADfxEAAj_OkEvc1gSOXPLoTQI",
                 comment_to=message.id,
             )
         return await self.eee(message)
