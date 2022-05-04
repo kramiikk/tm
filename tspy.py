@@ -18,15 +18,6 @@ class SpyMod(loader.Module):
         self.db = db
         self.client = client
 
-    @staticmethod
-    async def tms(message: Message, i):
-        global MS
-        MS = timedelta(
-            hours=message.date.hour,
-            minutes=message.date.minute,
-            seconds=message.date.second,
-        ) - timedelta(hours=i.date.hour, minutes=i.date.minute, seconds=i.date.second)
-
     async def err(self, message: Message, p):
         async with self.client.conversation(message.chat_id, exclusive=False) as conv:
             try:
