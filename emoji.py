@@ -30,7 +30,7 @@ class KramiikkMod(loader.Module):
                 if "chats" in self.su and int(s[1]) not in self.su["chats"]:
                     continue
                 s = (
-                    await client.get_messages(
+                    await self.client.get_messages(
                         chat, from_user="me", search="/my_toad"
                     )
                 )[0]
