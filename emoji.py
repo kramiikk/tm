@@ -41,7 +41,6 @@ class KramiikkMod(loader.Module):
                 ) - timedelta(
                     hours=src.date.hour, minutes=src.date.minute, seconds=src.date.second
                 )
-                await src.reply("0")
                 if ts < timedelta(hours=3):
                     continue
                 cmn = "/my_toad"
