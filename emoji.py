@@ -44,7 +44,7 @@ class KramiikkMod(loader.Module):
                 jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
                 if not jab:
                     return
-                cmn = "жаба инфо"
+                cmn = "/toad_info"
                 await self.err(chat, cmn)
                 if "🏃‍♂️" not in RSP.text:
                     return
