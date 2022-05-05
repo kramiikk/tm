@@ -41,7 +41,8 @@ class KramiikkMod(loader.Module):
                 ) - timedelta(
                     hours=src.date.hour, minutes=src.date.minute, seconds=src.date.second
                 )
-                await src.reply(f"{ts}")
+                if ts > timedelta(days=-1) and ts < timedelta(days=0, hours=3):
+                  continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
