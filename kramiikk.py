@@ -31,7 +31,7 @@ class KramiikkMod(loader.Module):
                     continue
                 src = (
                     await self.client.get_messages(
-                        chat, from_user="me", search=self.su["job"]
+                        chat, from_user="me", search="жаба инфо"
                     )
                 )[0]
                 ts = timedelta(hours=message.date.hour) - timedelta(hours=src.date.hour)
@@ -44,7 +44,7 @@ class KramiikkMod(loader.Module):
                 jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
                 if not jab:
                     return
-                cmn = "жаба инфо"
+                cmn = "/toad_info"
                 await self.err(chat, cmn)
                 if "🏃‍♂️" not in RSP.text:
                     return
