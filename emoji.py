@@ -34,14 +34,8 @@ class KramiikkMod(loader.Module):
                         chat, from_user="me", search=self.su["job"]
                     )
                 )[0]
-                ts = timedelta(
-                    hours=message.date.hour,
-                    minutes=message.date.minute,
-                    seconds=message.date.second,
-                ) - timedelta(
-                    hours=src.date.hour, minutes=src.date.minute, seconds=src.date.second
-                )
-                if ts > timedelta(days=-1) and ts < timedelta(days=0, hours=3):
+                ts = timedelta(hours=message.date.hour) - timedelta(hours=src.date.hour)
+                if ts < timedelta(hours=3):
                   continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
