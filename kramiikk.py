@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class KramiikkMod(loader.Module):
-    """Алина, я люблю тебя!"""
+    """Алина, я люблю тебя!4.09"""
 
     strings = {"name": "Kramiikk"}
 
@@ -60,10 +60,6 @@ class KramiikkMod(loader.Module):
 
     async def bbj(self, message: Message):
         """отложки"""
-        if not message.text.startswith("📉") or (
-            "auto" not in self.su and "chats" not in self.su
-        ):
-            return
         return await self.client.send_message(
             1124824021,
             "💑👩‍❤️‍👨👨‍❤️‍👨💑",
@@ -72,12 +68,6 @@ class KramiikkMod(loader.Module):
 
     async def cbj(self, message: Message):
         """управление акком"""
-        if (
-            " " not in message.text
-            or not message.text.casefold().startswith(self.su["name"])
-            or message.from_id not in self.su["users"]
-        ):
-            return
         chat = message.peer_id
         reply = await message.get_reply_message()
         if "напиши в " in message.text:
@@ -156,12 +146,6 @@ class KramiikkMod(loader.Module):
             "Банда: Пусто": "взять жабу",
         }
 
-    async def dbj(self, message: Message):
-        """поход"""
-        if "ход: " not in message.text or not message.buttons:
-            return
-        return await message.click()
-
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
@@ -239,13 +223,22 @@ class KramiikkMod(loader.Module):
         """алко"""
         if not isinstance(message, Message) or message.from_id not in self.su["users"]:
             return
-        fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(message),
-            "📉": self.bbj(message),
-            "🛡": self.bbj(message),
-            self.su["name"]: self.cbj(message),
-            str(self.me.id): self.dbj(message),
-        }
-        for i in (i for i in fff if i in message.text.casefold()):
-            return await fff[i]
+        if message.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
+            await self.abj(message)
+        elif message.text.startswith(("📉", "🛡")) and (
+            "auto" in self.su or "chats" in self.su
+        ):
+            await self.bbj(message)
+        elif (
+            message.text.casefold().startswith(self.su["name"]) and " " in message.text
+        ):
+            await self.cbj(message)
+        elif (
+            str(self.me.id) in message.text
+            and "ход: " in message.text
+            and message.buttons
+        ):
+            await message.click()
+        else:
+            return
         return
