@@ -33,10 +33,11 @@ class KramiikkMod(loader.Module):
                     await self.client.get_messages(
                         chat, from_user="me", search="жаба инфо"
                     )
-                )[0]
-                ts = timedelta(hours=message.date.hour) - timedelta(hours=src.date.hour)
-                if timedelta(days=0, hours=0) < ts < timedelta(days=0, hours=3):
-                  continue
+                )
+                if src.total != 0:
+                    ts = timedelta(hours=message.date.hour) - timedelta(hours=src[0].date.hour)
+                    if timedelta(days=0, hours=0) < ts < timedelta(days=0, hours=3):
+                      continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
