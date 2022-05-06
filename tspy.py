@@ -112,7 +112,9 @@ class SpyMod(loader.Module):
         info = f"Cid: {message.chat_id}\nUid: {message.from_id}\nЛига: {klan.group(2)}\nУсилитель: {klan.group(3)}\n\nКлан: {klan.group(1)}"
         return await self.client.send_message(1655814348, info)
 
-    async def eee(self, message: Message):
+    async def watcher(self, message: Message):
+        if not isinstance(message, Message):
+            return
         fff = {
             "очень жаль": self.aww(message),
             "одержал победу!": self.aww(message),
@@ -126,8 +128,3 @@ class SpyMod(loader.Module):
         for i in (i for i in fff if message.message.casefold().startswith(i)):
             return await fff[i]
         return
-
-    async def watcher(self, message: Message):
-        if not isinstance(message, Message):
-            return
-        return await self.eee(message)
