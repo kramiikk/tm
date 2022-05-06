@@ -239,13 +239,14 @@ class KramiikkMod(loader.Module):
         """алко"""
         if not isinstance(message, Message) or message.from_id not in self.su["users"]:
             return
-        fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(message),
-            "📉": self.bbj(message),
-            "🛡": self.bbj(message),
-            self.su["name"]: self.cbj(message),
-            str(self.me.id): self.dbj(message),
-        }
-        for i in (i for i in fff if i in message.text.casefold()):
-            return await fff[i]
+        if message.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
+            await self.abj(message)
+        elif message.text.startswith(("📉", "🛡")):
+            await self.bbj(message)
+        elif message.text.casefold().startswith(self.su["name"]):
+            await self.cbj(message)
+        elif str(self.me.id) in message.text:
+            await self.dbj(message)
+        else:
+            return
         return
