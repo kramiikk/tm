@@ -116,13 +116,13 @@ class SpyMod(loader.Module):
             and "путешествие" not in message.text
         ):
             await self.aww(message)
-        elif message.message.startswith(
+        elif message.message.casefold().startswith(
             ("начать клановую войну", "@toadbot начать клановую войну")
         ) and len(message.message) in [21, 30]:
             await self.bww(message)
-        elif message.message.startswith("алло,") and message.from_id in [1124824021]:
+        elif message.message.startswith("Алло,") and message.from_id in [1124824021]:
             await self.cww(message)
-        elif message.message.startswith(("мой клан", "@toadbot мой клан")):
+        elif message.message.casefold().startswith(("мой клан", "@toadbot мой клан")):
             await self.dww(message)
         else:
             return
