@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class KramiikkMod(loader.Module):
-    """Алина, я люблю тебя!3.26"""
+    """Алина, я люблю тебя!4.09"""
 
     strings = {"name": "Kramiikk"}
 
