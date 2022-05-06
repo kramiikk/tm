@@ -32,8 +32,6 @@ class SpyMod(loader.Module):
             return await conv.cancel_all()
 
     async def aww(self, message: Message):
-        if message.from_id not in [1124824021]:
-            return
         if "одержал" in message.text:
             klan = re.search(r"н (.+) о[\s\S]*: (.+)[\s\S]* (\d+):(\d+)", message.text)
             tog = f"🏆 {klan.group(1)}\n             {klan.group(3)}:{klan.group(4)}\n🔻 {klan.group(2)}"
@@ -59,8 +57,6 @@ class SpyMod(loader.Module):
         return await self.client.send_message(1655814348, tog)
 
     async def bww(self, message: Message):
-        if len(message.message) not in [21, 30]:
-            return
         p = None
         await self.err(message, p)
         if "Отлично!" not in RSP.text:
@@ -84,8 +80,6 @@ class SpyMod(loader.Module):
         return await self.client.send_message(1767017980, f"В поиске {txt}")
 
     async def cww(self, message: Message):
-        if message.from_id not in [1124824021]:
-            return
         klan = re.search(r"клана (.+) нашелся враг (.+), пора", message.text)
         src = f"35 кланов {klan.group(1)}"
         ms = await self.client.get_messages(1782816965, search=src)
@@ -115,16 +109,21 @@ class SpyMod(loader.Module):
     async def watcher(self, message: Message):
         if not isinstance(message, Message):
             return
-        fff = {
-            "очень жаль": self.aww(message),
-            "одержал победу!": self.aww(message),
-            "эй, клан": self.aww(message),
-            "начать клановую войну": self.bww(message),
-            "@toadbot начать клановую войну": self.bww(message),
-            "алло,": self.cww(message),
-            "мой клан": self.dww(message),
-            "@toadbot мой клан": self.dww(message),
-        }
-        for i in (i for i in fff if message.message.casefold().startswith(i)):
-            return await fff[i]
+        if (
+            message.text.startswith(("Очень жаль", "Клан ", "Эй, клан"))
+            and message.from_id in [1124824021]
+            and "Усилитель" not in message.text
+            and "путешествие" not in message.text
+        ):
+            await self.aww(message)
+        elif message.message.startswith(
+            ("начать клановую войну", "@toadbot начать клановую войну")
+        ) and len(message.message) in [21, 30]:
+            await self.bww(message)
+        elif message.message.startswith("алло,") and message.from_id in [1124824021]:
+            await self.cww(message)
+        elif message.message.startswith(("мой клан", "@toadbot мой клан")):
+            await self.dww(message)
+        else:
+            return
         return
