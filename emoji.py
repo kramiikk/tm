@@ -29,11 +29,7 @@ class KramiikkMod(loader.Module):
                 chat = int(s[1])
                 if "chats" in self.su and int(s[1]) not in self.su["chats"]:
                     continue
-                src = (
-                    await self.client.get_messages(
-                        chat, from_user="me", search="жаба инфо"
-                    )
-                )
+                src = await self.client.get_messages(chat, from_user="me", search="жаба инфо")
                 if src.total != 0:
                     ts = timedelta(hours=message.date.hour) - timedelta(hours=src[0].date.hour)
                     if timedelta(days=0, hours=0) < ts < timedelta(days=0, hours=3):
