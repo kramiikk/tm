@@ -162,22 +162,6 @@ class KramiikkMod(loader.Module):
             return
         return await message.click()
 
-    async def ebj(self, message: Message):
-        """алгоритм модуля"""
-        fff = {
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(message),
-            "📉": self.bbj(message),
-            self.su["name"]: self.cbj(message),
-            str(self.me.id): self.dbj(message),
-        }
-        for i in (
-            i
-            for i in fff
-            if i in message.text.casefold() and message.from_id in self.su["users"]
-        ):
-            return await fff[i]
-        return
-
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
@@ -252,6 +236,16 @@ class KramiikkMod(loader.Module):
         return await message.edit(txt)
 
     async def watcher(self, message: Message):
-        if not isinstance(message, Message):
+        """алко"""
+        if not isinstance(message, Message) or message.from_id not in self.su["users"]:
             return
-        return await self.ebj(message)
+        fff = {
+            "💑👩‍❤️‍👨👨‍❤️‍👨💑": self.abj(message),
+            "📉": self.bbj(message),
+            "🛡": self.bbj(message),
+            self.su["name"]: self.cbj(message),
+            str(self.me.id): self.dbj(message),
+        }
+        for i in (i for i in fff if i in message.text.casefold()):
+            return await fff[i]
+        return
