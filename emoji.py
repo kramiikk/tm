@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class KramiikkMod(loader.Module):
-    """Алина, я люблю тебя!5.10.3"""
+    """Алина, я люблю тебя!5.10.3.36"""
 
     strings = {"name": "Kramiikk"}
 
@@ -40,17 +40,19 @@ class KramiikkMod(loader.Module):
                         continue
                     else:
                         await src.reply(ts)
+                else:
+                    await m.respond("yyy")
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
                     await RSP.respond(self.ded[i])
                 jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
                 if not jab:
-                    return
+                    continue
                 cmn = "/toad_info"
                 await self.err(chat, cmn)
                 if "🏃‍♂️" not in RSP.text:
-                    return
+                    continue
                 for i in (i for i in self.ded if i in RSP.text):
                     if (
                         int(s[0]) < 123 or (int(s[0]) >= 123 and int(jab) < 3333)
@@ -58,12 +60,11 @@ class KramiikkMod(loader.Module):
                         continue
                     await RSP.respond(self.ded[i])
             except Exception:
-                pass
-        return
+                continue
 
     async def bbj(self, message: Message):
         """отложки"""
-        return await self.client.send_message(
+        await self.client.send_message(
             1124824021,
             "💑👩‍❤️‍👨👨‍❤️‍👨💑",
             schedule=timedelta(minutes=random.randint(128, 184)),
@@ -80,13 +81,13 @@ class KramiikkMod(loader.Module):
                 chat = int(chat)
             if reply:
                 txt = reply
-            return await self.client.send_message(chat, txt)
-        if "напиши " in message.text:
+            await self.client.send_message(chat, txt)
+        elif "напиши " in message.text:
             txt = message.text.split(" ", 2)[2]
             if reply:
                 return await reply.reply(txt)
-            return await message.respond(txt)
-        if "тыкпых" in message.text:
+            await message.respond(txt)
+        elif "тыкпых" in message.text:
             if reply:
                 return await reply.click()
             if "тыкпых " not in message.text:
@@ -98,22 +99,23 @@ class KramiikkMod(loader.Module):
                 int(reg.group(1)), ids=int(reg.group(2))
             )
             await mac.click()
-        if "буках" in message.text and self.su["name"] in ("кушки", "альберт"):
+        elif "буках" in message.text and self.su["name"] in ("кушки", "альберт"):
             await asyncio.sleep(random.randint(0, 360))
             cmn = "мой баланс"
             await self.err(chat, cmn)
             if "У тебя" in RSP.text:
-                return await message.respond("взять жабу")
-            if "Баланс" not in RSP.text:
+                await message.respond("взять жабу")
+            elif "Баланс" not in RSP.text:
                 return
             jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
             if jab < 50:
                 return
-            return await message.reply(f"отправить букашки {jab}")
-        cmn = message.text.split(" ", 1)[1]
-        if cmn not in self.ded:
-            return
-        return await message.reply(self.ded[cmn])
+            await message.reply(f"отправить букашки {jab}")
+        else:
+            cmn = message.text.split(" ", 1)[1]
+            if cmn not in self.ded:
+                return
+            await message.reply(self.ded[cmn])
 
     async def client_ready(self, client, db):
         """ready"""
@@ -158,7 +160,7 @@ class KramiikkMod(loader.Module):
                 RSP = await conv.get_response()
             except asyncio.exceptions.TimeoutError:
                 RSP = await self.client.get_messages(chat, search=" ")
-            return await conv.cancel_all()
+            await conv.cancel_all()
 
     async def sacmd(self, message: Message):
         """автожаба для всех чатов"""
@@ -171,7 +173,7 @@ class KramiikkMod(loader.Module):
                 self.su.pop("chats")
             msg = "<b>активирована</b>"
         self.db.set("Su", "su", self.su)
-        return await message.edit(msg)
+        await message.edit(msg)
 
     async def sjcmd(self, message: Message):
         """выбор работы"""
@@ -179,7 +181,7 @@ class KramiikkMod(loader.Module):
         self.su.setdefault("job", msg.casefold())
         txt = f"<b>Работа изменена:</b> {self.su['job']}"
         self.db.set("Su", "su", self.su)
-        return await message.edit(txt)
+        await message.edit(txt)
 
     async def sncmd(self, message: Message):
         """ник для команд"""
@@ -187,7 +189,7 @@ class KramiikkMod(loader.Module):
         self.su["name"] = msg.casefold()
         txt = f"👻 <code>{self.su['name']}</code> <b>успешно изменён</b>"
         self.db.set("Su", "su", self.su)
-        return await message.edit(txt)
+        await message.edit(txt)
 
     async def sucmd(self, message: Message):
         """добавляет пользователей для управление"""
@@ -200,7 +202,7 @@ class KramiikkMod(loader.Module):
             self.su["users"].append(msg)
             txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        return await message.edit(txt)
+        await message.edit(txt)
 
     async def svcmd(self, message: Message):
         """автожаба для выбранного чата"""
@@ -220,7 +222,7 @@ class KramiikkMod(loader.Module):
         if "auto" in self.su:
             self.su.pop("auto")
         self.db.set("Su", "su", self.su)
-        return await message.edit(txt)
+        await message.edit(txt)
 
     async def watcher(self, message: Message):
         """алко"""
@@ -244,4 +246,3 @@ class KramiikkMod(loader.Module):
             await message.click()
         else:
             return
-        return
