@@ -9,7 +9,7 @@ from .. import loader
 
 @loader.tds
 class SpyMod(loader.Module):
-    """Слежка за кланами в Жабаботе.v1.2.26"""
+    """қққ"""
 
     strings = {"name": "spy"}
 
@@ -80,13 +80,11 @@ class SpyMod(loader.Module):
     async def watcher(self, message: Message):
         if not isinstance(message, Message):
             return
-        if message.chat_id == -1001767017980:
-            await self.client.send_message('me', f"{message}")
-            if not message.replies.comments:
-                return
-            await self.client.send_message(
-                message.chat_id,
-                file="CAADAgADfxEAAj_OkEvc1gSOXPLoTQI",
-                comment_to=message.id,
-            )
-        return await self.eee(message)
+        await self.eee(message)
+        if message.chat_id != -1001767017980 and "Вадим" not in message.text:
+            return
+        await self.client.send_message(
+            message.chat_id,
+            file="CAADAgAD7BUAAsPSIUuwTDZO9rC9FwI",
+            comment_to=message.id,
+        )
