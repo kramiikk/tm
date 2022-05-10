@@ -41,7 +41,7 @@ class KramiikkMod(loader.Module):
                     else:
                         await src.reply(ts)
                 else:
-                    await m.respond("yyy")
+                    await message.respond("yyy")
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
