@@ -19,6 +19,7 @@ class KramiikkMod(loader.Module):
         chat = message.peer_id
         cmn = "мои жабы"
         await self.err(chat, cmn)
+        await asyncio.sleep(1)
         await self.client.delete_dialog(chat, revoke=True)
         if "chats" not in self.su and "auto" not in self.su:
             return
