@@ -27,6 +27,15 @@ class KramiikkMod(loader.Module):
             if "chats" in self.su and chat not in self.su["chats"]:
                 continue
             try:
+                ts = timedelta(hours=message.date.hour) - timedelta(
+                    hours=(
+                        await self.client.get_messages(
+                            chat, from_user="me", search="/toad_info"
+                        )
+                    )[0].date.hour
+                )
+                if timedelta(days=0) < ts < timedelta(hours=3):
+                    continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):

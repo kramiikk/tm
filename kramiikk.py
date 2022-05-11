@@ -19,42 +19,41 @@ class KramiikkMod(loader.Module):
         chat = message.peer_id
         cmn = "мои жабы"
         await self.err(chat, cmn)
-        await asyncio.sleep(1)
         await self.client.delete_dialog(chat, revoke=True)
         if "chats" not in self.su and "auto" not in self.su:
             return
-        capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
-        for s in capt:
+        for s in re.findall(r"(\d+) \| (-\d+)", RSP.text):
+            chat = int(s[1])
+            if "chats" in self.su and chat not in self.su["chats"]:
+                continue
             try:
-                chat = int(s[1])
-                if "chats" in self.su and int(s[1]) not in self.su["chats"]:
-                    continue
-                src = await self.client.get_messages(
-                    chat, from_user="me", search="/toad_info"
+                ts = timedelta(hours=message.date.hour) - timedelta(
+                    hours=(
+                        await self.client.get_messages(
+                            chat, from_user="me", search="/toad_info"
+                        )
+                    )[0].date.hour
                 )
-                if src.total != 0:
-                    ts = timedelta(hours=message.date.hour) - timedelta(
-                        hours=src[0].date.hour
-                    )
-                    if timedelta(days=0, hours=0) < ts < timedelta(days=0, hours=1):
-                        continue
+                if timedelta(days=0) < ts < timedelta(hours=3):
+                    continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
                     await RSP.respond(self.ded[i])
-                jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
+                jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
                 cmn = "/toad_info"
                 await self.err(chat, cmn)
                 if "🏃‍♂️" not in RSP.text:
                     continue
-                for i in (i for i in self.ded if i in RSP.text):
+                for p in (p for p in self.ded if p in RSP.text):
                     if (
-                        int(s[0]) < 123 or (int(s[0]) >= 123 and int(jab) < 3333)
-                    ) and i in ("Можно откормить", "Можно отправиться"):
+                        int(s[0]) < 123
+                        or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
+                    ) and p in ("Можно откормить", "Можно отправиться"):
                         continue
-                    await RSP.respond(self.ded[i])
+                    await RSP.respond(self.ded[p])
             except Exception:
                 continue
 
