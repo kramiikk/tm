@@ -34,7 +34,7 @@ class KramiikkMod(loader.Module):
                         )
                     )[0].date.hour
                 )
-                if timedelta(days=0) < ts < timedelta(hours=3):
+                if timedelta(days=0, minutes=0) < ts < timedelta(hours=3):
                     continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
