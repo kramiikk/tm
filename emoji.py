@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class KramiikkMod(loader.Module):
-    """Алина, я люблю тебя!5.10.3.36"""
+    """Алина, я люблю тебя!1.0.0.1"""
 
     strings = {"name": "Kramiikk"}
 
@@ -31,17 +31,13 @@ class KramiikkMod(loader.Module):
                     continue
                 src = await self.client.get_messages(
                     chat, from_user="me", search="/toad_info"
+                )[0]
+                ts = timedelta(hours=message.date.hour) - timedelta(
+                    hours=src.date.hour
                 )
-                if src.total != 0:
-                    ts = timedelta(hours=message.date.hour) - timedelta(
-                        hours=src[0].date.hour
-                    )
-                    if timedelta(days=0, hours=0) < ts < timedelta(days=0, hours=1):
-                        continue
-                    else:
-                        await src.reply(ts)
-                else:
-                    await message.respond("yyy")
+                 
+                if timedelta(days=0) < ts < timedelta(hours=3):
+                    continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
