@@ -81,10 +81,9 @@ class SpyMod(loader.Module):
         if not isinstance(message, Message):
             return
         await self.eee(message)
-        if (message.chat_id != -1001767017980) and ("Вадим" not in message.text):
-            return
-        await self.client.send_message(
-            message.chat_id,
-            file="CAADAgAD7BUAAsPSIUuwTDZO9rC9FwI",
-            comment_to=message.id,
-        )
+        if message.chat_id == -1001767017980 and "Вадим" in message.message:
+            await self.client.send_message(
+                message.chat_id,
+                file="CAADAgAD7BUAAsPSIUuwTDZO9rC9FwI",
+                comment_to=message.id,
+            )
