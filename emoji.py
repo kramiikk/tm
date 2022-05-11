@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class KramiikkMod(loader.Module):
-    """Алина, я люблю тебя!1.0.0.1"""
+    """Алина, я люблю тебя!"""
 
     strings = {"name": "Kramiikk"}
 
@@ -23,10 +23,10 @@ class KramiikkMod(loader.Module):
         if "chats" not in self.su and "auto" not in self.su:
             return
         for s in re.findall(r"(\d+) \| (-\d+)", RSP.text):
+            chat = int(s[1])
+            if "chats" in self.su and chat not in self.su["chats"]:
+                continue
             try:
-                chat = int(s[1])
-                if "chats" in self.su and chat not in self.su["chats"]:
-                    continue
                 ts = timedelta(hours=message.date.hour) - timedelta(
                     hours=(
                         await self.client.get_messages(
