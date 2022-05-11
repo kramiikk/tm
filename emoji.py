@@ -19,15 +19,13 @@ class KramiikkMod(loader.Module):
         chat = message.peer_id
         cmn = "мои жабы"
         await self.err(chat, cmn)
-        await asyncio.sleep(1)
         await self.client.delete_dialog(chat, revoke=True)
         if "chats" not in self.su and "auto" not in self.su:
             return
-        capt = re.findall(r"(\d+) \| (-\d+)", RSP.text)
-        for s in capt:
+        for s in re.findall(r"(\d+) \| (-\d+)", RSP.text):
             try:
                 chat = int(s[1])
-                if "chats" in self.su and int(s[1]) not in self.su["chats"]:
+                if "chats" in self.su and chat not in self.su["chats"]:
                     continue
                 src = await self.client.get_messages(
                     chat, from_user="me", search="/toad_info"
@@ -42,7 +40,7 @@ class KramiikkMod(loader.Module):
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
                     await RSP.respond(self.ded[i])
-                jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
+                jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
                 cmn = "/toad_info"
@@ -51,7 +49,7 @@ class KramiikkMod(loader.Module):
                     continue
                 for i in (i for i in self.ded if i in RSP.text):
                     if (
-                        int(s[0]) < 123 or (int(s[0]) >= 123 and int(jab) < 3333)
+                        int(s[0]) < 123 or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
                     ) and i in ("Можно откормить", "Можно отправиться"):
                         continue
                     await RSP.respond(self.ded[i])
