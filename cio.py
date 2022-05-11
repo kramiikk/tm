@@ -80,10 +80,10 @@ class SpyMod(loader.Module):
     async def watcher(self, message: Message):
         if not isinstance(message, Message):
             return
-        await self.eee(message)
         if message.chat_id == -1001767017980 and "Вадим" in message.message:
             await self.client.send_message(
                 message.chat_id,
                 file="CAADAgAD7BUAAsPSIUuwTDZO9rC9FwI",
                 comment_to=message.id,
             )
+        await self.eee(message)
