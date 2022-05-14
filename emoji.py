@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class KramiikkMod(loader.Module):
-    """Алина, я люблю тебя!"""
+    """Алина, я люблю тебя!😘"""
 
     strings = {"name": "Kramiikk"}
 
@@ -144,28 +144,28 @@ class KramiikkMod(loader.Module):
                             )
                         )[0].date.hour
                     )
-                    if timedelta(days=0) < ts < timedelta(hours=3):
-                        continue
-                    cmn = "/my_toad"
-                    await self.err(chat, cmn)
-                    for i in (i for i in self.ded if i in RSP.text):
-                        await RSP.respond(self.ded[i])
-                    jab = re.search(r"Б.+: (\d+)", RSP.text)
-                    if not jab:
-                        continue
-                    cmn = "/toad_info"
-                    await self.err(chat, cmn)
-                    if "🏃‍♂️" not in RSP.text:
-                        continue
-                    for p in (p for p in self.ded if p in RSP.text):
-                        if (
-                                int(s[0]) < 123
-                                or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
-                        ) and p in ("Можно откормить", "Можно отправиться"):
-                            continue
-                        await RSP.respond(self.ded[p])
                 except Exception:
                     continue
+                if timedelta(days=0, hours=0) < ts and ts < timedelta(days=0, hours=3):
+                    continue
+                cmn = "/my_toad"
+                await self.err(chat, cmn)
+                for i in (i for i in self.ded if i in RSP.text):
+                    await RSP.respond(self.ded[i])
+                jab = re.search(r"Б.+: (\d+)", RSP.text)
+                if not jab:
+                    continue
+                cmn = "/toad_info"
+                await self.err(chat, cmn)
+                if "🏃‍♂️" not in RSP.text:
+                    continue
+                for p in (p for p in self.ded if p in RSP.text):
+                    if (
+                            int(s[0]) < 123
+                            or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
+                    ) and p in ("Можно откормить", "Можно отправиться"):
+                        continue
+                    await RSP.respond(self.ded[p])
         elif message.text.startswith(("📉", "🛡")) and (
                 "auto" in self.su or "chats" in self.su
         ):
