@@ -146,7 +146,7 @@ class KramiikkMod(loader.Module):
                     )
                 except Exception:
                     continue
-                if timedelta(days=0, hours=0) < ts and ts < timedelta(days=0, hours=3):
+                if timedelta(days=0, hours=0) <= ts and ts < timedelta(hours=3):
                     continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
@@ -161,13 +161,13 @@ class KramiikkMod(loader.Module):
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
-                            int(s[0]) < 123
-                            or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
+                        int(s[0]) < 123
+                        or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
                     ) and p in ("Можно откормить", "Можно отправиться"):
                         continue
                     await RSP.respond(self.ded[p])
         elif message.text.startswith(("📉", "🛡")) and (
-                "auto" in self.su or "chats" in self.su
+            "auto" in self.su or "chats" in self.su
         ):
             await self.client.send_message(
                 1124824021,
@@ -175,7 +175,7 @@ class KramiikkMod(loader.Module):
                 schedule=timedelta(minutes=random.randint(128, 184)),
             )
         elif (
-                message.text.casefold().startswith(self.su["name"]) and " " in message.text
+            message.text.casefold().startswith(self.su["name"]) and " " in message.text
         ):
             chat = message.peer_id
             reply = await message.get_reply_message()
@@ -222,9 +222,9 @@ class KramiikkMod(loader.Module):
                     return
                 await message.reply(self.ded[cmn])
         elif (
-                str(self.me.id) in message.text
-                and "ход: " in message.text
-                and message.buttons
+            str(self.me.id) in message.text
+            and "ход: " in message.text
+            and message.buttons
         ):
             await message.click()
         else:
