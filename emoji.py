@@ -150,7 +150,7 @@ class KramiikkMod(loader.Module):
                     continue
                 if timedelta(days=0, hours=0) == ts or timedelta(
                     days=0
-                ) == ts < timedelta(days=0, hours=3):
+                ) == ts < timedelta(hours=3):
                     continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
