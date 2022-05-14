@@ -140,7 +140,10 @@ class KramiikkMod(loader.Module):
                     ts = timedelta(hours=message.date.hour) - timedelta(
                         hours=(
                             await self.client.get_messages(
-                                chat, from_user="me", search="/toad_info"
+                                chat,
+                                from_user="me",
+                                search="/toad_info",
+                                limit=1,
                             )
                         )[0].date.hour
                     )
