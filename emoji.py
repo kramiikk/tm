@@ -14,104 +14,6 @@ class KramiikkMod(loader.Module):
 
     strings = {"name": "Kramiikk"}
 
-    async def abj(self, message: Message):
-        """автожаба"""
-        chat = message.peer_id
-        cmn = "мои жабы"
-        await self.err(chat, cmn)
-        await self.client.delete_dialog(chat, revoke=True)
-        if "chats" not in self.su and "auto" not in self.su:
-            return
-        for s in re.findall(r"(\d+) \| (-\d+)", RSP.text):
-            chat = int(s[1])
-            if "chats" in self.su and chat not in self.su["chats"]:
-                continue
-            try:
-                ts = timedelta(hours=message.date.hour) - timedelta(
-                    hours=(
-                        await self.client.get_messages(
-                            chat, from_user="me", search="/toad_info"
-                        )
-                    )[0].date.hour
-                )
-                if timedelta(days=0, minutes=0) < ts < timedelta(hours=3):
-                    continue
-                cmn = "/my_toad"
-                await self.err(chat, cmn)
-                for i in (i for i in self.ded if i in RSP.text):
-                    await RSP.respond(self.ded[i])
-                jab = re.search(r"Б.+: (\d+)", RSP.text)
-                if not jab:
-                    continue
-                cmn = "/toad_info"
-                await self.err(chat, cmn)
-                if "🏃‍♂️" not in RSP.text:
-                    continue
-                for p in (p for p in self.ded if p in RSP.text):
-                    if (
-                        int(s[0]) < 123
-                        or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
-                    ) and p in ("Можно откормить", "Можно отправиться"):
-                        continue
-                    await RSP.respond(self.ded[p])
-            except Exception:
-                continue
-
-    async def bbj(self, message: Message):
-        """отложки"""
-        await self.client.send_message(
-            1124824021,
-            "💑👩‍❤️‍👨👨‍❤️‍👨💑",
-            schedule=timedelta(minutes=random.randint(128, 184)),
-        )
-
-    async def cbj(self, message: Message):
-        """управление акком"""
-        chat = message.peer_id
-        reply = await message.get_reply_message()
-        if "напиши в " in message.text:
-            chat = message.text.split(" ", 4)[3]
-            txt = message.text.split(" ", 4)[4]
-            if chat.isnumeric():
-                chat = int(chat)
-            if reply:
-                txt = reply
-            await self.client.send_message(chat, txt)
-        elif "напиши " in message.text:
-            txt = message.text.split(" ", 2)[2]
-            if reply:
-                return await reply.reply(txt)
-            await message.respond(txt)
-        elif "тыкпых" in message.text:
-            if reply:
-                return await reply.click()
-            if "тыкпых " not in message.text:
-                return
-            reg = re.search(r"\/(\d+)\/(\d+)", message.text)
-            if not reg:
-                return
-            mac = await self.client.get_messages(
-                int(reg.group(1)), ids=int(reg.group(2))
-            )
-            await mac.click()
-        elif "буках" in message.text and self.su["name"] in ("кушки", "альберт"):
-            await asyncio.sleep(random.randint(0, 360))
-            cmn = "мой баланс"
-            await self.err(chat, cmn)
-            if "У тебя" in RSP.text:
-                await message.respond("взять жабу")
-            elif "Баланс" not in RSP.text:
-                return
-            jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
-            if jab < 50:
-                return
-            await message.reply(f"отправить букашки {jab}")
-        else:
-            cmn = message.text.split(" ", 1)[1]
-            if cmn not in self.ded:
-                return
-            await message.reply(self.ded[cmn])
-
     async def client_ready(self, client, db):
         """ready"""
         self.client = client
@@ -224,19 +126,105 @@ class KramiikkMod(loader.Module):
         if not isinstance(message, Message) or message.from_id not in self.su["users"]:
             return
         if message.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
-            await self.abj(message)
+            chat = message.peer_id
+            cmn = "мои жабы"
+            await self.err(chat, cmn)
+            await self.client.delete_dialog(chat, revoke=True)
+            if "chats" not in self.su and "auto" not in self.su:
+                return
+            for s in re.findall(r"(\d+) \| (-\d+)", RSP.text):
+                chat = int(s[1])
+                if "chats" in self.su and chat not in self.su["chats"]:
+                    continue
+                try:
+                    ts = timedelta(hours=message.date.hour) - timedelta(
+                        hours=(
+                            await self.client.get_messages(
+                                chat, from_user="me", search="/toad_info"
+                            )
+                        )[0].date.hour
+                    )
+                    if timedelta(days=0) < ts < timedelta(hours=3):
+                        continue
+                    cmn = "/my_toad"
+                    await self.err(chat, cmn)
+                    for i in (i for i in self.ded if i in RSP.text):
+                        await RSP.respond(self.ded[i])
+                    jab = re.search(r"Б.+: (\d+)", RSP.text)
+                    if not jab:
+                        continue
+                    cmn = "/toad_info"
+                    await self.err(chat, cmn)
+                    if "🏃‍♂️" not in RSP.text:
+                        continue
+                    for p in (p for p in self.ded if p in RSP.text):
+                        if (
+                                int(s[0]) < 123
+                                or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
+                        ) and p in ("Можно откормить", "Можно отправиться"):
+                            continue
+                        await RSP.respond(self.ded[p])
+                except Exception:
+                    continue
         elif message.text.startswith(("📉", "🛡")) and (
-            "auto" in self.su or "chats" in self.su
+                "auto" in self.su or "chats" in self.su
         ):
-            await self.bbj(message)
+            await self.client.send_message(
+                1124824021,
+                "💑👩‍❤️‍👨👨‍❤️‍👨💑",
+                schedule=timedelta(minutes=random.randint(128, 184)),
+            )
         elif (
-            message.text.casefold().startswith(self.su["name"]) and " " in message.text
+                message.text.casefold().startswith(self.su["name"]) and " " in message.text
         ):
-            await self.cbj(message)
+            chat = message.peer_id
+            reply = await message.get_reply_message()
+            if "напиши в " in message.text:
+                chat = message.text.split(" ", 4)[3]
+                txt = message.text.split(" ", 4)[4]
+                if chat.isnumeric():
+                    chat = int(chat)
+                if reply:
+                    txt = reply
+                await self.client.send_message(chat, txt)
+            elif "напиши " in message.text:
+                txt = message.text.split(" ", 2)[2]
+                if reply:
+                    return await reply.reply(txt)
+                await message.respond(txt)
+            elif "тыкпых" in message.text:
+                if reply:
+                    return await reply.click()
+                if "тыкпых " not in message.text:
+                    return
+                reg = re.search(r"/(\d+)/(\d+)", message.text)
+                if not reg:
+                    return
+                mac = await self.client.get_messages(
+                    int(reg.group(1)), ids=int(reg.group(2))
+                )
+                await mac.click()
+            elif "буках" in message.text and self.su["name"] in ("кушки", "альберт"):
+                await asyncio.sleep(random.randint(0, 360))
+                cmn = "мой баланс"
+                await self.err(chat, cmn)
+                if "У тебя" in RSP.text:
+                    await message.respond("взять жабу")
+                elif "Баланс" not in RSP.text:
+                    return
+                jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
+                if jab < 50:
+                    return
+                await message.reply(f"отправить букашки {jab}")
+            else:
+                cmn = message.text.split(" ", 1)[1]
+                if cmn not in self.ded:
+                    return
+                await message.reply(self.ded[cmn])
         elif (
-            str(self.me.id) in message.text
-            and "ход: " in message.text
-            and message.buttons
+                str(self.me.id) in message.text
+                and "ход: " in message.text
+                and message.buttons
         ):
             await message.click()
         else:

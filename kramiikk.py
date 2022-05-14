@@ -57,7 +57,7 @@ class KramiikkMod(loader.Module):
             except Exception:
                 continue
 
-    async def bbj(self, message: Message):
+    async def bbj(self):
         """отложки"""
         await self.client.send_message(
             1124824021,
@@ -87,7 +87,7 @@ class KramiikkMod(loader.Module):
                 return await reply.click()
             if "тыкпых " not in message.text:
                 return
-            reg = re.search(r"\/(\d+)\/(\d+)", message.text)
+            reg = re.search(r"/(\d+)/(\d+)", message.text)
             if not reg:
                 return
             mac = await self.client.get_messages(
@@ -228,7 +228,7 @@ class KramiikkMod(loader.Module):
         elif message.text.startswith(("📉", "🛡")) and (
             "auto" in self.su or "chats" in self.su
         ):
-            await self.bbj(message)
+            await self.bbj()
         elif (
             message.text.casefold().startswith(self.su["name"]) and " " in message.text
         ):
