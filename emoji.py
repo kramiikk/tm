@@ -143,7 +143,6 @@ class KramiikkMod(loader.Module):
                                 chat,
                                 from_user="me",
                                 search="/toad_info",
-                                limit=1,
                             )
                         )[0].date.hour
                     )
