@@ -148,10 +148,7 @@ class KramiikkMod(loader.Module):
                     )
                 except Exception:
                     continue
-                if (
-                    timedelta(days=0) == ts < timedelta(hours=3)
-                    or timedelta(days=0, hours=0) == ts
-                ):
+                if timedelta(days=0) <= ts < timedelta(hours=3):
                     continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
