@@ -183,7 +183,7 @@ class KramiikkMod(loader.Module):
                 msg = await self.client.send_message("me", dayhour)
                 self.su["dayhour"] = msg.id
             else:
-                msg.edit(dayhour)
+                await msg.edit(dayhour)
             self.db.set("Su", "su", self.su)
         elif message.text.startswith(("📉", "🛡")) and (
             "auto" in self.su or "chats" in self.su
