@@ -177,7 +177,7 @@ class KramiikkMod(loader.Module):
                         continue
                     await RSP.respond(self.ded[p])
                 dayhour += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
-            dayhour += f"lcheck: {message.date}""
+            dayhour += f"lcheck: {message.date}"
             if "dayhour" not in self.su:
                 dh = await self.client.send_message("me", dayhour)
                 self.su.setdefault("dayhour", dh.id)
