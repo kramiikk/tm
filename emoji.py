@@ -151,7 +151,7 @@ class KramiikkMod(loader.Module):
                         ts = timedelta(
                             days=message.date.day, hours=message.date.hour
                         ) - timedelta(days=int(day), hours=int(hur))
-                        if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=3):
+                        if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=2):
                             continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
