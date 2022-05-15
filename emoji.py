@@ -148,7 +148,7 @@ class KramiikkMod(loader.Module):
                     hur = reg.group(2)
                     ts = timedelta(
                         days=message.date.day, hours=message.date.hour
-                    ) - timedelta(days=int(day), hours=int(hur)
+                    ) - timedelta(days=int(day), hours=int(hur))
                     if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=3):
                         continue
                 cmn = "/my_toad"
