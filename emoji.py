@@ -141,7 +141,7 @@ class KramiikkMod(loader.Module):
                     msg = await self.client.get_messages(
                         "me", ids=int(self.su["dayhour"])
                     )
-                if msg.total != 0:
+                if msg:
                     reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
                     ts = timedelta(
                         days=message.date.day, hours=message.date.hour
