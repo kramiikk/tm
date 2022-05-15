@@ -143,9 +143,12 @@ class KramiikkMod(loader.Module):
                     )
                 if msg:
                     reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
+                if reg:
+                    day = reg.group(1)
+                    hur = reg.group(2)
                     ts = timedelta(
                         days=message.date.day, hours=message.date.hour
-                    ) - timedelta(days=int(reg.group(1)), hours=int(reg.group(2)))
+                    ) - timedelta(days=int(day), hours=int(hur)
                     if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=3):
                         continue
                 cmn = "/my_toad"
@@ -170,6 +173,9 @@ class KramiikkMod(loader.Module):
             if "dayhour" not in self.su:
                 dh = await self.client.send_message("me", dayhour)
                 self.su.setdefault("dayhour", dh.id)
+            elif not msg:
+                msg = await self.client.send_message(dayhour)
+                self.su["dayhour"] = msg.id
             else:
                 msg.edit(dayhour)
             self.db.set("Su", "su", self.su)
