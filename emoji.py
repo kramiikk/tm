@@ -143,7 +143,6 @@ class KramiikkMod(loader.Module):
                     )
                 if msg:
                     reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
-                if reg:
                     day = reg.group(1)
                     hur = reg.group(2)
                     ts = timedelta(
