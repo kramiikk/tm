@@ -52,12 +52,9 @@ class KramiikkMod(loader.Module):
         """работа с ответом жабабота"""
         try:
             async with self.client.conversation(chat, exclusive=False) as conv:
-                try:
                     await conv.send_message(cmn)
                     global RSP
                     RSP = await conv.get_response()
-                except asyncio.exceptions.TimeoutError:
-                    RSP = await self.client.get_messages(chat, search=" ")
                 await conv.cancel_all()
         except:
             return
