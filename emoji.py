@@ -130,6 +130,8 @@ class KramiikkMod(loader.Module):
             cmn = "мои жабы"
             dayhour = "dayhour"
             await self.err(chat, cmn)
+            if not RSP:
+                return
             await self.client.delete_dialog(chat, revoke=True)
             if "chats" not in self.su and "auto" not in self.su:
                 return
@@ -162,6 +164,8 @@ class KramiikkMod(loader.Module):
                     continue
                 cmn = "/toad_info"
                 await self.err(chat, cmn)
+                if not RSP:
+                    continue
                 if "🏃‍♂️" not in RSP.text:
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
@@ -223,6 +227,8 @@ class KramiikkMod(loader.Module):
                 await asyncio.sleep(random.randint(0, 360))
                 cmn = "мой баланс"
                 await self.err(chat, cmn)
+                if not RSP:
+                    return
                 if "У тебя" in RSP.text:
                     await message.respond("взять жабу")
                 elif "Баланс" not in RSP.text:
