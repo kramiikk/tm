@@ -141,10 +141,11 @@ class KramiikkMod(loader.Module):
                     msg = await self.client.get_messages(
                         "me", ids=int(self.su["dayhour"])
                     )
+                if msg.total != 0:
                     reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
                     ts = timedelta(
                         days=message.date.day, hours=message.date.hour
-                    ) - timedelta(days=reg.group(1), hours=reg.group(2))
+                    ) - timedelta(days=int(reg.group(1)), hours=int(reg.group(2)))
                     if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=3):
                         continue
                 cmn = "/my_toad"
