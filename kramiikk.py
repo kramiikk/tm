@@ -143,17 +143,21 @@ class KramiikkMod(loader.Module):
                     msg = await self.client.get_messages(
                         "me", ids=int(self.su["dayhour"])
                     )
-                if msg:
-                    reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
-                    if reg:
-                        day = reg.group(1)
-                        hur = reg.group(2)
-                        ts = timedelta(
-                            days=message.date.day, hours=message.date.hour
-                        ) - timedelta(days=int(day), hours=int(hur))
-                        if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=2):
-                            dayhour += f"\n{chat} {day} {hur}"
-                            continue
+                    if msg:
+                        reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
+                        if reg:
+                            day = reg.group(1)
+                            hur = reg.group(2)
+                            ts = timedelta(
+                                days=message.date.day, hours=message.date.hour
+                            ) - timedelta(days=int(day), hours=int(hur))
+                            if (
+                                timedelta(days=0, hours=0)
+                                <= ts
+                                < timedelta(days=0, hours=2)
+                            ):
+                                dayhour += f"\n{chat} {day} {hur}"
+                                continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 if not RSP:
