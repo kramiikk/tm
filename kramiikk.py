@@ -50,14 +50,14 @@ class KramiikkMod(loader.Module):
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
-        async with self.client.conversation(chat, exclusive=False) as conv:
-            try:
+        try:
+            async with self.client.conversation(chat, exclusive=False) as conv:
                 await conv.send_message(cmn)
                 global RSP
                 RSP = await conv.get_response()
-            except asyncio.exceptions.TimeoutError:
-                RSP = await self.client.get_messages(chat, search=" ")
-            await conv.cancel_all()
+                await conv.cancel_all()
+        except:
+            return
 
     async def sacmd(self, message: Message):
         """автожаба для всех чатов"""
@@ -128,7 +128,10 @@ class KramiikkMod(loader.Module):
         if message.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
             chat = message.peer_id
             cmn = "мои жабы"
+            dayhour = "dayhour"
             await self.err(chat, cmn)
+            if not RSP:
+                return
             await self.client.delete_dialog(chat, revoke=True)
             if "chats" not in self.su and "auto" not in self.su:
                 return
@@ -136,22 +139,24 @@ class KramiikkMod(loader.Module):
                 chat = int(s[1])
                 if "chats" in self.su and chat not in self.su["chats"]:
                     continue
-                try:
-                    ts = timedelta(hours=message.date.hour) - timedelta(
-                        hours=(
-                            await self.client.get_messages(
-                                chat,
-                                from_user="me",
-                                search="/toad_info",
-                            )
-                        )[0].date.hour
+                if "dayhour" in self.su:
+                    msg = await self.client.get_messages(
+                        "me", ids=int(self.su["dayhour"])
                     )
-                except Exception:
-                    continue
-                if timedelta(days=0) <= ts < timedelta(hours=3):
-                    continue
+                if msg:
+                    reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
+                    if reg:
+                        day = reg.group(1)
+                        hur = reg.group(2)
+                        ts = timedelta(
+                            days=message.date.day, hours=message.date.hour
+                        ) - timedelta(days=int(day), hours=int(hur))
+                        if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=2):
+                            continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
+                if not RSP:
+                    continue
                 for i in (i for i in self.ded if i in RSP.text):
                     await RSP.respond(self.ded[i])
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
@@ -159,6 +164,8 @@ class KramiikkMod(loader.Module):
                     continue
                 cmn = "/toad_info"
                 await self.err(chat, cmn)
+                if not RSP:
+                    continue
                 if "🏃‍♂️" not in RSP.text:
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
@@ -168,6 +175,16 @@ class KramiikkMod(loader.Module):
                     ) and p in ("Можно откормить", "Можно отправиться"):
                         continue
                     await RSP.respond(self.ded[p])
+                dayhour += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
+            if "dayhour" not in self.su:
+                dh = await self.client.send_message("me", dayhour)
+                self.su.setdefault("dayhour", dh.id)
+            elif not msg:
+                msg = await self.client.send_message("me", dayhour)
+                self.su["dayhour"] = msg.id
+            else:
+                msg.edit(dayhour)
+            self.db.set("Su", "su", self.su)
         elif message.text.startswith(("📉", "🛡")) and (
             "auto" in self.su or "chats" in self.su
         ):
@@ -210,6 +227,8 @@ class KramiikkMod(loader.Module):
                 await asyncio.sleep(random.randint(0, 360))
                 cmn = "мой баланс"
                 await self.err(chat, cmn)
+                if not RSP:
+                    return
                 if "У тебя" in RSP.text:
                     await message.respond("взять жабу")
                 elif "Баланс" not in RSP.text:
