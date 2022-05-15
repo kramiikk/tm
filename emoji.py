@@ -143,13 +143,14 @@ class KramiikkMod(loader.Module):
                     )
                 if msg:
                     reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
-                    day = reg.group(1)
-                    hur = reg.group(2)
-                    ts = timedelta(
-                        days=message.date.day, hours=message.date.hour
-                    ) - timedelta(days=int(day), hours=int(hur))
-                    if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=3):
-                        continue
+                    if reg:
+                        day = reg.group(1)
+                        hur = reg.group(2)
+                        ts = timedelta(
+                            days=message.date.day, hours=message.date.hour
+                        ) - timedelta(days=int(day), hours=int(hur))
+                        if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=3):
+                            continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
                 for i in (i for i in self.ded if i in RSP.text):
