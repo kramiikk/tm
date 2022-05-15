@@ -174,7 +174,7 @@ class KramiikkMod(loader.Module):
                 dh = await self.client.send_message("me", dayhour)
                 self.su.setdefault("dayhour", dh.id)
             elif not msg:
-                msg = await self.client.send_message(dayhour)
+                msg = await self.client.send_message("me", dayhour)
                 self.su["dayhour"] = msg.id
             else:
                 msg.edit(dayhour)
