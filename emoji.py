@@ -50,14 +50,17 @@ class KramiikkMod(loader.Module):
 
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
-        async with self.client.conversation(chat, exclusive=False) as conv:
-            try:
-                await conv.send_message(cmn)
-                global RSP
-                RSP = await conv.get_response()
-            except asyncio.exceptions.TimeoutError:
-                RSP = await self.client.get_messages(chat, search=" ")
-            await conv.cancel_all()
+        try:
+            async with self.client.conversation(chat, exclusive=False) as conv:
+                try:
+                    await conv.send_message(cmn)
+                    global RSP
+                    RSP = await conv.get_response()
+                except asyncio.exceptions.TimeoutError:
+                    RSP = await self.client.get_messages(chat, search=" ")
+                await conv.cancel_all()
+        except:
+            return
 
     async def sacmd(self, message: Message):
         """автожаба для всех чатов"""
@@ -153,6 +156,8 @@ class KramiikkMod(loader.Module):
                             continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
+                if not RSP:
+                    continue
                 for i in (i for i in self.ded if i in RSP.text):
                     await RSP.respond(self.ded[i])
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
