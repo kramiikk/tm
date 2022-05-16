@@ -26,8 +26,6 @@ class KramiikkMod(loader.Module):
             self.su.setdefault("users", [self.me.id, 1124824021, 1785723159])
             self.db.set("Su", "su", self.su)
         self.ded = {
-            "Нужна реанимация": "реанимировать жабу",
-            "Хорошее": "использовать леденцы 4",
             "жабу с работы": "завершить работу",
             "Можно откормить": "откормить жабку",
             "можно покормить": "покормить жабку",
@@ -165,11 +163,16 @@ class KramiikkMod(loader.Module):
                 await self.err(chat, cmn)
                 if not RSP:
                     continue
-                for i in (i for i in self.ded if i in RSP.text):
-                    await RSP.respond(self.ded[i])
+                if "Нужна реанимация" in RSP.text:
+                    await RSP.respond("реанимировать жабу")
+                    await asyncio.sleep(1)
+                if "Хорошее" in RSP.text:
+                    await RSP.respond("использовать леденцы 4")
+                    await asyncio.sleep(1)
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
+                await asyncio.sleep(1)
                 cmn = "/toad_info"
                 await self.err(chat, cmn)
                 if not RSP:
@@ -179,7 +182,7 @@ class KramiikkMod(loader.Module):
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
                         int(s[0]) < 123
-                        or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
+                        or (int(s[0]) > 123 and int(jab.group(1)) < 3333)
                     ) and p in ("Можно откормить", "Можно отправиться"):
                         continue
                     await RSP.respond(self.ded[p])
