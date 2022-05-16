@@ -154,7 +154,11 @@ class KramiikkMod(loader.Module):
                             ts = timedelta(
                                 days=message.date.day, hours=message.date.hour
                             ) - timedelta(days=int(day), hours=int(hur))
-                            if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=dayhour):
+                            if (
+                                timedelta(days=0, hours=0)
+                                <= ts
+                                < timedelta(days=0, hours=dayhour)
+                            ):
                                 txt += f"\n{chat} {day} {hur}"
                                 continue
                 cmn = "/my_toad"
@@ -176,7 +180,7 @@ class KramiikkMod(loader.Module):
                     if (
                         int(s[0]) < 123
                         or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
-                    ) and p in ["Можно откормить", "Можно отправиться"]:
+                    ) and p in ("Можно откормить", "Можно отправиться"):
                         continue
                     await RSP.respond(self.ded[p])
                 txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
