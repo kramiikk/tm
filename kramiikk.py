@@ -128,7 +128,7 @@ class KramiikkMod(loader.Module):
         if message.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
             chat = message.peer_id
             cmn = "мои жабы"
-            dayhour = "dayhour"
+            txt = "dayhour"
             await self.err(chat, cmn)
             if not RSP:
                 return
@@ -148,15 +148,14 @@ class KramiikkMod(loader.Module):
                         if reg:
                             day = reg.group(1)
                             hur = reg.group(2)
+                            dayhour = 2
+                            if int(s[0]) < 123:
+                                dayhour = 4
                             ts = timedelta(
                                 days=message.date.day, hours=message.date.hour
                             ) - timedelta(days=int(day), hours=int(hur))
-                            if (
-                                timedelta(days=0, hours=0)
-                                <= ts
-                                < timedelta(days=0, hours=2)
-                            ):
-                                dayhour += f"\n{chat} {day} {hur}"
+                            if timedelta(days=0, hours=0) <= ts < timedelta(days=0, hours=dayhour):
+                                txt += f"\n{chat} {day} {hur}"
                                 continue
                 cmn = "/my_toad"
                 await self.err(chat, cmn)
@@ -177,19 +176,19 @@ class KramiikkMod(loader.Module):
                     if (
                         int(s[0]) < 123
                         or (int(s[0]) >= 123 and int(jab.group(1)) < 3333)
-                    ) and p in ("Можно откормить", "Можно отправиться"):
+                    ) and p in ["Можно откормить", "Можно отправиться"]:
                         continue
                     await RSP.respond(self.ded[p])
-                dayhour += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
-            dayhour += f"\nlcheck: {message.date}"
+                txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
+            txt += f"\nlcheck: {message.date}"
             if "dayhour" not in self.su:
-                dh = await self.client.send_message("me", dayhour)
-                self.su.setdefault("dayhour", dh.id)
+                msg = await self.client.send_message("me", txt)
+                self.su.setdefault("dayhour", msg.id)
             elif not msg:
-                msg = await self.client.send_message("me", dayhour)
+                msg = await self.client.send_message("me", txt)
                 self.su["dayhour"] = msg.id
             else:
-                await msg.edit(dayhour)
+                await msg.edit(txt)
             self.db.set("Su", "su", self.su)
         elif message.text.startswith(("📉", "🛡")) and (
             "auto" in self.su or "chats" in self.su
