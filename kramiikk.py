@@ -123,8 +123,8 @@ class KramiikkMod(loader.Module):
         """алко"""
         if not isinstance(message, Message) or message.from_id not in self.su["users"]:
             return
+        chat = message.peer_id
         if message.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
-            chat = message.peer_id
             cmn = "мои жабы"
             txt = "dayhour"
             await self.err(chat, cmn)
@@ -208,7 +208,6 @@ class KramiikkMod(loader.Module):
         elif (
             message.text.casefold().startswith(self.su["name"]) and " " in message.text
         ):
-            chat = message.peer_id
             reply = await message.get_reply_message()
             if "напиши в " in message.text:
                 chat = message.text.split(" ", 4)[3]
@@ -254,11 +253,17 @@ class KramiikkMod(loader.Module):
                 if cmn not in self.ded:
                     return
                 await message.reply(self.ded[cmn])
-        elif (
-            str(self.me.id) in message.text
-            and "ход: " in message.text
-            and message.buttons
-        ):
-            await message.click()
+        elif str(self.me.id) in message.text or message.mentioned:
+            if "ход: " in message.text and message.buttons:
+                await message.click()
+            elif "сломалось" in message.text:
+                cmn = "мое снаряжение"
+                await self.err(chat, cmn)
+                if "🗡" not in RSP.text:
+                    return
+                for p in (p for p in self.ded if p in RSP.text):
+                    await RSP.respond(self.ded[p])
+            else:
+                return
         else:
             return
