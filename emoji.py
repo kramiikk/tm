@@ -255,10 +255,19 @@ class KramiikkMod(loader.Module):
                     return
                 await message.reply(self.ded[cmn])
         elif (
-            str(self.me.id) in message.text
-            and "ход: " in message.text
-            and message.buttons
-        ):
-            await message.click()
+            str(self.me.id) in message.text or message.mentioned
+        ) or "xtrxbyb" in message.text:
+            if "ход: " in message.text and message.buttons:
+                await message.click()
+            elif "сломалось" in message.text:
+                cmn = "мое снаряжение"
+                await self.err(chat, cmn)
+                if "🗡" not in RSP.text:
+                    return
+                for p in (p for p in self.ded if p in RSP.text):
+                    await RSP.respond(self.ded[p])
+            else:
+                return
+
         else:
             return
