@@ -10,7 +10,7 @@ from .. import loader
 
 @loader.tds
 class KramiikkMod(loader.Module):
-    """Алина, я люблю тебя!😘"""
+    """Алина, я люблю тебя!"""
 
     strings = {"name": "Kramiikk"}
 
@@ -56,6 +56,14 @@ class KramiikkMod(loader.Module):
                 await conv.cancel_all()
         except:
             return
+
+    async def snr(self, chat):
+        cmn = "мое снаряжение"
+        await self.err(chat, cmn)
+        if "🗡" not in RSP.text:
+            return
+        for p in (p for p in self.ded if p in RSP.text):
+            await RSP.respond(self.ded[p])
 
     async def sacmd(self, message: Message):
         """автожаба для всех чатов"""
@@ -165,14 +173,14 @@ class KramiikkMod(loader.Module):
                     continue
                 if "Нужна реанимация" in RSP.text:
                     await RSP.respond("реанимировать жабу")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(random.randint(1, 3))
                 if "Хорошее" in RSP.text:
                     await RSP.respond("использовать леденцы 4")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(random.randint(1, 3))
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
-                await asyncio.sleep(1)
+                await asyncio.sleep(random.randint(1, 3))
                 cmn = "/toad_info"
                 await self.err(chat, cmn)
                 if not RSP:
@@ -211,11 +219,15 @@ class KramiikkMod(loader.Module):
             reply = await message.get_reply_message()
             if "напиши в " in message.text:
                 chat = message.text.split(" ", 4)[3]
-                txt = message.text.split(" ", 4)[4]
                 if chat.isnumeric():
                     chat = int(chat)
                 if reply:
                     txt = reply
+                else:
+                    txt = message.text.split(" ", 4)[4]
+                    if txt.casefold() in ("напасть на клан", "на арену"):
+                        await self.snr(chat)
+                        await asyncio.sleep(random.randint(3, 9))
                 await self.client.send_message(chat, txt)
             elif "напиши " in message.text:
                 txt = message.text.split(" ", 2)[2]
@@ -249,20 +261,22 @@ class KramiikkMod(loader.Module):
                     return
                 await message.reply(f"отправить букашки {jab}")
             else:
-                cmn = message.text.split(" ", 1)[1]
-                if cmn not in self.ded:
+                msg = message.text.split(" ", 1)[1]
+                if msg not in self.ded:
                     return
-                await message.reply(self.ded[cmn])
+                if msg in ("напади", "арена"):
+                    await self.snr(chat)
+                    await asyncio.sleep(random.randint(3, 9))
+                await message.reply(self.ded[msg])
         elif str(self.me.id) in message.text or message.mentioned:
             if "ход: " in message.text and message.buttons:
                 await message.click()
             elif "сломалось" in message.text:
-                cmn = "мое снаряжение"
-                await self.err(chat, cmn)
-                if "🗡" not in RSP.text:
-                    return
-                for p in (p for p in self.ded if p in RSP.text):
-                    await RSP.respond(self.ded[p])
+                await message.respond("скрафтить клюв цапли")
+                await message.respond("скрафтить букашкомет")
+                await message.respond("скрафтить наголовник из клюва цапли")
+                await message.respond("скрафтить нагрудник из клюва цапли")
+                await message.respond("скрафтить налапники из клюва цапли")
             else:
                 return
         else:
