@@ -253,9 +253,7 @@ class KramiikkMod(loader.Module):
                 if cmn not in self.ded:
                     return
                 await message.reply(self.ded[cmn])
-        elif (
-            str(self.me.id) in message.text or message.mentioned
-        ) or "xtrxbyb" in message.text:
+        elif str(self.me.id) in message.text or message.mentioned:
             if "ход: " in message.text and message.buttons:
                 await message.click()
             elif "сломалось" in message.text:
