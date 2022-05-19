@@ -272,11 +272,15 @@ class KramiikkMod(loader.Module):
             if "ход: " in message.text and message.buttons:
                 await message.click()
             elif "сломалось" in message.text:
-                await message.respond("скрафтить клюв цапли")
-                await message.respond("скрафтить букашкомет")
-                await message.respond("скрафтить наголовник из клюва цапли")
-                await message.respond("скрафтить нагрудник из клюва цапли")
-                await message.respond("скрафтить налапники из клюва цапли")
+                txt = (
+                    "клюв цапли",
+                    "букашкомет",
+                    "наголовник из клюва цапли",
+                    "нагрудник из клюва цапли",
+                    "налапники из клюва цапли",
+                )
+                for i in txt:
+                    await message.respond(f"скрафтить {i}")
             else:
                 return
         else:
