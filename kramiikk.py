@@ -26,12 +26,12 @@ class KramiikkMod(loader.Module):
             self.su.setdefault("users", [self.me.id, 1124824021, 1785723159])
             self.db.set("Su", "su", self.su)
         self.ded = {
-            "жабу с работы": "завершить работу",
-            "Можно откормить": "откормить жабку",
-            "можно покормить": "покормить жабку",
+            "жабу с работы": "@toadbot Завершить работу",
+            "Можно откормить": "@toadbot Откормить жабу",
+            "можно покормить": "@toadbot Покормить жабу",
             "Можно отправиться": "отправиться в золотое подземелье",
             "жаба в данже": "рейд старт",
-            "Используйте атаку": "на арену",
+            "Используйте атаку": "@toadbot На арену",
             "можно отправить": self.su["job"],
             "золото": "отправиться в золотое подземелье",
             "го кв": "начать клановую войну",
@@ -58,7 +58,7 @@ class KramiikkMod(loader.Module):
             return
 
     async def snr(self, chat):
-        cmn = "мое снаряжение"
+        cmn = "@toadbot Мое снаряжение"
         await self.err(chat, cmn)
         if "🗡" not in RSP.text:
             return
@@ -141,8 +141,8 @@ class KramiikkMod(loader.Module):
             await self.client.delete_dialog(chat, revoke=True)
             if "chats" not in self.su and "auto" not in self.su:
                 return
-            for s in re.findall(r"(\d+) \| (-\d+)", RSP.text):
-                chat = int(s[1])
+            for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
+                chat = int(i[1])
                 if "chats" in self.su and chat not in self.su["chats"]:
                     continue
                 if "dayhour" in self.su:
@@ -155,7 +155,7 @@ class KramiikkMod(loader.Module):
                             day = reg.group(1)
                             hur = reg.group(2)
                             dayhour = 2
-                            if int(s[0]) < 123:
+                            if int(i[0]) < 123:
                                 dayhour = 4
                             ts = timedelta(
                                 days=message.date.day, hours=message.date.hour
@@ -167,21 +167,21 @@ class KramiikkMod(loader.Module):
                             ):
                                 txt += f"\n{chat} {day} {hur}"
                                 continue
-                cmn = "/my_toad"
+                cmn = "@toadbot Моя жаба"
                 await self.err(chat, cmn)
                 if not RSP:
                     continue
+                s = "alive"
                 if "Нужна реанимация" in RSP.text:
-                    await RSP.respond("реанимировать жабу")
-                    await asyncio.sleep(random.randint(1, 3))
+                    s = "dead"
                 if "Хорошее" in RSP.text:
-                    await RSP.respond("использовать леденцы 4")
+                    await RSP.respond(f"использовать леденцы {random.randint(1, 4)}")
                     await asyncio.sleep(random.randint(1, 3))
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
                 await asyncio.sleep(random.randint(1, 3))
-                cmn = "/toad_info"
+                cmn = "@toadbot Жаба инфо"
                 await self.err(chat, cmn)
                 if not RSP:
                     continue
@@ -189,11 +189,15 @@ class KramiikkMod(loader.Module):
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
-                        int(s[0]) < 123
-                        or (int(s[0]) > 123 and int(jab.group(1)) < 3333)
+                        int(i[0]) < 123
+                        or (int(i[0]) > 123 and int(jab.group(1)) < 3333)
                     ) and p in ("Можно откормить", "Можно отправиться"):
                         continue
+                    if s == "dead" and p not in ("Можно откормить", "можно покормить"):
+                        await RSP.respond("реанимировать жабу")
+                        await asyncio.sleep(random.randint(1, 3))
                     await RSP.respond(self.ded[p])
+                    await asyncio.sleep(random.randint(1, 3))
                 txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
             txt += f"\nlcheck: {message.date}"
             if "dayhour" not in self.su:
@@ -281,6 +285,7 @@ class KramiikkMod(loader.Module):
                 )
                 for i in txt:
                     await message.respond(f"скрафтить {i}")
+                    await asyncio.sleep(random.randint(1, 3))
             else:
                 return
         else:
