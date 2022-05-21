@@ -179,7 +179,10 @@ class KramiikkMod(loader.Module):
                                 txt += f"\n{chat} {day} {hur}"
                                 continue
                 cmn = "@toadbot Моя жаба"
-                await self.err(chat, cmn)
+                try:
+                    await self.err(chat, cmn)
+                except Exception:
+                    continue
                 if not RSP:
                     continue
                 s = "alive"
@@ -276,9 +279,9 @@ class KramiikkMod(loader.Module):
                         return
                     if msg in ("напади", "арена"):
                         await self.snr(chat)
-                        await asyncio.sleep(random.randint(3, 9))
+                        await asyncio.sleep(random.randint(13, 30))
                         for i in range(3):
-                            await asyncio.sleep(random.randint(9, 13))
+                            await asyncio.sleep(random.randint(13, 30))
                             await self.client.send_message(chat, self.ded[msg])
                     msg = self.ded[msg]
                 await self.client.send_message(chat, msg)
