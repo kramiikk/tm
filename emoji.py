@@ -279,8 +279,9 @@ class KramiikkMod(loader.Module):
                         await asyncio.sleep(random.randint(3, 9))
                         for i in range(3):
                             await asyncio.sleep(random.randint(9, 13))
-                            await self.client.send_message(chat, msg)
-                await self.client.send_message(chat, txt)
+                            await self.client.send_message(chat, self.ded[msg])
+                    msg = self.ded[msg]
+                await self.client.send_message(chat, msg)
                 if "тыкпых " not in message.text:
                     return
                 reg = re.search(r"/(\d+)/(\d+)", message.text)
@@ -312,8 +313,8 @@ class KramiikkMod(loader.Module):
                     await self.snr(chat)
                     for i in range(3):
                         await asyncio.sleep(random.randint(9, 13))
-                        await self.client.send_message(chat, msg)
-                await message.reply(self.ded[msg])
+                        await self.client.send_message(chat, self.ded[msg])
+                await message.respond(self.ded[msg])
         elif str(self.me.id) in message.text or message.mentioned:
             if "ход: " in message.text and message.buttons:
                 await message.click()
