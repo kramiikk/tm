@@ -280,8 +280,22 @@ class KramiikkMod(loader.Module):
                         return
                     if msg in ("напади", "арена"):
                         await self.snr(chat)
-                        await asyncio.sleep(random.randint(13, 33))
-                        for i in range(1):
+                        await asyncio.sleep(3)
+                        cmn = self.ded[msg]
+                        await self.err(chat, cmn)
+                        if not RSP:
+                            return
+                        await asyncio.sleep(3)
+                        if "Вы не участвуете" in RSP.text:
+                            return
+                        elif (
+                            "Ваша жаба в предсмертном" in RSP.text
+                            or "Для участия" in RSP.text
+                        ):
+                            await message.respond("реанимировать жабу")
+                        elif "Ваша жаба на" in RSP.text:
+                            await message.respond("завершить работу")
+                        for i in range(3):
                             await asyncio.sleep(random.randint(13, 33))
                             await self.client.send_message(chat, self.ded[msg])
                     msg = self.ded[msg]
@@ -321,7 +335,7 @@ class KramiikkMod(loader.Module):
                     return await message.reply(self.ded[msg])
                 if msg in ("напади", "арена"):
                     await self.snr(chat)
-                    for i in range(1):
+                    for i in range(3):
                         await asyncio.sleep(random.randint(13, 33))
                         await self.client.send_message(chat, self.ded[msg])
                 await asyncio.sleep(random.randint(13, 33))
