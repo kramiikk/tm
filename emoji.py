@@ -216,10 +216,10 @@ class KramiikkMod(loader.Module):
                 cmn = "@toadbot Моя семья"
                 await self.err(chat, cmn)
                 if not RSP:
-                    return
+                    continue
                 s = 0
                 if "У вас нет" in RSP.text:
-                    return
+                    continue
                 if "Ваш жабёныш" in RSP.text and "Можно покормить" not in RSP.text:
                     s = 1
                     if int(i[0]) > 123:
@@ -229,13 +229,13 @@ class KramiikkMod(loader.Module):
                         await RSP.respond("@toadbot Брак вознаграждение")
                     n = len(RSP.buttons)
                     if n == 1 and s == 1:
-                        return
+                        continue
                     await RSP.respond(self.ded[RSP.buttons[0][0].text])
                     if n == 1:
-                        return
+                        continue
                     await RSP.respond(self.ded[RSP.buttons[1][0].text])
                     if n == 2:
-                        return
+                        continue
                     await RSP.respond(self.ded[RSP.buttons[2][0].text])
                 txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
             txt += f"\nlcheck: {message.date}"
