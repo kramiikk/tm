@@ -280,7 +280,7 @@ class KramiikkMod(loader.Module):
                     if msg in ("напади", "арена"):
                         await self.snr(chat)
                         await asyncio.sleep(random.randint(13, 33))
-                        for i in range(3):
+                        for i in range(1):
                             await asyncio.sleep(random.randint(13, 33))
                             await self.client.send_message(chat, self.ded[msg])
                     msg = self.ded[msg]
@@ -318,7 +318,7 @@ class KramiikkMod(loader.Module):
                     return
                 if msg in ("напади", "арена"):
                     await self.snr(chat)
-                    for i in range(3):
+                    for i in range(1):
                         await asyncio.sleep(random.randint(13, 33))
                         await self.client.send_message(chat, self.ded[msg])
                 await asyncio.sleep(random.randint(13, 33))
