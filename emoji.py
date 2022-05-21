@@ -317,6 +317,8 @@ class KramiikkMod(loader.Module):
                 msg = message.text.split(" ", 1)[1]
                 if msg not in self.ded:
                     return
+                if msg in ("карту"):
+                    return await message.reply(self.ded[msg])
                 if msg in ("напади", "арена"):
                     await self.snr(chat)
                     for i in range(1):
