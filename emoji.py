@@ -38,8 +38,8 @@ class KramiikkMod(loader.Module):
             "напади": "напасть на клан",
             "арена": "на арену",
             "карту": "отправить карту",
-            "покажи снаряжение": "мое снаряжение",
-            "покажи инвентарь": "мой инвентарь",
+            "снаряга": "мое снаряжение",
+            "инвентарь": "мой инвентарь",
             "туса": "жабу на тусу",
             "работа": "завершить работу",
             "минималист": "выбрать усилитель мминималист",
@@ -261,7 +261,7 @@ class KramiikkMod(loader.Module):
             await asyncio.sleep(random.randint(13, 33))
             reply = await message.get_reply_message()
             if " в " in message.text:
-                if "жаблю" in message.text:
+                if "жабл" in message.text:
                     chat = 1290958283
                 elif "атмо" in message.text:
                     chat = 1563178957
