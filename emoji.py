@@ -210,13 +210,14 @@ class KramiikkMod(loader.Module):
                         continue
                     if s == "dead" and p not in ("Можно откормить", "можно покормить"):
                         await RSP.respond("реанимировать жабу")
-                        await asyncio.sleep(random.randint(13, 33))
-                    await RSP.respond(self.ded[p])
                     await asyncio.sleep(random.randint(13, 33))
+                    await RSP.respond(self.ded[p])
+                await asyncio.sleep(random.randint(13, 33))
                 cmn = "@toadbot Моя семья"
                 await self.err(chat, cmn)
                 if not RSP:
                     continue
+                txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
                 s = 0
                 if "У вас нет" in RSP.text:
                     continue
@@ -237,7 +238,6 @@ class KramiikkMod(loader.Module):
                     if n == 2:
                         continue
                     await RSP.respond(self.ded[RSP.buttons[2][0].text])
-                txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
             txt += f"\nlcheck: {message.date}"
             if "dayhour" not in self.su:
                 msg = await self.client.send_message("me", txt)
