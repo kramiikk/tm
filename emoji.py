@@ -269,14 +269,17 @@ class KramiikkMod(loader.Module):
                 else:
                     return message.reply("нельзя🗿")
                 if reply:
-                    txt = reply
+                    msg = reply
                 else:
-                    txt = message.text.split(" ", 4)[4]
-                    if txt.casefold() in ("напасть на клан", "на арену"):
+                    msg = message.text.split(" ", 1)[1]
+                    if msg not in self.ded:
+                        return
+                    if msg in ("напади", "арена"):
                         await self.snr(chat)
+                        await asyncio.sleep(random.randint(3, 9))
                         for i in range(3):
                             await asyncio.sleep(random.randint(9, 13))
-                            await self.client.send_message(chat, txt)
+                            await self.client.send_message(chat, msg)
                 await self.client.send_message(chat, txt)
                 if "тыкпых " not in message.text:
                     return
@@ -307,7 +310,9 @@ class KramiikkMod(loader.Module):
                     return
                 if msg in ("напади", "арена"):
                     await self.snr(chat)
-                    await asyncio.sleep(random.randint(3, 9))
+                    for i in range(3):
+                        await asyncio.sleep(random.randint(9, 13))
+                        await self.client.send_message(chat, msg)
                 await message.reply(self.ded[msg])
         elif str(self.me.id) in message.text or message.mentioned:
             if "ход: " in message.text and message.buttons:
