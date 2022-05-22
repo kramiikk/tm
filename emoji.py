@@ -49,6 +49,10 @@ class KramiikkMod(loader.Module):
             "предел": "выбрать усилитель на пределе",
             "леденец": "отдать леденец",
             "кулон": "скрафтить кулон братвы",
+            "лидерку": "передать клан",
+            "буках": "букашки",
+            "аптек": "аптечки",
+            "ледик": "леденцы",
             "Ближний бой: Пусто": "скрафтить клюв цапли",
             "Дальний бой: Пусто": "скрафтить букашкомет",
             "Наголовник: Пусто": "скрафтить наголовник из клюва цапли",
@@ -221,9 +225,7 @@ class KramiikkMod(loader.Module):
                 await asyncio.sleep(random.randint(3, 13))
                 cmn = "@toadbot Жаба инфо"
                 await self.err(chat, cmn)
-                if not RSP:
-                    continue
-                if "🏃‍♂️" not in RSP.text:
+                if not RSP and "🏃‍♂️" not in RSP.text:
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
@@ -344,10 +346,15 @@ class KramiikkMod(loader.Module):
                     async for msg in self.client.iter_messages(chat, from_user="me"):
                         await msg.delete()
             else:
+                if reply and msg in ("ледик", "аптек", "буках"):
+                    msg = message.text.split(" ", 2)[1]
+                    return await reply.reply(
+                        f"отправить {self.ded[msg]} {message.text.split(' ', 2)[2]}"
+                    )
                 msg = message.text.split(" ", 1)[1]
                 if msg not in self.ded:
                     return
-                if msg in ("карту"):
+                if msg in ("карту", "лидерку"):
                     return await message.reply(self.ded[msg])
                 if msg in ("напади", "арена"):
                     await self.npn(chat, msg)
