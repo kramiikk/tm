@@ -211,14 +211,14 @@ class KramiikkMod(loader.Module):
                     await self.err(chat, cmn)
                 except Exception:
                     continue
-                if not RSP:
+                if not RSP and "Имя жабы" not in RSP.text:
                     continue
                 s = "alive"
                 if "Нужна реанимация" in RSP.text:
                     s = "dead"
                 if "Хорошее" in RSP.text:
-                    await RSP.respond(f"использовать леденцы {random.randint(1, 4)}")
                     await asyncio.sleep(random.randint(3, 13))
+                    await RSP.respond(f"использовать леденцы {random.randint(1, 4)}")
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
@@ -234,6 +234,7 @@ class KramiikkMod(loader.Module):
                     ) and p in ("Можно откормить", "Можно отправиться"):
                         continue
                     if s == "dead" and p not in ("Можно откормить", "можно покормить"):
+                        await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond("реанимировать жабу")
                     await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[p])
@@ -249,19 +250,24 @@ class KramiikkMod(loader.Module):
                 if "Ваш жабёныш" in RSP.text and "Можно покормить" not in RSP.text:
                     s = 1
                     if int(i[0]) > 123:
+                        await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond("@toadbot Покормить жабенка")
                 if RSP.buttons:
                     if len(RSP.buttons[0]) == 2:
+                        await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond("@toadbot Брак вознаграждение")
                     n = len(RSP.buttons)
                     if n == 1 and s == 1:
                         continue
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[RSP.buttons[0][0].text])
                     if n == 1:
                         continue
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[RSP.buttons[1][0].text])
                     if n == 2:
                         continue
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[RSP.buttons[2][0].text])
             txt += f"\nlcheck: {message.date}"
             if "dayhour" not in self.su:
@@ -382,6 +388,7 @@ class KramiikkMod(loader.Module):
                 if not RSP and "📿" not in RSP.text:
                     return
                 if "Кулон: Пусто" in RSP.text:
+                    await asyncio.sleep(random.randint(3, 13))
                     await message.respond("скрафтить кулон братвы")
             else:
                 return
