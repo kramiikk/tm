@@ -73,7 +73,7 @@ class KramiikkMod(loader.Module):
         except:
             return
 
-    async def npn(self, chat):
+    async def npn(self, chat, msg):
         await self.snr(chat)
         await asyncio.sleep(3)
         cmn = self.ded[msg]
@@ -89,7 +89,7 @@ class KramiikkMod(loader.Module):
             await message.respond("завершить работу")
         for i in range(3):
             await asyncio.sleep(random.randint(13, 33))
-            await self.client.send_message(chat, self.ded[msg])
+            await self.client.send_message(chat, cmn)
 
     async def snr(self, chat):
         cmn = "@toadbot Мое снаряжение"
@@ -298,12 +298,12 @@ class KramiikkMod(loader.Module):
                 if reply:
                     msg = reply
                 else:
-                    cmn = message.text.split(" ", 3)[1]
-                    if cmn not in self.ded:
+                    msg = message.text.split(" ", 3)[1]
+                    if msg not in self.ded:
                         return
-                    if cmn in ("напади", "арена"):
-                        await self.npn(chat)
-                    msg = self.ded[cmn]
+                    if msg in ("напади", "арена"):
+                        await self.npn(chat, msg)
+                    msg = self.ded[msg]
                 await asyncio.sleep(random.randint(13, 33))
                 await self.client.send_message(chat, msg)
             elif "тыкпых" in message.text:
@@ -350,7 +350,7 @@ class KramiikkMod(loader.Module):
                 if msg in ("карту"):
                     return await message.reply(self.ded[msg])
                 if msg in ("напади", "арена"):
-                    await self.npn(chat)
+                    await self.npn(chat, msg)
                 await asyncio.sleep(random.randint(13, 33))
                 await message.respond(self.ded[msg])
         elif str(self.me.id) in message.text or message.mentioned:
