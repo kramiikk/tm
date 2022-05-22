@@ -42,9 +42,13 @@ class KramiikkMod(loader.Module):
             "снаряга": "мое снаряжение",
             "инвентарь": "мой инвентарь",
             "туса": "жабу на тусу",
+            "туси": "начать тусу",
+            "рейд": "рейд старт",
             "работа": "завершить работу",
             "минималист": "выбрать усилитель мминималист",
             "предел": "выбрать усилитель на пределе",
+            "леденец": "отдать леденец",
+            "кулон": "скрафтить кулон братвы",
             "Ближний бой: Пусто": "скрафтить клюв цапли",
             "Дальний бой: Пусто": "скрафтить букашкомет",
             "Наголовник: Пусто": "скрафтить наголовник из клюва цапли",
@@ -72,8 +76,9 @@ class KramiikkMod(loader.Module):
     async def snr(self, chat):
         cmn = "@toadbot Мое снаряжение"
         await self.err(chat, cmn)
-        if "🗡" not in RSP.text:
+        if not RSP and "🗡" not in RSP.text:
             return
+        await asyncio.sleep(random.randint(3, 13))
         for p in (p for p in self.ded if p in RSP.text):
             await RSP.respond(self.ded[p])
 
@@ -191,11 +196,11 @@ class KramiikkMod(loader.Module):
                     s = "dead"
                 if "Хорошее" in RSP.text:
                     await RSP.respond(f"использовать леденцы {random.randint(1, 4)}")
-                    await asyncio.sleep(random.randint(13, 33))
+                    await asyncio.sleep(random.randint(3, 13))
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
-                await asyncio.sleep(random.randint(13, 33))
+                await asyncio.sleep(random.randint(3, 13))
                 cmn = "@toadbot Жаба инфо"
                 await self.err(chat, cmn)
                 if not RSP:
@@ -210,9 +215,9 @@ class KramiikkMod(loader.Module):
                         continue
                     if s == "dead" and p not in ("Можно откормить", "можно покормить"):
                         await RSP.respond("реанимировать жабу")
-                    await asyncio.sleep(random.randint(13, 33))
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[p])
-                await asyncio.sleep(random.randint(13, 33))
+                await asyncio.sleep(random.randint(3, 13))
                 cmn = "@toadbot Моя семья"
                 await self.err(chat, cmn)
                 if not RSP:
@@ -259,7 +264,7 @@ class KramiikkMod(loader.Module):
         elif (
             message.text.casefold().startswith(self.su["name"]) and " " in message.text
         ):
-            await asyncio.sleep(random.randint(13, 33))
+            await asyncio.sleep(random.randint(3, 13))
             reply = await message.get_reply_message()
             if " в " in message.text:
                 if "жабл" in message.text:
@@ -285,7 +290,7 @@ class KramiikkMod(loader.Module):
                         await self.err(chat, cmn)
                         if not RSP:
                             return
-                        await asyncio.sleep(3)
+                        await asyncio.sleep(random.randint(3, 13))
                         if "Вы не участвуете" in RSP.text:
                             return
                         elif (
@@ -354,6 +359,16 @@ class KramiikkMod(loader.Module):
                 )
                 for i in txt:
                     await message.respond(f"скрафтить {i}")
+            elif "Банда получила" in message.text:
+                await asyncio.sleep(random.randint(3, 13))
+                await message.respond("отдать леденец")
+                await asyncio.sleep(random.randint(3, 13))
+                cmn = "@toadbot Моя банда"
+                await self.err(chat, cmn)
+                if not RSP and "📿" not in RSP.text:
+                    return
+                if "Кулон: Пусто" in RSP.text:
+                    await message.respond("скрафтить кулон братвы")
             else:
                 return
         else:
