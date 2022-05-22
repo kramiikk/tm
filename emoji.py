@@ -298,12 +298,12 @@ class KramiikkMod(loader.Module):
                 if reply:
                     msg = reply
                 else:
-                    msg = message.text.split(" ", 3)[1]
-                    if msg not in self.ded:
+                    cmn = message.text.split(" ", 3)[1]
+                    if cmn not in self.ded:
                         return
-                    if msg in ("напади", "арена"):
+                    if cmn in ("напади", "арена"):
                         await self.npn(chat)
-                    msg = self.ded[msg]
+                    msg = self.ded[cmn]
                 await asyncio.sleep(random.randint(13, 33))
                 await self.client.send_message(chat, msg)
             elif "тыкпых" in message.text:
