@@ -84,9 +84,9 @@ class KramiikkMod(loader.Module):
             return
         await asyncio.sleep(random.randint(3, 13))
         if "Ваша жаба в предсмертном" in RSP.text or "Для участия" in RSP.text:
-            await message.respond("реанимировать жабу")
+            await RSP.respond("реанимировать жабу")
         elif "Ваша жаба на" in RSP.text:
-            await message.respond("завершить работу")
+            await RSP.respond("завершить работу")
         for i in range(3):
             await asyncio.sleep(random.randint(13, 33))
             await self.client.send_message(chat, cmn)
