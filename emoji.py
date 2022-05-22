@@ -310,9 +310,9 @@ class KramiikkMod(loader.Module):
                     if msg not in self.ded:
                         return
                     if msg in ("напади", "арена"):
-                        return await self.npn(chat, msg)
+                        return await self.npn(chat, self.ded[msg])
                 await asyncio.sleep(random.randint(13, 33))
-                await self.client.send_message(chat, msg)
+                await self.client.send_message(chat, self.ded[msg])
             elif "тыкпых" in message.text:
                 if reply:
                     return await reply.click()
@@ -360,7 +360,7 @@ class KramiikkMod(loader.Module):
                 if msg not in self.ded:
                     return
                 if msg in ("напади", "арена"):
-                    return await self.npn(chat, msg)
+                    return await self.npn(chat, self.ded[msg])
                 if msg in ("карту", "лидерку"):
                     return await message.reply(self.ded[msg])
                 await asyncio.sleep(random.randint(13, 33))
