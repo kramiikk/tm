@@ -304,8 +304,7 @@ class KramiikkMod(loader.Module):
                     if msg not in self.ded:
                         return
                     if msg in ("напади", "арена"):
-                        await self.npn(chat, msg)
-                    msg = self.ded[msg]
+                        return await self.npn(chat, msg)
                 await asyncio.sleep(random.randint(13, 33))
                 await self.client.send_message(chat, msg)
             elif "тыкпых" in message.text:
@@ -354,10 +353,10 @@ class KramiikkMod(loader.Module):
                 msg = message.text.split(" ", 1)[1]
                 if msg not in self.ded:
                     return
+                if msg in ("напади", "арена"):
+                    return await self.npn(chat, msg)
                 if msg in ("карту", "лидерку"):
                     return await message.reply(self.ded[msg])
-                if msg in ("напади", "арена"):
-                    await self.npn(chat, msg)
                 await asyncio.sleep(random.randint(13, 33))
                 await message.respond(self.ded[msg])
         elif str(self.me.id) in message.text or message.mentioned:
