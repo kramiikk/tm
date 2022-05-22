@@ -3,6 +3,8 @@ import random
 import re
 from datetime import timedelta
 
+from telethon.tl.types import Message
+
 from .. import loader
 
 
@@ -162,7 +164,7 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        if not isinstance(m, message) or m.from_id not in self.su["users"]:
+        if not isinstance(m, Message) or m.from_id not in self.su["users"]:
             return
         chat = m.peer_id
         if m.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
