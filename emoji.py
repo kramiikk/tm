@@ -73,6 +73,24 @@ class KramiikkMod(loader.Module):
         except:
             return
 
+    async def npn(self, chat):
+        await self.snr(chat)
+        await asyncio.sleep(3)
+        cmn = self.ded[msg]
+        await self.err(chat, cmn)
+        if not RSP:
+            return
+        if "Вы не участвуете" in RSP.text or "Ваша жаба на тусе" in RSP.text:
+            return
+        await asyncio.sleep(random.randint(3, 13))
+        if "Ваша жаба в предсмертном" in RSP.text or "Для участия" in RSP.text:
+            await message.respond("реанимировать жабу")
+        elif "Ваша жаба на" in RSP.text:
+            await message.respond("завершить работу")
+        for i in range(3):
+            await asyncio.sleep(random.randint(13, 33))
+            await self.client.send_message(chat, self.ded[msg])
+
     async def snr(self, chat):
         cmn = "@toadbot Мое снаряжение"
         await self.err(chat, cmn)
@@ -151,13 +169,13 @@ class KramiikkMod(loader.Module):
         chat = message.peer_id
         if message.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
             cmn = "мои жабы"
-            txt = "dayhour"
             await self.err(chat, cmn)
             if not RSP:
                 return
             await self.client.delete_dialog(chat, revoke=True)
             if "chats" not in self.su and "auto" not in self.su:
                 return
+            txt = "dayhour"
             for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
                 chat = int(i[1])
                 if "chats" in self.su and chat not in self.su["chats"]:
@@ -184,8 +202,8 @@ class KramiikkMod(loader.Module):
                             ):
                                 txt += f"\n{chat} {day} {hur}"
                                 continue
-                cmn = "@toadbot Моя жаба"
                 try:
+                    cmn = "@toadbot Моя жаба"
                     await self.err(chat, cmn)
                 except Exception:
                     continue
@@ -284,25 +302,7 @@ class KramiikkMod(loader.Module):
                     if msg not in self.ded:
                         return
                     if msg in ("напади", "арена"):
-                        await self.snr(chat)
-                        await asyncio.sleep(3)
-                        cmn = self.ded[msg]
-                        await self.err(chat, cmn)
-                        if not RSP:
-                            return
-                        await asyncio.sleep(random.randint(3, 13))
-                        if "Вы не участвуете" in RSP.text:
-                            return
-                        elif (
-                            "Ваша жаба в предсмертном" in RSP.text
-                            or "Для участия" in RSP.text
-                        ):
-                            await message.respond("реанимировать жабу")
-                        elif "Ваша жаба на" in RSP.text:
-                            await message.respond("завершить работу")
-                        for i in range(3):
-                            await asyncio.sleep(random.randint(13, 33))
-                            await self.client.send_message(chat, self.ded[msg])
+                        await self.npn(chat)
                     msg = self.ded[msg]
                 await asyncio.sleep(random.randint(13, 33))
                 await self.client.send_message(chat, msg)
@@ -332,6 +332,17 @@ class KramiikkMod(loader.Module):
                 if jab < 50:
                     return
                 await message.reply(f"отправить букашки {jab}")
+            elif "del" in message.text:
+                chat = 1124824021
+                cmn = "мои жабы"
+                await self.err(chat, cmn)
+                if not RSP:
+                    return
+                await self.client.delete_dialog(chat, revoke=True)
+                for i in re.findall(r"(-\d+)", RSP.text):
+                    chat = int(i)
+                    async for msg in self.client.iter_messages(chat, from_user="me"):
+                        await msg.delete()
             else:
                 msg = message.text.split(" ", 1)[1]
                 if msg not in self.ded:
@@ -339,10 +350,7 @@ class KramiikkMod(loader.Module):
                 if msg in ("карту"):
                     return await message.reply(self.ded[msg])
                 if msg in ("напади", "арена"):
-                    await self.snr(chat)
-                    for i in range(3):
-                        await asyncio.sleep(random.randint(13, 33))
-                        await self.client.send_message(chat, self.ded[msg])
+                    await self.npn(chat)
                 await asyncio.sleep(random.randint(13, 33))
                 await message.respond(self.ded[msg])
         elif str(self.me.id) in message.text or message.mentioned:
