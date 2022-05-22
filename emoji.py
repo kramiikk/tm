@@ -294,7 +294,7 @@ class KramiikkMod(loader.Module):
                 elif "бот" in message.text:
                     chat = 1124824021
                 else:
-                    return message.reply("нельзя🗿")
+                    chat = message.peer_id
                 if reply:
                     msg = reply
                 else:
