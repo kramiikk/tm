@@ -311,8 +311,9 @@ class KramiikkMod(loader.Module):
                         return
                     if msg in ("напади", "арена"):
                         return await self.npn(chat, msg)
+                    msg = self.ded[msg]
                 await asyncio.sleep(random.randint(13, 33))
-                await self.client.send_message(chat, self.ded[msg])
+                await self.client.send_message(chat, msg)
             elif "тыкпых" in message.text:
                 if reply:
                     return await reply.click()
