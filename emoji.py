@@ -346,8 +346,11 @@ class KramiikkMod(loader.Module):
                     async for msg in self.client.iter_messages(chat, from_user="me"):
                         await msg.delete()
             else:
-                if reply and msg in ("ледик", "аптек", "буках"):
-                    msg = message.text.split(" ", 2)[1]
+                if reply and message.text.split(" ", 2)[1] in (
+                    "ледик",
+                    "аптек",
+                    "буках",
+                ):
                     return await reply.reply(
                         f"отправить {self.ded[msg]} {message.text.split(' ', 2)[2]}"
                     )
