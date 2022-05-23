@@ -276,7 +276,7 @@ class KramiikkMod(loader.Module):
             self.db.set("Su", "su", self.su)
         elif (m.text.startswith(("📉", "🛡")) and ("auto" in self.su or "chats" in self.su
         )) or (tt.hour in (3, 15) and tt.minute in (14, 14) and tt.second in (15, 3)):
-            if tt.hour in (3, 15) and m.from_id not in (1124824021):
+            if tt.hour in (3, 15) and m.from_id not in [1124824021]:
                 txt = "клан вознаграждение"
             else:
                 chat = 1124824021
