@@ -290,11 +290,38 @@ class KramiikkMod(loader.Module):
                 schedule=timedelta(minutes=random.randint(128, 184)),
             )
         elif (
-            m.text.casefold().startswith(self.su["name"]) or m.mentioned
+            m.text.casefold().startswith(self.su["name"])
+            or m.text.startswith(f"@{self.me.username}")
+            or m.mentioned
+            or str(self.me.id) in m.text
         ) and " " in m.text:
             await asyncio.sleep(random.randint(3, 13))
             reply = await m.get_reply_message()
-            if " в " in m.text:
+            if "ход: " in m.text and m.buttons:
+                await m.click()
+            elif "сломалось" in m.text:
+                await asyncio.sleep(random.randint(13, 33))
+                txt = (
+                    "клюв цапли",
+                    "букашкомет",
+                    "наголовник из клюва цапли",
+                    "нагрудник из клюва цапли",
+                    "налапники из клюва цапли",
+                )
+                for i in txt:
+                    await m.respond(f"скрафтить {i}")
+            elif "Банда получила" in m.text:
+                await asyncio.sleep(random.randint(3, 13))
+                await m.respond("отдать леденец")
+                await asyncio.sleep(random.randint(3, 13))
+                cmn = "@toadbot Моя банда"
+                await self.err(chat, cmn)
+                if not RSP and "📿" not in RSP.text:
+                    return
+                if "Кулон: Пусто" in RSP.text:
+                    await asyncio.sleep(random.randint(3, 13))
+                    await m.respond("скрафтить кулон братвы")
+            elif " в " in m.text:
                 if "жабл" in m.text:
                     chat = 1290958283
                 elif "атмо" in m.text:
@@ -368,32 +395,5 @@ class KramiikkMod(loader.Module):
                     return await m.reply(self.ded[msg])
                 await asyncio.sleep(random.randint(13, 33))
                 await m.respond(self.ded[msg])
-        elif str(self.me.id) in m.text or m.mentioned:
-            if "ход: " in m.text and m.buttons:
-                await m.click()
-            elif "сломалось" in m.text:
-                await asyncio.sleep(random.randint(13, 33))
-                txt = (
-                    "клюв цапли",
-                    "букашкомет",
-                    "наголовник из клюва цапли",
-                    "нагрудник из клюва цапли",
-                    "налапники из клюва цапли",
-                )
-                for i in txt:
-                    await m.respond(f"скрафтить {i}")
-            elif "Банда получила" in m.text:
-                await asyncio.sleep(random.randint(3, 13))
-                await m.respond("отдать леденец")
-                await asyncio.sleep(random.randint(3, 13))
-                cmn = "@toadbot Моя банда"
-                await self.err(chat, cmn)
-                if not RSP and "📿" not in RSP.text:
-                    return
-                if "Кулон: Пусто" in RSP.text:
-                    await asyncio.sleep(random.randint(3, 13))
-                    await m.respond("скрафтить кулон братвы")
-            else:
-                return
         else:
             return
