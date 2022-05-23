@@ -233,7 +233,7 @@ class KramiikkMod(loader.Module):
                     if s == "dead" and p not in ("Можно откормить", "можно покормить"):
                         await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond("реанимировать жабу")
-                    await asyncio.sleep(random.randint(3, 13))
+                    await asyncio.sleep(random.randint(13, 33))
                     await RSP.respond(self.ded[p])
                 await asyncio.sleep(random.randint(3, 13))
                 cmn = "@toadbot Моя семья"
@@ -276,8 +276,9 @@ class KramiikkMod(loader.Module):
             else:
                 await msg.edit(txt)
             self.db.set("Su", "su", self.su)
-        elif (m.text.startswith(("📉", "🛡")) and ("auto" in self.su or "chats" in self.su
-        )) or (tt.hour in (3, 15) and tt.minute in (14, 14) and tt.second in (15, 3)):
+        elif (
+            m.text.startswith(("📉", "🛡")) and ("auto" in self.su or "chats" in self.su)
+        ) or (tt.hour in (3, 15) and tt.minute in (14, 14) and tt.second in (15, 3)):
             if tt.hour in (3, 15) and m.from_id not in [1124824021]:
                 txt = "клан вознаграждение"
             else:
@@ -288,7 +289,9 @@ class KramiikkMod(loader.Module):
                 txt,
                 schedule=timedelta(minutes=random.randint(128, 184)),
             )
-        elif (m.text.casefold().startswith(self.su["name"]) or m.mentioned) and " " in m.text:
+        elif (
+            m.text.casefold().startswith(self.su["name"]) or m.mentioned
+        ) and " " in m.text:
             await asyncio.sleep(random.randint(3, 13))
             reply = await m.get_reply_message()
             if " в " in m.text:
