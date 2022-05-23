@@ -168,7 +168,7 @@ class KramiikkMod(loader.Module):
             return
         chat = m.peer_id
         tt = m.date
-        if m.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑") and chat in [1124824021]:
+        if m.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑") and m.chat_id in [1124824021]:
             cmn = "мои жабы"
             await self.err(chat, cmn)
             if not RSP:
