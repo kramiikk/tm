@@ -288,7 +288,7 @@ class KramiikkMod(loader.Module):
                 txt,
                 schedule=timedelta(minutes=random.randint(128, 184)),
             )
-        elif m.text.casefold().startswith(self.su["name"]) and " " in m.text:
+        elif (m.text.casefold().startswith(self.su["name"]) or m.mentioned) and " " in m.text:
             await asyncio.sleep(random.randint(3, 13))
             reply = await m.get_reply_message()
             if " в " in m.text:
