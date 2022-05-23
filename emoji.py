@@ -354,7 +354,7 @@ class KramiikkMod(loader.Module):
                     return await reply.reply(
                         f"отправить {self.ded[cmn]} {m.text.split(' ', 2)[2]}"
                     )
-                msg = m.text.split(" ", 1)[1]
+                msg = m.text.split(" ", 2)[1]
                 if msg not in self.ded:
                     return
                 if msg in ("напади", "арена"):
