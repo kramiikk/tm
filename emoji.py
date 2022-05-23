@@ -193,7 +193,9 @@ class KramiikkMod(loader.Module):
                             dayhour = 2
                             if int(i[0]) < 123:
                                 dayhour = 4
-                            ts = m.date - timedelta(days=int(day), hours=int(hur))
+                            ts = timedelta(
+                                days=message.date.day, hours=message.date.hour
+                            ) - timedelta(days=int(day), hours=int(hur))
                             if (
                                 timedelta(days=0, hours=0)
                                 <= ts
