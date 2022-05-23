@@ -167,7 +167,8 @@ class KramiikkMod(loader.Module):
         if not isinstance(m, Message) or m.from_id not in self.su["users"]:
             return
         chat = m.peer_id
-        if m.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
+        tt = m.date
+        if m.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑") and chat in (1124824021):
             cmn = "мои жабы"
             await self.err(chat, cmn)
             if not RSP:
@@ -273,12 +274,16 @@ class KramiikkMod(loader.Module):
             else:
                 await msg.edit(txt)
             self.db.set("Su", "su", self.su)
-        elif m.text.startswith(("📉", "🛡")) and (
-            "auto" in self.su or "chats" in self.su
-        ):
+        elif (m.text.startswith(("📉", "🛡")) and ("auto" in self.su or "chats" in self.su
+        )) or (tt.hour in (3, 15) and tt.minute in (14, 14) and tt.second in (15, 3)):
+            if tt.hour in (3, 15) and m.from_id not in (1124824021):
+                txt = "клан вознаграждение"
+            else:
+                chat = 1124824021
+                txt = "💑👩‍❤️‍👨👨‍❤️‍👨💑"
             await self.client.send_message(
-                1124824021,
-                "💑👩‍❤️‍👨👨‍❤️‍👨💑",
+                chat,
+                txt,
                 schedule=timedelta(minutes=random.randint(128, 184)),
             )
         elif m.text.casefold().startswith(self.su["name"]) and " " in m.text:
