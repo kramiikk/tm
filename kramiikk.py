@@ -34,16 +34,36 @@ class KramiikkMod(loader.Module):
             "Используйте атаку": "@toadbot На арену",
             "можно отправить": self.su["job"],
             "золото": "отправиться в золотое подземелье",
-            "го кв": "начать клановую войну",
+            "кв": "начать клановую войну",
             "напади": "напасть на клан",
+            "арена": "на арену",
+            "реанимируй": "реанимировать жабу",
             "карту": "отправить карту",
+            "снаряга": "мое снаряжение",
+            "инвентарь": "мой инвентарь",
             "туса": "жабу на тусу",
+            "туси": "начать тусу",
+            "рейд": "рейд старт",
+            "работа": "завершить работу",
+            "минималист": "выбрать усилитель минималист",
+            "предел": "выбрать усилитель на пределе",
+            "леденец": "отдать леденец",
+            "кулон": "скрафтить кулон братвы",
+            "лидерку": "передать клан",
+            "буках": "букашки",
+            "аптек": "аптечки",
+            "ледик": "леденцы",
             "Ближний бой: Пусто": "скрафтить клюв цапли",
             "Дальний бой: Пусто": "скрафтить букашкомет",
             "Наголовник: Пусто": "скрафтить наголовник из клюва цапли",
             "Нагрудник: Пусто": "скрафтить нагрудник из клюва цапли",
             "Налапники: Пусто": "скрафтить налапники из клюва цапли",
             "Банда: Пусто": "взять жабу",
+            "Брак вознаграждение": "@toadbot Брак вознаграждение",
+            "Отправить жабенка на махач": "@toadbot Отправить жабенка на махач",
+            "Забрать жабенка": "@toadbot Забрать жабенка",
+            "В детский сад!": "@toadbot Отправить жабенка в детсад",
+            "Отправить жабенка на махач": "@toadbot Отправить жабенка на махач",
         }
 
     async def err(self, chat, cmn):
@@ -57,15 +77,34 @@ class KramiikkMod(loader.Module):
         except:
             return
 
+    async def npn(self, chat, msg):
+        await self.snr(chat)
+        await asyncio.sleep(3)
+        cmn = self.ded[msg]
+        await self.err(chat, cmn)
+        if not RSP:
+            return
+        if "Вы не участвуете" in RSP.text or "Ваша жаба на тусе" in RSP.text:
+            return
+        await asyncio.sleep(random.randint(3, 13))
+        if "Ваша жаба в предсмертном" in RSP.text or "Для участия" in RSP.text:
+            await RSP.respond("реанимировать жабу")
+        elif "Ваша жаба на" in RSP.text:
+            await RSP.respond("завершить работу")
+        for i in range(3):
+            await asyncio.sleep(random.randint(13, 33))
+            await self.client.send_message(chat, cmn)
+
     async def snr(self, chat):
         cmn = "@toadbot Мое снаряжение"
         await self.err(chat, cmn)
-        if "🗡" not in RSP.text:
+        if not RSP and "🗡" not in RSP.text:
             return
+        await asyncio.sleep(random.randint(3, 13))
         for p in (p for p in self.ded if p in RSP.text):
             await RSP.respond(self.ded[p])
 
-    async def sacmd(self, message: Message):
+    async def sacmd(self, m):
         """автожаба для всех чатов"""
         if "auto" in self.su:
             self.su.pop("auto")
@@ -76,28 +115,28 @@ class KramiikkMod(loader.Module):
                 self.su.pop("chats")
             msg = "<b>активирована</b>"
         self.db.set("Su", "su", self.su)
-        await message.edit(msg)
+        await m.edit(msg)
 
-    async def sjcmd(self, message: Message):
+    async def sjcmd(self, m):
         """выбор работы"""
-        msg = message.text.split(" ", 1)[1]
+        msg = m.text.split(" ", 1)[1]
         self.su["job"] = msg.casefold()
         txt = f"<b>Работа изменена:</b> {self.su['job']}"
         self.db.set("Su", "su", self.su)
-        await message.edit(txt)
+        await m.edit(txt)
 
-    async def sncmd(self, message: Message):
+    async def sncmd(self, m):
         """ник для команд"""
-        msg = message.text.split(" ", 1)[1]
+        msg = m.text.split(" ", 1)[1]
         self.su["name"] = msg.casefold()
         txt = f"👻 <code>{self.su['name']}</code> <b>успешно изменён</b>"
         self.db.set("Su", "su", self.su)
-        await message.edit(txt)
+        await m.edit(txt)
 
-    async def sucmd(self, message: Message):
+    async def sucmd(self, m):
         """добавляет пользователей для управление"""
-        reply = await message.get_reply_message()
-        msg = reply.from_id if reply else int(message.text.split(" ", 1)[1])
+        reply = await m.get_reply_message()
+        msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
         if msg in self.su["users"]:
             self.su["users"].remove(msg)
             txt = f"🖕🏾 {msg} <b>успешно удален</b>"
@@ -105,15 +144,11 @@ class KramiikkMod(loader.Module):
             self.su["users"].append(msg)
             txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
         self.db.set("Su", "su", self.su)
-        await message.edit(txt)
+        await m.edit(txt)
 
-    async def svcmd(self, message: Message):
+    async def svcmd(self, m):
         """автожаба для выбранного чата"""
-        msg = (
-            message.chat_id
-            if len(message.text) < 9
-            else int(message.text.split(" ", 1)[1])
-        )
+        msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
         txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
         if "chats" not in self.su:
             self.su.setdefault("chats", [msg])
@@ -125,22 +160,23 @@ class KramiikkMod(loader.Module):
         if "auto" in self.su:
             self.su.pop("auto")
         self.db.set("Su", "su", self.su)
-        await message.edit(txt)
+        await m.edit(txt)
 
-    async def watcher(self, message: Message):
+    async def watcher(self, m):
         """алко"""
-        if not isinstance(message, Message) or message.from_id not in self.su["users"]:
+        if not isinstance(m, Message) or m.from_id not in self.su["users"]:
             return
-        chat = message.peer_id
-        if message.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑"):
+        chat = m.peer_id
+        tt = m.date
+        if m.text.startswith("💑👩‍❤️‍👨👨‍❤️‍👨💑") and m.chat_id in [1124824021]:
             cmn = "мои жабы"
-            txt = "dayhour"
             await self.err(chat, cmn)
             if not RSP:
                 return
             await self.client.delete_dialog(chat, revoke=True)
             if "chats" not in self.su and "auto" not in self.su:
                 return
+            txt = "dayhour"
             for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
                 chat = int(i[1])
                 if "chats" in self.su and chat not in self.su["chats"]:
@@ -158,7 +194,7 @@ class KramiikkMod(loader.Module):
                             if int(i[0]) < 123:
                                 dayhour = 4
                             ts = timedelta(
-                                days=message.date.day, hours=message.date.hour
+                                days=m.date.day, hours=m.date.hour
                             ) - timedelta(days=int(day), hours=int(hur))
                             if (
                                 timedelta(days=0, hours=0)
@@ -167,25 +203,26 @@ class KramiikkMod(loader.Module):
                             ):
                                 txt += f"\n{chat} {day} {hur}"
                                 continue
-                cmn = "@toadbot Моя жаба"
-                await self.err(chat, cmn)
-                if not RSP:
+                try:
+                    cmn = "@toadbot Моя жаба"
+                    await self.err(chat, cmn)
+                except Exception:
+                    continue
+                if not RSP and "Имя жабы" not in RSP.text:
                     continue
                 s = "alive"
                 if "Нужна реанимация" in RSP.text:
                     s = "dead"
                 if "Хорошее" in RSP.text:
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(f"использовать леденцы {random.randint(1, 4)}")
-                    await asyncio.sleep(random.randint(1, 3))
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
-                await asyncio.sleep(random.randint(1, 3))
+                await asyncio.sleep(random.randint(3, 13))
                 cmn = "@toadbot Жаба инфо"
                 await self.err(chat, cmn)
-                if not RSP:
-                    continue
-                if "🏃‍♂️" not in RSP.text:
+                if not RSP and "🏃‍♂️" not in RSP.text:
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
@@ -194,12 +231,42 @@ class KramiikkMod(loader.Module):
                     ) and p in ("Можно откормить", "Можно отправиться"):
                         continue
                     if s == "dead" and p not in ("Можно откормить", "можно покормить"):
+                        await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond("реанимировать жабу")
-                        await asyncio.sleep(random.randint(1, 3))
+                    await asyncio.sleep(random.randint(13, 33))
                     await RSP.respond(self.ded[p])
-                    await asyncio.sleep(random.randint(1, 3))
+                await asyncio.sleep(random.randint(3, 13))
+                cmn = "@toadbot Моя семья"
+                await self.err(chat, cmn)
+                if not RSP:
+                    continue
                 txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
-            txt += f"\nlcheck: {message.date}"
+                s = 0
+                if "У вас нет" in RSP.text:
+                    continue
+                if "Ваш жабёныш" in RSP.text and "Можно покормить" not in RSP.text:
+                    s = 1
+                    if int(i[0]) > 123:
+                        await asyncio.sleep(random.randint(3, 13))
+                        await RSP.respond("@toadbot Покормить жабенка")
+                if RSP.buttons:
+                    if len(RSP.buttons[0]) == 2:
+                        await asyncio.sleep(random.randint(3, 13))
+                        await RSP.respond("@toadbot Брак вознаграждение")
+                    n = len(RSP.buttons)
+                    if n == 1 and s == 1:
+                        continue
+                    await asyncio.sleep(random.randint(3, 13))
+                    await RSP.respond(self.ded[RSP.buttons[0][0].text])
+                    if n == 1:
+                        continue
+                    await asyncio.sleep(random.randint(3, 13))
+                    await RSP.respond(self.ded[RSP.buttons[1][0].text])
+                    if n == 2:
+                        continue
+                    await asyncio.sleep(random.randint(3, 13))
+                    await RSP.respond(self.ded[RSP.buttons[2][0].text])
+            txt += f"\nlcheck: {m.date}"
             if "dayhour" not in self.su:
                 msg = await self.client.send_message("me", txt)
                 self.su.setdefault("dayhour", msg.id)
@@ -209,73 +276,35 @@ class KramiikkMod(loader.Module):
             else:
                 await msg.edit(txt)
             self.db.set("Su", "su", self.su)
-        elif message.text.startswith(("📉", "🛡")) and (
-            "auto" in self.su or "chats" in self.su
+        elif (
+            m.text.startswith(("📉", "🛡")) and ("auto" in self.su or "chats" in self.su)
+        ) or (
+            tt.hour in (3, 9, 15)
+            and tt.minute in (2, 5, 14)
+            and tt.second in (3, 6, 15)
         ):
+            if tt.hour in (3, 9, 15):
+                txt = "клан вознаграждение"
+            else:
+                chat = 1124824021
+                txt = "💑👩‍❤️‍👨👨‍❤️‍👨💑"
             await self.client.send_message(
-                1124824021,
-                "💑👩‍❤️‍👨👨‍❤️‍👨💑",
+                chat,
+                txt,
                 schedule=timedelta(minutes=random.randint(128, 184)),
             )
         elif (
-            message.text.casefold().startswith(self.su["name"]) and " " in message.text
-        ):
-            reply = await message.get_reply_message()
-            if "напиши в " in message.text:
-                chat = message.text.split(" ", 4)[3]
-                if chat.isnumeric():
-                    chat = int(chat)
-                if reply:
-                    txt = reply
-                else:
-                    txt = message.text.split(" ", 4)[4]
-                    if txt.casefold() in ("напасть на клан", "на арену"):
-                        await self.snr(chat)
-                        await asyncio.sleep(random.randint(3, 9))
-                await self.client.send_message(chat, txt)
-            elif "напиши " in message.text:
-                txt = message.text.split(" ", 2)[2]
-                if reply:
-                    return await reply.reply(txt)
-                await message.respond(txt)
-            elif "тыкпых" in message.text:
-                if reply:
-                    return await reply.click()
-                if "тыкпых " not in message.text:
-                    return
-                reg = re.search(r"/(\d+)/(\d+)", message.text)
-                if not reg:
-                    return
-                mac = await self.client.get_messages(
-                    int(reg.group(1)), ids=int(reg.group(2))
-                )
-                await mac.click()
-            elif "буках" in message.text and self.su["name"] in ("кушки", "альберт"):
-                await asyncio.sleep(random.randint(0, 360))
-                cmn = "мой баланс"
-                await self.err(chat, cmn)
-                if not RSP:
-                    return
-                if "У тебя" in RSP.text:
-                    await message.respond("взять жабу")
-                elif "Баланс" not in RSP.text:
-                    return
-                jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
-                if jab < 50:
-                    return
-                await message.reply(f"отправить букашки {jab}")
-            else:
-                msg = message.text.split(" ", 1)[1]
-                if msg not in self.ded:
-                    return
-                if msg in ("напади", "арена"):
-                    await self.snr(chat)
-                    await asyncio.sleep(random.randint(3, 9))
-                await message.reply(self.ded[msg])
-        elif str(self.me.id) in message.text or message.mentioned:
-            if "ход: " in message.text and message.buttons:
-                await message.click()
-            elif "сломалось" in message.text:
+            m.text.casefold().startswith(self.su["name"])
+            or m.text.startswith(f"@{self.me.username}")
+            or m.mentioned
+            or str(self.me.id) in m.text
+        ) and " " in m.text:
+            await asyncio.sleep(random.randint(3, 13))
+            reply = await m.get_reply_message()
+            if "ход: " in m.text and m.buttons:
+                await m.click()
+            elif "сломалось" in m.text:
+                await asyncio.sleep(random.randint(13, 33))
                 txt = (
                     "клюв цапли",
                     "букашкомет",
@@ -284,9 +313,89 @@ class KramiikkMod(loader.Module):
                     "налапники из клюва цапли",
                 )
                 for i in txt:
-                    await message.respond(f"скрафтить {i}")
-                    await asyncio.sleep(random.randint(1, 3))
+                    await m.respond(f"скрафтить {i}")
+            elif "Банда получила" in m.text:
+                await asyncio.sleep(random.randint(3, 13))
+                await m.respond("отдать леденец")
+                await asyncio.sleep(random.randint(3, 13))
+                cmn = "@toadbot Моя банда"
+                await self.err(chat, cmn)
+                if not RSP and "📿" not in RSP.text:
+                    return
+                if "Кулон: Пусто" in RSP.text:
+                    await asyncio.sleep(random.randint(3, 13))
+                    await m.respond("скрафтить кулон братвы")
+            elif "напиши в " in m.text:
+                chat = m.text.split(" ", 4)[3]
+                if chat.isnumeric():
+                    chat = int(chat)
+                if reply:
+                    msg = reply
+                else:
+                    msg = m.text.split(" ", 4)[4]
+                    if msg not in self.ded:
+                        return
+                    if msg in ("напади", "арена"):
+                        return await self.npn(chat, msg)
+                    msg = self.ded[msg]
+                await asyncio.sleep(random.randint(13, 33))
+                await self.client.send_message(chat, msg)
+            elif "напиши " in m.text:
+                txt = m.text.split(" ", 2)[2]
+                if reply:
+                    return await reply.reply(txt)
+                await m.respond(txt)
+            elif "тыкпых" in m.text:
+                if reply:
+                    return await reply.click()
+                if "тыкпых " not in m.text:
+                    return
+                reg = re.search(r"/(\d+)/(\d+)", m.text)
+                if not reg:
+                    return
+                mac = await self.client.get_messages(
+                    int(reg.group(1)), ids=int(reg.group(2))
+                )
+                await mac.click()
+            elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
+                await asyncio.sleep(random.randint(0, 360))
+                cmn = "мой баланс"
+                await self.err(chat, cmn)
+                if not RSP:
+                    return
+                if "У тебя" in RSP.text:
+                    await m.respond("взять жабу")
+                elif "Баланс" not in RSP.text:
+                    return
+                jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
+                if jab < 50:
+                    return
+                await m.reply(f"отправить букашки {jab}")
+            elif "del" in m.text:
+                chat = 1124824021
+                cmn = "мои жабы"
+                await self.err(chat, cmn)
+                if not RSP:
+                    return
+                await self.client.delete_dialog(chat, revoke=True)
+                for i in re.findall(r"(-\d+)", RSP.text):
+                    chat = int(i)
+                    async for msg in self.client.iter_messages(chat, from_user="me"):
+                        await msg.delete()
             else:
-                return
+                cmn = m.text.split(" ", 2)[1]
+                if reply and cmn in ("ледик", "аптек", "буках"):
+                    return await reply.reply(
+                        f"отправить {self.ded[cmn]} {m.text.split(' ', 2)[2]}"
+                    )
+                msg = m.text.split(" ", 2)[1]
+                if msg not in self.ded:
+                    return
+                if msg in ("напади", "арена"):
+                    return await self.npn(chat, msg)
+                if msg in ("карту", "лидерку"):
+                    return await m.reply(self.ded[msg])
+                await asyncio.sleep(random.randint(13, 33))
+                await m.respond(self.ded[msg])
         else:
             return
