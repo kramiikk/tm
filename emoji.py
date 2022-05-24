@@ -279,7 +279,9 @@ class KramiikkMod(loader.Module):
         elif (
             m.text.startswith(("📉", "🛡")) and ("auto" in self.su or "chats" in self.su)
         ) or (
-            tt.hour in (3, 9, 15) and tt.minute in (2, 14) and tt.second in (3, 6, 15)
+            tt.hour in (3, 9, 15)
+            and tt.minute in (2, 5, 14)
+            and tt.second in (3, 6, 15)
         ):
             if tt.hour in (3, 9, 15):
                 txt = "клан вознаграждение"
