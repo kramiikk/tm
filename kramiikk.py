@@ -299,7 +299,13 @@ class KramiikkMod(loader.Module):
             or m.mentioned
             or str(self.me.id) in m.text
         ) and " " in m.text:
-            await asyncio.sleep(random.randint(3, 13))
+            if m.chat_id in [
+                -1001403626354,
+                -1001563178957,
+                -1001290958283,
+                -1001447960786,
+            ]:
+                await asyncio.sleep(random.randint(3, 13))
             reply = await m.get_reply_message()
             if "ход: " in m.text and m.buttons:
                 await m.click()
