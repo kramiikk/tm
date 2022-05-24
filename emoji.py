@@ -276,8 +276,8 @@ class KramiikkMod(loader.Module):
             else:
                 await msg.edit(txt)
             self.db.set("Su", "su", self.su)
-        elif ("auto" in self.su or "chats" in self.su) and ((tt.hour in (3, 9, 15) and tt.minute in (2, 5, 14) and tt.second in (3, 6, 15)) or tt.minute in (33)):
-            if tt.hour in (9) and tt.minute not in (33):
+        elif ("auto" in self.su or "chats" in self.su) and ((tt.hour in (3, 9, 15) and tt.minute in (2, 5, 14) and tt.second in (3, 6, 15)) or tt.minute in (1, 33)):
+            if tt.hour in (9, 15) and tt.second in (3, 15):
                 txt = "клан вознаграждение"
             else:
                 chat = 1124824021
