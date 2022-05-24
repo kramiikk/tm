@@ -405,5 +405,7 @@ class KramiikkMod(loader.Module):
                     return await m.reply(self.ded[msg])
                 await asyncio.sleep(random.randint(13, 33))
                 await m.respond(self.ded[msg])
+        elif m.sender_id in [830605725] and not m.text.endwith("👑🐝"):
+            await m.click()
         else:
             return
