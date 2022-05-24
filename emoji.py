@@ -241,20 +241,13 @@ class KramiikkMod(loader.Module):
                 if not RSP:
                     continue
                 txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
-                s = 0
                 if "У вас нет" in RSP.text:
                     continue
-                if "Ваш жабёныш" in RSP.text and "Можно покормить" not in RSP.text:
-                    s = 1
-                    if int(i[0]) > 123:
+                if RSP.buttons:
+                    n = len(RSP.buttons)
+                    if n == 1 and "Можно покормить" not in RSP.text and int(i[0]) > 123:
                         await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond("@toadbot Покормить жабенка")
-                if RSP.buttons:
-                    if len(RSP.buttons[0]) == 2:
-                        await asyncio.sleep(random.randint(3, 13))
-                        await RSP.respond("@toadbot Брак вознаграждение")
-                    n = len(RSP.buttons)
-                    if n == 1 and s == 1:
                         continue
                     await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[RSP.buttons[0][0].text])
@@ -276,17 +269,20 @@ class KramiikkMod(loader.Module):
             else:
                 await msg.edit(txt)
             self.db.set("Su", "su", self.su)
-        elif ("auto" in self.su or "chats" in self.su) and ((tt.hour in (3, 9, 15) and tt.minute in (2, 5, 14) and tt.second in (3, 6, 15)) or tt.minute in (1, 33)):
-            if tt.hour in (9, 15) and tt.second in (3, 15):
+        elif ("auto" in self.su or "chats" in self.su) and (
+            (
+                tt.hour in (3, 9, 15)
+                and tt.minute in (2, 5, 14)
+                and tt.second in (3, 6, 15)
+            )
+            or tt.minute in (1, 33)
+        ):
+            if tt.hour in (9, 15) and tt.second in (3):
                 txt = "клан вознаграждение"
             else:
                 chat = 1124824021
                 txt = "💑👩‍❤️‍👨👨‍❤️‍👨💑"
-            await self.client.send_message(
-                chat,
-                txt,
-                schedule=timedelta(minutes=random.randint(63, 189)),
-            )
+            await self.client.send_message(chat, txt)
         elif (
             m.text.casefold().startswith(self.su["name"])
             or m.text.startswith(f"@{self.me.username}")
