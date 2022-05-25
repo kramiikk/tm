@@ -308,28 +308,6 @@ class KramiikkMod(loader.Module):
                 if "Кулон: Пусто" in RSP.text:
                     await asyncio.sleep(random.randint(1, 3))
                     await m.respond("скрафтить кулон братвы")
-            elif " в " in m.text:
-                if "жабл" in m.text:
-                    chat = 1290958283
-                elif "атмо" in m.text:
-                    chat = 1563178957
-                elif "пруд" in m.text:
-                    chat = 1403626354
-                elif "бот" in m.text:
-                    chat = 1124824021
-                else:
-                    chat = m.peer_id
-                if reply:
-                    msg = reply
-                else:
-                    msg = m.text.split(" ", 3)[1]
-                    if msg not in self.ded:
-                        return
-                    if msg in ("напади", "арена"):
-                        return await self.npn(chat, msg)
-                    msg = self.ded[msg]
-                await asyncio.sleep(random.randint(13, 33))
-                await self.client.send_message(chat, msg)
             elif "тыкпых" in m.text:
                 if reply:
                     return await reply.click()
@@ -367,6 +345,28 @@ class KramiikkMod(loader.Module):
                     chat = int(i)
                     async for msg in self.client.iter_messages(chat, from_user="me"):
                         await msg.delete()
+            elif " в " in m.text:
+                if "жабл" in m.text:
+                    chat = 1290958283
+                elif "атмо" in m.text:
+                    chat = 1563178957
+                elif "пруд" in m.text:
+                    chat = 1403626354
+                elif "бот" in m.text:
+                    chat = 1124824021
+                else:
+                    chat = m.peer_id
+                if reply:
+                    msg = reply
+                else:
+                    msg = m.text.split(" ", 3)[1]
+                    if msg not in self.ded:
+                        return
+                    if msg in ("напади", "арена"):
+                        return await self.npn(chat, msg)
+                    msg = self.ded[msg]
+                await asyncio.sleep(random.randint(13, 33))
+                await self.client.send_message(chat, msg)
             else:
                 cmn = m.text.split(" ", 2)[1]
                 if reply and cmn in ("ледик", "аптек", "буках"):
