@@ -275,7 +275,11 @@ class KramiikkMod(loader.Module):
             else:
                 chat = 1124824021
                 txt = "💑👩‍❤️‍👨👨‍❤️‍👨💑"
-            await self.client.send_message(chat, txt)
+            await self.client.send_message(
+                chat,
+                txt,
+                schedule=timedelta(minutes=random.randint(63, 189)),
+            )
         elif (
             m.text.casefold().startswith(self.su["name"])
             or m.text.startswith(f"@{self.me.username}")
