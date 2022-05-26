@@ -272,6 +272,7 @@ class KramiikkMod(loader.Module):
             )
             and " " in m.text
         ) or str(self.me.id) in m.text:
+            chat = m.peer_id
             if m.chat_id in [
                 -1001403626354,
                 -1001563178957,
