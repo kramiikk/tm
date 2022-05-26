@@ -1,7 +1,7 @@
 import asyncio
+import datetime
 import random
 import re
-from datetime import timedelta
 
 from telethon.tl.types import Message
 
@@ -153,12 +153,13 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        if not isinstance(m, Message) or m.from_id not in self.su["users"]:
-            return
-        chat = m.peer_id
-        tt = m.date
-        if m.text.startswith(("туса инфо", "рейд инфо")) and m.out:
-            await asyncio.sleep(random.randint((m.id % 100), 121))
+        ct = datetime.datetime.now()
+        if (
+            ct.minute in (13, 52) and ct.second == 39 and len(str(ct.microsecond)) == 5
+        ) and ("auto" in self.su or "chats" in self.su):
+            await asyncio.sleep(
+                random.randint((self.me.id % 100), 111 + (ct.microsecond % 100))
+            )
             chat = 1124824021
             cmn = "мои жабы"
             await self.err(chat, cmn)
@@ -184,13 +185,13 @@ class KramiikkMod(loader.Module):
                             dayhour = 2
                             if int(i[0]) < 123:
                                 dayhour = 4
-                            ts = timedelta(
+                            ts = datetime.timedelta(
                                 days=m.date.day, hours=m.date.hour
-                            ) - timedelta(days=int(day), hours=int(hur))
+                            ) - datetime.timedelta(days=int(day), hours=int(hur))
                             if (
-                                timedelta(days=0, hours=0)
+                                datetime.timedelta(days=0, hours=0)
                                 <= ts
-                                < timedelta(days=0, hours=dayhour)
+                                < datetime.timedelta(days=0, hours=dayhour)
                             ):
                                 txt += f"\n{chat} {day} {hur}"
                                 continue
@@ -260,15 +261,8 @@ class KramiikkMod(loader.Module):
             else:
                 await msg.edit(txt)
             self.db.set("Su", "su", self.su)
-        elif ("auto" in self.su or "chats" in self.su) and (
-            tt.minute in (11, 33, 55) and tt.second in (1, 21, 42)
-        ):
-            if tt.hour in (9, 15) and tt.second in (1, 42):
-                txt = "клан вознаграждение"
-            else:
-                txt = random.choice(("туса инфо", "рейд инфо"))
-            await asyncio.sleep(random.randint((m.id % 100), 121))
-            await self.client.send_message(chat, txt)
+        if not isinstance(m, Message) or m.from_id not in self.su["users"]:
+            return
         elif (
             (
                 m.text.casefold().startswith(self.su["name"])
