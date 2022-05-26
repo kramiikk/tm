@@ -155,7 +155,7 @@ class KramiikkMod(loader.Module):
         """алко"""
         ct = datetime.datetime.now()
         if (
-            ct.minute in (13, 52) and ct.second == 39 and len(str(ct.microsecond)) == 5
+            ct.minute in (13, 39, 52) and ct.second in (13, 26, 42) and len(str(ct.microsecond)) == 5
         ) and ("auto" in self.su or "chats" in self.su):
             await asyncio.sleep(
                 random.randint((self.me.id % 100), 111 + (ct.microsecond % 100))
