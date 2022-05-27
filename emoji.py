@@ -156,13 +156,11 @@ class KramiikkMod(loader.Module):
         ct = datetime.datetime.now()
         i = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 2)
         if (
-            ct.minute in (i+1, i+9, i+18)
-            and ct.second in (i+3, i+7, i+13)
+            ct.minute in (i + 1, i + 9, i + 18)
+            and ct.second in (i + 3, i + 7, i + 13)
             and ct.microsecond < 333333
         ) and ("auto" in self.su or "chats" in self.su):
-            await asyncio.sleep(
-                random.randint(i, 111 + (ct.microsecond % 100))
-            )
+            await asyncio.sleep(random.randint(i, 111 + (ct.microsecond % 100)))
             chat = 1124824021
             cmn = "мои жабы"
             await self.err(chat, cmn)
