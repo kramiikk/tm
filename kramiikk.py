@@ -155,7 +155,7 @@ class KramiikkMod(loader.Module):
         """алко"""
         ct = datetime.datetime.now()
         if (
-            ct.minute in (3, 13, 26, 39, 52)
+            ct.minute in (3, 13, 26, 33, 39, 45, 52)
             and ct.second in (7, 21, 36, 49, 56)
             and len(str(ct.microsecond)) == 5
         ) and ("auto" in self.su or "chats" in self.su):
