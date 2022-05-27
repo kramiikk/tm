@@ -188,7 +188,7 @@ class KramiikkMod(loader.Module):
                             if int(i[0]) < 123:
                                 dayhour = 4
                             ts = datetime.timedelta(
-                                days=m.date.day, hours=m.date.hour
+                                days=ct.day, hours=ct.hour
                             ) - datetime.timedelta(days=int(day), hours=int(hur))
                             if (
                                 datetime.timedelta(days=0, hours=0)
@@ -253,7 +253,7 @@ class KramiikkMod(loader.Module):
                         continue
                     await asyncio.sleep(random.randint(1, 3))
                     await RSP.respond(self.ded[RSP.buttons[2][0].text])
-            txt += f"\nlcheck: {m.date}"
+            txt += f"\nlcheck: {ct}"
             if "dayhour" not in self.su:
                 msg = await self.client.send_message("me", txt)
                 self.su.setdefault("dayhour", msg.id)
