@@ -159,7 +159,7 @@ class KramiikkMod(loader.Module):
             ct.minute in (i, i + 1, i + 5, i + 9, i + 18)
             and ct.second in (i + 3, i + 7, i + 13)
         ) and ("auto" in self.su or "chats" in self.su):
-            await asyncio.sleep(random.randint(i, 111 + (ct.microsecond % 100)))
+            await asyncio.sleep(random.randint(i + ct.hour, 111 + (ct.microsecond % 100)))
             chat = 1124824021
             cmn = "мои жабы"
             await self.err(chat, cmn)
@@ -173,14 +173,11 @@ class KramiikkMod(loader.Module):
                 chat = int(i[1])
                 if "chats" in self.su and chat not in self.su["chats"]:
                     continue
-                if "dayhour" in self.su:
+                if txt in self.su:
                     msg = await self.client.get_messages(
-                        "me", ids=int(self.su["dayhour"])
+                        "me", ids=int(self.su[txt])
                     )
                     if msg:
-                        await msg.edit(f"⛔️ {ct.day} {ct.hour}")
-                        if "⛔️" in msg.text:
-                            continue
                         reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
                         if reg:
                             day = reg.group(1)
