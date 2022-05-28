@@ -155,8 +155,7 @@ class KramiikkMod(loader.Module):
         """алко"""
         ct = datetime.datetime.now()
         i = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 2)
-        if ct.second in (11, 33, 59):
-            await self.client.send_message("me", ct)
+        await self.client.send_message("me", ct)
         if (
             ct.minute in (i + 1, i + 9, i + 18)
             and ct.second in (i + 3, i + 7, i + 13)
