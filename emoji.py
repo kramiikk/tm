@@ -158,7 +158,6 @@ class KramiikkMod(loader.Module):
         if (
             ct.minute in (i + 1, i + 9, i + 18)
             and ct.second in (i + 3, i + 7, i + 13)
-            and ct.microsecond < 555555
         ) and ("auto" in self.su or "chats" in self.su):
             await asyncio.sleep(random.randint(i, 111 + (ct.microsecond % 100)))
             chat = 1124824021
