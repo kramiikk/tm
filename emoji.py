@@ -178,6 +178,9 @@ class KramiikkMod(loader.Module):
                         "me", ids=int(self.su["dayhour"])
                     )
                     if msg:
+                        await msg.edit(f"⛔️ {ct.day} {ct.hour}")
+                        if "⛔️" in msg.text:
+                            continue
                         reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
                         if reg:
                             day = reg.group(1)
