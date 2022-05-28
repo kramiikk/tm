@@ -154,12 +154,6 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         ct = datetime.datetime.now()
-        if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 3):
-            return
-        elif "minute" in self.su:
-            self.su["minute"] = ct.minute
-        else:
-            self.su.setdefault("minute", ct.minute)
         i = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 2)
         if (
             ct.minute in (i, i + 1, i + 5, i + 9, i + 18)
@@ -168,6 +162,12 @@ class KramiikkMod(loader.Module):
             await asyncio.sleep(
                 random.randint(i + ct.hour, 111 + (ct.microsecond % 100))
             )
+            if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 3):
+                return
+            elif "minute" in self.su:
+                self.su["minute"] = ct.minute
+            else:
+                self.su.setdefault("minute", ct.minute)
             chat = 1124824021
             cmn = "мои жабы"
             await self.err(chat, cmn)
