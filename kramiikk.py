@@ -160,7 +160,7 @@ class KramiikkMod(loader.Module):
             and ct.second in (n + 3, n + 7, n + 13)
         ) and ("auto" in self.su or "chats" in self.su):
             await asyncio.sleep(
-                random.randint(i + ct.hour, 111 + (ct.microsecond % 100))
+                random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
             )
             if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 3):
                 return
