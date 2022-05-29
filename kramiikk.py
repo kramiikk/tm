@@ -181,8 +181,8 @@ class KramiikkMod(loader.Module):
                 dayhour = 2 if int(i[0]) > 123 else 4
                 if "chats" in self.su and chat not in self.su["chats"]:
                     continue
-                if txt in self.su:
-                    msg = await self.client.get_messages("me", ids=int(self.su[txt]))
+                if "dayhour" in self.su:
+                    msg = await self.client.get_messages("me", ids=int(self.su["dayhour"]))
                     if msg:
                         reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
                         if reg:
