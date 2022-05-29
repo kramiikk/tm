@@ -155,10 +155,9 @@ class KramiikkMod(loader.Module):
         """алко"""
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 2)
-        if (
-            ct.minute in (n, n + 1, n + 5, n + 9, n + 18)
-            and ct.second in (n + 3, n + 7, n + 13)
-        ) and ("auto" in self.su or "chats" in self.su):
+        if (ct.minute in (n + 1, n + 5, n + 9) and ct.second in (n + 3, n + 7)) and (
+            "auto" in self.su or "chats" in self.su
+        ):
             await asyncio.sleep(
                 random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
             )
