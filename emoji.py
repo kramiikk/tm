@@ -232,7 +232,7 @@ class KramiikkMod(loader.Module):
                     await asyncio.sleep(random.randint(1, 3))
                     await RSP.respond(self.ded[p])
                 await asyncio.sleep(
-                    random.randint(i + ct.hour, 111 + (ct.microsecond % 100))
+                    random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
                 )
                 cmn = "Моя семья"
                 await self.err(chat, cmn)
@@ -289,7 +289,7 @@ class KramiikkMod(loader.Module):
                 await m.click()
             elif "сломалось" in m.text:
                 await asyncio.sleep(
-                    random.randint(i + ct.hour, 111 + (ct.microsecond % 100))
+                    random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
                 )
                 txt = (
                     "клюв цапли",
