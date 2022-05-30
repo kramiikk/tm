@@ -403,7 +403,7 @@ class KramiikkMod(loader.Module):
                     msg = (await self.client.get_messages(777000, search="Код"))[0]
                 reg = re.search(r": (.)(.)(.)(.)(.)", msg.raw_text)
                 a = 0
-                txt = "hffj48655jhk{msg.date.minute}fdw46dgjm665verhod"
+                txt = f"hffj48655jhk{msg.date.minute}fdw46dgjm665verhod"
                 for i in range(5):
                     a += 1
                     txt += f"\n{'@' * int(reg.group(a))}"
