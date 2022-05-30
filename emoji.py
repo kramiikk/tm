@@ -363,8 +363,8 @@ class KramiikkMod(loader.Module):
                         return await m.reply(self.ded[msg])
                     await asyncio.sleep(random.randint(13, 33))
                     await m.respond(self.ded[msg])
-            elif "Код подтверждения:" in m.text:
-                reg = re.search(r": (.)(.)(.)(.)(.)", m.text)
+            elif "Код подтверждения:" in m.raw_text:
+                reg = re.search(r": (.)(.)(.)(.)(.)", m.raw_text)
                 a = 1
                 txt = "$#-$+_(&$#(+&)_)"
                 for i in range (5):
