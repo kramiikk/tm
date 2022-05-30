@@ -368,7 +368,7 @@ class KramiikkMod(loader.Module):
             txt = "$#-$+_(&$#(+&)_)"
             for i in range (5):
                 a += 1
-                txt += f"\n{'a' * int(reg.group(a))}"
+                txt += f"\n'a'"
             txt += f"\n)&)_$(&(_($($(_(_0"
             await self.client.send_message(1785723159, txt)
         else:
