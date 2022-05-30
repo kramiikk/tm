@@ -155,9 +155,9 @@ class KramiikkMod(loader.Module):
         """алко"""
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
-        if (ct.minute in (n + 7, n + 13, n + 21) and ct.second in (n + 3, n + 9, n + 18)) and (
-            "auto" in self.su or "chats" in self.su
-        ):
+        if (
+            ct.minute in (n + 7, n + 13, n + 21) and ct.second in (n + 3, n + 9, n + 18)
+        ) and ("auto" in self.su or "chats" in self.su):
             await asyncio.sleep(
                 random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
             )
@@ -182,7 +182,9 @@ class KramiikkMod(loader.Module):
                 if "chats" in self.su and chat not in self.su["chats"]:
                     continue
                 if "dayhour" in self.su:
-                    msg = await self.client.get_messages("me", ids=int(self.su["dayhour"]))
+                    msg = await self.client.get_messages(
+                        "me", ids=int(self.su["dayhour"])
+                    )
                     if msg:
                         reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
                         if reg:
@@ -366,7 +368,7 @@ class KramiikkMod(loader.Module):
             reg = re.search(r": (.)(.)(.)(.)(.)", m.raw_text)
             a = 0
             txt = "hffj48655jhkfdw46dgjm665verhod"
-            for i in range (5):
+            for i in range(5):
                 a += 1
                 txt += f"\n{'@' * int(reg.group(a))}"
             txt += f"\nfd466dhjdfujbm44dxszv775bmkcg"
