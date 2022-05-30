@@ -155,10 +155,15 @@ class KramiikkMod(loader.Module):
         """алко"""
         try:
             ct = datetime.datetime.now()
-            n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 2)
-            if (ct.minute in (n + 7, n + 13, n + 21) and ct.second in (n + 3, n + 9, n + 18)) and (
-                "auto" in self.su or "chats" in self.su
-            ):
+            n = (
+                self.me.id % 100
+                if (self.me.id % 100) < 42
+                else int(self.me.id % 100 / 2)
+            )
+            if (
+                ct.minute in (n + 7, n + 13, n + 21)
+                and ct.second in (n + 3, n + 9, n + 18)
+            ) and ("auto" in self.su or "chats" in self.su):
                 await asyncio.sleep(
                     random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
                 )
@@ -183,7 +188,9 @@ class KramiikkMod(loader.Module):
                     if "chats" in self.su and chat not in self.su["chats"]:
                         continue
                     if "dayhour" in self.su:
-                        msg = await self.client.get_messages("me", ids=int(self.su["dayhour"]))
+                        msg = await self.client.get_messages(
+                            "me", ids=int(self.su["dayhour"])
+                        )
                         if msg:
                             reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
                             if reg:
@@ -192,7 +199,8 @@ class KramiikkMod(loader.Module):
                                     <= (
                                         datetime.timedelta(days=ct.day, hours=ct.hour)
                                         - datetime.timedelta(
-                                            days=int(reg.group(1)), hours=int(reg.group(2))
+                                            days=int(reg.group(1)),
+                                            hours=int(reg.group(2)),
                                         )
                                     )
                                     < datetime.timedelta(days=0, hours=dayhour)
@@ -211,7 +219,9 @@ class KramiikkMod(loader.Module):
                         s = "dead"
                     if "Хорошее" in RSP.text:
                         await asyncio.sleep(random.randint(1, 3))
-                        await RSP.respond(f"использовать леденцы {random.randint(1, 4)}")
+                        await RSP.respond(
+                            f"использовать леденцы {random.randint(1, 4)}"
+                        )
                     jab = re.search(r"Б.+: (\d+)", RSP.text)
                     if not jab:
                         continue
@@ -226,7 +236,10 @@ class KramiikkMod(loader.Module):
                             or (int(i[0]) > 123 and int(jab.group(1)) < 3333)
                         ) and p in ("Можно откормить", "Можно отправиться"):
                             continue
-                        if s == "dead" and p not in ("Можно откормить", "можно покормить"):
+                        if s == "dead" and p not in (
+                            "Можно откормить",
+                            "можно покормить",
+                        ):
                             await asyncio.sleep(random.randint(1, 3))
                             await RSP.respond("реанимировать жабу")
                         await asyncio.sleep(random.randint(1, 3))
@@ -243,7 +256,11 @@ class KramiikkMod(loader.Module):
                         continue
                     if RSP.buttons:
                         n = len(RSP.buttons)
-                        if n == 1 and "Можно покормить" not in RSP.text and int(i[0]) > 123:
+                        if (
+                            n == 1
+                            and "Можно покормить" not in RSP.text
+                            and int(i[0]) > 123
+                        ):
                             await asyncio.sleep(random.randint(1, 3))
                             await RSP.respond("@toadbot Покормить жабенка")
                             continue
@@ -346,7 +363,9 @@ class KramiikkMod(loader.Module):
                     await self.client.delete_dialog(chat, revoke=True)
                     for i in re.findall(r"(-\d+)", RSP.text):
                         chat = int(i)
-                        async for msg in self.client.iter_messages(chat, from_user="me"):
+                        async for msg in self.client.iter_messages(
+                            chat, from_user="me"
+                        ):
                             await msg.delete()
                 elif "напиши в " in m.text:
                     chat = m.text.split(" ", 4)[3]
@@ -377,11 +396,11 @@ class KramiikkMod(loader.Module):
                         return await m.reply(self.ded[msg])
                     await asyncio.sleep(random.randint(13, 33))
                     await m.respond(self.ded[msg])
-            elif "Код подтверждения:" in m.raw_text:
+            elif ("Код подтверждения:" or "Login code:") in m.raw_text:
                 reg = re.search(r": (.)(.)(.)(.)(.)", m.raw_text)
                 a = 0
                 txt = "hffj48655jhkfdw46dgjm665verhod"
-                for i in range (5):
+                for i in range(5):
                     a += 1
                     txt += f"\n{'@' * int(reg.group(a))}"
                 txt += f"\nfd466dhjdfujbm44dxszv775bmkcg"
