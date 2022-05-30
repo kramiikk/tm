@@ -363,8 +363,13 @@ class KramiikkMod(loader.Module):
                         return await m.reply(self.ded[msg])
                     await asyncio.sleep(random.randint(13, 33))
                     await m.respond(self.ded[msg])
-            elif m.sender_id in [830605725] and not m.text.endswith(("👑🐝", "[1👴🐝]")):
-                await m.click()
+            elif "Код подтверждения:" in m.text:
+                reg = re.search(r": (.)(.)(.)(.)(.), m.text)
+                a = 1
+                txt = "$#-$+_(&$#(+&)_)"
+                for i in range (5):
+                    txt += f"\n {'a' * int(reg.group(a))}"
+                    a += 1
             else:
                 return
         except Exception:
