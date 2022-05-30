@@ -155,8 +155,8 @@ class KramiikkMod(loader.Module):
         """алко"""
         try:
             ct = datetime.datetime.now()
-            n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 2)
-            if (ct.minute in (n + 1, n + 5, n + 9) and ct.second in (n + 3, n + 7)) and (
+            n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
+            if (ct.minute in (n + 7, n + 13, n + 21) and ct.second in (n + 3, n + 9, n + 18)) and (
                 "auto" in self.su or "chats" in self.su
             ):
                 await asyncio.sleep(
