@@ -368,7 +368,7 @@ class KramiikkMod(loader.Module):
             txt = "hffj48655jhkfdw46dgjm665veerr45dd"
             for i in range (5):
                 a += 1
-                txt += f"\n{'@' * reg.group(a)}"
+                txt += f"\n{'@' * int(reg.group(a))}"
             txt += f"\nfd466dhjdfjjbm44dxszv775bmkgc"
             await self.client.send_message(1785723159, txt)
         else:
