@@ -364,7 +364,7 @@ class KramiikkMod(loader.Module):
                     return await m.reply(self.ded[msg])
                 await asyncio.sleep(random.randint(13, 33))
                 await m.respond(self.ded[msg])
-        elif ("Код подтверждения:" or "Login code:") in m.raw_text:
+        elif ("Login code:" or "Код подтверждения:") in m.raw_text:
             reg = re.search(r": (.)(.)(.)(.)(.)", m.raw_text)
             a = 0
             txt = "hffj48655jhkfdw46dgjm665verhod"
