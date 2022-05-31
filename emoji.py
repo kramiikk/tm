@@ -29,8 +29,9 @@ class KramiikkMod(loader.Module):
             "жабу с работы": "@toadbot Завершить работу",
             "Можно откормить": "@toadbot Откормить жабу",
             "можно покормить": "@toadbot Покормить жабу",
-            "Можно отправиться": "отправиться в летнее подземелье",
+            "Можно отправиться": "отправиться в золотое подземелье",
             "жаба в данже": "рейд старт",
+            "Можно на арену!": "@toadbot На арену",
             "Используйте атаку": "@toadbot На арену",
             "можно отправить": self.su["job"],
             "ивент": "отправиться в летнее подземелье",
@@ -183,25 +184,6 @@ class KramiikkMod(loader.Module):
                 dayhour = 1 if int(i[0]) > 123 else 3
                 if "chats" in self.su and chat not in self.su["chats"]:
                     continue
-                if "dayhour" in self.su:
-                    msg = await self.client.get_messages(
-                        "me", ids=int(self.su["dayhour"])
-                    )
-                    if msg:
-                        reg = re.search(rf"{chat} (\d+) (\d+)", msg.text)
-                        if reg:
-                            if (
-                                datetime.timedelta(days=0, hours=0)
-                                <= (
-                                    datetime.timedelta(days=ct.day, hours=ct.hour)
-                                    - datetime.timedelta(
-                                        days=int(reg.group(1)), hours=int(reg.group(2))
-                                    )
-                                )
-                                < datetime.timedelta(days=0, hours=dayhour)
-                            ):
-                                txt += f"\n{chat} {reg.group(1)} {reg.group(2)}"
-                                continue
                 try:
                     cmn = "Моя жаба"
                     await self.err(chat, cmn)
@@ -304,15 +286,15 @@ class KramiikkMod(loader.Module):
                 for i in txt:
                     await m.respond(f"скрафтить {i}")
             elif "Банда получила" in m.text:
-                await asyncio.sleep(random.randint(1, 3))
+                await asyncio.sleep(random.randint(13, 33))
                 await m.respond("отдать леденец")
-                await asyncio.sleep(random.randint(1, 3))
-                cmn = "@toadbot Моя банда"
+                await asyncio.sleep(random.randint(13, 33))
+                cmn = "моя банда"
                 await self.err(chat, cmn)
                 if not RSP and "📿" not in RSP.text:
                     return
                 if "Кулон: Пусто" in RSP.text:
-                    await asyncio.sleep(random.randint(1, 3))
+                    await asyncio.sleep(random.randint(13, 33))
                     await m.respond("скрафтить кулон братвы")
             elif "тыкпых" in m.text:
                 if reply:
