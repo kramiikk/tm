@@ -156,7 +156,7 @@ class KramiikkMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
         if (
-            ct.minute in (n + 7, n + 13, n + 21) and ct.second in (n + 3, n + 9, n + 18)
+            ct.minute in (n, n +3, n + 7, n + 13, n + 21) and ct.second in (n + 5, n + 9, n + 18)
         ) and ("auto" in self.su or "chats" in self.su):
             await asyncio.sleep(
                 random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
@@ -178,7 +178,7 @@ class KramiikkMod(loader.Module):
             txt = "dayhour"
             for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
                 chat = int(i[1])
-                dayhour = 2 if int(i[0]) > 123 else 4
+                dayhour = 1 if int(i[0]) > 123 else 3
                 if "chats" in self.su and chat not in self.su["chats"]:
                     continue
                 if "dayhour" in self.su:
