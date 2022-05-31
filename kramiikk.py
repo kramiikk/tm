@@ -212,7 +212,11 @@ class KramiikkMod(loader.Module):
                         if (
                             int(i[0]) < 123
                             or (int(i[0]) > 123 and int(jab.group(1)) < 1500)
-                        ) and p in ("Можно откормить", "Можно отправиться"):
+                        ) and p in (
+                            "Можно откормить",
+                            "Можно отправиться",
+                            "Можно на арену!",
+                        ):
                             continue
                         if s == "dead" and p not in (
                             "Можно откормить",
