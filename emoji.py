@@ -34,6 +34,7 @@ class KramiikkMod(loader.Module):
             "Используйте атаку": "@toadbot На арену",
             "можно отправить": self.su["job"],
             "ивент": "отправиться в летнее подземелье",
+            "золото": "отправиться в золотое подземелье",
             "кв": "начать клановую войну",
             "напади": "напасть на клан",
             "арена": "на арену",
@@ -156,7 +157,8 @@ class KramiikkMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
         if (
-            ct.minute in (n, n +3, n + 7, n + 13, n + 21) and ct.second in (n + 5, n + 9, n + 18)
+            ct.minute in (n, n + 3, n + 7, n + 13, n + 21)
+            and ct.second in (n + 5, n + 9, n + 18)
         ) and ("auto" in self.su or "chats" in self.su):
             await asyncio.sleep(
                 random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
