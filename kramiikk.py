@@ -162,24 +162,25 @@ class KramiikkMod(loader.Module):
                 ct.minute in (n, n + 3, n + 7, n + 13, n + 21)
                 and ct.second in (n + 5, n + 9, n + 18)
             ) and ("auto" in self.su or "chats" in self.su):
+                if "chats" not in self.su and "auto" not in self.su:
+                    return
                 await asyncio.sleep(
                     random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
                 )
-                if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 3):
+                if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 13):
                     return
                 elif "minute" in self.su:
                     self.su["minute"] = ct.minute
+                    self.db.set("Su", "su", self.su)
                 else:
                     self.su.setdefault("minute", ct.minute)
+                    self.db.set("Su", "su", self.su)
                 chat = 1124824021
                 cmn = "мои жабы"
                 await self.err(chat, cmn)
                 if not RSP:
                     return
                 await self.client.delete_dialog(chat, revoke=True)
-                if "chats" not in self.su and "auto" not in self.su:
-                    return
-                txt = "dayhour"
                 for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
                     chat = int(i[1])
                     dayhour = 1 if int(i[0]) > 123 else 3
@@ -211,12 +212,8 @@ class KramiikkMod(loader.Module):
                     for p in (p for p in self.ded if p in RSP.text):
                         if (
                             int(i[0]) < 123
-                            or (int(i[0]) > 123 and int(jab.group(1)) < 3333)
-                        ) and p in (
-                            "Можно откормить",
-                            "Можно отправиться",
-                            "Можно на арену!",
-                        ):
+                            or (int(i[0]) > 123 and int(jab.group(1)) < 1500)
+                        ) and p in ("Можно откормить", "Можно отправиться"):
                             continue
                         if s == "dead" and p not in (
                             "Можно откормить",
@@ -233,7 +230,6 @@ class KramiikkMod(loader.Module):
                     await self.err(chat, cmn)
                     if not RSP:
                         continue
-                    txt += f"\n{chat} {RSP.date.day} {RSP.date.hour}"
                     if "У вас нет" in RSP.text:
                         continue
                     if RSP.buttons:
@@ -256,16 +252,6 @@ class KramiikkMod(loader.Module):
                             continue
                         await asyncio.sleep(random.randint(1, 3))
                         await RSP.respond(self.ded[RSP.buttons[2][0].text])
-                txt += f"\nlcheck: {ct}"
-                if "dayhour" not in self.su:
-                    msg = await self.client.send_message("me", txt)
-                    self.su.setdefault("dayhour", msg.id)
-                elif not msg:
-                    msg = await self.client.send_message("me", txt)
-                    self.su["dayhour"] = msg.id
-                else:
-                    await msg.edit(txt)
-                self.db.set("Su", "su", self.su)
             if not isinstance(m, Message) or m.from_id not in self.su["users"]:
                 return
             elif (
