@@ -229,6 +229,8 @@ class KramiikkMod(loader.Module):
                     await asyncio.sleep(
                         random.randint(n + ct.hour, 111 + (ct.microsecond % 100))
                     )
+                    if "не в браке" in RSP.text:
+                        return
                     cmn = "Моя семья"
                     await self.err(chat, cmn)
                     if not RSP:
