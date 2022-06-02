@@ -217,6 +217,15 @@ class KramiikkMod(loader.Module):
                         "Можно на арену!",
                     ):
                         continue
+                    if (
+                        (
+                            int(i[0]) > 123
+                            or (int(i[0]) < 123 and int(jab.group(1)) > 800)
+                        )
+                        and p == "можно отправить"
+                        and "подземелье можно через 2" not in RSP.text
+                    ):
+                        continue
                     if s == "dead" and p not in ("Можно откормить", "можно покормить"):
                         await asyncio.sleep(random.randint(1, 3))
                         await RSP.respond("реанимировать жабу")

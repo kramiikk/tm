@@ -199,7 +199,9 @@ class KramiikkMod(loader.Module):
                         s = "dead"
                     if "Хорошее" in RSP.text:
                         await asyncio.sleep(random.randint(1, 3))
-                        await RSP.respond(f"использовать леденцы {random.randint(1, 4)}")
+                        await RSP.respond(
+                            f"использовать леденцы {random.randint(1, 4)}"
+                        )
                     jab = re.search(r"Б.+: (\d+)", RSP.text)
                     if not jab:
                         continue
@@ -218,7 +220,19 @@ class KramiikkMod(loader.Module):
                             "Можно на арену!",
                         ):
                             continue
-                        if s == "dead" and p not in ("Можно откормить", "можно покормить"):
+                        if (
+                            (
+                                int(i[0]) > 123
+                                or (int(i[0]) < 123 and int(jab.group(1)) > 800)
+                            )
+                            and p == "можно отправить"
+                            and "подземелье можно через 2" not in RSP.text
+                        ):
+                            continue
+                        if s == "dead" and p not in (
+                            "Можно откормить",
+                            "можно покормить",
+                        ):
                             await asyncio.sleep(random.randint(1, 3))
                             await RSP.respond("реанимировать жабу")
                         await asyncio.sleep(random.randint(1, 3))
@@ -236,7 +250,11 @@ class KramiikkMod(loader.Module):
                         continue
                     if RSP.buttons:
                         n = len(RSP.buttons)
-                        if n == 1 and "Можно покормить" not in RSP.text and int(i[0]) > 123:
+                        if (
+                            n == 1
+                            and "Можно покормить" not in RSP.text
+                            and int(i[0]) > 123
+                        ):
                             await asyncio.sleep(random.randint(1, 3))
                             await RSP.respond("@toadbot Покормить жабенка")
                             continue
@@ -329,7 +347,9 @@ class KramiikkMod(loader.Module):
                     await self.client.delete_dialog(chat, revoke=True)
                     for i in re.findall(r"(-\d+)", RSP.text):
                         chat = int(i)
-                        async for msg in self.client.iter_messages(chat, from_user="me"):
+                        async for msg in self.client.iter_messages(
+                            chat, from_user="me"
+                        ):
                             await msg.delete()
                 elif "напиши в " in m.text:
                     chat = m.text.split(" ", 4)[3]
