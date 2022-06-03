@@ -184,7 +184,7 @@ class KramiikkMod(loader.Module):
                     return
                 for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
                     chat = int(i[1])
-                    dayhour = 1 if int(i[0]) > 123 else 3
+                    dayhour = 1 if int(i[0]) > 70 else 3
                     if "chats" in self.su and chat not in self.su["chats"]:
                         continue
                     try:
