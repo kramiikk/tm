@@ -216,8 +216,8 @@ class KramiikkMod(loader.Module):
                         continue
                     for p in (p for p in self.ded if p in RSP.text):
                         if (
-                            int(i[0]) < 123
-                            or (int(i[0]) > 123 and int(jab.group(1)) < 1500)
+                            int(i[0]) < 70
+                            or (int(i[0]) > 70 and int(jab.group(1)) < 1500)
                         ) and p in (
                             "Можно откормить",
                             "Можно отправиться",
@@ -225,7 +225,7 @@ class KramiikkMod(loader.Module):
                         ):
                             continue
                         if (
-                            (int(i[0]) > 123 and int(jab.group(1)) > 800)
+                            (int(i[0]) > 70 and int(jab.group(1)) > 800)
                             and p == "можно отправить"
                             and "подземелье можно через 2" not in RSP.text
                         ):
