@@ -30,7 +30,6 @@ class KramiikkMod(loader.Module):
             "Можно откормить": "@toadbot Откормить жабу",
             "можно покормить": "@toadbot Покормить жабу",
             "Можно отправиться": "отправиться в золотое подземелье",
-            "Можно на арену!": "@toadbot На арену",
             "Используйте атаку": "@toadbot На арену",
             "можно отправить": self.su["job"],
             "ивент": "отправиться в летнее подземелье",
@@ -211,16 +210,15 @@ class KramiikkMod(loader.Module):
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
-                        int(i[0]) < 123
-                        or (int(i[0]) > 123 and int(jab.group(1)) < 1500)
+                        int(i[0]) < 77
+                        or (int(i[0]) > 77 and int(jab.group(1)) < 1500)
                     ) and p in (
                         "Можно откормить",
                         "Можно отправиться",
-                        "Можно на арену!",
                     ):
                         continue
                     if (
-                        (int(i[0]) > 123 and int(jab.group(1)) > 800)
+                        (int(i[0]) > 70 and int(jab.group(1)) > 1500)
                         and p == "можно отправить"
                         and "подземелье можно через 2" not in RSP.text
                     ):
