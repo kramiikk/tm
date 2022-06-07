@@ -155,10 +155,9 @@ class KramiikkMod(loader.Module):
         """алко"""
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
-        if (
-            ct.minute in (n, n + 3, n + 7, n + 13, n + 21)
-            and ct.second in (n + 5, n + 9, n + 18)
-        ) and ("auto" in self.su or "chats" in self.su):
+        if (ct.minute in (n + 7, n + 13, n + 21)) and (
+            "auto" in self.su or "chats" in self.su
+        ):
             if "chats" not in self.su and "auto" not in self.su:
                 return
             await asyncio.sleep(
@@ -210,8 +209,7 @@ class KramiikkMod(loader.Module):
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
-                        int(i[0]) < 77
-                        or (int(i[0]) > 77 and int(jab.group(1)) < 1500)
+                        int(i[0]) < 77 or (int(i[0]) > 77 and int(jab.group(1)) < 1500)
                     ) and p in (
                         "Можно откормить",
                         "Можно отправиться",
