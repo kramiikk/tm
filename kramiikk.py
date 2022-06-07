@@ -111,10 +111,10 @@ class KramiikkMod(loader.Module):
         """автоарена для всех чатов"""
         if "buto" in self.su:
             self.su.pop("buto")
-            txt = "<b>арена актив</b>"
+            txt = "<b>арена теперь нема</b>"
         else:
             self.su.setdefault("buto", {})
-            txt = "<b>арена уйди</b>"
+            txt = "<b>арена уху</b>"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
