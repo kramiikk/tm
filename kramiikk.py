@@ -30,6 +30,7 @@ class KramiikkMod(loader.Module):
             "Можно откормить": "@toadbot Откормить жабу",
             "можно покормить": "@toadbot Покормить жабу",
             "Можно отправиться": "отправиться в золотое подземелье",
+            "Можно на арену!": "@toadbot На арену",
             "Используйте атаку": "@toadbot На арену",
             "можно отправить": self.su["job"],
             "ивент": "отправиться в летнее подземелье",
@@ -103,6 +104,17 @@ class KramiikkMod(loader.Module):
             if "chats" in self.su:
                 self.su.pop("chats")
             txt = "<b>активирована</b>"
+        self.db.set("Su", "su", self.su)
+        await m.edit(txt)
+
+    async def sbcmd(self, m):
+        """автоарена для всех чатов"""
+        if "buto" in self.su:
+            self.su.pop("buto")
+            txt = "<b>арена актив</b>"
+        else:
+            self.su.setdefault("buto", {})
+            txt = "<b>арена уйди</b>"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
@@ -231,6 +243,8 @@ class KramiikkMod(loader.Module):
                         ):
                             await asyncio.sleep(random.randint(3, 13))
                             await RSP.respond("реанимировать жабу")
+                        if "buto" not in self.su and p == "Можно на арену!":
+                            continue
                         await asyncio.sleep(random.randint(3, 13))
                         await RSP.respond(self.ded[p])
                     await asyncio.sleep(random.randint(3, 13))
