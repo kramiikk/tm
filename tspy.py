@@ -57,11 +57,11 @@ class SpyMod(loader.Module):
                     return await self.client.send_message(1767017980, tog)
                 await self.client.send_message(1767017980, tog)
                 p = await self.client.get_messages(
-                    "allotd", search=f"35 кланов {klan.group(1)}"
+                    1537222628, search=f"35 кланов {klan.group(1)}"
                 )
                 if p.total == 0:
                     p = await self.client.get_messages(
-                        "allotd", search=f"35 кланов {klan.group(2)}"
+                        1537222628, search=f"35 кланов {klan.group(2)}"
                     )
                 for i in p:
                     txt = f"Cid: {message.chat_id}\n\nКлан: {klan.group(1)}\nЛига: {re.search(r'кланов (.+) лиге', i.text).group(1)}"
@@ -83,7 +83,7 @@ class SpyMod(loader.Module):
                 ):
                     klan = re.search(r"Клан: (.+)", i.text).group(1)
                     liga = re.search(r"Лига: (.+)", i.text).group(1)
-                    p = await self.client.get_messages("allotd", search=f"35 кланов {klan}")
+                    p = await self.client.get_messages(1537222628, search=f"35 кланов {klan}")
                     if p.total == 0:
                         txt = f"{klan}\nЛига: {liga}"
                     else:
@@ -95,10 +95,10 @@ class SpyMod(loader.Module):
             elif message.message.startswith("Алло,") and message.from_id in [1124824021]:
                 klan = re.search(r"клана (.+) нашелся враг (.+), пора", message.text)
                 src = f"35 кланов {klan.group(1)}"
-                ms = await self.client.get_messages("allotd", search=src)
+                ms = await self.client.get_messages(1537222628, search=src)
                 if ms.total == 0:
                     src = f"35 кланов {klan.group(2)}"
-                    ms = await self.client.get_messages("allotd", search=src)
+                    ms = await self.client.get_messages(1537222628, search=src)
                 for i in ms:
                     if "деревян" in i.text.casefold() or klan.group(1) not in i.text:
                         return
