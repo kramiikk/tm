@@ -147,6 +147,15 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
+    async def stcmd(self, m):
+        """инфо про ваши жабы"""
+        txt = "Статус жаб:"
+        if "auto" in self.su:
+            txt += f"\nАвтожаба: <b>✳️activated</b>"
+        else:
+            txt += f"\nАвтожаба: <b>⛔️deactivated</b>"
+        await m.edit(txt)
+
     async def svcmd(self, m):
         """автожаба для выбранного чата"""
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
