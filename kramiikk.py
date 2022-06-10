@@ -152,6 +152,8 @@ class KramiikkMod(loader.Module):
         txt = "Статус жаб:"
         if "auto" in self.su:
             txt += f"\nАвтожаба: <b>✳️activated</b>"
+        elif "chats" in self.su:
+            txt += f"\nРаботает в чатах {self.su["chats"]}"
         else:
             txt += f"\nАвтожаба: <b>⛔️deactivated</b>"
         await m.edit(txt)
