@@ -95,25 +95,63 @@ class KramiikkMod(loader.Module):
 
     async def sacmd(self, m):
         """автожаба для всех чатов"""
-        if "auto" in self.su:
-            self.su.pop("auto")
-            txt = "<b>деактивирована</b>"
-        else:
+        txt = "<b>автожаба</b>"
+        if "+" in m.text:
             self.su.setdefault("auto", {})
             if "chats" in self.su:
                 self.su.pop("chats")
-            txt = "<b>активирована</b>"
+            txt += "<b> активирована для всех чатов</b>"
+            return await m.edit(txt)
+        if len(m.text) < 9 and len(m.text) > 3 and "chats" in self.su:
+            txt = "Chats:"
+            for i in self.su["chats"]:
+                txt += f"\n{i}"
+            return await m.edit(txt)
+        msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
+        if "auto" in self.su:
+            self.su.pop("auto")
+            txt += "<b> деактивирована</b>"
+        elif "chats" in self.su and msg in self.su["chats"]:
+            self.su["chats"].remove(msg)
+            txt += f"<b> успешно удален в чате</b> {msg}"
+        elif "chats" in self.su and msg not in self.su["chats"]:
+            txt += f"<b> успешно добавлен в чате</b> {msg}"
+            self.su["chats"].append(msg)
+        else:
+            self.su.setdefault("chats", [msg])
+            txt += f"<b> теперь работает в чате</b> {msg}"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
     async def sbcmd(self, m):
         """автоарена для всех чатов"""
+        txt = "<b>арена</b>"
+        if "+" in m.text:
+            self.su.setdefault("buto", {})
+            if "butos" in self.su:
+                self.su.pop("butos")
+            txt += "<b> включена везде</b>"
+            return await m.edit(txt)
+        if len(m.text) < 9 and len(m.text) > 3 and "butos" in self.su:
+            txt = "Chats:"
+            for i in self.su["butos"]:
+                txt += f"\n{i}"
+            return await m.edit(txt)
+        msg = int(m.text.split(" ", 1)[1]) if len(m.text) > 9 else m.chat_id
         if "buto" in self.su:
             self.su.pop("buto")
-            txt = "<b>арена теперь нема</b>"
+            txt += "<b> выключена</b>"
+        elif "butos" in self.su and msg in self.su["butos"]:
+            self.su["butos"].remove(msg)
+            txt += f"<b> выключена для чата</b> {msg}"
+            if self.su["butos"] == []:
+                self.su.pop("butos")
+        elif "butos" in self.su and msg not in self.su["butos"]:
+            self.su["butos"].append(msg)
+            txt += f"<b> включена для чата</b> {msg}"
         else:
-            self.su.setdefault("buto", {})
-            txt = "<b>арена уху</b>"
+            self.su.setdefault("butos", [msg])
+            txt += f"<b> включена для чата</b> {msg}"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
@@ -133,9 +171,35 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
+    async def stcmd(self, m):
+        """Info"""
+        txt = "<b>Status</b>\nAutojaba:"
+        if "auto" in self.su:
+            txt += f" <b>✳️activated</b>"
+        elif "chats" in self.su:
+            txt += f"<b> in {self.su['chats']}</b>"
+        else:
+            txt += f" <b>⛔️deactivated</b>"
+        txt += f"\nAutoarena:"
+        if "buto" in self.su:
+            txt += f" <b>✳️activated</b>"
+        elif "butos" in self.su:
+            txt += f"<b> in {self.su['butos']}</b>"
+        else:
+            txt += f" <b>⛔️deactivated</b>"
+        txt += f"\nJob: <b>{self.su['job']}</b>"
+        txt += f"\nNick: <b>{self.su['name']}</b>"
+        txt += "\nUsers: <code>.su</code>"
+        await m.edit(txt)
+
     async def sucmd(self, m):
         """добавляет пользователей для управление"""
         reply = await m.get_reply_message()
+        if len(m.text) < 9 and not reply:
+            txt = "Users:"
+            for i in self.su["users"]:
+                txt += f"\n<a href='tg://user?id={i}'>{i}</a>"
+            return await m.edit(txt)
         msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
         if msg in self.su["users"]:
             self.su["users"].remove(msg)
@@ -143,33 +207,6 @@ class KramiikkMod(loader.Module):
         else:
             self.su["users"].append(msg)
             txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
-        self.db.set("Su", "su", self.su)
-        await m.edit(txt)
-
-    async def stcmd(self, m):
-        """инфо про ваши жабы"""
-        txt = "Статус жаб:"
-        if "auto" in self.su:
-            txt += f"\nАвтожаба: <b>✳️activated</b>"
-        elif "chats" in self.su:
-            txt += f"\nРаботает в чатах {self.su['chats']}"
-        else:
-            txt += f"\nАвтожаба: <b>⛔️deactivated</b>"
-        await m.edit(txt)
-
-    async def svcmd(self, m):
-        """автожаба для выбранного чата"""
-        msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
-        txt = f"👶🏿 {msg} <b>чат успешно добавлен</b>"
-        if "chats" not in self.su:
-            self.su.setdefault("chats", [msg])
-        elif msg in self.su["chats"]:
-            self.su["chats"].remove(msg)
-            txt = f"👶🏻 {msg} <b>чат успешно удален</b>"
-        else:
-            self.su["chats"].append(msg)
-        if "auto" in self.su:
-            self.su.pop("auto")
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
