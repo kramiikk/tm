@@ -127,7 +127,7 @@ class KramiikkMod(loader.Module):
             txt += "<b> выключена</b>"
         elif "+" in m.text:
             self.su.setdefault("buto", {})
-            if "buto" in self.su:
+            if "butos" in self.su:
                 self.su.pop("butos")
             txt += "<b> для всех чатов</b>"
         elif "butos" in self.su and msg in self.su["butos"]:
