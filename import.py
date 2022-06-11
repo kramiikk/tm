@@ -225,7 +225,7 @@ class KramiikkMod(loader.Module):
                 )
                 if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 13):
                     return
-                elif "minute" in self.su:
+                if "minute" in self.su:
                     self.su["minute"] = ct.minute
                     self.db.set("Su", "su", self.su)
                 else:
@@ -325,7 +325,7 @@ class KramiikkMod(loader.Module):
                         await RSP.respond(self.ded[RSP.buttons[2][0].text])
             if not isinstance(m, Message) or m.from_id not in self.su["users"]:
                 return
-            elif (
+            if (
                 (
                     m.text.casefold().startswith(self.su["name"])
                     or m.text.startswith(f"@{self.me.username}")
