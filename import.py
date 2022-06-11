@@ -96,6 +96,11 @@ class KramiikkMod(loader.Module):
 
     async def sacmd(self, m):
         """автожаба для всех чатов"""
+        if len(m.text) < 9 and len(m.text) > 3 and "chats" in self.su:
+            txt = "Chats:"
+            for i in self.su["chats"]:
+                txt += f"\n{i}"
+            return await m.edit(txt)
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
         txt = "<b>автожаба</b>"
         if "auto" in self.su:
@@ -120,7 +125,12 @@ class KramiikkMod(loader.Module):
 
     async def sbcmd(self, m):
         """автоарена для всех чатов"""
-        msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
+        if len(m.text) < 9 and len(m.text) > 3 and "butos" in self.su:
+            txt = "Chats:"
+            for i in self.su["butos"]:
+                txt += f"\n{i}"
+            return await m.edit(txt)
+        msg = int(m.text.split(" ", 1)[1]) if len(m.text) > 9 else m.chat_id
         txt = "<b>арена</b>"
         if "buto" in self.su:
             self.su.pop("buto")
@@ -176,17 +186,17 @@ class KramiikkMod(loader.Module):
             txt += f" <b>⛔️deactivated</b>"
         txt += f"\nJob: <b>{self.su['job']}</b>"
         txt += f"\nNick: <b>{self.su['name']}</b>"
-        txt += "\nUsers: <code>.su -i</code>"
+        txt += "\nUsers: <code>.su</code>"
         await m.edit(txt)
 
     async def sucmd(self, m):
         """добавляет пользователей для управление"""
-        if "-i" in m.text:
+        reply = await m.get_reply_message()
+        if len(m.text) < 9 and not reply:
             txt = "Users:"
             for i in self.su["users"]:
                 txt += f"\n<a href='tg://user?id={i}'>{i}</a>"
             return await m.edit(txt)
-        reply = await m.get_reply_message()
         msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
         if msg in self.su["users"]:
             self.su["users"].remove(msg)
