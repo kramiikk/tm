@@ -158,21 +158,6 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
-    async def sucmd(self, m):
-        """добавляет пользователей для управление"""
-        if "-i" in m.text:
-            return await m.edit(str(self.su["users"]))
-        reply = await m.get_reply_message()
-        msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
-        if msg in self.su["users"]:
-            self.su["users"].remove(msg)
-            txt = f"🖕🏾 {msg} <b>успешно удален</b>"
-        else:
-            self.su["users"].append(msg)
-            txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
-        self.db.set("Su", "su", self.su)
-        await m.edit(txt)
-
     async def stcmd(self, m):
         """Info"""
         txt = "<b>Info</b>\nAutojaba:"
@@ -192,6 +177,24 @@ class KramiikkMod(loader.Module):
         txt += f"\nJob: <b>{self.su['job']}</b>"
         txt += f"\nNick: <b>{self.su['name']}</b>"
         txt += "\nUsers: <code>.su -i</code>"
+        await m.edit(txt)
+
+    async def sucmd(self, m):
+        """добавляет пользователей для управление"""
+        if "-i" in m.text:
+            txt = "Users:"
+            for i in self.su["users"]:
+                txt += f"<a href='tg://user?id={i}'>{i}</a>"
+            return await m.edit(txt)
+        reply = await m.get_reply_message()
+        msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
+        if msg in self.su["users"]:
+            self.su["users"].remove(msg)
+            txt = f"🖕🏾 {msg} <b>успешно удален</b>"
+        else:
+            self.su["users"].append(msg)
+            txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
+        self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
     async def watcher(self, m):
