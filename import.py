@@ -173,7 +173,7 @@ class KramiikkMod(loader.Module):
 
     async def stcmd(self, m):
         """Info"""
-        txt = "<b>Info</b>\nAutojaba:"
+        txt = "<b>Status</b>\nAutojaba:"
         if "auto" in self.su:
             txt += f" <b>✳️activated</b>"
         elif "chats" in self.su:
