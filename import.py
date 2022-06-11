@@ -184,7 +184,7 @@ class KramiikkMod(loader.Module):
         if "-i" in m.text:
             txt = "Users:"
             for i in self.su["users"]:
-                txt += f"<a href='tg://user?id={i}'>{i}</a>"
+                txt += f"\n<a href='tg://user?id={i}'>{i}</a>"
             return await m.edit(txt)
         reply = await m.get_reply_message()
         msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
