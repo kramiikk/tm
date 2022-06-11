@@ -96,21 +96,22 @@ class KramiikkMod(loader.Module):
 
     async def sacmd(self, m):
         """автожаба для всех чатов"""
+        txt = "<b>автожаба</b>"
+        if "+" in m.text:
+            self.su.setdefault("auto", {})
+            if "chats" in self.su:
+                self.su.pop("chats")
+            txt += "<b> активирована для всех чатов</b>"
+            return await m.edit(txt)
         if len(m.text) < 9 and len(m.text) > 3 and "chats" in self.su:
             txt = "Chats:"
             for i in self.su["chats"]:
                 txt += f"\n{i}"
             return await m.edit(txt)
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
-        txt = "<b>автожаба</b>"
         if "auto" in self.su:
             self.su.pop("auto")
             txt += "<b> деактивирована</b>"
-        elif "+" in m.text:
-            self.su.setdefault("auto", {})
-            if "chats" in self.su:
-                self.su.pop("chats")
-            txt += "<b> активирована для всех чатов</b>"
         elif "chats" in self.su and msg in self.su["chats"]:
             self.su["chats"].remove(msg)
             txt += f"<b> успешно удален в чате</b> {msg}"
@@ -125,24 +126,27 @@ class KramiikkMod(loader.Module):
 
     async def sbcmd(self, m):
         """автоарена для всех чатов"""
+        txt = "<b>арена</b>"
+        if "+" in m.text:
+            self.su.setdefault("buto", {})
+            if "butos" in self.su:
+                self.su.pop("butos")
+            txt += "<b> включена везде</b>"
+            return await m.edit(txt)
         if len(m.text) < 9 and len(m.text) > 3 and "butos" in self.su:
             txt = "Chats:"
             for i in self.su["butos"]:
                 txt += f"\n{i}"
             return await m.edit(txt)
         msg = int(m.text.split(" ", 1)[1]) if len(m.text) > 9 else m.chat_id
-        txt = "<b>арена</b>"
         if "buto" in self.su:
             self.su.pop("buto")
             txt += "<b> выключена</b>"
-        elif "+" in m.text:
-            self.su.setdefault("buto", {})
-            if "butos" in self.su:
-                self.su.pop("butos")
-            txt += "<b> для всех чатов</b>"
         elif "butos" in self.su and msg in self.su["butos"]:
             self.su["butos"].remove(msg)
             txt += f"<b> выключена для чата</b> {msg}"
+            if self.su["butos"] == []:
+                self.su.pop("butos")
         elif "butos" in self.su and msg not in self.su["butos"]:
             self.su["butos"].append(msg)
             txt += f"<b> включена для чата</b> {msg}"
