@@ -123,7 +123,7 @@ class KramiikkMod(loader.Module):
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
         txt = "<b>арена</b>"
         if "butos" in self.su:
-            self.su.pop("buto")
+            self.su.pop("butos")
             txt += "<b> выключена</b>"
         elif "+" in m.text:
             self.su.setdefault("buto", {})
