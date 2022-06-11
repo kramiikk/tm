@@ -125,15 +125,15 @@ class KramiikkMod(loader.Module):
         if "buto" in self.su:
             self.su.pop("buto")
             txt += "<b> выключена</b>"
+        elif "+" in m.text:
+            self.su.setdefault("buto", {})
+            txt += "<b> для всех чатов</b>"
         elif "butos" in self.su and msg in self.su["butos"]:
             self.su["butos"].remove(msg)
             txt += f"<b> выключена для чата</b> {msg}"
         elif "butos" in self.su and msg not in self.su["butos"]:
             self.su["butos"].append(msg)
             txt += f"<b> включена для чата</b> {msg}"
-        elif "+" in m.text:
-            self.su.setdefault("buto", {})
-            txt += "<b> для всех чатов</b>"
         else:
             self.su.setdefault("butos", [msg])
             txt += f"<b> включена для чата</b> {msg}"
@@ -178,15 +178,16 @@ class KramiikkMod(loader.Module):
             txt += f"<b> in {self.su['chats']}</b>"
         else:
             txt += f" <b>⛔️deactivated</b>"
+        txt += f"\nAutoarena:"
+        if "buto" in self.su:
+            txt += f" <b>✳️activated</b>"
+        elif "butos" in self.su:
+            txt += f"<b> in {self.su['butos']}</b>"
+        else:
+            txt += f" <b>⛔️deactivated</b>"
         txt += f"\nJob: <b>{self.su['job']}</b>"
         txt += f"\nNick: <b>{self.su['name']}</b>"
         txt += f"\nUsers: <b>{self.su['users']}</b>"
-        if "auto" in self.su:
-            txt += f" <b>✳️activated</b>"
-        elif "chats" in self.su:
-            txt += f"<b> in {self.su['chats']}</b>"
-        else:
-            txt += f" <b>⛔️deactivated</b>"
         await m.edit(txt)
 
     async def watcher(self, m):
