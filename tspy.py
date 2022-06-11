@@ -1,6 +1,5 @@
 import asyncio
 import re
-from datetime import timedelta
 
 from telethon import events
 from telethon.tl.types import Message
