@@ -88,8 +88,8 @@ class SpyMod(loader.Module):
                     else:
                         for s in p:
                             txt = f"{klan}\nЛига: {re.search(r'кланов (.+) лиге', s.text).group(1)}"
-                        if klan not in s.text:
-                            txt = f"{klan}\nЛига: {liga}"
+                            if klan not in s.text:
+                                txt = f"{klan}\nЛига: {liga}"
                     await self.client.send_message(1767017980, f"В поиске {txt}")
             elif message.message.startswith("Алло,") and message.from_id in [1124824021]:
                 klan = re.search(r"клана (.+) нашелся враг (.+), пора", message.text)
