@@ -161,7 +161,7 @@ class KramiikkMod(loader.Module):
     async def sucmd(self, m):
         """добавляет пользователей для управление"""
         if "-i" in m.text:
-            return await m.edit(self.su["users"])
+            return await m.edit(str(self.su["users"]))
         reply = await m.get_reply_message()
         msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
         if msg in self.su["users"]:
