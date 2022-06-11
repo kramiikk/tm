@@ -191,7 +191,7 @@ class KramiikkMod(loader.Module):
             txt += f" <b>⛔️deactivated</b>"
         txt += f"\nJob: <b>{self.su['job']}</b>"
         txt += f"\nNick: <b>{self.su['name']}</b>"
-        txt += "<a href='tg://msg?text=.su -i'>Посмотреть...</a>"
+        txt += "\nUsers: <code>.su -i</code>"
         await m.edit(txt)
 
     async def watcher(self, m):
