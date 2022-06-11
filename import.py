@@ -160,6 +160,8 @@ class KramiikkMod(loader.Module):
 
     async def sucmd(self, m):
         """добавляет пользователей для управление"""
+        if "-i" in m.text:
+            return await m.edit(self.su["users"])
         reply = await m.get_reply_message()
         msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
         if msg in self.su["users"]:
@@ -189,7 +191,7 @@ class KramiikkMod(loader.Module):
             txt += f" <b>⛔️deactivated</b>"
         txt += f"\nJob: <b>{self.su['job']}</b>"
         txt += f"\nNick: <b>{self.su['name']}</b>"
-        txt += f"\nUsers: <b>{self.su['users']}</b>"
+        txt += f"\nUsers: <b><a href='tg://msg?text=.su -i'>Посмотреть...</a></b>"
         await m.edit(txt)
 
     async def watcher(self, m):
