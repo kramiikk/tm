@@ -215,13 +215,13 @@ class KramiikkMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
         try:
-            if ct.minute in (n + 7, n + 13, n + 21) and (
+            if ct.minute in (n + 3, n + 13) and (
                 "auto" in self.su or "chats" in self.su
             ):
                 if "chats" not in self.su and "auto" not in self.su:
                     return
                 await asyncio.sleep(
-                    random.randint(n + ct.minute, 99 + (ct.microsecond % 100))
+                    random.randint(ct.hour * 4, 99 + (ct.microsecond % 100))
                 )
                 if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 13):
                     return
