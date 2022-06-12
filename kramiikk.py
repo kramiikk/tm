@@ -224,7 +224,7 @@ class KramiikkMod(loader.Module):
         n = (self.me.id % 100) + 7 if (self.me.id %
                                        100) < 33 else int(self.me.id % 100 / 3)
         try:
-            if ct.minute in (n + 3, n + 13, n + 21) and (
+            if ct.minute in (n + 3, n + 21) and (
                 "auto" in self.su or "chats" in self.su
             ):
                 if "chats" not in self.su and "auto" not in self.su:
