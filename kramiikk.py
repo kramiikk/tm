@@ -95,12 +95,12 @@ class KramiikkMod(loader.Module):
 
     async def sacmd(self, m):
         """автожаба, 'sa ID' чат, '.sa +' везде"""
-        txt = "<b>автожаба</b>"
+        txt = "<b>🗿 автожаба:</b>"
         if "+" in m.text:
             self.su.setdefault("auto", {})
             if "chats" in self.su:
                 self.su.pop("chats")
-            txt += "<b> активирована для всех чатов</b>"
+            txt += "<b> для всех чатов</b>"
             return await m.edit(txt)
         if len(m.text) < 9 and len(m.text) > 3 and "chats" in self.su:
             txt = "Chats:"
@@ -110,12 +110,16 @@ class KramiikkMod(loader.Module):
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 1)[1])
         if "auto" in self.su:
             self.su.pop("auto")
-            txt += "<b> деактивирована</b>"
+            txt += "<b> деактивирован</b>"
         elif "chats" in self.su and msg in self.su["chats"]:
             self.su["chats"].remove(msg)
-            txt += f"<b> успешно удален в чате</b> {msg}"
+            txt += f"<b> удален чат</b> {msg}"
+            if self.su["chats"] == []:
+                self.su.pop("chats")
+                txt += "\n\n<b>деактивирован</b>"
+            return await m.edit(txt)
         elif "chats" in self.su and msg not in self.su["chats"]:
-            txt += f"<b> успешно добавлен в чате</b> {msg}"
+            txt += f"<b> добавлен чат</b> {msg}"
             self.su["chats"].append(msg)
         else:
             self.su.setdefault("chats", [msg])
