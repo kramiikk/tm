@@ -94,7 +94,7 @@ class KramiikkMod(loader.Module):
         await self.client.send_message(chat, cmn)
 
     async def sacmd(self, m):
-        """автожаба, <code>.sa +</code> для всех чатов"""
+        """автожаба, '.sa +' для всех чатов"""
         txt = "<b>автожаба</b>"
         if "+" in m.text:
             self.su.setdefault("auto", {})
@@ -124,7 +124,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sbcmd(self, m):
-        """автоарена, <code>.sb +</code> для всех чатов"""
+        """автоарена, '.sb +' для всех чатов"""
         txt = "<b>арена</b>"
         if "+" in m.text:
             self.su.setdefault("buto", {})
@@ -156,7 +156,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sjcmd(self, m):
-        """работа, <code>.sj работа крупье</code>"""
+        """работа, '.sj работа крупье'"""
         if len(m.text) < 9:
             return await m.edit("пиши <code>.sj работа грабитель</code>")
         msg = m.text.split(" ", 1)[1]
@@ -166,7 +166,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sncmd(self, m):
-        """ник для команд,<code>.sn Кушки</code>"""
+        """ник для команд, '.sn Кушки'"""
         if len(m.text) < 4:
             await m.edit("пиши <code>.sn Кушки</code>\n имя должно быть одно слово")
         msg = m.text.split(" ", 1)[1]
@@ -197,7 +197,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sucmd(self, m):
-        """управление акком, <code>.su ID</code> или реплай"""
+        """управление акком, '.su ID' или реплай"""
         reply = await m.get_reply_message()
         if len(m.text) < 9 and not reply:
             txt = "Users:"
