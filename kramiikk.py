@@ -183,18 +183,18 @@ class KramiikkMod(loader.Module):
         """статус скрипта"""
         txt = "<b>👑Status</b>\nAutozhaba:"
         if "auto" in self.su:
-            txt += f" <b>✳️activated</b>"
+            txt += " <b>✳️activated</b>"
         elif "chats" in self.su:
             txt += f"<b> in {self.su['chats']}</b>"
         else:
-            txt += f" <b>⛔️deactivated</b>"
-        txt += f"\nAutoarena:"
+            txt += " <b>⛔️deactivated</b>"
+        txt += "\nAutoarena:"
         if "buto" in self.su:
-            txt += f" <b>✳️activated</b>"
+            txt += " <b>✳️activated</b>"
         elif "butos" in self.su:
             txt += f"<b> in {self.su['butos']}</b>"
         else:
-            txt += f" <b>⛔️deactivated</b>"
+            txt += " <b>⛔️deactivated</b>"
         txt += f"\nJob: <b>{self.su['job']}</b>"
         txt += f"\nNick: <b>{self.su['name']}</b>"
         txt += "\nUsers: <code>.su</code>"
