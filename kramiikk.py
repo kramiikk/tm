@@ -168,7 +168,7 @@ class KramiikkMod(loader.Module):
     async def sncmd(self, m):
         """ник для команд, '.sn Кушки'"""
         if len(m.text) < 4:
-            await m.edit("пиши <code>.sn Кушки</code>\n имя должно быть одно слово")
+            await m.edit("пиши <code>.sn Name</code>\n имя должно быть одно слово")
         msg = m.text.split(" ", 1)[1]
         self.su["name"] = msg.casefold()
         txt = f"👻 <code>{self.su['name']}</code> успешно изменён"
