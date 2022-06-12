@@ -128,7 +128,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sbcmd(self, m):
-        """автоарена, '.sb ID' чат, '.sb +' все жабы"""
+        """автоарена (работает вместе с автожабой), '.sb ID' чат, '.sb +' все жабы"""
         txt = "<b>😈Арена:</b>"
         if "+" in m.text:
             self.su.setdefault("buto", {})
