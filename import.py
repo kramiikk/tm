@@ -197,7 +197,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sucmd(self, m):
-        """управление акком, '.su ID' или реплай"""
+        """управление, '.su ID' или реплай"""
         reply = await m.get_reply_message()
         if len(m.text) < 9 and not reply:
             txt = "Users:"
