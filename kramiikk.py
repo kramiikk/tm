@@ -369,10 +369,10 @@ class KramiikkMod(loader.Module):
                     reg = re.search(r"/(\d+)/(\d+)", m.text)
                     if not reg:
                         return
-                    mac = await self.client.get_messages(
+                    msg = await self.client.get_messages(
                         int(reg.group(1)), ids=int(reg.group(2))
                     )
-                    await mac.click()
+                    await msg.click()
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
                         random.randint(n + ct.minute, 111 +
