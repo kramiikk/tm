@@ -303,7 +303,7 @@ class KramiikkMod(loader.Module):
                         await asyncio.sleep(random.randint(3, n))
                         await RSP.respond(self.ded[p])
                     await asyncio.sleep(random.randint(3, n))
-                    if "не в браке" in RSP.text:
+                    if int(i[0]) < 77 or "не в браке" in RSP.text:
                         continue
                     cmn = "Моя семья"
                     await self.err(chat, cmn)
@@ -312,22 +312,14 @@ class KramiikkMod(loader.Module):
                     if "У вас нет" in RSP.text:
                         continue
                     if RSP.buttons:
-                        n = len(RSP.buttons)
-                        if (
-                            n == 1
-                            and "Можно покормить" not in RSP.text
-                            and int(i[0]) > 77
-                        ):
-                            await asyncio.sleep(random.randint(3, n))
-                            await RSP.respond("@toadbot Покормить жабенка")
-                            continue
+                        s = len(RSP.buttons)
                         await asyncio.sleep(random.randint(3, n))
                         await RSP.respond(self.ded[RSP.buttons[0][0].text])
-                        if n == 1:
+                        if s == 1:
                             continue
                         await asyncio.sleep(random.randint(3, n))
                         await RSP.respond(self.ded[RSP.buttons[1][0].text])
-                        if n == 2:
+                        if s == 2:
                             continue
                         await asyncio.sleep(random.randint(3, n))
                         await RSP.respond(self.ded[RSP.buttons[2][0].text])
