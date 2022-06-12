@@ -217,7 +217,8 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
+        n = self.me.id % 100 if (self.me.id %
+                                 100) < 42 else int(self.me.id % 100 / 3)
         try:
             if ct.minute in (n + 3, n + 13) and (
                 "auto" in self.su or "chats" in self.su
@@ -260,7 +261,8 @@ class KramiikkMod(loader.Module):
                         s = "dead"
                     if "Хорошее" in RSP.text:
                         await asyncio.sleep(
-                            random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
+                            random.randint(n + ct.minute, 111 +
+                                           (ct.microsecond % 100))
                         )
                         await RSP.respond(
                             f"использовать леденцы {random.randint(1, 4)}"
@@ -376,7 +378,8 @@ class KramiikkMod(loader.Module):
                     await mac.click()
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
+                        random.randint(n + ct.minute, 111 +
+                                       (ct.microsecond % 100))
                     )
                     cmn = "мой баланс"
                     await self.err(chat, cmn)
