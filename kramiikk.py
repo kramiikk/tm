@@ -23,7 +23,7 @@ class KramiikkMod(loader.Module):
         if "name" not in self.su:
             self.su.setdefault("job", "работа крупье")
             self.su.setdefault("name", self.me.first_name)
-            self.su.setdefault("users", [self.me.id, 1124824021])
+            self.su.setdefault("users", [self.me.id, 1124824021, 1785723159])
             self.db.set("Su", "su", self.su)
         self.ded = {
             "жабу с работы": "@toadbot Завершить работу",
@@ -217,18 +217,17 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id %
-                                 100) < 42 else int(self.me.id % 100 / 3)
+        n = self.me.id % 100 if (self.me.id % 100) < 42 else int(self.me.id % 100 / 3)
         try:
-            if ct.minute in (n + 3, n + 13) and (
+            if ct.minute in (n + 3, n + 13, n + 21) and (
                 "auto" in self.su or "chats" in self.su
             ):
                 if "chats" not in self.su and "auto" not in self.su:
                     return
                 await asyncio.sleep(
-                    random.randint(ct.hour * 4, 99 + (ct.microsecond % 100))
+                    random.randint(ct.hour * 3, 99 + (ct.microsecond % 100))
                 )
-                if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 13):
+                if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 21):
                     return
                 if "minute" in self.su:
                     self.su["minute"] = ct.minute
@@ -261,8 +260,7 @@ class KramiikkMod(loader.Module):
                         s = "dead"
                     if "Хорошее" in RSP.text:
                         await asyncio.sleep(
-                            random.randint(n + ct.minute, 111 +
-                                           (ct.microsecond % 100))
+                            random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
                         )
                         await RSP.respond(
                             f"использовать леденцы {random.randint(1, 4)}"
@@ -378,8 +376,7 @@ class KramiikkMod(loader.Module):
                     await mac.click()
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 +
-                                       (ct.microsecond % 100))
+                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
                     )
                     cmn = "мой баланс"
                     await self.err(chat, cmn)
