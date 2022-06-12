@@ -156,7 +156,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sjcmd(self, m):
-        """работа, <code>.sj работа крупье</code>""""
+        """работа, <code>.sj работа крупье</code>"""
         if len(m.text) < 9:
             return await m.edit("пиши <code>.sj работа грабитель</code>")
         msg = m.text.split(" ", 1)[1]
