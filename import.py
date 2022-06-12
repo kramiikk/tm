@@ -176,7 +176,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def stcmd(self, m):
-        """Статус бота"""
+        """статус скрипта"""
         txt = "<b>Status</b>\nAutozhaba:"
         if "auto" in self.su:
             txt += f" <b>✳️activated</b>"
