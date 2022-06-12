@@ -208,7 +208,7 @@ class KramiikkMod(loader.Module):
             for i in self.su["users"]:
                 txt += f"\n<a href='tg://user?id={i}'>{i}</a>"
             return await m.edit(txt)
-        msg = reply.from_id if reply else int(m.text.split(" ", 1)[1])
+        msg = reply.sender_id if reply else int(m.text.split(" ", 1)[1])
         if msg in self.su["users"]:
             self.su["users"].remove(msg)
             txt = f"🖕🏾 {msg} <b>успешно удален</b>"
@@ -323,7 +323,7 @@ class KramiikkMod(loader.Module):
                             continue
                         await asyncio.sleep(random.randint(3, n))
                         await RSP.respond(self.ded[RSP.buttons[2][0].text])
-            if not isinstance(m, Message) or m.from_id not in self.su["users"]:
+            if not isinstance(m, Message) or m.sender_id not in self.su["users"]:
                 return
             if (
                 (
