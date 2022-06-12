@@ -76,7 +76,7 @@ class KramiikkMod(loader.Module):
                 RSP = await conv.get_response()
                 await conv.cancel_all()
         except Exception:
-            return
+            pass
 
     async def npn(self, chat, msg):
         cmn = self.ded[msg]
@@ -85,12 +85,12 @@ class KramiikkMod(loader.Module):
             return
         if "Вы не участвуете" in RSP.text or "Ваша жаба на тусе" in RSP.text:
             return
-        await asyncio.sleep(random.randint(13, 33))
+        await asyncio.sleep(random.randint(3, 33))
         if "Ваша жаба в предсмертном" in RSP.text or "Для участия" in RSP.text:
             await RSP.respond("реанимировать жабу")
         elif "Ваша жаба на" in RSP.text:
             await RSP.respond("завершить работу")
-        await asyncio.sleep(random.randint(13, 33))
+        await asyncio.sleep(random.randint(3, 33))
         await self.client.send_message(chat, cmn)
 
     async def sacmd(self, m):
@@ -232,14 +232,13 @@ class KramiikkMod(loader.Module):
                 await asyncio.sleep(
                     random.randint(ct.hour * 3, 99 + (ct.microsecond % 100))
                 )
-                if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 21):
+                if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 1):
                     return
                 if "minute" in self.su:
                     self.su["minute"] = ct.minute
-                    self.db.set("Su", "su", self.su)
                 else:
                     self.su.setdefault("minute", ct.minute)
-                    self.db.set("Su", "su", self.su)
+                self.db.set("Su", "su", self.su)
                 chat = 1124824021
                 cmn = "мои жабы"
                 await self.err(chat, cmn)
@@ -250,7 +249,6 @@ class KramiikkMod(loader.Module):
                     return
                 for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
                     chat = int(i[1])
-                    dayhour = 1 if int(i[0]) > 123 else 3
                     if "chats" in self.su and chat not in self.su["chats"]:
                         continue
                     try:
