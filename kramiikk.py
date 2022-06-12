@@ -94,7 +94,7 @@ class KramiikkMod(loader.Module):
         await self.client.send_message(chat, cmn)
 
     async def sacmd(self, m):
-        """автожаба, 'sa ID' для чата, '.sa +' везде"""
+        """автожаба, 'sa ID' чат, '.sa +' везде"""
         txt = "<b>автожаба</b>"
         if "+" in m.text:
             self.su.setdefault("auto", {})
@@ -124,7 +124,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sbcmd(self, m):
-        """автоарена, '.sb ID' для чата, '.sb +' везде"""
+        """автоарена, '.sb ID' чат, '.sb +' везде"""
         txt = "<b>арена</b>"
         if "+" in m.text:
             self.su.setdefault("buto", {})
