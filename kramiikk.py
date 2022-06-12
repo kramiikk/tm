@@ -94,13 +94,13 @@ class KramiikkMod(loader.Module):
         await self.client.send_message(chat, cmn)
 
     async def sacmd(self, m):
-        """автожаба, 'sa ID' чат, '.sa +' везде"""
-        txt = "<b>🗿 автожаба:</b>"
+        """автожаба, 'sa ID' чат, '.sa +' все жабы"""
+        txt = "<b>👄Автожаба:</b>"
         if "+" in m.text:
             self.su.setdefault("auto", {})
             if "chats" in self.su:
                 self.su.pop("chats")
-            txt += "<b> для всех чатов</b>"
+            txt += "<b> для всех жаб</b>"
             return await m.edit(txt)
         if len(m.text) < 9 and len(m.text) > 3 and "chats" in self.su:
             txt = "Chats:"
@@ -123,18 +123,18 @@ class KramiikkMod(loader.Module):
             self.su["chats"].append(msg)
         else:
             self.su.setdefault("chats", [msg])
-            txt += f"<b> теперь работает в чате</b> {msg}"
+            txt += f"<b> в чате</b> {msg}"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
     async def sbcmd(self, m):
-        """автоарена, '.sb ID' чат, '.sb +' везде"""
-        txt = "<b>арена</b>"
+        """автоарена, '.sb ID' чат, '.sb +' все жабы"""
+        txt = "<b>😈Арена:</b>"
         if "+" in m.text:
             self.su.setdefault("buto", {})
             if "butos" in self.su:
                 self.su.pop("butos")
-            txt += "<b> включена везде</b>"
+            txt += "<b> для всех жаб</b>"
             return await m.edit(txt)
         if len(m.text) < 9 and len(m.text) > 3 and "butos" in self.su:
             txt = "Chats:"
@@ -162,17 +162,17 @@ class KramiikkMod(loader.Module):
     async def sjcmd(self, m):
         """работа, '.sj работа крупье'"""
         if len(m.text) < 9:
-            return await m.edit("пиши <code>.sj работа грабитель</code>")
+            return await m.edit("🦋пиши <code>.sj работа грабитель</code>")
         msg = m.text.split(" ", 1)[1]
         self.su["job"] = msg.casefold()
-        txt = f"Работа изменена: <b>{self.su['job']}</b>"
+        txt = f"🐪Работа: <b>{self.su['job']}</b>"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
     async def sncmd(self, m):
         """ник для команд, '.sn Кушки'"""
         if len(m.text) < 4:
-            await m.edit("пиши <code>.sn Name</code>\n имя должно быть одно слово")
+            await m.edit("🐖пиши <code>.sn Name</code>\n имя должно быть одно слово")
         msg = m.text.split(" ", 1)[1]
         self.su["name"] = msg.casefold()
         txt = f"👻 <code>{self.su['name']}</code> успешно изменён"
@@ -181,7 +181,7 @@ class KramiikkMod(loader.Module):
 
     async def stcmd(self, m):
         """статус скрипта"""
-        txt = "<b>Status</b>\nAutozhaba:"
+        txt = "<b>👑Status</b>\nAutozhaba:"
         if "auto" in self.su:
             txt += f" <b>✳️activated</b>"
         elif "chats" in self.su:
