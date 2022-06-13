@@ -94,7 +94,7 @@ class KramiikkMod(loader.Module):
         await self.client.send_message(chat, cmn)
 
     async def sacmd(self, m):
-        """автожаба, 'sa ID' чат, '.sa +' все жабы"""
+        """автожаба, 'sa ID' чат (ид чата начинается с '-'), '.sa +' все жабы"""
         txt = "<b>👄Автожаба:</b>"
         if "+" in m.text:
             self.su.setdefault("auto", {})
