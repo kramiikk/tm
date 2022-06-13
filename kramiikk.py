@@ -170,7 +170,7 @@ class KramiikkMod(loader.Module):
         await m.edit(txt)
 
     async def sncmd(self, m):
-        """ник для команд, '.sn Кушки'"""
+        """ник для команд, '.sn Name' (имя должно содержать больше 2 символов)"""
         if len(m.text) < 4:
             await m.edit("🐖пиши <code>.sn Name</code>\n имя должно быть одно слово")
         msg = m.text.split(" ", 1)[1]
