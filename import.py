@@ -131,7 +131,7 @@ class ZhabaMod(loader.Module):
                 txt += f" <b>in {self.su['hss']}</b>"
             else:
                 txt += " <b>⛔️</b>"
-            txt += f"\n\nРабота:\n  🃏Крупье:"
+            txt += f"\n\nРабота\n\n  🃏Крупье:"
             if "cs" in self.su:
                 txt += " <b>🐸</b>"
             elif "css" in self.su:
@@ -154,7 +154,7 @@ class ZhabaMod(loader.Module):
                 txt += " <b>⛔️</b>"
             txt += f"\n\nНик: <b>{self.su['name']}</b>"
             txt += "\nТыкает карту: 🐸"
-            txt += "\nУправление акком: 🐸 <code>.su</code>"
+            txt += "\nУправление акком: 🐸 (<code>.su</code>)"
             txt += "\n\n🛂Гайд: <b>@huy</b>"
             return await m.edit(txt)
         if m.text.split(" ", 2)[1] == "a":
