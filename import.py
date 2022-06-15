@@ -222,6 +222,10 @@ class ZhabaMod(loader.Module):
             txt = "<b>🎎 Семья:</b>"
             i = "hs"
             n = "hss"
+        elif m.text.split(" ", 2)[1] == "sn":
+            txt = "<b>💂🏿‍♂️Снаряжение:</b>"
+            i = "as"
+            n = "ass"
         else:
             return
         if "+" in m.text:
