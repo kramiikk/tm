@@ -131,11 +131,25 @@ class ZhabaMod(loader.Module):
                 txt += f" <b>in {self.su['ess']}</b>"
             else:
                 txt += " <b>⛔️deactivated</b>"
-            txt += f"\nKorm:\n  Откормить:"
+            txt += f"\nKorm:\n  🐡Откормить:"
             if "gs" in self.su:
                 txt += " <b>везде</b>"
             elif "gss" in self.su:
                 txt += f" <b>in {self.su['gss']}</b>"
+            else:
+                txt += " <b>⛔️deactivated</b>"
+            txt += f"\n🍻Подземка:"
+            if "fs" in self.su:
+                txt += " <b>везде</b>"
+            elif "fss" in self.su:
+                txt += f" <b>in {self.su['fss']}</b>"
+            else:
+                txt += " <b>⛔️deactivated</b>"
+            txt += f"\n🤡 Семья::"
+            if "hs" in self.su:
+                txt += " <b>везде</b>"
+            elif "hss" in self.su:
+                txt += f" <b>in {self.su['hss']}</b>"
             else:
                 txt += " <b>⛔️deactivated</b>"
             txt += f"\nNick: <b>{self.su['name']}</b>"
@@ -149,7 +163,7 @@ class ZhabaMod(loader.Module):
             txt = "<b>😈Арена:</b>"
             i = "buto"
             n = "butos"
-        elif m.text.split(" ", 2)[1] == "d":
+        elif m.text.split(" ", 2)[1] == "c":
             txt = "<b>👯‍♀️Крупье:</b>"
             i = "cs"
             n = "css"
@@ -161,10 +175,18 @@ class ZhabaMod(loader.Module):
             txt = "<b>👨🏿‍🏭Грабитель:</b>"
             i = "es"
             n = "ess"
+        elif m.text.split(" ", 2)[1] == "f":
+            txt = "<b>🍻Подземка:</b>"
+            i = "fs"
+            n = "fss"
         elif m.text.split(" ", 2)[1] == "g":
             txt = "<b>🐡Откормить:</b>"
             i = "gs"
             n = "gss"
+        elif m.text.split(" ", 2)[1] == "h":
+            txt = "<b>🤡 Семья:</b>"
+            i = "hs"
+            n = "hss"
         else:
             return
         if "+" in m.text:
@@ -288,7 +310,8 @@ class ZhabaMod(loader.Module):
                     await msg.click()
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
+                        random.randint(n + ct.minute, 111 +
+                                       (ct.microsecond % 100))
                     )
                     cmn = "мой баланс"
                     await self.err(chat, cmn)
@@ -390,7 +413,8 @@ class ZhabaMod(loader.Module):
                     s = "dead"
                 if "Хорошее" in RSP.text:
                     await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
+                        random.randint(n + ct.minute, 111 +
+                                       (ct.microsecond % 100))
                     )
                     await RSP.respond(f"использовать леденцы {random.randint(1, 3)}")
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
@@ -408,7 +432,16 @@ class ZhabaMod(loader.Module):
                             and "gs" not in self.su
                             or ("gss" in self.su and chat not in self.su["gss"])
                         )
-                        or (p == "можно отправить" and job == None)
+                        or (
+                            p == "можно отправить"
+                            and (
+                                job == None
+                                or (
+                                    "подземелье можно через 2" not in RSP.text
+                                    and (int(i[0]) > 77 and int(jab.group(1)) > 1500)
+                                )
+                            )
+                        )
                         or (
                             p == "Можно на арену!"
                             and (
@@ -417,16 +450,15 @@ class ZhabaMod(loader.Module):
                             )
                         )
                         or (
-                            p in ("Можно откормить", "Можно отправиться")
+                            p == "Можно отправиться"
                             and (
-                                int(i[0]) < 77
-                                or (int(i[0]) > 77 and int(jab.group(1)) < 1500)
+                                "fs" not in self.su
+                                or ("fss" in self.su and chat not in self.su["fss"])
                             )
                         )
                         or (
-                            p == "можно отправить"
-                            and "подземелье можно через 2" not in RSP.text
-                            and (int(i[0]) > 77 and int(jab.group(1)) > 1500)
+                            p in ("Можно откормить", "Можно отправиться")
+                            and (int(jab.group(1)) < 1500)
                         )
                     ):
                         continue
@@ -442,7 +474,10 @@ class ZhabaMod(loader.Module):
                         return await RSP.respond(job)
                     await asyncio.sleep(random.randint(3, n))
                     await RSP.respond(self.ded[p])
-                if int(i[0]) < 77 or "не в браке" in RSP.text:
+                if "не в браке" in RSP.text or (
+                    "hs" not in self.su
+                    and ("hss" in self.su and chat not in self.su["hss"])
+                ):
                     continue
                 await asyncio.sleep(random.randint(3, n))
                 cmn = "Моя семья"
