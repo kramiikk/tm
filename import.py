@@ -96,64 +96,66 @@ class ZhabaMod(loader.Module):
         """автожаба, '.s a ID' чат , '.s a +' все жабы.
         автоарена (с автожабой), '.s b ID' чат, '.s b +' все жабы."""
         if len(m.text) < 3:
-            txt = "<b>👑Status</b>\nAutozhaba:"
+            txt = "<b>👑Status Userbot:"
             if "auto" in self.su:
-                txt += " <b>✳️activated</b>"
+                txt += " <b>🐸all</b>"
             elif "chats" in self.su:
-                txt += f"<b> in {self.su['chats']}</b>"
+                txt += f" <b>🐸 in {self.su['chats']}</b>"
             else:
-                txt += " <b>⛔️deactivated</b>"
-            txt += "\nAutoarena:"
+                txt += " <b>⛔️</b>"
+            txt += "\n\n  🥊Арена:"
             if "buto" in self.su:
-                txt += " <b>✳️activated</b>"
+                txt += " <b>🐸all</b>"
             elif "butos" in self.su:
-                txt += f"<b> in {self.su['butos']}</b>"
+                txt += f" <b>🐸 in {self.su['butos']}</b>"
             else:
-                txt += " <b>⛔️deactivated</b>"
-            txt += f"\nJob:\n  👯‍♀️Крупье:"
-            if "cs" in self.su:
-                txt += " <b>везде</b>"
-            elif "css" in self.su:
-                txt += f" <b>in {self.su['css']}</b>"
-            else:
-                txt += " <b>⛔️deactivated</b>"
-            txt += "\n  👩🏾‍🍳Столовка:"
-            if "ss" in self.su:
-                txt += " <b>везде</b>"
-            elif "sss" in self.su:
-                txt += f" <b>in {self.su['sss']}</b>"
-            else:
-                txt += " <b>⛔️deactivated</b>"
-            txt += "\n  👨🏿‍🏭Грабитель:"
-            if "es" in self.su:
-                txt += " <b>везде</b>"
-            elif "ess" in self.su:
-                txt += f" <b>in {self.su['ess']}</b>"
-            else:
-                txt += " <b>⛔️deactivated</b>"
-            txt += f"\nKorm:\n  🐡Откормить:"
+                txt += " <b>⛔️</b>"
+            txt += f"\n  🤰🏿Откормить:"
             if "gs" in self.su:
-                txt += " <b>везде</b>"
+                txt += " <b>🐸all</b>"
             elif "gss" in self.su:
-                txt += f" <b>in {self.su['gss']}</b>"
+                txt += f" <b>🐸 in {self.su['gss']}</b>"
             else:
-                txt += " <b>⛔️deactivated</b>"
-            txt += f"\n🍻Подземка:"
+                txt += " <b>⛔️</b>"
+            txt += f"\n  🔦Подземелье:"
             if "fs" in self.su:
-                txt += " <b>везде</b>"
+                txt += " <b>🐸all</b>"
             elif "fss" in self.su:
-                txt += f" <b>in {self.su['fss']}</b>"
+                txt += f" <b>🐸 in {self.su['fss']}</b>"
             else:
-                txt += " <b>⛔️deactivated</b>"
-            txt += f"\n🤡 Семья::"
+                txt += " <b>⛔️</b>"
+            txt += f"\n  🎎 Семья:"
             if "hs" in self.su:
-                txt += " <b>везде</b>"
+                txt += " <b>🐸all</b>"
             elif "hss" in self.su:
                 txt += f" <b>in {self.su['hss']}</b>"
             else:
-                txt += " <b>⛔️deactivated</b>"
-            txt += f"\nNick: <b>{self.su['name']}</b>"
-            txt += "\nUsers: <code>.su</code>"
+                txt += " <b>⛔️</b>"
+            txt += f"\nРабота:\n  🃏Крупье:"
+            if "cs" in self.su:
+                txt += " <b>🐸all</b>"
+            elif "css" in self.su:
+                txt += f" <b>in {self.su['css']}</b>"
+            else:
+                txt += " <b>⛔️</b>"
+            txt += "\n  👩🏾‍🍳Столовая:"
+            if "ss" in self.su:
+                txt += " <b>🐸all</b>"
+            elif "sss" in self.su:
+                txt += f" <b>in {self.su['sss']}</b>"
+            else:
+                txt += " <b>⛔️</b>"
+            txt += "\n  💣Грабитель: "
+            if "es" in self.su:
+                txt += " <b>🐸all</b>"
+            elif "ess" in self.su:
+                txt += f" <b>in {self.su['ess']}</b>"
+            else:
+                txt += " <b>⛔️</b>"
+            txt += f"\n\nНик: <b>{self.su['name']}</b>"
+            txt += "\nХод за картой: 🐸"
+            txt += "\nУправление: 🐸<code>.su</code>"
+            txt += "\n\n🛂Гайд: <b>@huy</b>"
             return await m.edit(txt)
         if m.text.split(" ", 2)[1] == "a":
             txt = "<b>👄Автожаба:</b>"
