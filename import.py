@@ -105,11 +105,11 @@ class ZhabaMod(loader.Module):
                 txt += "━━━━━━━━┛"
             else:
                 txt += " ⛔️"
-                txt += "\n\n        • Откормить: ⛔️"
-                txt += "\n        • Снаряжение: ⛔️"
-                txt += "\n        • Семья: ⛔️"
-                txt += "\n        • Подземелье: ⛔️"
-                txt += "\n        • Арена: ⛔️"
+                txt += "\n\n    • Откормить: ⛔️"
+                txt += "\n    • Снаряжение: ⛔️"
+                txt += "\n    • Семья: ⛔️"
+                txt += "\n    • Подземелье: ⛔️"
+                txt += "\n    • Арена: ⛔️"
                 txt += "\n\n    🍽Крупье: ⛔️"
                 txt += "\n    🎰Столовая: ⛔️"
                 txt += "\n    💶 Грабитель: ⛔️"
@@ -118,54 +118,54 @@ class ZhabaMod(loader.Module):
                 txt += f"\nНик для команд: <code>{self.su['name']}</code>"
                 txt += "\n\n<a href='t.me/jabuser'>гайд</a>"
                 return await m.edit(txt)
-            txt += "\n\n        • Откормить:"
+            txt += "\n\n    • Откормить:"
             if "gs" in self.su:
                 txt += " 🟢"
             elif "gss" in self.su:
                 txt += " ⭐️"
                 for i in self.su["gss"]:
-                    txt += f"\n           ├ <code>{i}</code>"
-                txt += "\n            ━━━━━━━━┛"
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
-            txt += "\n        • Снаряжение:"
+            txt += "\n    • Снаряжение:"
             if "as" in self.su:
                 txt += " 🟢"
             elif "ass" in self.su:
                 txt += " ⭐️"
                 for i in self.su["ass"]:
-                    txt += f"\n           ├ <code>{i}</code>"
-                txt += "\n            ━━━━━━━━┛"
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
-            txt += "\n        • Семья:"
+            txt += "\n    • Семья:"
             if "hs" in self.su:
                 txt += " 🟢"
             elif "hss" in self.su:
                 txt += " ⭐️"
                 for i in self.su["hss"]:
-                    txt += f"\n           ├ <code>{i}</code>"
-                txt += "\n            ━━━━━━━━┛"
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
-            txt += "\n        • Подземелье:"
+            txt += "\n    • Подземелье:"
             if "fs" in self.su:
                 txt += " 🟢"
             elif "fss" in self.su:
                 txt += " ⭐️"
                 for i in self.su["fss"]:
-                    txt += f"\n           ├ <code>{i}</code>"
-                txt += "\n            ━━━━━━━━┛"
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
-            txt += "\n        • Арена:"
+            txt += "\n    • Арена:"
             if "buto" in self.su:
                 txt += " 🟢"
             elif "butos" in self.su:
                 txt += " ⭐️"
                 for i in self.su["butos"]:
-                    txt += f"\n           ├ <code>{i}</code>"
-                txt += "\n            ━━━━━━━━┛"
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
             txt += "\n\n    🍽Крупье:"
