@@ -95,73 +95,113 @@ class ZhabaMod(loader.Module):
     async def scmd(self, m):
         """статус юзербота"""
         if len(m.text) < 3:
-            txt = "<b>Status:"
+            txt = "<b>Статус"
             if "auto" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "chats" in self.su:
-                txt += f" <b>🐸 in {self.su['chats']}</b>"
+                txt += " ⭐️"
+                for i in self.su["chats"]:
+                    txt += f"\n├ <code>{i}</code>"
+                txt += "━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += f"\n\n  🤰🏿Откормить:"
+                txt += " ⛔️"
+                txt += "\n\n        • Откормить: ⛔️"
+                txt += "\n        • Снаряжение: ⛔️"
+                txt += "\n        • Семья: ⛔️"
+                txt += "\n        • Подземелье: ⛔️"
+                txt += "\n        • Арена: ⛔️"
+                txt += "\n\n    🍽Крупье: ⛔️"
+                txt += "\n    🎰Столовая: ⛔️"
+                txt += "\n    💶 Грабитель: ⛔️"
+                txt += "\n\nДоступ: 🟢 <code>.s su</code>"
+                txt += "\nХод в походе: 🟢"
+                txt += f"\nНик для команд: <code>{self.su['name']}</code>"
+                txt += "\n\n<a href='t.me/jabuser'>гайд</a>"
+                return await m.edit(txt)
+            txt += "\n\n        • Откормить: ⛔️"
             if "gs" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "gss" in self.su:
-                txt += f" <b>🐸 in {self.su['gss']}</b>"
+                txt += " ⭐️"
+                for i in self.su["gss"]:
+                    txt += f"\n           ├ <code>{i}</code>"
+                txt += "            ━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += "\n  💂🏿‍♂️Снаряжение:"
+                txt += " ⛔️"
+            txt += "\n        • Снаряжение:"
             if "as" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "ass" in self.su:
-                txt += f" <b>🐸 in {self.su['ass']}</b>"
+                txt += " ⭐️"
+                for i in self.su["ass"]:
+                    txt += f"\n           ├ <code>{i}</code>"
+                txt += "            ━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += f"\n  🎎 Семья:"
+                txt += " ⛔️"
+            txt += "\n        • Семья:"
             if "hs" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "hss" in self.su:
-                txt += f" <b>in {self.su['hss']}</b>"
+                txt += " ⭐️"
+                for i in self.su["hss"]:
+                    txt += f"\n           ├ <code>{i}</code>"
+                txt += "            ━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += f"\n  🔦Подземелье:"
+                txt += " ⛔️"
+            txt += "\n        • Подземелье:"
             if "fs" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "fss" in self.su:
-                txt += f" <b>🐸 in {self.su['fss']}</b>"
+                txt += " ⭐️"
+                for i in self.su["fss"]:
+                    txt += f"\n           ├ <code>{i}</code>"
+                txt += "            ━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += "\n  🥊Арена:"
+                txt += " ⛔️"
+            txt += "\n        • Арена:"
             if "buto" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "butos" in self.su:
-                txt += f" <b>🐸 in {self.su['butos']}</b>"
+                txt += " ⭐️"
+                for i in self.su["butos"]:
+                    txt += f"\n           ├ <code>{i}</code>"
+                txt += "            ━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += f"\n\nРабота\n\n  🃏Крупье:"
+                txt += " ⛔️"
+            txt += "\n\nРабота\n\n    🍽Крупье:"
             if "cs" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "css" in self.su:
-                txt += f" <b>in {self.su['css']}</b>"
+                txt += " ⭐️"
+                for i in self.su["css"]:
+                    txt += f"\n           ├ <code>{i}</code>"
+                txt += "            ━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += "\n  👩🏾‍🍳Столовая:"
+                txt += " ⛔️"
+            txt += "\n    🎰Столовая:"
             if "ss" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "sss" in self.su:
-                txt += f" <b>in {self.su['sss']}</b>"
+                txt += " ⭐️"
+                for i in self.su["sss"]:
+                    txt += f"\n           ├ <code>{i}</code>"
+                txt += "            ━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += "\n  💣Грабитель: "
+                txt += " ⛔️"
+            txt += "\n    💶 Грабитель:"
             if "es" in self.su:
-                txt += " <b>🐸</b>"
+                txt += " 🟢"
             elif "ess" in self.su:
-                txt += f" <b>in {self.su['ess']}</b>"
+                txt += " ⭐️"
+                for i in self.su["ess"]:
+                    txt += f"\n           ├ <code>{i}</code>"
+                txt += "            ━━━━━━━━┛"
             else:
-                txt += " <b>⛔️</b>"
-            txt += "\n\nХод в походе: 🐸"
-            txt += "\nДоступ: 🐸 (<code>.s su</code>) — список юзеров"
+                txt += " ⛔️"
+            txt += "\n\nДоступ: 🟢 (<code>.s su</code>)"
+            txt += "\nХод в походе: 🟢"
             txt += f"\nНик для команд: <b>{self.su['name']}</b>"
-            txt += "\n\n🛂Гайд: <b>@jabuser</b>"
+            txt += "\n\n<a href='t.me/jabuser'>гайд</a>"
             return await m.edit(txt)
         if m.text.split(" ", 2)[1] == "su":
             reply = await m.get_reply_message()
@@ -195,66 +235,73 @@ class ZhabaMod(loader.Module):
             i = "auto"
             n = "chats"
         elif m.text.split(" ", 2)[1] == "ar":
-            txt = "<b>🥊Арена:</b>"
+            txt = "<b>🤺Арена:</b>"
             i = "buto"
             n = "butos"
         elif m.text.split(" ", 2)[1] == "jk":
-            txt = "<b>🃏Крупье:</b>"
+            txt = "<b>🎰Крупье:</b>"
             i = "cs"
             n = "css"
         elif m.text.split(" ", 2)[1] == "js":
-            txt = "<b>👩🏾‍🍳Столовая:</b>"
+            txt = "<b>🍽Столовая:</b>"
             i = "ss"
             n = "sss"
         elif m.text.split(" ", 2)[1] == "jg":
-            txt = "<b>💣Грабитель:</b>"
+            txt = "<b>💶Грабитель:</b>"
             i = "es"
             n = "ess"
         elif m.text.split(" ", 2)[1] == "pz":
-            txt = "<b>🔦Подземелье:</b>"
+            txt = "<b>🦹‍♀️Подземелье:</b>"
             i = "fs"
             n = "fss"
         elif m.text.split(" ", 2)[1] == "ok":
-            txt = "<b>🤰🏿Откормить:</b>"
+            txt = "<b>🤰🏽Откормить:</b>"
             i = "gs"
             n = "gss"
         elif m.text.split(" ", 2)[1] == "fm":
-            txt = "<b>🎎 Семья:</b>"
+            txt = "<b>👨‍👩‍👧‍👦Семья:</b>"
             i = "hs"
             n = "hss"
         elif m.text.split(" ", 2)[1] == "sn":
-            txt = "<b>💂🏿‍♂️Снаряжение:</b>"
+            txt = "<b>⚔️Снаряжение:</b>"
             i = "as"
             n = "ass"
         else:
             return
-        if "+" in m.text:
-            self.su.setdefault(i, {})
+        if "del" in m.text:
+            if i in self.su:
+                self.su.pop(i)
             if n in self.su:
                 self.su.pop(n)
-            txt += "<b> для всех жаб</b>"
+                txt += "⛔ деактивирован"
+            return await m.edit(txt)
+        if "all" in m.text:
+            if i in self.su:
+                self.su.pop(i)
+                txt += "деактивирован"
+            else:
+                self.su.setdefault(i, {})
+                if n in self.su:
+                    self.su.pop(n)
+                txt += "<b> для всех жаб</b>"
             return await m.edit(txt)
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 2)[2])
         if "-" not in str(msg):
             return await m.edit(
                 "ид чата начинается с '-', напиши <code>узнать ид</code>"
             )
-        if i in self.su:
-            self.su.pop(i)
-            txt += "<b> деактивирован</b>"
         elif n in self.su and msg in self.su[n]:
             self.su[n].remove(msg)
             txt += f"<b> удален чат</b> {msg}"
             if self.su[n] == []:
                 self.su.pop(n)
-                txt += "\n\n<b>деактивирован</b>"
             return await m.edit(txt)
         elif n in self.su and msg not in self.su[n]:
             txt += f"<b> добавлен чат</b> {msg}"
             self.su[n].append(msg)
         else:
             self.su.setdefault(n, [msg])
-            txt += f"<b> в чате</b> {msg}"
+            txt += f"<b> добавлен чат</b> {msg}"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
@@ -277,7 +324,7 @@ class ZhabaMod(loader.Module):
                     or str(self.me.id) in m.text
                 )
             ):
-                chat = m.peer_id
+                chat = m.chat_id
                 reply = await m.get_reply_message()
                 if "нуждается в реанимации" in m.text and m.buttons:
                     await asyncio.sleep(random.randint(3, n))
@@ -288,7 +335,8 @@ class ZhabaMod(loader.Module):
                     await asyncio.sleep(random.randint(3, n))
                     await m.click()
                 elif "сломалось" in m.text and (
-                    "as" in self.su or ("ass" in self.su and chat in self.su["ass"])
+                    "as" in self.su or (
+                        "ass" in self.su and chat in self.su["ass"])
                 ):
                     await asyncio.sleep(random.randint(3, n))
                     cmn = "мое снаряжение"
@@ -297,7 +345,7 @@ class ZhabaMod(loader.Module):
                         return
                     for i in (i for i in self.ded if i in RSP.text):
                         await asyncio.sleep(random.randint(3, n))
-                        await m.respond(self.ded[p])
+                        await m.respond(self.ded[i])
                 elif "Банда получила" in m.text:
                     await asyncio.sleep(random.randint(3, n))
                     await m.respond("отдать леденец")
@@ -323,7 +371,8 @@ class ZhabaMod(loader.Module):
                     await msg.click()
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
+                        random.randint(n + ct.minute, 111 +
+                                       (ct.microsecond % 100))
                     )
                     cmn = "мой баланс"
                     await self.err(chat, cmn)
@@ -425,7 +474,8 @@ class ZhabaMod(loader.Module):
                     s = "dead"
                 if "Хорошее" in RSP.text:
                     await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 + (ct.microsecond % 100))
+                        random.randint(n + ct.minute, 111 +
+                                       (ct.microsecond % 100))
                     )
                     await RSP.respond(f"использовать леденцы {random.randint(1, 3)}")
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
