@@ -118,14 +118,14 @@ class ZhabaMod(loader.Module):
                 txt += f"\nНик для команд: <code>{self.su['name']}</code>"
                 txt += "\n\n<a href='t.me/jabuser'>гайд</a>"
                 return await m.edit(txt)
-            txt += "\n\n        • Откормить: ⛔️"
+            txt += "\n\n        • Откормить:"
             if "gs" in self.su:
                 txt += " 🟢"
             elif "gss" in self.su:
                 txt += " ⭐️"
                 for i in self.su["gss"]:
                     txt += f"\n           ├ <code>{i}</code>"
-                txt += "            ━━━━━━━━┛"
+                txt += "\n            ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
             txt += "\n        • Снаряжение:"
@@ -135,7 +135,7 @@ class ZhabaMod(loader.Module):
                 txt += " ⭐️"
                 for i in self.su["ass"]:
                     txt += f"\n           ├ <code>{i}</code>"
-                txt += "            ━━━━━━━━┛"
+                txt += "\n            ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
             txt += "\n        • Семья:"
@@ -145,7 +145,7 @@ class ZhabaMod(loader.Module):
                 txt += " ⭐️"
                 for i in self.su["hss"]:
                     txt += f"\n           ├ <code>{i}</code>"
-                txt += "            ━━━━━━━━┛"
+                txt += "\n            ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
             txt += "\n        • Подземелье:"
@@ -155,7 +155,7 @@ class ZhabaMod(loader.Module):
                 txt += " ⭐️"
                 for i in self.su["fss"]:
                     txt += f"\n           ├ <code>{i}</code>"
-                txt += "            ━━━━━━━━┛"
+                txt += "\n            ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
             txt += "\n        • Арена:"
@@ -165,17 +165,17 @@ class ZhabaMod(loader.Module):
                 txt += " ⭐️"
                 for i in self.su["butos"]:
                     txt += f"\n           ├ <code>{i}</code>"
-                txt += "            ━━━━━━━━┛"
+                txt += "\n            ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
-            txt += "\n\nРабота\n\n    🍽Крупье:"
+            txt += "\n\n    🍽Крупье:"
             if "cs" in self.su:
                 txt += " 🟢"
             elif "css" in self.su:
                 txt += " ⭐️"
                 for i in self.su["css"]:
                     txt += f"\n           ├ <code>{i}</code>"
-                txt += "            ━━━━━━━━┛"
+                txt += "\n            ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
             txt += "\n    🎰Столовая:"
@@ -185,7 +185,7 @@ class ZhabaMod(loader.Module):
                 txt += " ⭐️"
                 for i in self.su["sss"]:
                     txt += f"\n           ├ <code>{i}</code>"
-                txt += "            ━━━━━━━━┛"
+                txt += "\n            ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
             txt += "\n    💶 Грабитель:"
@@ -195,7 +195,7 @@ class ZhabaMod(loader.Module):
                 txt += " ⭐️"
                 for i in self.su["ess"]:
                     txt += f"\n           ├ <code>{i}</code>"
-                txt += "            ━━━━━━━━┛"
+                txt += "\n            ━━━━━━━━┛"
             else:
                 txt += " ⛔️"
             txt += "\n\nДоступ: 🟢 (<code>.s su</code>)"
@@ -273,7 +273,7 @@ class ZhabaMod(loader.Module):
                 self.su.pop(i)
             if n in self.su:
                 self.su.pop(n)
-                txt += "⛔ деактивирован"
+            txt += "⛔ деактивирован"
             return await m.edit(txt)
         if "all" in m.text:
             if i in self.su:
