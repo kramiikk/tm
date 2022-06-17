@@ -510,7 +510,7 @@ class ZhabaMod(loader.Module):
                                 or "gs" not in self.su
                             )
                         )
-                        or (p == "можно отправить" and job is No)
+                        or (p == "можно отправить" and job is None)
                         or (
                             p == "Можно на арену!"
                             and int(jab.group(1)) < 1500
