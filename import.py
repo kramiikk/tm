@@ -295,13 +295,13 @@ class ZhabaMod(loader.Module):
             return await m.edit(
                 "ид чата начинается с '-'\nнапиши <code>узнать ид</code>"
             )
-        elif n in self.su and msg in self.su[n]:
+        if n in self.su and msg in self.su[n]:
             self.su[n].remove(msg)
             txt += f"<b> удален</b> {msg}"
             if self.su[n] == []:
                 self.su.pop(n)
             return await m.edit(txt)
-        elif n in self.su and msg not in self.su[n]:
+        if n in self.su and msg not in self.su[n]:
             txt += f"<b> добавлен</b> {msg}"
             self.su[n].append(msg)
         else:
