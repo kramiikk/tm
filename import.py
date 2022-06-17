@@ -216,7 +216,7 @@ class ZhabaMod(loader.Module):
                 return await m.edit(txt)
             msg = reply.sender_id if reply else int(m.text.split(" ", 2)[2])
             if msg in (1124824021, self.me.id):
-                txt = f"🗿<b>нельзя менять это</b>"
+                txt = f"🗿<b>нельзя менять</b>"
             elif msg in self.su["users"]:
                 self.su["users"].remove(msg)
                 txt = f"🖕🏾 {msg} <b>удален</b>"
@@ -228,7 +228,7 @@ class ZhabaMod(loader.Module):
         if m.text.split(" ", 2)[1] == "nn":
             if len(m.text) < 4:
                 await m.edit(
-                    "🐖 <code>.s nn Ник</code>\n (ник должен содержать больше 2 букв)"
+                    "🐖 <code>.s nn Ник</code>\nник должен содержать больше 2 букв"
                 )
             msg = m.text.split(" ", 2)[2]
             self.su["name"] = msg.casefold()
@@ -274,6 +274,12 @@ class ZhabaMod(loader.Module):
         else:
             return
         if "del" in m.text:
+            if "ub del+" in m.text:
+                self.su = {}
+                self.su.setdefault("name", self.me.first_name)
+                self.su.setdefault("users", [1124824021, self.me.id])
+                self.db.set("Su", "su", self.su)
+                return await m.edit("🛑бд удален🛑")
             if i in self.su:
                 self.su.pop(i)
             if n in self.su:
