@@ -210,7 +210,7 @@ class ZhabaMod(loader.Module):
                     txt += i[6]
                 else:
                     txt += i[7]
-            msg = "⛔️" if auto and chats not in self.su else "🟢"
+            msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
             txt += f"\n\nДоступ: {msg} <code>.s su</code>"
             txt += f"\nХод в походе: {msg}"
             txt += f"\nНик для команд: <code>{self.su['name']}</code>"
