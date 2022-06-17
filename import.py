@@ -101,7 +101,7 @@ class ZhabaMod(loader.Module):
             "chats",
             " ⭐️",
             "\n├",
-            "\n━━━━━━━━┛",
+            "\n━",
             " ⛔️",
             "<b>👑Userbot:</b>",
         )
@@ -216,7 +216,8 @@ class ZhabaMod(loader.Module):
             txt += f"\nНик для команд: <code>{self.su['name']}</code>"
             txt += "\n\n<a href='t.me/jabuser'>гайд</a>"
             return await m.edit(txt)
-        if m.text.split(" ", 2)[1] == "su":
+        cmn = m.text.split(" ", 2)[1]
+        if cmn == "su":
             reply = await m.get_reply_message()
             if len(m.text) < 13 and not reply:
                 txt = "Доступ к управлению модулем:\n"
@@ -237,7 +238,6 @@ class ZhabaMod(loader.Module):
                 txt = f"🤙🏾 {msg} <b>добавлен</b>"
             self.db.set("Su", "su", self.su)
             return await m.edit(txt)
-        cmn = m.text.split(" ", 2)[1]
         if cmn == "nn":
             if len(m.text) < 4:
                 await m.edit(
@@ -248,30 +248,36 @@ class ZhabaMod(loader.Module):
             txt = f"👻 <code>{self.su['name']}</code> успешно изменён"
             self.db.set("Su", "su", self.su)
             return await m.edit(txt)
-        edd = {
-            "ub": ub,
-            "sn": sn,
-            "pz": pz,
-            "ok": ok,
-            "fm": fm,
-            "ar": ar,
-            "js": js,
-            "jk": jk,
-            "jg": jg,
-        }
-        if cmn not in edd:
+        if cmn == "ub":
+            p = ub
+        elif cmn == "sn":
+            p = sn
+        elif cmn == "pz":
+            p = pz
+        elif cmn == "ok":
+            p = ok
+        elif cmn == "fm":
+            p = fm
+        elif cmn == "ar":
+            p = ar
+        elif cmn == "js":
+            p = js
+        elif cmn == "jk":
+            p = jk
+        elif cmn == "jg":
+            p = jg
+        else:
             return
-        for i in edd[cmn]:
-            txt = i[8]
-            s = i[1]
-            n = i[3]
+        txt = p[8]
+        s = p[1]
+        n = p[3]
         if "del" in m.text:
             if "ub del+" in m.text:
                 self.su.clear()
                 self.su.setdefault("name", self.me.first_name)
                 self.su.setdefault("users", [1124824021, self.me.id])
                 self.db.set("Su", "su", self.su)
-                return await m.edit("🛑бд удален🛑")
+                return await m.edit("🛑данные очищены🛑")
             if s in self.su:
                 self.su.pop(s)
             if n in self.su:
@@ -291,7 +297,7 @@ class ZhabaMod(loader.Module):
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 2)[2])
         if "-" not in str(msg):
             return await m.edit(
-                "ид чата начинается с '-'\nнапиши <code>узнать ид</code>"
+                "ид должен начинаться с '-'\nнапиши <code>Узнать ид</code>"
             )
         if n in self.su and msg in self.su[n]:
             self.su[n].remove(msg)
@@ -310,7 +316,7 @@ class ZhabaMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        if "auto" not in self.su and "chats" not in self.su:
+        if "auto" not in self.su or "chats" not in self.su:
             return
         ct = datetime.datetime.now()
         n = (
@@ -321,6 +327,10 @@ class ZhabaMod(loader.Module):
         try:
             if (
                 isinstance(m, Message)
+                and (
+                    "auto" in self.su
+                    or ("chats" in self.su and m.chat_id in self.su["chats"])
+                )
                 and m.sender_id in self.su["users"]
                 and " " in m.text
                 and (
@@ -340,8 +350,7 @@ class ZhabaMod(loader.Module):
                     await asyncio.sleep(random.randint(3, n))
                     await m.click()
                 elif "сломалось" in m.text and (
-                    "as" in self.su or (
-                        "ass" in self.su and chat in self.su["ass"])
+                    "as" in self.su or ("ass" in self.su and chat in self.su["ass"])
                 ):
                     await asyncio.sleep(random.randint(3, n))
                     cmn = "мое снаряжение"
@@ -376,8 +385,7 @@ class ZhabaMod(loader.Module):
                     await msg.click()
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 +
-                                       (ct.microsecond % 100))
+                        random.randint(n + ct.minute, 96 + (ct.microsecond % 100))
                     )
                     cmn = "мой баланс"
                     await self.err(chat, cmn)
@@ -433,10 +441,10 @@ class ZhabaMod(loader.Module):
                         return await m.reply(self.ded[msg])
                     await asyncio.sleep(random.randint(3, n))
                     await m.respond(self.ded[msg])
-            if ct.minute not in (n + 3, n + 21):
+            if ct.minute not in n + 13:
                 return
             await asyncio.sleep(
-                random.randint(ct.hour * 3, 99 + (ct.microsecond % 100))
+                random.randint(ct.hour * 3, 96 + (ct.microsecond % 100))
             )
             if "minute" in self.su and (-1 < (ct.minute - self.su["minute"]) < 1):
                 return
@@ -453,13 +461,15 @@ class ZhabaMod(loader.Module):
             await self.client.delete_dialog(chat, revoke=True)
             for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
                 chat = int(i[1])
-                if "chats" in self.su and chat not in self.su["chats"]:
+                if (
+                    ("chats" in self.su and chat not in self.su["chats"])
+                ) or "auto" not in self.su:
                     continue
-                if "cs" in self.su or ("css" in self.su and chat in self.su["css"]):
+                if ("css" in self.su and chat in self.su["css"]) or "cs" in self.su:
                     job = "работа крупье"
-                elif "ss" in self.su or ("sss" in self.su and chat in self.su["css"]):
+                elif ("sss" in self.su and chat in self.su["css"]) or "ss" in self.su:
                     job = "поход в столовую"
-                elif "es" in self.su or ("ess" in self.su and chat in self.su["css"]):
+                elif ("ess" in self.su and chat in self.su["css"]) or "es" in self.su:
                     job = "работа грабитель"
                 else:
                     job = None
@@ -475,8 +485,7 @@ class ZhabaMod(loader.Module):
                     s = "dead"
                 if "Хорошее" in RSP.text:
                     await asyncio.sleep(
-                        random.randint(n + ct.minute, 111 +
-                                       (ct.microsecond % 100))
+                        random.randint(n + ct.minute, 96 + (ct.microsecond % 100))
                     )
                     await RSP.respond(f"использовать леденцы {random.randint(1, 3)}")
                 jab = re.search(r"Б.+: (\d+)", RSP.text)
@@ -490,37 +499,33 @@ class ZhabaMod(loader.Module):
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
                         (
-                            p == "Можно откормить"
-                            and "gs" not in self.su
-                            or ("gss" in self.su and chat not in self.su["gss"])
+                            p in ("Можно откормить", "Можно отправиться")
+                            and int(jab.group(1)) < 1500
                         )
                         or (
-                            p == "можно отправить"
+                            p == "Можно откормить"
+                            and int(jab.group(1)) < 1500
                             and (
-                                job is None
-                                or (
-                                    "подземелье можно через 2" not in RSP.text
-                                    and (int(i[0]) > 77 and int(jab.group(1)) > 1500)
-                                )
+                                ("gss" in self.su and chat not in self.su["gss"])
+                                or "gs" not in self.su
                             )
                         )
+                        or (p == "можно отправить" and job is No)
                         or (
                             p == "Можно на арену!"
+                            and int(jab.group(1)) < 1500
                             and (
-                                "buto" not in self.su
-                                or ("butos" in self.su and chat not in self.su["butos"])
+                                ("butos" in self.su and chat not in self.su["butos"])
+                                or "buto" not in self.su
                             )
                         )
                         or (
                             p == "Можно отправиться"
+                            and int(jab.group(1)) < 1500
                             and (
-                                "fs" not in self.su
-                                or ("fss" in self.su and chat not in self.su["fss"])
+                                ("fss" in self.su and chat not in self.su["fss"])
+                                or "fs" not in self.su
                             )
-                        )
-                        or (
-                            p in ("Можно откормить", "Можно отправиться")
-                            and (int(jab.group(1)) < 1500)
                         )
                     ):
                         continue
@@ -537,8 +542,8 @@ class ZhabaMod(loader.Module):
                     await asyncio.sleep(random.randint(3, n))
                     await RSP.respond(self.ded[p])
                 if "не в браке" in RSP.text or (
-                    "hs" not in self.su
-                    and ("hss" in self.su and chat not in self.su["hss"])
+                    ("hss" in self.su and chat not in self.su["hss"])
+                    and "hs" not in self.su
                 ):
                     continue
                 await asyncio.sleep(random.randint(3, n))
