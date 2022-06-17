@@ -501,7 +501,7 @@ class ZhabaMod(loader.Module):
                         or (
                             p == "можно отправить"
                             and (
-                                job == None
+                                job is None
                                 or (
                                     "подземелье можно через 2" not in RSP.text
                                     and (int(i[0]) > 77 and int(jab.group(1)) > 1500)
@@ -531,7 +531,7 @@ class ZhabaMod(loader.Module):
                     if (
                         s == "dead"
                         and job != "поход в столовую"
-                        and job == None
+                        and job is None
                         and p not in ("Можно откормить", "можно покормить")
                     ):
                         await asyncio.sleep(random.randint(3, n))
