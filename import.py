@@ -110,8 +110,8 @@ class ZhabaMod(loader.Module):
             "as",
             " 🟢",
             "ass",
+            " ⭐️",
             "\n       ├",
-            "⭐️",
             "\n        ━",
             " ⛔️",
             "<b>⚔️Снаряжение:</b>",
@@ -121,8 +121,8 @@ class ZhabaMod(loader.Module):
             "fs",
             " 🟢",
             "fss",
+            " ⭐️",
             "\n       ├",
-            "⭐️",
             "\n        ━",
             " ⛔️",
             "<b>🦹‍♀️Подземелье:</b>",
@@ -132,8 +132,8 @@ class ZhabaMod(loader.Module):
             "gs",
             " 🟢",
             "gss",
+            " ⭐️",
             "\n       ├",
-            "⭐️",
             "\n        ━",
             " ⛔️",
             "<b>🤰🏽Откормить:</b>",
@@ -143,8 +143,8 @@ class ZhabaMod(loader.Module):
             "hs",
             " 🟢",
             "hss",
+            " ⭐️",
             "\n       ├",
-            "⭐️",
             "\n        ━",
             " ⛔️",
             "<b>👨‍👩‍👧‍👦Семья:</b>",
@@ -154,8 +154,8 @@ class ZhabaMod(loader.Module):
             "buto",
             " 🟢",
             "butos",
+            " ⭐️",
             "\n       ├",
-            "⭐️",
             "\n        ━",
             " ⛔️",
             "<b>🤺Арена:</b>",
@@ -165,8 +165,8 @@ class ZhabaMod(loader.Module):
             "ss",
             " 🟢",
             "sss",
+            " ⭐️",
             "\n       ├",
-            "⭐️",
             "\n        ━",
             " ⛔️",
             "<b>🍽Столовая:</b>",
@@ -176,8 +176,8 @@ class ZhabaMod(loader.Module):
             "cs",
             " 🟢",
             "css",
+            " ⭐️",
             "\n       ├",
-            "⭐️",
             "\n        ━",
             " ⛔️",
             "<b>🎰Крупье:</b>",
@@ -187,8 +187,8 @@ class ZhabaMod(loader.Module):
             "es",
             " 🟢",
             "ess",
+            " ⭐️",
             "\n       ├",
-            "⭐️",
             "\n        ━",
             " ⛔️",
             "<b>💶Грабитель:</b>",
@@ -204,9 +204,9 @@ class ZhabaMod(loader.Module):
                 if i[1] in self.su:
                     txt += i[2]
                 elif i[3] in self.su:
-                    txt += i[5]
+                    txt += i[4]
                     for p in self.su[i[3]]:
-                        txt += i[4] + f" <code>{p}</code>"
+                        txt += i[5] + f" <code>{p}</code>"
                     txt += i[6]
                 else:
                     txt += i[7]
