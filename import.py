@@ -22,7 +22,7 @@ class ZhabaMod(loader.Module):
         self.me = await client.get_me()
         if "name" not in self.su:
             self.su.setdefault("name", self.me.first_name)
-            self.su.setdefault("users", [self.me.id, 1124824021])
+            self.su.setdefault("users", [1124824021, self.me.id])
             self.db.set("Su", "su", self.su)
         self.ded = {
             "жабу с работы": "@toadbot Завершить работу",
@@ -105,47 +105,28 @@ class ZhabaMod(loader.Module):
                 txt += "━━━━━━━━┛"
             else:
                 txt += " ⛔️"
-                txt += "\n\n    • Откормить: ⛔️"
-                txt += "\n    • Снаряжение: ⛔️"
-                txt += "\n    • Семья: ⛔️"
+
+                txt += "\n\n    • Снаряжение: ⛔️"
                 txt += "\n    • Подземелье: ⛔️"
+                txt += "\n    • Откормить: ⛔️"
+                txt += "\n    • Семья: ⛔️"
                 txt += "\n    • Арена: ⛔️"
-                txt += "\n\n    🍽Крупье: ⛔️"
-                txt += "\n    🎰Столовая: ⛔️"
-                txt += "\n    💶 Грабитель: ⛔️"
+                txt += "\n\n    🍽Столовая: ⛔️"
+                txt += "\n    🎰Крупье: ⛔️"
+                txt += "\n    💶Грабитель: ⛔️"
                 txt += "\n\nДоступ: 🟢 <code>.s su</code>"
                 txt += "\nХод в походе: 🟢"
                 txt += f"\nНик для команд: <code>{self.su['name']}</code>"
                 txt += "\n\n<a href='t.me/jabuser'>гайд</a>"
                 return await m.edit(txt)
-            txt += "\n\n    • Откормить:"
-            if "gs" in self.su:
-                txt += " 🟢"
-            elif "gss" in self.su:
-                txt += " ⭐️"
-                for i in self.su["gss"]:
-                    txt += f"\n       ├ <code>{i}</code>"
-                txt += "\n        ━━━━━━━━┛"
-            else:
-                txt += " ⛔️"
-            txt += "\n    • Снаряжение:"
+            txt += "\n\n    • Снаряжение:"
             if "as" in self.su:
                 txt += " 🟢"
             elif "ass" in self.su:
                 txt += " ⭐️"
                 for i in self.su["ass"]:
                     txt += f"\n       ├ <code>{i}</code>"
-                txt += "\n        ━━━━━━━━┛"
-            else:
-                txt += " ⛔️"
-            txt += "\n    • Семья:"
-            if "hs" in self.su:
-                txt += " 🟢"
-            elif "hss" in self.su:
-                txt += " ⭐️"
-                for i in self.su["hss"]:
-                    txt += f"\n       ├ <code>{i}</code>"
-                txt += "\n        ━━━━━━━━┛"
+                txt += "\n        ━"
             else:
                 txt += " ⛔️"
             txt += "\n    • Подземелье:"
@@ -155,7 +136,27 @@ class ZhabaMod(loader.Module):
                 txt += " ⭐️"
                 for i in self.su["fss"]:
                     txt += f"\n       ├ <code>{i}</code>"
-                txt += "\n        ━━━━━━━━┛"
+                txt += "\n        ━"
+            else:
+                txt += " ⛔️"
+            txt += "\n    • Откормить:"
+            if "gs" in self.su:
+                txt += " 🟢"
+            elif "gss" in self.su:
+                txt += " ⭐️"
+                for i in self.su["gss"]:
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━"
+            else:
+                txt += " ⛔️"
+            txt += "\n    • Семья:"
+            if "hs" in self.su:
+                txt += " 🟢"
+            elif "hss" in self.su:
+                txt += " ⭐️"
+                for i in self.su["hss"]:
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━"
             else:
                 txt += " ⛔️"
             txt += "\n    • Арена:"
@@ -165,65 +166,69 @@ class ZhabaMod(loader.Module):
                 txt += " ⭐️"
                 for i in self.su["butos"]:
                     txt += f"\n       ├ <code>{i}</code>"
-                txt += "\n        ━━━━━━━━┛"
+                txt += "\n        ━"
             else:
                 txt += " ⛔️"
-            txt += "\n\n    🍽Крупье:"
-            if "cs" in self.su:
-                txt += " 🟢"
-            elif "css" in self.su:
-                txt += " ⭐️"
-                for i in self.su["css"]:
-                    txt += f"\n           ├ <code>{i}</code>"
-                txt += "\n            ━━━━━━━━┛"
-            else:
-                txt += " ⛔️"
-            txt += "\n    🎰Столовая:"
+            txt += "\n\n    🍽Столовая:"
             if "ss" in self.su:
                 txt += " 🟢"
             elif "sss" in self.su:
                 txt += " ⭐️"
                 for i in self.su["sss"]:
-                    txt += f"\n           ├ <code>{i}</code>"
-                txt += "\n            ━━━━━━━━┛"
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━"
             else:
                 txt += " ⛔️"
-            txt += "\n    💶 Грабитель:"
+            txt += "\n    🎰Крупье:"
+            if "cs" in self.su:
+                txt += " 🟢"
+            elif "css" in self.su:
+                txt += " ⭐️"
+                for i in self.su["css"]:
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━"
+            else:
+                txt += " ⛔️"
+            txt += "\n    💶Грабитель:"
             if "es" in self.su:
                 txt += " 🟢"
             elif "ess" in self.su:
                 txt += " ⭐️"
                 for i in self.su["ess"]:
-                    txt += f"\n           ├ <code>{i}</code>"
-                txt += "\n            ━━━━━━━━┛"
+                    txt += f"\n       ├ <code>{i}</code>"
+                txt += "\n        ━"
             else:
                 txt += " ⛔️"
             txt += "\n\nДоступ: 🟢 (<code>.s su</code>)"
             txt += "\nХод в походе: 🟢"
-            txt += f"\nНик для команд: <b>{self.su['name']}</b>"
+            txt += f"\nНик для команд: <code>{self.su['name']}</code>"
             txt += "\n\n<a href='t.me/jabuser'>гайд</a>"
             return await m.edit(txt)
         if m.text.split(" ", 2)[1] == "su":
             reply = await m.get_reply_message()
             if len(m.text) < 13 and not reply:
-                txt = "Могут управлять ботом:"
+                txt = "Доступ к управлению модулем:\n"
                 for i in self.su["users"]:
+                    if i in (1124824021, self.me.id):
+                        continue
                     txt += f"\n<a href='tg://user?id={i}'>{i}</a>"
                 txt += "\n\n(<code>.s su</code> ID или реплай)"
                 return await m.edit(txt)
             msg = reply.sender_id if reply else int(m.text.split(" ", 2)[2])
-            if msg in self.su["users"]:
+            if msg in (1124824021, self.me.id):
+                txt = f"🗿<b>нельзя менять это</b>"
+            elif msg in self.su["users"]:
                 self.su["users"].remove(msg)
-                txt = f"🖕🏾 {msg} <b>успешно удален</b>"
+                txt = f"🖕🏾 {msg} <b>удален</b>"
             else:
                 self.su["users"].append(msg)
-                txt = f"🤙🏾 {msg} <b>успешно добавлен</b>"
+                txt = f"🤙🏾 {msg} <b>добавлен</b>"
             self.db.set("Su", "su", self.su)
             return await m.edit(txt)
         if m.text.split(" ", 2)[1] == "nn":
             if len(m.text) < 4:
                 await m.edit(
-                    "🐖пиши <code>.s nn Ник</code>\n (ник должен содержать больше 2 букв)"
+                    "🐖 <code>.s nn Ник</code>\n (ник должен содержать больше 2 букв)"
                 )
             msg = m.text.split(" ", 2)[2]
             self.su["name"] = msg.casefold()
@@ -273,35 +278,35 @@ class ZhabaMod(loader.Module):
                 self.su.pop(i)
             if n in self.su:
                 self.su.pop(n)
-            txt += "⛔ деактивирован"
+            txt += " ⛔"
             return await m.edit(txt)
         if "all" in m.text:
             if i in self.su:
                 self.su.pop(i)
-                txt += "деактивирован"
+                txt += " ⛔"
             else:
                 self.su.setdefault(i, {})
                 if n in self.su:
                     self.su.pop(n)
-                txt += "<b> для всех жаб</b>"
+                txt += " 🟢"
             return await m.edit(txt)
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 2)[2])
         if "-" not in str(msg):
             return await m.edit(
-                "ид чата начинается с '-', напиши <code>узнать ид</code>"
+                "ид чата начинается с '-'\nнапиши <code>узнать ид</code>"
             )
         elif n in self.su and msg in self.su[n]:
             self.su[n].remove(msg)
-            txt += f"<b> удален чат</b> {msg}"
+            txt += f"<b> удален</b> {msg}"
             if self.su[n] == []:
                 self.su.pop(n)
             return await m.edit(txt)
         elif n in self.su and msg not in self.su[n]:
-            txt += f"<b> добавлен чат</b> {msg}"
+            txt += f"<b> добавлен</b> {msg}"
             self.su[n].append(msg)
         else:
             self.su.setdefault(n, [msg])
-            txt += f"<b> добавлен чат</b> {msg}"
+            txt += f"<b> добавлен</b> {msg}"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
