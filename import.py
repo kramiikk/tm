@@ -255,7 +255,6 @@ class ZhabaMod(loader.Module):
             "ok": ok,
             "fm": fm,
             "ar": ar,
-            "nn": nn,
             "js": js,
             "jk": jk,
             "jg": jg,
