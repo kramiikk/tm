@@ -105,7 +105,6 @@ class ZhabaMod(loader.Module):
                 txt += "━━━━━━━━┛"
             else:
                 txt += " ⛔️"
-
                 txt += "\n\n    • Снаряжение: ⛔️"
                 txt += "\n    • Подземелье: ⛔️"
                 txt += "\n    • Откормить: ⛔️"
