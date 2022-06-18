@@ -387,8 +387,7 @@ class ZhabaMod(loader.Module):
                     tpt = int(m.text.split(" ", 2)[2])
                     hat = m.text.split(" ", 4)[3]
                     if hat in self.su and tpt in self.su[hat]:
-                        return await m.respond(f"{self.su[hat]}")
-                    await m.respond(txt)
+                        await m.respond(f"{self.su[hat]}")
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
                         random.randint(n + ct.minute, 96 + (ct.microsecond % 100))
