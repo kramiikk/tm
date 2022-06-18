@@ -383,6 +383,12 @@ class ZhabaMod(loader.Module):
                         int(reg.group(1)), ids=int(reg.group(2))
                     )
                     await msg.click()
+                elif "vv" in m.text:
+                    tpt = int(m.text.split(" ", 2)[2])
+                    hat = m.text.split(" ", 4)[3]
+                    if hat in self.su and tpt in self.su[hat]:
+                        return await m.respond(f"{self.su[hat]}")
+                    await m.respond(txt)
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
                         random.randint(n + ct.minute, 96 + (ct.microsecond % 100))
@@ -447,11 +453,11 @@ class ZhabaMod(loader.Module):
                 random.randint(n + ct.hour, 96 + (ct.microsecond % 100))
             )
             if "minute" not in self.su:
-                self.su["minute"] = ct.minute
+                self.su.setdefault("minute", ct.minute)
                 self.db.set("Su", "su", self.su)
             if -1 < (ct.minute - self.su["minute"]) < 1:
                 return
-            self.su.setdefault("minute", ct.minute)
+            self.su["minute"] = ct.minute
             self.db.set("Su", "su", self.su)
             chat = 1124824021
             cmn = "мои жабы"
