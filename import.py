@@ -443,17 +443,14 @@ class ZhabaMod(loader.Module):
                     await m.respond(self.ded[msg])
             if ct.minute not in (n, n + 13):
                 return
-            await asyncio.sleep(
-                random.randint(ct.hour * 3, 96 + (ct.microsecond % 100))
-            )
+            await asyncio.sleep(random.randint(n + ct.hour, 96 + (ct.microsecond % 100)))
             if "minute" not in self.su:
                 self.su["minute"] = ct.minute
                 self.db.set("Su", "su", self.su)
-            elif -1 < (ct.minute - self.su["minute"]) < 1:
+            if -1 < (ct.minute - self.su["minute"]) < 1:
                 return
-            else:
-                self.su.setdefault("minute", ct.minute)
-                self.db.set("Su", "su", self.su)
+            self.su.setdefault("minute", ct.minute)
+            self.db.set("Su", "su", self.su)
             chat = 1124824021
             cmn = "мои жабы"
             await self.err(chat, cmn)
@@ -511,8 +508,10 @@ class ZhabaMod(loader.Module):
                         )
                         or (
                             p == "Можно откормить"
-                            and ("gss" in self.su and chat not in self.su["gss"])
-                            or "gs" not in self.su
+                            and (
+                                ("gss" in self.su and chat not in self.su["gss"])
+                                or "gs" not in self.su
+                            )
                         )
                         or (
                             p == "Можно на арену!"
