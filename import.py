@@ -384,7 +384,7 @@ class ZhabaMod(loader.Module):
                     )
                     await msg.click()
                 elif "vv" in m.text:
-                    tpt = int(m.text.split(" ", 2)[2])
+                    tpt = m.text.split(" ", 2)[2]
                     hat = m.text.split(" ", 4)[3]
                     if hat in self.su and tpt in self.su[hat]:
                         await m.respond(f"{self.su[hat]}")
