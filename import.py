@@ -466,17 +466,21 @@ class ZhabaMod(loader.Module):
             if not RSP:
                 return
             await self.client.delete_dialog(chat, revoke=True)
-            for i in re.findall(r"(\d+) \| (-\d+)", RSP.text):
-                chat = int(i[1])
-                if (
-                    ("chats" in self.su and chat not in self.su["chats"])
-                ) or "auto" not in self.su:
+            for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
+                chat = int(i[2])
+                if "chats" in self.su and chat not in self.su["chats"]:
                     continue
-                if ("css" in self.su and chat in self.su["css"]) or "cs" in self.su:
+                if "css" in self.su and chat in self.su["css"]:
                     job = "работа крупье"
-                elif ("sss" in self.su and chat in self.su["sss"]) or "ss" in self.su:
+                elif "sss" in self.su and chat in self.su["sss"]:
                     job = "поход в столовую"
-                elif ("ess" in self.su and chat in self.su["ess"]) or "es" in self.su:
+                elif "ess" in self.su and chat in self.su["ess"]:
+                    job = "работа грабитель"
+                elif "cs" in self.su:
+                    job = "работа крупье"
+                elif "ss" in self.su:
+                    job = "поход в столовую"
+                elif "es" in self.su:
                     job = "работа грабитель"
                 else:
                     job = None
@@ -485,7 +489,7 @@ class ZhabaMod(loader.Module):
                     await self.err(chat, cmn)
                 except Exception:
                     continue
-                if not RSP and "Имя жабы" not in RSP.text:
+                if not RSP and i[0] not in RSP.text and i[1] not in RSP.text:
                     continue
                 s = "alive"
                 if "Нужна реанимация" in RSP.text:
@@ -501,7 +505,12 @@ class ZhabaMod(loader.Module):
                 await asyncio.sleep(random.randint(3, n))
                 cmn = "@toadbot Жаба инфо"
                 await self.err(chat, cmn)
-                if not RSP and "🏃‍♂️" not in RSP.text:
+                if (
+                    not RSP
+                    and "🏃‍♂️" not in RSP.text
+                    and "не в браке" not in RSP.text
+                    and i[0] not in RSP.text
+                ):
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
@@ -518,22 +527,22 @@ class ZhabaMod(loader.Module):
                         or (
                             p == "Можно откормить"
                             and (
-                                ("gss" in self.su and chat not in self.su["gss"])
-                                or "gs" not in self.su
+                                ("gs" not in self.su and "gss" not in self.su)
+                                or ("gss" in self.su and chat not in self.su["gss"])
                             )
                         )
                         or (
                             p == "Можно на арену!"
                             and (
-                                ("butos" in self.su and chat not in self.su["butos"])
-                                or "buto" not in self.su
+                                ("buto" not in self.su and "butos" not in self.su)
+                                or ("butos" in self.su and chat not in self.su["butos"])
                             )
                         )
                         or (
                             p == "Можно отправиться"
                             and (
-                                ("fss" in self.su and chat not in self.su["fss"])
-                                or "fs" not in self.su
+                                ("fs" not in self.su and "fss" not in self.su)
+                                or ("fss" in self.su and chat not in self.su["fss"])
                             )
                         )
                     ):
@@ -551,18 +560,19 @@ class ZhabaMod(loader.Module):
                     await asyncio.sleep(random.randint(3, n))
                     await RSP.respond(self.ded[p])
                 if "не в браке" in RSP.text or (
-                    ("hss" in self.su and chat not in self.su["hss"])
-                    or "hs" not in self.su
+                    ("hs" not in self.su and "hss" not in self.su)
+                    or ("hss" in self.su and chat not in self.su["hss"])
                 ):
                     continue
                 await asyncio.sleep(random.randint(3, n))
                 cmn = "Моя семья"
                 await self.err(chat, cmn)
-                if not RSP:
-                    continue
-                if "У вас нет" in RSP.text:
-                    continue
-                if not RSP.buttons:
+                if (
+                    not RSP
+                    or "дней в браке" not in RSP.text
+                    or i[0] not in RSP.text
+                    or not RSP.buttons
+                ):
                     continue
                 s = len(RSP.buttons)
                 await asyncio.sleep(random.randint(3, n))
