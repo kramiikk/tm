@@ -383,13 +383,6 @@ class ZhabaMod(loader.Module):
                         int(reg.group(1)), ids=int(reg.group(2))
                     )
                     await msg.click()
-                elif "vv" in m.text:
-                    tpt = m.text.split(" ", 4)[2]
-                    hat = m.text.split(" ", 4)[3]
-                    if "#" in m.text:
-                        tpt = int(tpt)
-                    if hat in self.su and tpt in self.su[hat]:
-                        await m.respond(f"{self.su[hat]}")
                 elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
                     await asyncio.sleep(
                         random.randint(n + ct.minute, 96 + (ct.microsecond % 100))
@@ -448,10 +441,10 @@ class ZhabaMod(loader.Module):
                         return await m.reply(self.ded[msg])
                     await asyncio.sleep(random.randint(3, n))
                     await m.respond(self.ded[msg])
-            if ct.minute not in (n, n + 13):
+            if ct.minute not in (n + 13):
                 return
             await asyncio.sleep(
-                random.randint(n + ct.hour, 96 + (ct.microsecond % 100))
+                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + 13
             )
             if "minute" not in self.su:
                 self.su.setdefault("minute", ct.minute)
@@ -463,10 +456,16 @@ class ZhabaMod(loader.Module):
             chat = 1124824021
             cmn = "мои жабы"
             await self.err(chat, cmn)
+            await self.client.delete_dialog(chat, revoke=True)
             if not RSP:
                 return
-            await self.client.delete_dialog(chat, revoke=True)
+            await asyncio.sleep(
+                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + 13
+            )
             for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
+                await asyncio.sleep(
+                    random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + 13
+                )
                 chat = int(i[2])
                 if "chats" in self.su and chat not in self.su["chats"]:
                     continue
