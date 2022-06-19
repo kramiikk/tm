@@ -491,9 +491,9 @@ class ZhabaMod(loader.Module):
                     continue
                 if not RSP and i[0] not in RSP.text and i[1] not in RSP.text:
                     continue
-                s = "alive"
                 if "Нужна реанимация" in RSP.text:
-                    s = "dead"
+                    await asyncio.sleep(random.randint(3, n))
+                    await RSP.respond("реанимировать жабу")
                 if "Хорошее" in RSP.text:
                     await asyncio.sleep(
                         random.randint(n + ct.minute, 96 + (ct.microsecond % 100))
@@ -514,46 +514,34 @@ class ZhabaMod(loader.Module):
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
-                        (p == "можно отправить" and job is None)
-                        or (
-                            p
-                            in (
-                                "Можно откормить",
-                                "Можно отправиться",
-                                "Можно на арену!",
-                            )
-                            and int(jab) < 1500
-                        )
-                        or (
-                            p == "Можно откормить"
-                            and (
-                                ("gs" not in self.su and "gss" not in self.su)
-                                or ("gss" in self.su and chat not in self.su["gss"])
-                            )
-                        )
-                        or (
-                            p == "Можно на арену!"
-                            and (
-                                ("buto" not in self.su and "butos" not in self.su)
-                                or ("butos" in self.su and chat not in self.su["butos"])
-                            )
-                        )
-                        or (
-                            p == "Можно отправиться"
-                            and (
-                                ("fs" not in self.su and "fss" not in self.su)
-                                or ("fss" in self.su and chat not in self.su["fss"])
-                            )
+                        p == "Можно откормить"
+                        and int(jab) < 1500
+                        and (
+                            ("gs" not in self.su and "gss" not in self.su)
+                            or ("gss" in self.su and chat not in self.su["gss"])
                         )
                     ):
                         continue
-                    if s == "dead" and (
-                        job != "поход в столовую"
-                        or job is None
-                        or p not in ("Можно откормить", "можно покормить")
+                    if (
+                        p == "Можно отправиться"
+                        and int(jab) < 1500
+                        and (
+                            ("fs" not in self.su and "fss" not in self.su)
+                            or ("fss" in self.su and chat not in self.su["fss"])
+                        )
                     ):
-                        await asyncio.sleep(random.randint(3, n))
-                        await RSP.respond("реанимировать жабу")
+                        continue
+                    if (
+                        p == "Можно на арену!"
+                        and int(jab) < 1500
+                        and (
+                            ("buto" not in self.su and "butos" not in self.su)
+                            or ("butos" in self.su and chat not in self.su["butos"])
+                        )
+                    ):
+                        continue
+                    if p == "можно отправить" and job is None:
+                        continue
                     if p == "можно отправить":
                         await RSP.respond(job)
                         continue
