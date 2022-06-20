@@ -351,7 +351,8 @@ class ZhabaMod(loader.Module):
                     await asyncio.sleep(random.randint(3, n))
                     await m.click()
                 elif "сломалось" in m.text and (
-                    ("ass" in self.su and chat in self.su["ass"]) or "as" in self.su
+                    ("ass" in self.su and chat in self.su["ass"]
+                     ) or "as" in self.su
                 ):
                     await asyncio.sleep(random.randint(3, n))
                     cmn = "мое снаряжение"
@@ -448,9 +449,9 @@ class ZhabaMod(loader.Module):
             if "minute" not in self.su:
                 self.su.setdefault("minute", ct.minute)
                 self.db.set("Su", "su", self.su)
-            if -1 < (ct.minute - self.su["minute"]) < 1:
+            if -1 < ((ct.hour + ct.minute) - self.su["minute"]) < 1:
                 return
-            self.su["minute"] = ct.minute
+            self.su["minute"] = ct.hour + ct.minute
             self.db.set("Su", "su", self.su)
             chat = 1124824021
             cmn = "мои жабы"
@@ -459,11 +460,13 @@ class ZhabaMod(loader.Module):
             if not RSP:
                 return
             await asyncio.sleep(
-                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
+                random.randint(n + ct.hour, 96 +
+                               (ct.microsecond % 100)) + ct.minute
             )
             for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
                 await asyncio.sleep(
-                    random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
+                    random.randint(n + ct.hour, 96 +
+                                   (ct.microsecond % 100)) + ct.minute
                 )
                 chat = int(i[2])
                 if "chats" in self.su and chat not in self.su["chats"]:
@@ -527,7 +530,8 @@ class ZhabaMod(loader.Module):
                     await RSP.respond("реанимировать жабу")
                 if "Хорошее" in RSP.text:
                     await asyncio.sleep(
-                        random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
+                        random.randint(n, 96 + (ct.microsecond %
+                                       100)) + ct.minute
                     )
                     await RSP.respond(f"использовать леденцы {random.randint(1, 3)}")
                 jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
