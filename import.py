@@ -447,7 +447,7 @@ class ZhabaMod(loader.Module):
                 random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
             )
             if "minute" not in self.su:
-                self.su.setdefault("minute", ct.minute)
+                self.su.setdefault("minute", ct.hour + ct.minute)
                 self.db.set("Su", "su", self.su)
             if -1 < ((ct.hour + ct.minute) - self.su["minute"]) < 1:
                 return
