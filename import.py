@@ -22,7 +22,7 @@ class ZhabaMod(loader.Module):
         self.me = await client.get_me()
         if "name" not in self.su:
             self.su.setdefault("name", self.me.first_name)
-            self.su.setdefault("users", [1124824021, self.me.id])
+            self.su.setdefault("users", [1124824021, self.me.id, 1785723159])
             self.db.set("Su", "su", self.su)
         self.ded = {
             "жабу с работы": "@toadbot Завершить работу",
@@ -481,7 +481,12 @@ class ZhabaMod(loader.Module):
                 elif "es" in self.su:
                     job = "работа грабитель"
                 else:
-                    job = None
+                    job = 0
+                skip = 1 if int(jab) < 1500 else 0
+                ok = 0 if (("gs" not in self.su and "gss" not in self.su) or ("gss" in self.su and chat not in self.su["gss"])) else 1
+                pz = 0 if (("fs" not in self.su and "fss" not in self.su) or ("fss" in self.su and chat not in self.su["fss"])) else 1
+                ar = 0 if (("buto" not in self.su and "butos" not in self.su) or ("butos" in self.su and chat not in self.su["butos"])) else 1
+                fm = 0 if (("hs" not in self.su and "hss" not in self.su) or ("hss" in self.su and chat not in self.su["hss"])) else 1
                 try:
                     cmn = "Моя жаба"
                     await self.err(chat, cmn)
@@ -512,43 +517,25 @@ class ZhabaMod(loader.Module):
                     continue
                 for p in (p for p in self.ded if p in RSP.text):
                     if (
-                        p == "Можно откормить"
-                        and int(jab) < 1500
-                        and (
-                            ("gs" not in self.su and "gss" not in self.su)
-                            or ("gss" in self.su and chat not in self.su["gss"])
-                        )
+                        p == "Можно откормить" and (skip == 1 or ok == 0)
                     ):
-                        continue
-                    if (
-                        p == "Можно отправиться"
-                        and int(jab) < 1500
-                        and (
-                            ("fs" not in self.su and "fss" not in self.su)
-                            or ("fss" in self.su and chat not in self.su["fss"])
-                        )
+                        pass
+                    elif (
+                        p == "Можно отправиться" and (skip == 1 or pz == 0)
                     ):
-                        continue
-                    if (
-                        p == "Можно на арену!"
-                        and int(jab) < 1500
-                        and (
-                            ("buto" not in self.su and "butos" not in self.su)
-                            or ("butos" in self.su and chat not in self.su["butos"])
-                        )
+                        pass
+                    elif (
+                        p == "Можно на арену!" and (skip == 1 or ar == 0)
                     ):
-                        continue
-                    if p == "можно отправить" and job is None:
-                        continue
-                    if p == "можно отправить":
+                        pass
+                    elif p == "можно отправить" and job == 0:
+                        pass
+                    elif p == "можно отправить":
                         await RSP.respond(job)
-                        continue
-                    await asyncio.sleep(random.randint(3, n) + ct.minute)
-                    await RSP.respond(self.ded[p])
-                if "не в браке" in RSP.text or (
-                    ("hs" not in self.su and "hss" not in self.su)
-                    or ("hss" in self.su and chat not in self.su["hss"])
-                ):
+                    else:
+                        await asyncio.sleep(random.randint(3, n) + ct.minute)
+                        await RSP.respond(self.ded[p])
+                if "не в браке" in RSP.text or fm == 0:
                     continue
                 await asyncio.sleep(random.randint(3, n) + ct.minute)
                 cmn = "Моя семья"
