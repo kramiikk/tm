@@ -214,7 +214,7 @@ class ZhabaMod(loader.Module):
             txt += f"\n\nДоступ: {msg} <code>.s su</code>"
             txt += f"\nХод в походе: {msg}"
             txt += f"\nНик для команд: <code>{self.su['name']}</code>"
-            txt += "\n\n<a href='t.me/jabuser'>гайд</a>"
+            txt += "\n\nГайд: [<a href='t.me/jabuser'>1</a>, <a href='https://te.legra.ph/-06-20-999'>2</a>]"
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "su":
@@ -319,12 +319,8 @@ class ZhabaMod(loader.Module):
         if "auto" not in self.su and "chats" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = (
-            (self.me.id % 100) + ct.day
-            if (self.me.id % 100) < 21
-            else int(self.me.id % 100 / 3)
-        )
-        n = n + ct.hour if n < 30 else n - ct.hour
+        n = self.me.id % 100 if (self.me.id % 100) < 21 else int(self.me.id % 100 / 3)
+        n += ct.hour
         if (
             isinstance(m, Message)
             and (
@@ -477,7 +473,6 @@ class ZhabaMod(loader.Module):
                 job = "работа грабитель"
             else:
                 job = 0
-            skip = 1 if int(jab) < 1500 else 0
             ok = (
                 0
                 if (
@@ -539,13 +534,17 @@ class ZhabaMod(loader.Module):
             ):
                 continue
             for p in (p for p in self.ded if p in RSP.text):
-                if p == "Можно откормить" and (skip == 1 or ok == 0):
+                if p == "Можно откормить" and (int(jab) < 1500 or ok == 0):
                     pass
-                elif p == "Можно отправиться" and (skip == 1 or pz == 0):
+                elif p == "можно покормить" and ok == 1:
                     pass
-                elif p == "Можно на арену!" and (skip == 1 or ar == 0):
+                elif p == "Можно отправиться" and (int(jab) < 1500 or pz == 0):
+                    pass
+                elif p == "Можно на арену!" and (int(jab) < 1500 or ar == 0):
                     pass
                 elif p == "можно отправить" and job == 0:
+                    pass
+                elif p == "можно отправить" and pz == 1:
                     pass
                 elif p == "можно отправить":
                     await RSP.respond(job)
