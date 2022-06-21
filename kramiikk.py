@@ -231,7 +231,7 @@ class KramiikkMod(loader.Module):
                 return await m.edit(txt)
             msg = reply.sender_id if reply else int(m.text.split(" ", 2)[2])
             if msg in (1124824021, self.me.id):
-                txt = f"🗿<b>нельзя менять</b>"
+                txt = "🗿<b>нельзя менять</b>"
             elif msg in self.su["users"]:
                 self.su["users"].remove(msg)
                 txt = f"🖕🏾 {msg} <b>удален</b>"
@@ -321,26 +321,25 @@ class KramiikkMod(loader.Module):
         if "auto" not in self.su and "chats" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id %
-                                 100) < 21 else int(self.me.id % 100 / 3)
+        n = self.me.id % 100 if (self.me.id % 100) < 21 else int(self.me.id % 100 / 3)
         n += ct.hour
-        try:
-            if (
-                isinstance(m, Message)
-                and (
-                    ("chats" in self.su and m.chat_id in self.su["chats"])
-                    or "auto" in self.su
-                )
-                and m.sender_id in self.su["users"]
-                and " " in m.text
-                and (
-                    m.text.casefold().startswith(self.su["name"])
-                    or m.text.startswith(f"@{self.me.username}")
-                    or str(self.me.id) in m.text
-                )
-            ):
-                chat = m.chat_id
-                reply = await m.get_reply_message()
+        if (
+            isinstance(m, Message)
+            and (
+                ("chats" in self.su and m.chat_id in self.su["chats"])
+                or "auto" in self.su
+            )
+            and m.sender_id in self.su["users"]
+            and " " in m.text
+            and (
+                m.text.casefold().startswith(self.su["name"])
+                or m.text.startswith(f"@{self.me.username}")
+                or str(self.me.id) in m.text
+            )
+        ):
+            chat = m.chat_id
+            reply = await m.get_reply_message()
+            try:
                 if "нуждается в реанимации" in m.text and m.buttons:
                     await asyncio.sleep(random.randint(3, n))
                     await m.respond("реанимировать жабу")
@@ -350,8 +349,7 @@ class KramiikkMod(loader.Module):
                     await asyncio.sleep(random.randint(3, n))
                     await m.click()
                 elif "сломалось" in m.text and (
-                    ("ass" in self.su and chat in self.su["ass"]
-                     ) or "as" in self.su
+                    ("ass" in self.su and chat in self.su["ass"]) or "as" in self.su
                 ):
                     await asyncio.sleep(random.randint(3, n))
                     cmn = "мое снаряжение"
@@ -440,6 +438,8 @@ class KramiikkMod(loader.Module):
                         return await m.reply(self.ded[msg])
                     await asyncio.sleep(random.randint(3, n) + ct.minute)
                     await m.respond(self.ded[msg])
+            except Exception:
+                return
             if ct.minute != n:
                 return
             await asyncio.sleep(
@@ -459,13 +459,11 @@ class KramiikkMod(loader.Module):
             if not RSP:
                 return
             await asyncio.sleep(
-                random.randint(n + ct.hour, 96 +
-                               (ct.microsecond % 100)) + ct.minute
+                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
             )
             for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
                 await asyncio.sleep(
-                    random.randint(n + ct.hour, 96 +
-                                   (ct.microsecond % 100)) + ct.minute
+                    random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
                 )
                 chat = int(i[2])
                 if "chats" in self.su and chat not in self.su["chats"]:
@@ -528,8 +526,7 @@ class KramiikkMod(loader.Module):
                     await RSP.respond("реанимировать жабу")
                 if "Хорошее" in RSP.text:
                     await asyncio.sleep(
-                        random.randint(n, 96 + (ct.microsecond %
-                                       100)) + ct.minute
+                        random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
                     )
                     await RSP.respond(f"использовать леденцы {random.randint(1, 3)}")
                 jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
@@ -586,5 +583,3 @@ class KramiikkMod(loader.Module):
                     continue
                 await asyncio.sleep(random.randint(3, n) + ct.minute)
                 await RSP.respond(self.ded[RSP.buttons[2][0].text])
-        except Exception:
-            return
