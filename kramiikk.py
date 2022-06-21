@@ -439,7 +439,7 @@ class KramiikkMod(loader.Module):
                     await asyncio.sleep(random.randint(3, n) + ct.minute)
                     await m.respond(self.ded[msg])
             except Exception:
-                return
+                pass
             if ct.minute != n:
                 return
             await asyncio.sleep(
