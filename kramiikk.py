@@ -583,4 +583,4 @@ class KramiikkMod(loader.Module):
                 await asyncio.sleep(random.randint(3, n) + ct.minute)
                 await RSP.respond(self.ded[RSP.buttons[2][0].text])
         except Exception:
-            pass
+            return
