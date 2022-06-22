@@ -298,7 +298,7 @@ class KramiikkMod(loader.Module):
             if self.su[s] == []:
                 self.su.pop(s)
             return await m.edit(txt)
-        elif s in self.su:
+        if s in self.su:
             txt += f"<b> добавлен</b> {msg}"
             self.su[s].append(msg)
         else:
