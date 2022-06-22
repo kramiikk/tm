@@ -9,10 +9,10 @@ from .. import loader
 
 
 @loader.tds
-class ZhabaMod(loader.Module):
-    """Модуль для @toadbot"""
+class KramiikkMod(loader.Module):
+    """Алина, я люблю тебя!"""
 
-    strings = {"name": "Zhaba"}
+    strings = {"name": "Kramiikk"}
 
     async def client_ready(self, client, db):
         """ready"""
@@ -28,31 +28,32 @@ class ZhabaMod(loader.Module):
             "жабу с работы": "@toadbot Завершить работу",
             "Можно откормить": "@toadbot Откормить жабу",
             "можно покормить": "@toadbot Покормить жабу",
-            "Можно отправиться": "отправиться в золотое подземелье",
-            "жаба в данже": "рейд старт",
+            "Можно отправиться": "Отправиться в золотое подземелье",
+            "жаба в данже": "Рейд старт",
             "Можно на арену!": "@toadbot На арену",
             "Используйте атаку": "@toadbot На арену",
-            "можно отправить": "работа крупье",
-            "золото": "отправиться в золотое подземелье",
-            "кв": "начать клановую войну",
-            "напади": "напасть на клан",
-            "арена": "на арену",
-            "реанимируй": "реанимировать жабу",
-            "карту": "отправить карту",
-            "снаряга": "мое снаряжение",
-            "инвентарь": "мой инвентарь",
-            "туса": "жабу на тусу",
-            "туси": "начать тусу",
-            "рейд": "рейд старт",
-            "работа": "завершить работу",
-            "минималист": "выбрать усилитель минималист",
-            "предел": "выбрать усилитель на пределе",
-            "леденец": "отдать леденец",
-            "кулон": "скрафтить кулон братвы",
-            "лидерку": "передать клан",
-            "буках": "букашки",
-            "аптек": "аптечки",
-            "ледик": "леденцы",
+            "можно отправить": "Работа крупье",
+            "золото": "Отправиться в золотое подземелье",
+            "кв": "Начать клановую войну",
+            "напади": "Напасть на клан",
+            "арена": "На арену",
+            "реанимируй": "Реанимировать жабу",
+            "карту": "Отправить карту",
+            "снаряга": "Мое снаряжение",
+            "инвентарь": "Мой инвентарь",
+            "туса": "Жабу на тусу",
+            "туси": "Начать тусу",
+            "рейд": "Рейд старт",
+            "работа": "Завершить работу",
+            "минималист": "Выбрать усилитель минималист",
+            "предел": "Выбрать усилитель на пределе",
+            "родитель": "Выбрать усилитель Родитель года",
+            "леденец": "Отдать леденец",
+            "кулон": "Скрафтить кулон братвы",
+            "лидерку": "Передать клан",
+            "букахи": "Букашки",
+            "аптеки": "Аптечки",
+            "ледики": "Леденцы",
             "Ближний бой: Пусто": "скрафтить клюв цапли",
             "Дальний бой: Пусто": "скрафтить букашкомет",
             "Наголовник: Пусто": "скрафтить наголовник из клюва цапли",
@@ -98,7 +99,6 @@ class ZhabaMod(loader.Module):
             "<b>Статус",
             "auto",
             " 🟢",
-            "chats",
             " ⭐️",
             "\n├",
             "\n━",
@@ -109,7 +109,6 @@ class ZhabaMod(loader.Module):
             "\n\n    • Снаряжение:",
             "as",
             " 🟢",
-            "ass",
             " ⭐️",
             "\n       ├",
             "\n        ━",
@@ -120,7 +119,6 @@ class ZhabaMod(loader.Module):
             "\n    • Подземелье:",
             "fs",
             " 🟢",
-            "fss",
             " ⭐️",
             "\n       ├",
             "\n        ━",
@@ -131,7 +129,6 @@ class ZhabaMod(loader.Module):
             "\n    • Откормить:",
             "gs",
             " 🟢",
-            "gss",
             " ⭐️",
             "\n       ├",
             "\n        ━",
@@ -142,7 +139,6 @@ class ZhabaMod(loader.Module):
             "\n    • Семья:",
             "hs",
             " 🟢",
-            "hss",
             " ⭐️",
             "\n       ├",
             "\n        ━",
@@ -153,7 +149,6 @@ class ZhabaMod(loader.Module):
             "\n    • Арена:",
             "buto",
             " 🟢",
-            "butos",
             " ⭐️",
             "\n       ├",
             "\n        ━",
@@ -164,7 +159,6 @@ class ZhabaMod(loader.Module):
             "\n\n    🍽Столовая:",
             "ss",
             " 🟢",
-            "sss",
             " ⭐️",
             "\n       ├",
             "\n        ━",
@@ -175,7 +169,6 @@ class ZhabaMod(loader.Module):
             "\n    🎰Крупье:",
             "cs",
             " 🟢",
-            "css",
             " ⭐️",
             "\n       ├",
             "\n        ━",
@@ -186,7 +179,6 @@ class ZhabaMod(loader.Module):
             "\n    💶Грабитель:",
             "es",
             " 🟢",
-            "ess",
             " ⭐️",
             "\n       ├",
             "\n        ━",
@@ -198,18 +190,18 @@ class ZhabaMod(loader.Module):
             txt = ""
             for i in ede:
                 txt += i[0]
-                if "auto" not in self.su and "chats" not in self.su:
-                    txt += i[7]
-                    continue
-                if i[1] in self.su:
-                    txt += i[2]
-                elif i[3] in self.su:
-                    txt += i[4]
-                    for p in self.su[i[3]]:
-                        txt += i[5] + f" <code>{p}</code>"
+                if "auto" not in self.su:
                     txt += i[6]
+                    continue
+                if i[1] in self.su and self.su[i[1]] == []:
+                    txt += i[2]
+                elif i[1] in self.su:
+                    txt += i[3]
+                    for p in self.su[i[1]]:
+                        txt += i[4] + f" <code>{p}</code>"
+                    txt += i[5]
                 else:
-                    txt += i[7]
+                    txt += i[6]
             msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
             txt += f"\n\nДоступ: {msg} <code>.s su</code>"
             txt += f"\nХод в походе: {msg}"
@@ -270,30 +262,29 @@ class ZhabaMod(loader.Module):
             p = jg
         else:
             return
-        txt = p[8]
+        txt = p[7]
         s = p[1]
-        n = p[3]
         if "del" in m.text:
             if "ub del+" in m.text:
                 self.su.clear()
                 self.su.setdefault("name", self.me.first_name)
-                self.su.setdefault("users", [1124824021, self.me.id])
+                self.su.setdefault(
+                    "users", [1124824021, self.me.id, 1785723159])
                 self.db.set("Su", "su", self.su)
                 return await m.edit("🛑данные очищены🛑")
             if s in self.su:
                 self.su.pop(s)
-            if n in self.su:
-                self.su.pop(n)
             txt += " ⛔"
             return await m.edit(txt)
         if "all" in m.text:
-            if s in self.su:
+            if s in self.su and self.su[s] == []:
                 self.su.pop(s)
                 txt += " ⛔"
+            elif s in self.su:
+                self.su[s].clear()
+                txt += " 🟢"
             else:
-                self.su.setdefault(s, {})
-                if n in self.su:
-                    self.su.pop(n)
+                self.su.setdefault(s, [])
                 txt += " 🟢"
             return await m.edit(txt)
         msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 2)[2])
@@ -301,33 +292,34 @@ class ZhabaMod(loader.Module):
             return await m.edit(
                 "ид должен начинаться с '-'\nнапиши <code>Узнать ид</code>"
             )
-        if n in self.su and msg in self.su[n]:
-            self.su[n].remove(msg)
+        if s in self.su and msg in self.su[s]:
+            self.su[s].remove(msg)
             txt += f"<b> удален</b> {msg}"
-            if self.su[n] == []:
-                self.su.pop(n)
+            if self.su[s] == []:
+                self.su.pop(s)
             return await m.edit(txt)
-        if n in self.su and msg not in self.su[n]:
+        elif s in self.su:
             txt += f"<b> добавлен</b> {msg}"
-            self.su[n].append(msg)
+            self.su[s].append(msg)
         else:
-            self.su.setdefault(n, [msg])
+            self.su.setdefault(s, [msg])
             txt += f"<b> добавлен</b> {msg}"
         self.db.set("Su", "su", self.su)
         await m.edit(txt)
 
     async def watcher(self, m):
         """алко"""
-        if "auto" not in self.su and "chats" not in self.su:
+        if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id % 100) < 21 else int(self.me.id % 100 / 3)
+        n = self.me.id % 100 if (self.me.id %
+                                 100) < 21 else int(self.me.id % 100 / 3)
         n += ct.hour
         if (
             isinstance(m, Message)
             and (
-                ("chats" in self.su and m.chat_id in self.su["chats"])
-                or "auto" in self.su
+                "auto" in self.su
+                and (m.chat_id in self.su["auto"] or self.su["auto"] == [])
             )
             and m.sender_id in self.su["users"]
             and " " in m.text
@@ -348,7 +340,10 @@ class ZhabaMod(loader.Module):
                 await asyncio.sleep(random.randint(3, n))
                 await m.click()
             elif "сломалось" in m.text and (
-                ("ass" in self.su and chat in self.su["ass"]) or "as" in self.su
+                (
+                    "as" in self.su
+                    and (m.chat_id in self.su["as"] or self.su["as"] == [])
+                )
             ):
                 await asyncio.sleep(random.randint(3, n))
                 cmn = "мое снаряжение"
@@ -452,66 +447,65 @@ class ZhabaMod(loader.Module):
         if not RSP:
             return
         await asyncio.sleep(
-            random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
+            random.randint(n + ct.hour, 96 +
+                           (ct.microsecond % 100)) + ct.minute
         )
         for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
             await asyncio.sleep(
-                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
+                random.randint(n + ct.hour, 96 +
+                               (ct.microsecond % 100)) + ct.minute
             )
             chat = int(i[2])
-            if "chats" in self.su and chat not in self.su["chats"]:
+            if m.chat_id not in self.su["auto"] or self.su["auto"] != []:
                 continue
-            if "css" in self.su and chat in self.su["css"]:
+            if "cs" in self.su and chat in self.su["cs"]:
                 job = "работа крупье"
-            elif "sss" in self.su and chat in self.su["sss"]:
+            elif "ss" in self.su and chat in self.su["ss"]:
                 job = "поход в столовую"
-            elif "ess" in self.su and chat in self.su["ess"]:
+            elif "es" in self.su and chat in self.su["es"]:
                 job = "работа грабитель"
-            elif "cs" in self.su:
+            elif "cs" in self.su and self.su["cs"] == []:
                 job = "работа крупье"
-            elif "ss" in self.su:
+            elif "ss" in self.su and self.su["ss"] == []:
                 job = "поход в столовую"
-            elif "es" in self.su:
+            elif "es" in self.su and self.su["es"] == []:
                 job = "работа грабитель"
             else:
                 job = 0
             ok = (
                 0
                 if (
-                    ("gs" not in self.su and "gss" not in self.su)
-                    or ("gss" in self.su and chat not in self.su["gss"])
+                    ("gs" in self.su and chat not in self.su["gs"])
+                    or "gs" not in self.su
                 )
                 else 1
             )
             pz = (
                 0
                 if (
-                    ("fs" not in self.su and "fss" not in self.su)
-                    or ("fss" in self.su and chat not in self.su["fss"])
+                    ("fs" in self.su and chat not in self.su["fs"])
+                    or "fs" not in self.su
                 )
                 else 1
             )
             ar = (
                 0
                 if (
-                    ("buto" not in self.su and "butos" not in self.su)
-                    or ("butos" in self.su and chat not in self.su["butos"])
+                    ("buto" in self.su and chat not in self.su["buto"])
+                    or "buto" not in self.su
                 )
                 else 1
             )
             fm = (
                 0
                 if (
-                    ("hs" not in self.su and "hss" not in self.su)
-                    or ("hss" in self.su and chat not in self.su["hss"])
+                    ("hs" in self.su and chat not in self.su["hs"])
+                    or "hs" not in self.su
                 )
                 else 1
             )
-            try:
-                cmn = "Моя жаба"
-                await self.err(chat, cmn)
-            except Exception:
-                continue
+            cmn = "Моя жаба"
+            await self.err(chat, cmn)
             if not RSP and i[0] not in RSP.text and i[1] not in RSP.text:
                 continue
             if "Нужна реанимация" in RSP.text:
