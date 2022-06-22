@@ -318,28 +318,32 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        if "auto" not in self.su and "chats" not in self.su:
-            return
-        ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id % 100) < 21 else int(self.me.id % 100 / 3)
-        n += ct.hour
-        if (
-            isinstance(m, Message)
-            and (
-                ("chats" in self.su and m.chat_id in self.su["chats"])
-                or "auto" in self.su
+        try:
+            if "auto" not in self.su and "chats" not in self.su:
+                return
+            ct = datetime.datetime.now()
+            n = (
+                self.me.id % 100
+                if (self.me.id % 100) < 21
+                else int(self.me.id % 100 / 3)
             )
-            and m.sender_id in self.su["users"]
-            and " " in m.text
-            and (
-                m.text.casefold().startswith(self.su["name"])
-                or m.text.startswith(f"@{self.me.username}")
-                or str(self.me.id) in m.text
-            )
-        ):
-            chat = m.chat_id
-            reply = await m.get_reply_message()
-            try:
+            n += ct.hour
+            if (
+                isinstance(m, Message)
+                and (
+                    ("chats" in self.su and m.chat_id in self.su["chats"])
+                    or "auto" in self.su
+                )
+                and m.sender_id in self.su["users"]
+                and " " in m.text
+                and (
+                    m.text.casefold().startswith(self.su["name"])
+                    or m.text.startswith(f"@{self.me.username}")
+                    or str(self.me.id) in m.text
+                )
+            ):
+                chat = m.chat_id
+                reply = await m.get_reply_message()
                 if "нуждается в реанимации" in m.text and m.buttons:
                     await asyncio.sleep(random.randint(3, n))
                     await m.respond("реанимировать жабу")
@@ -438,81 +442,80 @@ class KramiikkMod(loader.Module):
                         return await m.reply(self.ded[msg])
                     await asyncio.sleep(random.randint(3, n) + ct.minute)
                     await m.respond(self.ded[msg])
-            except Exception:
-                pass
-        if ct.minute != n:
-            return
-        await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
-        if "minute" not in self.su:
-            self.su.setdefault("minute", ct.hour + ct.minute)
+            if ct.minute != n:
+                return
+            await asyncio.sleep(
+                random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
+            )
+            if "minute" not in self.su:
+                self.su.setdefault("minute", ct.hour + ct.minute)
+                self.db.set("Su", "su", self.su)
+            if -1 < ((ct.hour + ct.minute) - self.su["minute"]) < 1:
+                return
+            self.su["minute"] = ct.hour + ct.minute
             self.db.set("Su", "su", self.su)
-        if -1 < ((ct.hour + ct.minute) - self.su["minute"]) < 1:
-            return
-        self.su["minute"] = ct.hour + ct.minute
-        self.db.set("Su", "su", self.su)
-        chat = 1124824021
-        cmn = "мои жабы"
-        await self.err(chat, cmn)
-        await self.client.delete_dialog(chat, revoke=True)
-        if not RSP:
-            return
-        await asyncio.sleep(
-            random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
-        )
-        for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
+            chat = 1124824021
+            cmn = "мои жабы"
+            await self.err(chat, cmn)
+            await self.client.delete_dialog(chat, revoke=True)
+            if not RSP:
+                return
             await asyncio.sleep(
                 random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
             )
-            chat = int(i[2])
-            if "chats" in self.su and chat not in self.su["chats"]:
-                continue
-            if "css" in self.su and chat in self.su["css"]:
-                job = "работа крупье"
-            elif "sss" in self.su and chat in self.su["sss"]:
-                job = "поход в столовую"
-            elif "ess" in self.su and chat in self.su["ess"]:
-                job = "работа грабитель"
-            elif "cs" in self.su:
-                job = "работа крупье"
-            elif "ss" in self.su:
-                job = "поход в столовую"
-            elif "es" in self.su:
-                job = "работа грабитель"
-            else:
-                job = 0
-            ok = (
-                0
-                if (
-                    ("gs" not in self.su and "gss" not in self.su)
-                    or ("gss" in self.su and chat not in self.su["gss"])
+            for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
+                await asyncio.sleep(
+                    random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
                 )
-                else 1
-            )
-            pz = (
-                0
-                if (
-                    ("fs" not in self.su and "fss" not in self.su)
-                    or ("fss" in self.su and chat not in self.su["fss"])
+                chat = int(i[2])
+                if "chats" in self.su and chat not in self.su["chats"]:
+                    continue
+                if "css" in self.su and chat in self.su["css"]:
+                    job = "работа крупье"
+                elif "sss" in self.su and chat in self.su["sss"]:
+                    job = "поход в столовую"
+                elif "ess" in self.su and chat in self.su["ess"]:
+                    job = "работа грабитель"
+                elif "cs" in self.su:
+                    job = "работа крупье"
+                elif "ss" in self.su:
+                    job = "поход в столовую"
+                elif "es" in self.su:
+                    job = "работа грабитель"
+                else:
+                    job = 0
+                ok = (
+                    0
+                    if (
+                        ("gs" not in self.su and "gss" not in self.su)
+                        or ("gss" in self.su and chat not in self.su["gss"])
+                    )
+                    else 1
                 )
-                else 1
-            )
-            ar = (
-                0
-                if (
-                    ("buto" not in self.su and "butos" not in self.su)
-                    or ("butos" in self.su and chat not in self.su["butos"])
+                pz = (
+                    0
+                    if (
+                        ("fs" not in self.su and "fss" not in self.su)
+                        or ("fss" in self.su and chat not in self.su["fss"])
+                    )
+                    else 1
                 )
-                else 1
-            )
-            fm = (
-                0
-                if (
-                    ("hs" not in self.su and "hss" not in self.su)
-                    or ("hss" in self.su and chat not in self.su["hss"])
+                ar = (
+                    0
+                    if (
+                        ("buto" not in self.su and "butos" not in self.su)
+                        or ("butos" in self.su and chat not in self.su["butos"])
+                    )
+                    else 1
                 )
-                else 1
-            )
-            try:
+                fm = (
+                    0
+                    if (
+                        ("hs" not in self.su and "hss" not in self.su)
+                        or ("hss" in self.su and chat not in self.su["hss"])
+                    )
+                    else 1
+                )
                 cmn = "Моя жаба"
                 await self.err(chat, cmn)
                 if not RSP and i[0] not in RSP.text and i[1] not in RSP.text:
@@ -579,5 +582,5 @@ class KramiikkMod(loader.Module):
                     continue
                 await asyncio.sleep(random.randint(3, n) + ct.minute)
                 await RSP.respond(self.ded[RSP.buttons[2][0].text])
-            except Exception:
-                continue
+        except Exception:
+            pass
