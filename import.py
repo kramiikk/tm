@@ -9,10 +9,10 @@ from .. import loader
 
 
 @loader.tds
-class KramiikkMod(loader.Module):
-    """Алина, я люблю тебя!"""
+class ZhabaMod(loader.Module):
+    """Модуль для @toadbot"""
 
-    strings = {"name": "Kramiikk"}
+    strings = {"name": "Zhaba"}
 
     async def client_ready(self, client, db):
         """ready"""
