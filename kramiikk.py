@@ -75,7 +75,7 @@ class KramiikkMod(loader.Module):
                 global RSP
                 RSP = await conv.get_response()
                 await conv.cancel_all()
-        except Exception:
+        except:
             return
 
     async def npn(self, chat, msg):
@@ -507,7 +507,7 @@ class KramiikkMod(loader.Module):
                 try:
                     cmn = "Моя жаба"
                     await self.err(chat, cmn)
-                except Exception:
+                except:
                     continue
                 if (
                     not RSP
