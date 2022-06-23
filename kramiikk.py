@@ -330,8 +330,11 @@ class KramiikkMod(loader.Module):
                     or str(self.me.id) in m.text
                 )
             ):
-                await asyncio.sleep(random.randint(3, n + 7))
                 chat = m.chat_id
+                s = n
+                if chat in (-1001656862928, -1001380664241):
+                    s = 2
+                await asyncio.sleep(random.randint(1, s + 1))
                 reply = await m.get_reply_message()
                 if "нуждается в реанимации" in m.text and m.buttons:
                     await m.respond("реанимировать жабу")
@@ -385,19 +388,6 @@ class KramiikkMod(loader.Module):
                     if jab < 50:
                         return
                     await m.reply(f"отправить букашки {jab}")
-                elif "del" in m.text:
-                    chat = 1124824021
-                    cmn = "мои жабы"
-                    await self.err(chat, cmn)
-                    if not RSP:
-                        return
-                    await self.client.delete_dialog(chat, revoke=True)
-                    for i in re.findall(r"(-\d+)", RSP.text):
-                        chat = int(i)
-                        async for msg in self.client.iter_messages(
-                            chat, from_user="me"
-                        ):
-                            await msg.delete()
                 elif "напиши в " in m.text:
                     chat = m.text.split(" ", 4)[3]
                     if chat.isnumeric():
