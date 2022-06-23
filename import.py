@@ -309,7 +309,11 @@ class ZhabaMod(loader.Module):
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
+        n = (
+            self.me.id % 100
+            if (self.me.id % 100) < 48
+            else int(self.me.id % 100 / 3)
+        )
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
         if (
             isinstance(m, Message)
@@ -392,7 +396,9 @@ class ZhabaMod(loader.Module):
                 await self.client.delete_dialog(chat, revoke=True)
                 for i in re.findall(r"(-\d+)", RSP.text):
                     chat = int(i)
-                    async for msg in self.client.iter_messages(chat, from_user="me"):
+                    async for msg in self.client.iter_messages(
+                        chat, from_user="me"
+                    ):
                         await msg.delete()
             elif "напиши в " in m.text:
                 chat = m.text.split(" ", 4)[3]
@@ -425,7 +431,9 @@ class ZhabaMod(loader.Module):
                 await m.respond(self.ded[msg])
         if ct.minute != n:
             return
-        await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
+        await asyncio.sleep(
+            random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
+        )
         if "minute" not in self.su:
             self.su.setdefault("minute", ct.hour + ct.minute)
             self.db.set("Su", "su", self.su)
@@ -449,6 +457,10 @@ class ZhabaMod(loader.Module):
             chat = int(i[2])
             if self.su["auto"] != [] and chat not in self.su["auto"]:
                 continue
+            ok = 0 if ("gs" not in self.su or chat not in self.su["gs"]) else 1
+            pz = 0 if ("fs" not in self.su or chat not in self.su["fs"]) else 1
+            ar = 0 if ("buto" not in self.su or chat not in self.su["buto"]) else 1
+            fm = 0 if ("hs" not in self.su or chat not in self.su["hs"]) else 1
             if "cs" in self.su and chat in self.su["cs"]:
                 job = "работа крупье"
             elif "ss" in self.su and chat in self.su["ss"]:
@@ -463,10 +475,6 @@ class ZhabaMod(loader.Module):
                 job = "работа грабитель"
             else:
                 job = 0
-            ok = 0 if ("gs" not in self.su or chat not in self.su["gs"]) else 1
-            pz = 0 if ("fs" not in self.su or chat not in self.su["fs"]) else 1
-            ar = 0 if ("buto" not in self.su or chat not in self.su["buto"]) else 1
-            fm = 0 if ("hs" not in self.su or chat not in self.su["hs"]) else 1
             try:
                 cmn = "Моя жаба"
                 await self.err(chat, cmn)
@@ -498,6 +506,8 @@ class ZhabaMod(loader.Module):
                 and i[0] not in RSP.text
             ):
                 continue
+            if "не в браке" in RSP.text:
+                fm = 0
             await asyncio.sleep(random.randint(3, n) + ct.minute)
             for p in (p for p in self.ded if p in RSP.text):
                 if p == "Можно откормить" and (int(jab) < 1500 or ok == 0):
@@ -517,7 +527,7 @@ class ZhabaMod(loader.Module):
                 else:
                     await asyncio.sleep(random.randint(3, n) + ct.minute)
                     await RSP.respond(self.ded[p])
-            if "не в браке" in RSP.text or fm == 0:
+            if fm == 0:
                 continue
             await asyncio.sleep(random.randint(3, n) + ct.minute)
             cmn = "Моя семья"
