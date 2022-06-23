@@ -75,7 +75,7 @@ class ZhabaMod(loader.Module):
                 global RSP
                 RSP = await conv.get_response()
                 await conv.cancel_all()
-        except:
+        except Exception:
             return
 
     async def npn(self, chat, msg):
@@ -498,10 +498,10 @@ class ZhabaMod(loader.Module):
             try:
                 cmn = "Моя жаба"
                 await self.err(chat, cmn)
-            except:
-                continue
+            except Exception:
+                msg = 0
             if (
-                not RSP
+                msg == 0
                 and "Имя жабы" not in RSP.text
                 and i[0] not in RSP.text
                 and i[1] not in RSP.text
@@ -522,8 +522,7 @@ class ZhabaMod(loader.Module):
             cmn = "@toadbot Жаба инфо"
             await self.err(chat, cmn)
             if (
-                not RSP
-                and "🏃‍♂️" not in RSP.text
+                "🏃‍♂️" not in RSP.text
                 and "не в браке" not in RSP.text
                 and i[0] not in RSP.text
             ):
@@ -552,8 +551,7 @@ class ZhabaMod(loader.Module):
             cmn = "Моя семья"
             await self.err(chat, cmn)
             if (
-                not RSP
-                or "дней в браке" not in RSP.text
+                "дней в браке" not in RSP.text
                 or i[0] not in RSP.text
                 or not RSP.buttons
             ):
