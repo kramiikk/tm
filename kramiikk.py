@@ -76,7 +76,7 @@ class KramiikkMod(loader.Module):
                 RSP = await conv.get_response()
                 await conv.cancel_all()
         except Exception:
-            pass
+            return
 
     async def npn(self, chat, msg):
         cmn = self.ded[msg]
@@ -504,9 +504,17 @@ class KramiikkMod(loader.Module):
                     )
                     else 1
                 )
-                cmn = "Моя жаба"
-                await self.err(chat, cmn)
-                if not RSP and i[0] not in RSP.text and i[1] not in RSP.text:
+                try:
+                    cmn = "Моя жаба"
+                    await self.err(chat, cmn)
+                except Exception:
+                    continue
+                if (
+                    not RSP
+                    and "Имя жабы" not in RSP.text
+                    and i[0] not in RSP.text
+                    and i[1] not in RSP.text
+                ):
                     continue
                 if "Нужна реанимация" in RSP.text:
                     await asyncio.sleep(random.randint(3, n) + ct.minute)
