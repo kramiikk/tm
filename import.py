@@ -268,8 +268,7 @@ class ZhabaMod(loader.Module):
             if "ub del+" in m.text:
                 self.su.clear()
                 self.su.setdefault("name", self.me.first_name)
-                self.su.setdefault(
-                    "users", [1124824021, self.me.id, 1785723159])
+                self.su.setdefault("users", [1124824021, self.me.id, 1785723159])
                 self.db.set("Su", "su", self.su)
                 return await m.edit("🛑данные очищены🛑")
             if s in self.su:
@@ -312,8 +311,7 @@ class ZhabaMod(loader.Module):
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id %
-                                 100) < 21 else int(self.me.id % 100 / 3)
+        n = self.me.id % 100 if (self.me.id % 100) < 21 else int(self.me.id % 100 / 3)
         n += ct.hour
         if (
             isinstance(m, Message)
@@ -447,13 +445,11 @@ class ZhabaMod(loader.Module):
         if not RSP:
             return
         await asyncio.sleep(
-            random.randint(n + ct.hour, 96 +
-                           (ct.microsecond % 100)) + ct.minute
+            random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
         )
         for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
             await asyncio.sleep(
-                random.randint(n + ct.hour, 96 +
-                               (ct.microsecond % 100)) + ct.minute
+                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
             )
             chat = int(i[2])
             if m.chat_id not in self.su["auto"] or self.su["auto"] != []:
