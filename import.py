@@ -311,8 +311,9 @@ class ZhabaMod(loader.Module):
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id % 100) < 21 else int(self.me.id % 100 / 3)
-        n += ct.hour
+        n = self.me.id % 100 if (self.me.id %
+                                 100) < 48 else int(self.me.id % 100 / 3)
+        n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
         if (
             isinstance(m, Message)
             and (
@@ -340,7 +341,7 @@ class ZhabaMod(loader.Module):
             elif "сломалось" in m.text and (
                 (
                     "as" in self.su
-                    and (m.chat_id in self.su["as"] or self.su["as"] == [])
+                    and (chat in self.su["as"] or self.su["as"] == [])
                 )
             ):
                 await asyncio.sleep(random.randint(3, n))
@@ -452,7 +453,7 @@ class ZhabaMod(loader.Module):
                 random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
             )
             chat = int(i[2])
-            if m.chat_id not in self.su["auto"] or self.su["auto"] != []:
+            if chat not in self.su["auto"] or self.su["auto"] != []:
                 continue
             if "cs" in self.su and chat in self.su["cs"]:
                 job = "работа крупье"
