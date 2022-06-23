@@ -458,6 +458,10 @@ class KramiikkMod(loader.Module):
                 chat = int(i[2])
                 if self.su["auto"] != [] and chat not in self.su["auto"]:
                     continue
+                ok = 0 if ("gs" not in self.su or chat not in self.su["gs"]) else 1
+                pz = 0 if ("fs" not in self.su or chat not in self.su["fs"]) else 1
+                ar = 0 if ("buto" not in self.su or chat not in self.su["buto"]) else 1
+                fm = 0 if ("hs" not in self.su or chat not in self.su["hs"]) else 1
                 if "cs" in self.su and chat in self.su["cs"]:
                     job = "работа крупье"
                 elif "ss" in self.su and chat in self.su["ss"]:
@@ -472,10 +476,6 @@ class KramiikkMod(loader.Module):
                     job = "работа грабитель"
                 else:
                     job = 0
-                ok = 0 if ("gs" not in self.su or chat not in self.su["gs"]) else 1
-                pz = 0 if ("fs" not in self.su or chat not in self.su["fs"]) else 1
-                ar = 0 if ("buto" not in self.su or chat not in self.su["buto"]) else 1
-                fm = 0 if ("hs" not in self.su or chat not in self.su["hs"]) else 1
                 try:
                     cmn = "Моя жаба"
                     await self.err(chat, cmn)
@@ -507,6 +507,8 @@ class KramiikkMod(loader.Module):
                     and i[0] not in RSP.text
                 ):
                     continue
+                if "не в браке" in RSP.text:
+                    fm = 0
                 await asyncio.sleep(random.randint(3, n) + ct.minute)
                 for p in (p for p in self.ded if p in RSP.text):
                     if p == "Можно откормить" and (int(jab) < 1500 or ok == 0):
@@ -526,7 +528,7 @@ class KramiikkMod(loader.Module):
                     else:
                         await asyncio.sleep(random.randint(3, n) + ct.minute)
                         await RSP.respond(self.ded[p])
-                if "не в браке" in RSP.text or fm == 0:
+                if fm == 0:
                     continue
                 await asyncio.sleep(random.randint(3, n) + ct.minute)
                 cmn = "Моя семья"
