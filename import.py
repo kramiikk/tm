@@ -311,8 +311,7 @@ class ZhabaMod(loader.Module):
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id %
-                                 100) < 48 else int(self.me.id % 100 / 3)
+        n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
         if (
             isinstance(m, Message)
@@ -339,10 +338,7 @@ class ZhabaMod(loader.Module):
                 await asyncio.sleep(random.randint(3, n))
                 await m.click()
             elif "сломалось" in m.text and (
-                (
-                    "as" in self.su
-                    and (chat in self.su["as"] or self.su["as"] == [])
-                )
+                ("as" in self.su and (chat in self.su["as"] or self.su["as"] == []))
             ):
                 await asyncio.sleep(random.randint(3, n))
                 cmn = "мое снаряжение"
