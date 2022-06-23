@@ -206,9 +206,7 @@ class KramiikkMod(loader.Module):
             txt += f"\n\nДоступ: {msg} <code>.s su</code>"
             txt += f"\nХод в походе: {msg}"
             txt += f"\nНик для команд: <code>{self.su['name']}</code>"
-            txt += (
-                "\n\nГайд: [@jabuser, <a href='te.legra.ph/-06-20-999'>telegraph</a>]"
-            )
+            txt += "\n\n<a href='te.legra.ph/-06-20-999'>@гайд</a>\n@jabuser"
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "su":
