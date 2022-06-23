@@ -463,38 +463,10 @@ class ZhabaMod(loader.Module):
                 job = "работа грабитель"
             else:
                 job = 0
-            ok = (
-                0
-                if (
-                    ("gs" in self.su and chat not in self.su["gs"])
-                    or "gs" not in self.su
-                )
-                else 1
-            )
-            pz = (
-                0
-                if (
-                    ("fs" in self.su and chat not in self.su["fs"])
-                    or "fs" not in self.su
-                )
-                else 1
-            )
-            ar = (
-                0
-                if (
-                    ("buto" in self.su and chat not in self.su["buto"])
-                    or "buto" not in self.su
-                )
-                else 1
-            )
-            fm = (
-                0
-                if (
-                    ("hs" in self.su and chat not in self.su["hs"])
-                    or "hs" not in self.su
-                )
-                else 1
-            )
+            ok = 0 if ("gs" not in self.su or chat not in self.su["gs"]) else 1
+            pz = 0 if ("fs" not in self.su or chat not in self.su["fs"]) else 1
+            ar = 0 if ("buto" not in self.su or chat not in self.su["buto"]) else 1
+            fm = 0 if ("hs" not in self.su or chat not in self.su["hs"]) else 1
             try:
                 cmn = "Моя жаба"
                 await self.err(chat, cmn)
@@ -526,6 +498,7 @@ class ZhabaMod(loader.Module):
                 and i[0] not in RSP.text
             ):
                 continue
+            await asyncio.sleep(random.randint(3, n) + ct.minute)
             for p in (p for p in self.ded if p in RSP.text):
                 if p == "Можно откормить" and (int(jab) < 1500 or ok == 0):
                     pass
@@ -551,8 +524,8 @@ class ZhabaMod(loader.Module):
             await self.err(chat, cmn)
             if (
                 "дней в браке" not in RSP.text
-                or i[0] not in RSP.text
-                or not RSP.buttons
+                and i[0] not in RSP.text
+                and not RSP.buttons
             ):
                 continue
             s = len(RSP.buttons)
