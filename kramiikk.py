@@ -76,7 +76,7 @@ class KramiikkMod(loader.Module):
                 RSP = await conv.get_response()
                 await conv.cancel_all()
         except Exception:
-            return
+            pass
 
     async def npn(self, chat, msg):
         cmn = self.ded[msg]
@@ -508,10 +508,9 @@ class KramiikkMod(loader.Module):
                     cmn = "Моя жаба"
                     await self.err(chat, cmn)
                 except Exception:
-                    msg = 0
+                    pass
                 if (
-                    msg == 0
-                    and "Имя жабы" not in RSP.text
+                    "Имя жабы" not in RSP.text
                     and i[0] not in RSP.text
                     and i[1] not in RSP.text
                 ):
