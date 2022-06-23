@@ -342,7 +342,7 @@ class ZhabaMod(loader.Module):
             elif "сломалось" in m.text and (
                 (
                     "as" in self.su
-                    and (m.chat_id in self.su["as"] or self.su["as"] == [])
+                    and (chat in self.su["as"] or self.su["as"] == [])
                 )
             ):
                 await asyncio.sleep(random.randint(3, n))
