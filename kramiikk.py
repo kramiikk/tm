@@ -458,7 +458,7 @@ class KramiikkMod(loader.Module):
                     random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
                 )
                 chat = int(i[2])
-                if chat not in self.su["auto"] or self.su["auto"] != []:
+                if self.su["auto"] != [] and chat not in self.su["auto"]:
                     continue
                 if "cs" in self.su and chat in self.su["cs"]:
                     job = "работа крупье"
