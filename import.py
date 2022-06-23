@@ -147,7 +147,7 @@ class ZhabaMod(loader.Module):
         )
         ar = (
             "\n    • Арена:",
-            "buto",
+            "bs",
             " 🟢",
             " ⭐️",
             "\n       ├",
@@ -309,11 +309,7 @@ class ZhabaMod(loader.Module):
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = (
-            self.me.id % 100
-            if (self.me.id % 100) < 48
-            else int(self.me.id % 100 / 3)
-        )
+        n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
         if (
             isinstance(m, Message)
@@ -329,20 +325,18 @@ class ZhabaMod(loader.Module):
                 or str(self.me.id) in m.text
             )
         ):
+            await asyncio.sleep(random.randint(3, n + 7))
             chat = m.chat_id
             reply = await m.get_reply_message()
             if "нуждается в реанимации" in m.text and m.buttons:
-                await asyncio.sleep(random.randint(3, n))
                 await m.respond("реанимировать жабу")
                 await asyncio.sleep(random.randint(3, n))
                 await m.click()
             elif "ход: " in m.text and m.buttons:
-                await asyncio.sleep(random.randint(3, n))
                 await m.click()
             elif "сломалось" in m.text and (
                 ("as" in self.su and (chat in self.su["as"] or self.su["as"] == []))
             ):
-                await asyncio.sleep(random.randint(3, n))
                 cmn = "мое снаряжение"
                 await self.err(chat, cmn)
                 if not RSP and "🗡" not in RSP.text:
@@ -351,7 +345,6 @@ class ZhabaMod(loader.Module):
                     await asyncio.sleep(random.randint(3, n))
                     await m.respond(self.ded[i])
             elif "Банда получила" in m.text:
-                await asyncio.sleep(random.randint(3, n))
                 await m.respond("отдать леденец")
                 await asyncio.sleep(random.randint(3, n))
                 cmn = "моя банда"
@@ -396,9 +389,7 @@ class ZhabaMod(loader.Module):
                 await self.client.delete_dialog(chat, revoke=True)
                 for i in re.findall(r"(-\d+)", RSP.text):
                     chat = int(i)
-                    async for msg in self.client.iter_messages(
-                        chat, from_user="me"
-                    ):
+                    async for msg in self.client.iter_messages(chat, from_user="me"):
                         await msg.delete()
             elif "напиши в " in m.text:
                 chat = m.text.split(" ", 4)[3]
@@ -431,9 +422,7 @@ class ZhabaMod(loader.Module):
                 await m.respond(self.ded[msg])
         if ct.minute != n:
             return
-        await asyncio.sleep(
-            random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
-        )
+        await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
         if "minute" not in self.su:
             self.su.setdefault("minute", ct.hour + ct.minute)
             self.db.set("Su", "su", self.su)
@@ -447,9 +436,6 @@ class ZhabaMod(loader.Module):
         await self.client.delete_dialog(chat, revoke=True)
         if not RSP:
             return
-        await asyncio.sleep(
-            random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
-        )
         for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
             await asyncio.sleep(
                 random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
@@ -457,10 +443,30 @@ class ZhabaMod(loader.Module):
             chat = int(i[2])
             if self.su["auto"] != [] and chat not in self.su["auto"]:
                 continue
-            ok = 0 if ("gs" not in self.su or chat not in self.su["gs"]) else 1
-            pz = 0 if ("fs" not in self.su or chat not in self.su["fs"]) else 1
-            ar = 0 if ("buto" not in self.su or chat not in self.su["buto"]) else 1
-            fm = 0 if ("hs" not in self.su or chat not in self.su["hs"]) else 1
+            ok = (
+                0
+                if "gs" not in self.su
+                or (self.su["gs"] != [] and chat not in self.su["gs"])
+                else 1
+            )
+            pz = (
+                0
+                if "fs" not in self.su
+                or (self.su["fs"] != [] and chat not in self.su["fs"])
+                else 1
+            )
+            fm = (
+                0
+                if "hs" not in self.su
+                or (self.su["hs"] != [] and chat not in self.su["hs"])
+                else 1
+            )
+            ar = (
+                0
+                if "bs" not in self.su
+                or (self.su["bs"] != [] and chat not in self.su["bs"])
+                else 1
+            )
             if "cs" in self.su and chat in self.su["cs"]:
                 job = "работа крупье"
             elif "ss" in self.su and chat in self.su["ss"]:
@@ -486,9 +492,9 @@ class ZhabaMod(loader.Module):
                 and i[1] not in RSP.text
             ):
                 continue
+            s = 0
             if "Нужна реанимация" in RSP.text:
-                await asyncio.sleep(random.randint(3, n) + ct.minute)
-                await RSP.respond("реанимировать жабу")
+                s = 1
             if "Хорошее" in RSP.text:
                 await asyncio.sleep(
                     random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
@@ -506,26 +512,40 @@ class ZhabaMod(loader.Module):
                 and i[0] not in RSP.text
             ):
                 continue
+            if int(jab) < 1500:
+                ar = 0
+                ok = 0
+                pz = 0
+            if s == 1 and (
+                (
+                    "можно покормить" not in RSP.text
+                    and "Можно откормить" not in RSP.text
+                )
+                or ok == 0
+            ):
+                await asyncio.sleep(random.randint(3, n) + ct.minute)
+                await RSP.respond("реанимировать жабу")
+            if "подземелье можно через 2" in RSP.text:
+                pz = 0
             if "не в браке" in RSP.text:
                 fm = 0
-            await asyncio.sleep(random.randint(3, n) + ct.minute)
             for p in (p for p in self.ded if p in RSP.text):
-                if p == "Можно откормить" and (int(jab) < 1500 or ok == 0):
+                await asyncio.sleep(random.randint(3, n) + ct.minute)
+                if p == "Можно откормить" and ok == 0:
                     pass
                 elif p == "можно покормить" and ok == 1:
                     pass
-                elif p == "Можно отправиться" and (int(jab) < 1500 or pz == 0):
+                elif p == "Можно отправиться" and pz == 0:
                     pass
-                elif p == "Можно на арену!" and (int(jab) < 1500 or ar == 0):
+                elif p == "Можно на арену!" and ar == 0:
                     pass
                 elif p == "можно отправить" and job == 0:
                     pass
                 elif p == "можно отправить" and pz == 1:
                     pass
-                elif p == "можно отправить":
+                elif p == "можно отправить" and pz == 0:
                     await RSP.respond(job)
                 else:
-                    await asyncio.sleep(random.randint(3, n) + ct.minute)
                     await RSP.respond(self.ded[p])
             if fm == 0:
                 continue
