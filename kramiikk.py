@@ -414,7 +414,7 @@ class KramiikkMod(loader.Module):
                     await m.respond(txt)
                 else:
                     cmn = m.text.split(" ", 2)[1]
-                    if reply and cmn in ("ледик", "аптек", "буках"):
+                    if reply and cmn in ("ледики", "аптеки", "букахи"):
                         return await reply.reply(
                             f"отправить {self.ded[cmn]} {m.text.split(' ', 2)[2]}"
                         )
