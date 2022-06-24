@@ -488,9 +488,7 @@ class ZhabaMod(loader.Module):
                 and i[1] not in RSP.text
             ):
                 continue
-            s = 0
-            if "Нужна реанимация" in RSP.text:
-                s = 1
+            s = 1 if "Нужна реанимация" in RSP.text else 0
             if "Хорошее" in RSP.text:
                 await asyncio.sleep(
                     random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
@@ -536,23 +534,31 @@ class ZhabaMod(loader.Module):
                 elif p == "Можно на арену!" and ar == 0:
                     pass
                 elif p in ("Можно на арену!", "Используйте атаку"):
+                    s = 13
                     if ct.minute < 48:
                         await asyncio.sleep(random.randint(3, n) + ct.minute)
                         await RSP.respond(self.ded[p])
+                        await asyncio.sleep(random.randint(s, 33))
+                        await RSP.respond(self.ded[p])
+                    await self.client.send_message(
+                        chat,
+                        "Реанимировать жабу",
+                        schedule=datetime.timedelta(minutes=s),
+                    )
                     for n in range(3):
                         s += 13
-                        i = random.randint(9, s)
-                        await self.client.send_message(
-                            chat,
-                            "Реанимировать жабу",
-                            schedule=datetime.timedelta(minutes=i),
-                        )
+                        i = random.randint(13, s)
                         await asyncio.sleep(random.randint(3, 13))
                         await self.client.send_message(
                             chat,
                             self.ded[p],
-                            schedule=datetime.timedelta(minutes=i + 1),
+                            schedule=datetime.timedelta(minutes=i),
                         )
+                    await self.client.send_message(
+                        chat,
+                        "Реанимировать жабу",
+                        schedule=datetime.timedelta(minutes=i+1),
+                    )
                 elif p == "можно отправить" and (job == 0 or pz == 1):
                     pass
                 elif p == "можно отправить" and pz == 0:
