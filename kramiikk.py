@@ -304,291 +304,289 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        try:
-            if "auto" not in self.su:
-                return
-            ct = datetime.datetime.now()
-            n = (
-                self.me.id % 100
-                if (self.me.id % 100) < 48
-                else int(self.me.id % 100 / 3)
+        if "auto" not in self.su:
+            return
+        ct = datetime.datetime.now()
+        n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
+        n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
+        if (
+            isinstance(m, Message)
+            and (
+                "auto" in self.su
+                and (m.chat_id in self.su["auto"] or self.su["auto"] == [])
             )
-            n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
-            if (
-                isinstance(m, Message)
-                and (
-                    "auto" in self.su
-                    and (m.chat_id in self.su["auto"] or self.su["auto"] == [])
-                )
-                and m.sender_id in self.su["users"]
-                and " " in m.text
-                and (
-                    m.text.casefold().startswith(self.su["name"])
-                    or m.text.startswith(f"@{self.me.username}")
-                    or str(self.me.id) in m.text
-                )
-            ):
-                chat = m.chat_id
-                s = n
-                if chat in (-1001656862928, -1001380664241):
-                    s = 2
-                await asyncio.sleep(random.randint(1, s + 1))
-                reply = await m.get_reply_message()
-                cn = (
-                    0
-                    if "as" not in self.su
-                    or (self.su["as"] != [] and chat not in self.su["as"])
-                    else 1
-                )
-                if "нуждается в реанимации" in m.text and m.buttons:
-                    await m.respond("реанимировать жабу")
+            and m.sender_id in self.su["users"]
+            and " " in m.text
+            and (
+                m.text.casefold().startswith(self.su["name"])
+                or m.text.startswith(f"@{self.me.username}")
+                or str(self.me.id) in m.text
+            )
+        ):
+            chat = m.chat_id
+            s = n
+            if chat in (-1001656862928, -1001380664241):
+                s = 2
+            await asyncio.sleep(random.randint(1, s + 1))
+            reply = await m.get_reply_message()
+            cn = (
+                0
+                if "as" not in self.su
+                or (self.su["as"] != [] and chat not in self.su["as"])
+                else 1
+            )
+            if "нуждается в реанимации" in m.text and m.buttons:
+                await m.respond("реанимировать жабу")
+                await asyncio.sleep(random.randint(3, n))
+                await m.click()
+            elif "ход: " in m.text and m.buttons:
+                await m.click()
+            elif "сломалось" in m.text and cn == 1:
+                cmn = "мое снаряжение"
+                await self.err(chat, cmn)
+                if not RSP and "🗡" not in RSP.text:
+                    return
+                for i in (i for i in self.ded if i in RSP.text):
                     await asyncio.sleep(random.randint(3, n))
-                    await m.click()
-                elif "ход: " in m.text and m.buttons:
-                    await m.click()
-                elif "сломалось" in m.text and cn == 1:
-                    cmn = "мое снаряжение"
-                    await self.err(chat, cmn)
-                    if not RSP and "🗡" not in RSP.text:
-                        return
-                    for i in (i for i in self.ded if i in RSP.text):
-                        await asyncio.sleep(random.randint(3, n))
-                        await m.respond(self.ded[i])
-                elif "Банда получила" in m.text and cn == 1:
-                    await m.respond("отдать леденец")
+                    await m.respond(self.ded[i])
+            elif "Банда получила" in m.text and cn == 1:
+                await m.respond("отдать леденец")
+                await asyncio.sleep(random.randint(3, n))
+                cmn = "моя банда"
+                await self.err(chat, cmn)
+                if not RSP and "📿" not in RSP.text:
+                    return
+                if "Кулон: Пусто" in RSP.text:
                     await asyncio.sleep(random.randint(3, n))
-                    cmn = "моя банда"
-                    await self.err(chat, cmn)
-                    if not RSP and "📿" not in RSP.text:
-                        return
-                    if "Кулон: Пусто" in RSP.text:
-                        await asyncio.sleep(random.randint(3, n))
-                        await m.respond("скрафтить кулон братвы")
-                elif "тыкпых" in m.text:
-                    if reply:
-                        return await reply.click()
-                    if "тыкпых " not in m.text:
-                        return
-                    reg = re.search(r"/(\d+)/(\d+)", m.text)
-                    if not reg:
-                        return
-                    msg = await self.client.get_messages(
-                        int(reg.group(1)), ids=int(reg.group(2))
-                    )
-                    await msg.click()
-                elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
-                    await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)))
-                    cmn = "мой баланс"
-                    await self.err(chat, cmn)
-                    if not RSP:
-                        return
-                    if "У тебя" in RSP.text:
-                        await m.respond("взять жабу")
-                    elif "Баланс" not in RSP.text:
-                        return
-                    jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
-                    if jab < 50:
-                        return
-                    await m.reply(f"отправить букашки {jab}")
-                elif "напиши в " in m.text:
-                    chat = m.text.split(" ", 4)[3]
-                    if chat.isnumeric():
-                        chat = int(chat)
-                    if reply:
-                        msg = reply
-                    else:
-                        msg = m.text.split(" ", 4)[4]
-                        if msg not in self.ded:
-                            return await self.client.send_message(chat, msg)
-                        if msg in ("напади", "арена"):
-                            return await self.npn(chat, msg)
-                        return await self.client.send_message(chat, self.ded[msg])
-                    await self.client.send_message(chat, msg)
-                elif "напиши " in m.text:
-                    txt = m.text.split(" ", 2)[2]
-                    if reply:
-                        return await reply.reply(txt)
-                    await m.respond(txt)
+                    await m.respond("скрафтить кулон братвы")
+            elif "тыкпых" in m.text:
+                if reply:
+                    return await reply.click()
+                if "тыкпых " not in m.text:
+                    return
+                reg = re.search(r"/(\d+)/(\d+)", m.text)
+                if not reg:
+                    return
+                msg = await self.client.get_messages(
+                    int(reg.group(1)), ids=int(reg.group(2))
+                )
+                await msg.click()
+            elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
+                await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)))
+                cmn = "мой баланс"
+                await self.err(chat, cmn)
+                if not RSP:
+                    return
+                if "У тебя" in RSP.text:
+                    await m.respond("взять жабу")
+                elif "Баланс" not in RSP.text:
+                    return
+                jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
+                if jab < 50:
+                    return
+                await m.reply(f"отправить букашки {jab}")
+            elif "напиши в " in m.text:
+                chat = m.text.split(" ", 4)[3]
+                if chat.isnumeric():
+                    chat = int(chat)
+                if reply:
+                    msg = reply
                 else:
-                    cmn = m.text.split(" ", 2)[1]
-                    if reply and cmn in ("ледики", "аптеки", "букахи"):
-                        return await reply.reply(
-                            f"отправить {self.ded[cmn]} {m.text.split(' ', 2)[2]}"
-                        )
-                    msg = m.text.split(" ", 2)[1]
+                    msg = m.text.split(" ", 4)[4]
                     if msg not in self.ded:
-                        return
+                        return await self.client.send_message(chat, msg)
                     if msg in ("напади", "арена"):
                         return await self.npn(chat, msg)
-                    if msg in ("карту", "лидерку"):
-                        return await m.reply(self.ded[msg])
-                    await asyncio.sleep(random.randint(3, n) + ct.minute)
-                    await m.respond(self.ded[msg])
-            if ct.minute != n:
-                return
-            await asyncio.sleep(
-                random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
-            )
-            if "minute" not in self.su:
-                self.su.setdefault("minute", ct.hour + ct.minute)
-                self.db.set("Su", "su", self.su)
-            if -1 < ((ct.hour + ct.minute) - self.su["minute"]) < 1:
-                return
-            self.su["minute"] = ct.hour + ct.minute
-            self.db.set("Su", "su", self.su)
-            chat = 1124824021
-            cmn = "мои жабы"
-            await self.err(chat, cmn)
-            await self.client.delete_dialog(chat, revoke=True)
-            if not RSP:
-                return
-            for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
-                await asyncio.sleep(
-                    random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
-                )
-                chat = int(i[2])
-                if self.su["auto"] != [] and chat not in self.su["auto"]:
-                    continue
-                ok = (
-                    0
-                    if "gs" not in self.su
-                    or (self.su["gs"] != [] and chat not in self.su["gs"])
-                    else 1
-                )
-                pz = (
-                    0
-                    if "fs" not in self.su
-                    or (self.su["fs"] != [] and chat not in self.su["fs"])
-                    else 1
-                )
-                fm = (
-                    0
-                    if "hs" not in self.su
-                    or (self.su["hs"] != [] and chat not in self.su["hs"])
-                    else 1
-                )
-                ar = (
-                    0
-                    if "bs" not in self.su
-                    or (self.su["bs"] != [] and chat not in self.su["bs"])
-                    else 1
-                )
-                if "cs" in self.su and chat in self.su["cs"]:
-                    job = "работа крупье"
-                elif "ss" in self.su and chat in self.su["ss"]:
-                    job = "поход в столовую"
-                elif "es" in self.su and chat in self.su["es"]:
-                    job = "работа грабитель"
-                elif "cs" in self.su and self.su["cs"] == []:
-                    job = "работа крупье"
-                elif "ss" in self.su and self.su["ss"] == []:
-                    job = "поход в столовую"
-                elif "es" in self.su and self.su["es"] == []:
-                    job = "работа грабитель"
-                else:
-                    job = 0
-                try:
-                    cmn = "Моя жаба"
-                    await self.err(chat, cmn)
-                except Exception:
-                    pass
-                if (
-                    "Имя жабы" not in RSP.text
-                    and i[0] not in RSP.text
-                    and i[1] not in RSP.text
-                ):
-                    continue
-                s = 0
-                if "Нужна реанимация" in RSP.text:
-                    s = 1
-                if "Хорошее" in RSP.text:
-                    await asyncio.sleep(
-                        random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
+                    return await self.client.send_message(chat, self.ded[msg])
+                await self.client.send_message(chat, msg)
+            elif "напиши " in m.text:
+                txt = m.text.split(" ", 2)[2]
+                if reply:
+                    return await reply.reply(txt)
+                await m.respond(txt)
+            else:
+                cmn = m.text.split(" ", 2)[1]
+                if reply and cmn in ("ледики", "аптеки", "букахи"):
+                    return await reply.reply(
+                        f"отправить {self.ded[cmn]} {m.text.split(' ', 2)[2]}"
                     )
-                    await RSP.respond(f"использовать леденцы {random.randint(1, 3)}")
-                jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
-                if not jab:
-                    continue
+                msg = m.text.split(" ", 2)[1]
+                if msg not in self.ded:
+                    return
+                if msg in ("напади", "арена"):
+                    return await self.npn(chat, msg)
+                if msg in ("карту", "лидерку"):
+                    return await m.reply(self.ded[msg])
                 await asyncio.sleep(random.randint(3, n) + ct.minute)
-                cmn = "@toadbot Жаба инфо"
-                await self.err(chat, cmn)
-                if (
-                    "🏃‍♂️" not in RSP.text
-                    and "не в браке" not in RSP.text
-                    and i[0] not in RSP.text
-                ):
-                    continue
-                if int(jab) < 1500:
-                    ar = 0
-                    ok = 0
-                    pz = 0
-                if s == 1 and (
-                    (
-                        "можно покормить" not in RSP.text
-                        and "Можно откормить" not in RSP.text
-                    )
-                    or ok == 0
-                ):
-                    await asyncio.sleep(random.randint(3, n) + ct.minute)
-                    await RSP.respond("реанимировать жабу")
-                if "подземелье можно через 2" in RSP.text:
-                    pz = 0
-                if "не в браке" in RSP.text:
-                    fm = 0
-                for p in (p for p in self.ded if p in RSP.text):
-                    await asyncio.sleep(random.randint(3, n) + ct.minute)
-                    if p == "Можно откормить" and ok == 0:
-                        pass
-                    elif p == "можно покормить" and ok == 1:
-                        pass
-                    elif p == "Можно отправиться" and pz == 0:
-                        pass
-                    elif p == "Можно на арену!" and ar == 0:
-                        pass
-                    elif p in ("Можно на арену!", "Используйте атаку"):
-                        if ct.minute < 48:
-                            await asyncio.sleep(random.randint(3, n) + ct.minute)
-                            await RSP.respond(self.ded[p])
-                        for n in range(3):
-                            s += 13
-                            i = random.randint(9, s)
-                            await self.client.send_message(
-                                chat,
-                                "Реанимировать жабу",
-                                schedule=datetime.timedelta(minutes=i),
-                            )
-                            await self.client.send_message(
-                                chat,
-                                self.ded[p],
-                                schedule=datetime.timedelta(minutes=i + 1),
-                            )
-                    elif p == "можно отправить" and (job == 0 or pz == 1):
-                        pass
-                    elif p == "можно отправить" and pz == 0:
-                        await RSP.respond(job)
-                    else:
-                        await RSP.respond(self.ded[p])
-                if fm == 0:
-                    continue
-                await asyncio.sleep(random.randint(3, n) + ct.minute)
-                cmn = "Моя семья"
-                await self.err(chat, cmn)
-                if (
-                    "дней в браке" not in RSP.text
-                    and i[0] not in RSP.text
-                    and not RSP.buttons
-                ):
-                    continue
-                s = len(RSP.buttons)
-                await asyncio.sleep(random.randint(3, n) + ct.minute)
-                await RSP.respond(self.ded[RSP.buttons[0][0].text])
-                if s == 1:
-                    continue
-                await asyncio.sleep(random.randint(3, n) + ct.minute)
-                await RSP.respond(self.ded[RSP.buttons[1][0].text])
-                if s == 2:
-                    continue
-                await asyncio.sleep(random.randint(3, n) + ct.minute)
-                await RSP.respond(self.ded[RSP.buttons[2][0].text])
-        except Exception:
+                await m.respond(self.ded[msg])
+        if ct.minute != n:
             return
+        await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
+        if "minute" not in self.su:
+            self.su.setdefault("minute", ct.hour + ct.minute)
+            self.db.set("Su", "su", self.su)
+        if -1 < ((ct.hour + ct.minute) - self.su["minute"]) < 1:
+            return
+        self.su["minute"] = ct.hour + ct.minute
+        self.db.set("Su", "su", self.su)
+        chat = 1124824021
+        cmn = "мои жабы"
+        await self.err(chat, cmn)
+        await self.client.delete_dialog(chat, revoke=True)
+        if not RSP:
+            return
+        for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
+            await asyncio.sleep(
+                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
+            )
+            chat = int(i[2])
+            if self.su["auto"] != [] and chat not in self.su["auto"]:
+                continue
+            ok = (
+                0
+                if "gs" not in self.su
+                or (self.su["gs"] != [] and chat not in self.su["gs"])
+                else 1
+            )
+            pz = (
+                0
+                if "fs" not in self.su
+                or (self.su["fs"] != [] and chat not in self.su["fs"])
+                else 1
+            )
+            fm = (
+                0
+                if "hs" not in self.su
+                or (self.su["hs"] != [] and chat not in self.su["hs"])
+                else 1
+            )
+            ar = (
+                0
+                if "bs" not in self.su
+                or (self.su["bs"] != [] and chat not in self.su["bs"])
+                else 1
+            )
+            if "cs" in self.su and chat in self.su["cs"]:
+                job = "работа крупье"
+            elif "ss" in self.su and chat in self.su["ss"]:
+                job = "поход в столовую"
+            elif "es" in self.su and chat in self.su["es"]:
+                job = "работа грабитель"
+            elif "cs" in self.su and self.su["cs"] == []:
+                job = "работа крупье"
+            elif "ss" in self.su and self.su["ss"] == []:
+                job = "поход в столовую"
+            elif "es" in self.su and self.su["es"] == []:
+                job = "работа грабитель"
+            else:
+                job = 0
+            try:
+                cmn = "Моя жаба"
+                await self.err(chat, cmn)
+            except Exception:
+                pass
+            if (
+                "Имя жабы" not in RSP.text
+                and i[0] not in RSP.text
+                and i[1] not in RSP.text
+            ):
+                continue
+            s = 1 if "Нужна реанимация" in RSP.text else 0
+            if "Хорошее" in RSP.text:
+                await asyncio.sleep(
+                    random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
+                )
+                await RSP.respond(f"использовать леденцы {random.randint(1, 3)}")
+            jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
+            if not jab:
+                continue
+            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            cmn = "@toadbot Жаба инфо"
+            await self.err(chat, cmn)
+            if (
+                "🏃‍♂️" not in RSP.text
+                and "не в браке" not in RSP.text
+                and i[0] not in RSP.text
+            ):
+                continue
+            if int(jab) < 1500:
+                ar = 0
+                ok = 0
+                pz = 0
+            if s == 1 and (
+                (
+                    "можно покормить" not in RSP.text
+                    and "Можно откормить" not in RSP.text
+                )
+                or ok == 0
+            ):
+                await asyncio.sleep(random.randint(3, n) + ct.minute)
+                await RSP.respond("реанимировать жабу")
+            if "подземелье можно через 2" in RSP.text:
+                pz = 0
+            if "не в браке" in RSP.text:
+                fm = 0
+            for p in (p for p in self.ded if p in RSP.text):
+                await asyncio.sleep(random.randint(3, n) + ct.minute)
+                if p == "Можно откормить" and ok == 0:
+                    pass
+                elif p == "можно покормить" and ok == 1:
+                    pass
+                elif p == "Можно отправиться" and pz == 0:
+                    pass
+                elif p == "Можно на арену!" and ar == 0:
+                    pass
+                elif p in ("Можно на арену!", "Используйте атаку"):
+                    s = 13
+                    if ct.minute < 48:
+                        await asyncio.sleep(random.randint(3, n) + ct.minute)
+                        await RSP.respond(self.ded[p])
+                        await asyncio.sleep(random.randint(s, 33))
+                        await RSP.respond(self.ded[p])
+                    await self.client.send_message(
+                        chat,
+                        "Реанимировать жабу",
+                        schedule=datetime.timedelta(minutes=s),
+                    )
+                    for n in range(3):
+                        s += 13
+                        i = random.randint(13, s)
+                        await asyncio.sleep(random.randint(3, 13))
+                        await self.client.send_message(
+                            chat,
+                            "На арену",
+                            schedule=datetime.timedelta(minutes=i),
+                        )
+                    await self.client.send_message(
+                        chat,
+                        "Реанимировать жабу",
+                        schedule=datetime.timedelta(minutes=i+1),
+                    )
+                elif p == "можно отправить" and (job == 0 or pz == 1):
+                    pass
+                elif p == "можно отправить" and pz == 0:
+                    await RSP.respond(job)
+                else:
+                    await RSP.respond(self.ded[p])
+            if fm == 0:
+                continue
+            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            cmn = "Моя семья"
+            await self.err(chat, cmn)
+            if (
+                "дней в браке" not in RSP.text
+                and i[0] not in RSP.text
+                and not RSP.buttons
+            ):
+                continue
+            s = len(RSP.buttons)
+            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            await RSP.respond(self.ded[RSP.buttons[0][0].text])
+            if s == 1:
+                continue
+            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            await RSP.respond(self.ded[RSP.buttons[1][0].text])
+            if s == 2:
+                continue
+            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            await RSP.respond(self.ded[RSP.buttons[2][0].text])
