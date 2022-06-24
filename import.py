@@ -557,7 +557,7 @@ class ZhabaMod(loader.Module):
                     await self.client.send_message(
                         chat,
                         "Реанимировать жабу",
-                        schedule=datetime.timedelta(minutes=i+1),
+                        schedule=datetime.timedelta(minutes=i + 1),
                     )
                 elif p == "можно отправить" and (job == 0 or pz == 1):
                     pass
