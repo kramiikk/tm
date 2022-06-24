@@ -545,20 +545,22 @@ class KramiikkMod(loader.Module):
                         pass
                     elif p == "Можно на арену!" and ar == 0:
                         pass
-                    elif p == "Можно на арену!" or p == "Используйте атаку":
+                    elif p in ("Можно на арену!", "Используйте атаку"):
                         if ct.minute < 48:
                             await asyncio.sleep(random.randint(3, n) + ct.minute)
                             await RSP.respond(self.ded[p])
-                        for i in range(3):
+                        for n in range(3):
                             s += 13
-                            n = random.randint(9, s)
+                            i = random.randint(9, s)
                             await self.client.send_message(
                                 chat,
                                 "Реанимировать жабу",
-                                schedule=timedelta(minutes=n),
+                                schedule=datetime.timedelta(minutes=i),
                             )
                             await self.client.send_message(
-                                chat, self.ded[p], schedule=timedelta(minutes=n + 1)
+                                chat,
+                                self.ded[p],
+                                schedule=datetime.timedelta(minutes=i + 1),
                             )
                     elif p == "можно отправить" and (job == 0 or pz == 1):
                         pass
