@@ -141,7 +141,7 @@ class ZhabaMod(loader.Module):
             "<b>⚔️Снаряжение:</b>",
         )
         jk = (
-            "\n\n    🎰Крупье:",
+            "\n    🎰Крупье:",
             "cs",
             " 🟢",
             " ⭐️",
@@ -151,7 +151,7 @@ class ZhabaMod(loader.Module):
             "<b>🎰Крупье:</b>",
         )
         jg = (
-            "\n    💶Грабитель:",
+            "\n\n    💶Грабитель:",
             "es",
             " 🟢",
             " ⭐️",
@@ -377,8 +377,6 @@ class ZhabaMod(loader.Module):
                     msg = m.text.split(" ", 4)[4]
                     if msg not in self.ded:
                         return await self.client.send_message(chat, msg)
-                    if msg in ("напади", "арена"):
-                        return await self.npn(chat, msg)
                     return await self.client.send_message(chat, self.ded[msg])
                 await self.client.send_message(chat, msg)
             elif "напиши " in m.text:
@@ -395,8 +393,6 @@ class ZhabaMod(loader.Module):
                 msg = m.text.split(" ", 2)[1]
                 if msg not in self.ded:
                     return
-                if msg in ("напади", "арена"):
-                    return await self.npn(chat, msg)
                 if msg in ("карту", "лидерку"):
                     return await m.reply(self.ded[msg])
                 await asyncio.sleep(random.randint(3, n) + ct.minute)
