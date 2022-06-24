@@ -251,8 +251,7 @@ class ZhabaMod(loader.Module):
             if "ub del+" in m.text:
                 self.su.clear()
                 self.su.setdefault("name", self.me.first_name)
-                self.su.setdefault(
-                    "users", [1124824021, self.me.id, 1785723159])
+                self.su.setdefault("users", [1124824021, self.me.id, 1785723159])
                 self.db.set("Su", "su", self.su)
                 return await m.edit("🛑данные очищены🛑")
             if s in self.su:
@@ -293,8 +292,7 @@ class ZhabaMod(loader.Module):
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id %
-                                 100) < 48 else int(self.me.id % 100 / 3)
+        n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
         if (
             isinstance(m, Message)
@@ -421,8 +419,7 @@ class ZhabaMod(loader.Module):
             return
         for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
             await asyncio.sleep(
-                random.randint(n + ct.hour, 96 +
-                               (ct.microsecond % 100)) + ct.minute
+                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
             )
             chat = int(i[2])
             if self.su["auto"] != [] and chat not in self.su["auto"]:
@@ -476,6 +473,7 @@ class ZhabaMod(loader.Module):
                 and i[1] not in RSP.text
             ):
                 continue
+            jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
             s = 1 if "Нужна реанимация" in RSP.text else 0
             if "Хорошее" in RSP.text:
                 await asyncio.sleep(
@@ -491,7 +489,7 @@ class ZhabaMod(loader.Module):
                 and i[0] not in RSP.text
             ):
                 continue
-            if int(re.search(r"Б.+: (\d+)", RSP.text).group(1)) < 1500:
+            if int(jab) < 1500:
                 ar = 0
                 ok = 0
                 pz = 0

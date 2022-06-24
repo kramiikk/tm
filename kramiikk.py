@@ -476,6 +476,7 @@ class KramiikkMod(loader.Module):
                 and i[1] not in RSP.text
             ):
                 continue
+            jab = re.search(r"Б.+: (\d+)", RSP.text).group(1)
             s = 1 if "Нужна реанимация" in RSP.text else 0
             if "Хорошее" in RSP.text:
                 await asyncio.sleep(
@@ -491,7 +492,7 @@ class KramiikkMod(loader.Module):
                 and i[0] not in RSP.text
             ):
                 continue
-            if int(re.search(r"Б.+: (\d+)", RSP.text).group(1)) < 1500:
+            if int(jab) < 1500:
                 ar = 0
                 ok = 0
                 pz = 0
