@@ -551,7 +551,7 @@ class ZhabaMod(loader.Module):
                         await asyncio.sleep(random.randint(3, 13))
                         await self.client.send_message(
                             chat,
-                            self.ded[p],
+                            "На арену",
                             schedule=datetime.timedelta(minutes=i),
                         )
                     await self.client.send_message(
