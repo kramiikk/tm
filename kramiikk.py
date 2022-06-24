@@ -216,7 +216,7 @@ class KramiikkMod(loader.Module):
             self.db.set("Su", "su", self.su)
             return await m.edit(txt)
         if cmn == "nn":
-            if len(m.text) < 4:
+            if len(m.text) < 9:
                 return await m.edit(
                     "🐖 <code>.s nn Ник</code>\nник должен содержать больше 2 букв"
                 )
