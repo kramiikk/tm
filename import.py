@@ -547,6 +547,7 @@ class ZhabaMod(loader.Module):
                             "Реанимировать жабу",
                             schedule=datetime.timedelta(minutes=i),
                         )
+                        await asyncio.sleep(random.randint(3, 13))
                         await self.client.send_message(
                             chat,
                             self.ded[p],
