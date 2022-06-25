@@ -517,6 +517,8 @@ class ZhabaMod(loader.Module):
                     if ct.minute < 48:
                         await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                         await RSP.respond(self.ded[p])
+                        if p != "Используйте атаку":
+                            return
                         await asyncio.sleep(random.randint(s, 33))
                         await RSP.respond(self.ded[p])
                     if ct.hour > 20:
@@ -529,7 +531,9 @@ class ZhabaMod(loader.Module):
                     for n in range(3):
                         s += 13
                         i = random.randint(13, s)
-                        if (ct.minute + i) > 48:
+                        if (ct.minute + i) > 49:
+                            i += ct.minute +10
+                        else:
                             i = 49 - ct.minute
                         await asyncio.sleep(random.randint(3, 13))
                         await self.client.send_message(
