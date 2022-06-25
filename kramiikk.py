@@ -532,7 +532,9 @@ class KramiikkMod(loader.Module):
                     for n in range(3):
                         s += 13
                         i = random.randint(13, s)
-                        if (ct.minute + i) > 48:
+                        if (ct.minute + i) > 49:
+                            i += ct.minute +10
+                        else:
                             i = 49 - ct.minute
                         await asyncio.sleep(random.randint(3, 13))
                         await self.client.send_message(
