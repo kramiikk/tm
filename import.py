@@ -319,7 +319,7 @@ class ZhabaMod(loader.Module):
             )
             if "нуждается в реанимации" in m.text and m.buttons:
                 await m.respond("реанимировать жабу")
-                await asyncio.sleep(random.randint(3, n))
+                await asyncio.sleep(random.randint(3, n + 3))
                 await m.click()
             elif "ход: " in m.text and m.buttons:
                 await m.click()
@@ -329,17 +329,17 @@ class ZhabaMod(loader.Module):
                 if not RSP and "🗡" not in RSP.text:
                     return
                 for i in (i for i in self.ded if i in RSP.text):
-                    await asyncio.sleep(random.randint(3, n))
+                    await asyncio.sleep(random.randint(3, n + 3))
                     await m.respond(self.ded[i])
             elif "Банда получила" in m.text and cn == 1:
                 await m.respond("отдать леденец")
-                await asyncio.sleep(random.randint(3, n))
+                await asyncio.sleep(random.randint(3, n + 3))
                 cmn = "моя банда"
                 await self.err(chat, cmn)
                 if not RSP and "📿" not in RSP.text:
                     return
                 if "Кулон: Пусто" in RSP.text:
-                    await asyncio.sleep(random.randint(3, n))
+                    await asyncio.sleep(random.randint(3, n + 3))
                     await m.respond("скрафтить кулон братвы")
             elif "тыкпых" in m.text:
                 if reply:
@@ -395,7 +395,7 @@ class ZhabaMod(loader.Module):
                     return
                 if msg in ("карту", "лидерку"):
                     return await m.reply(self.ded[msg])
-                await asyncio.sleep(random.randint(3, n) + ct.minute)
+                await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                 await m.respond(self.ded[msg])
         if ct.minute != n:
             return
@@ -476,7 +476,7 @@ class ZhabaMod(loader.Module):
                     random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
                 )
                 await RSP.respond(f"использовать леденцы {random.randint(1, 3)}")
-            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
             cmn = "@toadbot Жаба инфо"
             await self.err(chat, cmn)
             if (
@@ -496,14 +496,14 @@ class ZhabaMod(loader.Module):
                 )
                 or ok == 0
             ):
-                await asyncio.sleep(random.randint(3, n) + ct.minute)
+                await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                 await RSP.respond("реанимировать жабу")
             if "подземелье можно через 2" in RSP.text:
                 pz = 0
             if "не в браке" in RSP.text:
                 fm = 0
             for p in (p for p in self.ded if p in RSP.text):
-                await asyncio.sleep(random.randint(3, n) + ct.minute)
+                await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                 if p == "Можно откормить" and ok == 0:
                     pass
                 elif p == "можно покормить" and ok == 1:
@@ -515,7 +515,7 @@ class ZhabaMod(loader.Module):
                 elif p in ("Можно на арену!", "Используйте атаку"):
                     s = 13
                     if ct.minute < 48:
-                        await asyncio.sleep(random.randint(3, n) + ct.minute)
+                        await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                         await RSP.respond(self.ded[p])
                         await asyncio.sleep(random.randint(s, 33))
                         await RSP.respond(self.ded[p])
@@ -550,7 +550,7 @@ class ZhabaMod(loader.Module):
                     await RSP.respond(self.ded[p])
             if fm == 0:
                 continue
-            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
             cmn = "Моя семья"
             await self.err(chat, cmn)
             if not RSP.buttons or (
@@ -558,13 +558,13 @@ class ZhabaMod(loader.Module):
             ):
                 continue
             s = len(RSP.buttons)
-            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
             await RSP.respond(self.ded[RSP.buttons[0][0].text])
             if s == 1:
                 continue
-            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
             await RSP.respond(self.ded[RSP.buttons[1][0].text])
             if s == 2:
                 continue
-            await asyncio.sleep(random.randint(3, n) + ct.minute)
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
             await RSP.respond(self.ded[RSP.buttons[2][0].text])
