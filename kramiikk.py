@@ -191,7 +191,7 @@ class KramiikkMod(loader.Module):
             txt += f"\n\nНик: <code>{self.su['name']}</code>"
             txt += f"\nУправление: {msg}"
             txt += f"\nХод в походе: {msg}"
-            txt += "\n\n<a href='te.legra.ph/-06-20-999'>@гайд</a>\n@jabuser"
+            txt += "\n\n<a href='te.legra.ph/-06-20-999'>@гайд</a>"
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "su":
@@ -398,7 +398,6 @@ class KramiikkMod(loader.Module):
                     return
                 if msg in ("карту", "лидерку"):
                     return await m.reply(self.ded[msg])
-                await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                 await m.respond(self.ded[msg])
         if ct.minute != n:
             return
