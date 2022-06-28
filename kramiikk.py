@@ -510,21 +510,21 @@ class KramiikkMod(loader.Module):
                     )
                     for n in range(3):
                         s += 13
-                        i = random.randint(13, s)
-                        if (ct.minute + i) > 49:
-                            i += ct.minute + 10
+                        time = random.randint(13, s)
+                        if (ct.minute + time) > 49:
+                            time += ct.minute + 10
                         else:
-                            i = 49 - ct.minute
+                            time = 49 - ct.minute
                         await asyncio.sleep(random.randint(3, 13))
                         await self.client.send_message(
                             chat,
                             "На арену",
-                            schedule=datetime.timedelta(minutes=i),
+                            schedule=datetime.timedelta(minutes=time),
                         )
                     await self.client.send_message(
                         chat,
                         "Реанимировать жабу",
-                        schedule=datetime.timedelta(minutes=i + 1),
+                        schedule=datetime.timedelta(minutes=time + 1),
                     )
                 elif p == "можно отправить" and (job == 0 or pz == 1):
                     pass
@@ -539,8 +539,8 @@ class KramiikkMod(loader.Module):
             await self.err(chat, cmn)
             if (
                 not RSP.buttons
-                and "дней в браке" not in RSP.text
-                and i[0] not in RSP.text
+                or "дней в браке" not in RSP.text
+                or i[0] not in RSP.text
             ):
                 continue
             s = len(RSP.buttons)
