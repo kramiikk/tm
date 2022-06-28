@@ -52,19 +52,6 @@ class ZhabaMod(loader.Module):
             "Отправить жабенка на махач": "@toadbot Отправить жабенка на махач",
         }
 
-    async def vcc(self, chat):
-        try:
-            cmn = "Моя жаба"
-            await self.err(chat, cmn)
-        except Exception:
-            pass
-        if (
-            "Имя жабы" not in RSP.text
-            or i[0] not in RSP.text
-            and i[1] not in RSP.text
-        ):
-            return
-
     async def err(self, chat, cmn):
         """работа с ответом жабабота"""
         try:
