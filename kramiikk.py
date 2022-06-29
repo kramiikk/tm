@@ -496,11 +496,10 @@ class KramiikkMod(loader.Module):
                     pass
                 elif p in ("Можно на арену!", "Используйте атаку"):
                     s = 13
-                    if ct.minute < 48:
-                        await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
-                        await RSP.respond(self.ded[p])
-                        await asyncio.sleep(random.randint(s, 33))
-                        await RSP.respond(self.ded[p])
+                    await asyncio.sleep(random.randint(3, n + 3))
+                    await RSP.respond(self.ded[p])
+                    await asyncio.sleep(random.randint(s, 33))
+                    await RSP.respond(self.ded[p])
                     if ct.hour > 20:
                         return
                     await self.client.send_message(
@@ -513,8 +512,6 @@ class KramiikkMod(loader.Module):
                         time = random.randint(13, s)
                         if (ct.minute + time) > 49:
                             time += ct.minute + 10
-                        else:
-                            time = 49 - ct.minute
                         await asyncio.sleep(random.randint(3, 13))
                         await self.client.send_message(
                             chat,
