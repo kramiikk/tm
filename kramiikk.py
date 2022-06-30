@@ -510,9 +510,10 @@ class KramiikkMod(loader.Module):
                     for n in range(3):
                         s += 13
                         time = random.randint(13, s)
-                        if (ct.minute + time) > 49:
+                        if 52 > (ct.minute + time) > 33:
+                            time -= 13
+                        elif (ct.minute + time) > 48:
                             time += 13
-                        await asyncio.sleep(random.randint(3, 13))
                         await self.client.send_message(
                             chat,
                             "На арену",
