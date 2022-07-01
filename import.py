@@ -335,3 +335,6 @@ class ZhabaMod(loader.Module):
                     continue
                 self.su["msg"].setdefault(chat, [chat, RSP.id])
                 msg = RSP
+            for p in (p for p in self.ded if p in msg.text):
+                await asyncio.sleep(random.randint(3, n + 3))
+                await RSP.respond(self.ded[p])
