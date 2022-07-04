@@ -346,19 +346,21 @@ class ZhabaMod(loader.Module):
                 hour = msg.date.hour
                 mins = msg.date.minute
                 cmn = "завершить работу"
-                tit = 2
+                tit = 6
             elif "Забрать жабу" in msg.text:
                 reg = reg.search(r"(\d+) часов (\d+) минут", msg.text)
                 hour = int(reg.group(1)) + msg.date.hour
                 mins = int(reg.group(2)) + msg.date.minute
                 cmn = "завершить работу"
-                tit = 2
+                tit = 6
             else:
                 reg = reg.search(r"будет через (\d+)ч:(\d+)м", msg.text)
                 hour = int(reg.group(1)) + msg.date.hour
                 mins = int(reg.group(2)) + msg.date.minute
                 cmn = job
                 tit = 8
+            if job == 0:
+                return
             if (
                 datetime.timedelta(days=0)
                 < (
@@ -367,4 +369,11 @@ class ZhabaMod(loader.Module):
                 )
                 < datetime.timedelta(hours=tit)
             ):
-                return
+                await msg.respond(cmn)
+            elif (
+                datetime.timedelta(hours=time.hour, minutes=time.min)
+                - datetime.timedelta(hours=hour, minutes=mins)
+            ) > datetime.timedelta(hours=tit):
+                await msg.respond(cmn)
+            else:
+                continue
