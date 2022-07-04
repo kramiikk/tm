@@ -336,6 +336,7 @@ class ZhabaMod(loader.Module):
                     continue
                 self.su["msg"].setdefault(chat, [chat, RSP.id])
                 msg = RSP
+            tit = 0
             if "можно отправить" in msg.text:
                 hour = msg.date.hour
                 mins = msg.date.minute
@@ -359,11 +360,11 @@ class ZhabaMod(loader.Module):
                 cmn = job
                 tit = 8
             if (
-                timedelta(days=0)
+                datetime.timedelta(days=0)
                 < (
-                    timedelta(hours=time.hour, minutes=time.min)
-                    - timedelta(hours=hour, minutes=mins)
+                    datetime.timedelta(hours=time.hour, minutes=time.min)
+                    - datetime.timedelta(hours=hour, minutes=mins)
                 )
-                < timedelta(minutes=30)
+                < datetime.timedelta(minutes=30)
             ):
                 return
