@@ -365,6 +365,6 @@ class ZhabaMod(loader.Module):
                     datetime.timedelta(hours=time.hour, minutes=time.min)
                     - datetime.timedelta(hours=hour, minutes=mins)
                 )
-                < datetime.timedelta(minutes=30)
+                < datetime.timedelta(hours=tit)
             ):
                 return
