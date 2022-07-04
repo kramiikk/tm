@@ -3,6 +3,7 @@ import datetime
 import random
 import re
 
+from telethon import events
 from telethon.tl.types import Message
 
 from .. import loader
@@ -25,36 +26,20 @@ class ZhabaMod(loader.Module):
             self.su.setdefault("users", [1124824021, self.me.id, 1785723159])
             self.db.set("Su", "su", self.su)
         self.ded = {
-            "аптеки": "аптечки",
-            "арена": "На арену",
-            "ледики": "леденцы",
-            "букахи": "букашки",
-            "рейд": "Рейд старт",
-            "туси": "Начать тусу",
             "туса": "Жабу на тусу",
             "карту": "Отправить карту",
-            "лидерку": "Передать клан",
-            "леденец": "Отдать леденец",
             "напади": "Напасть на клан",
             "снаряга": "Мое снаряжение",
-            "работа": "Завершить работу",
             "Банда: Пусто": "взять жабу",
-            "жаба в данже": "Рейд старт",
             "инвентарь": "Мой инвентарь",
-            "кв": "Начать клановую войну",
             "можно отправить": "Работа крупье",
             "реанимируй": "Реанимировать жабу",
-            "кулоник": "Скрафтить кулон братвы",
             "Можно на арену!": "@toadbot На арену",
             "Используйте атаку": "@toadbot На арену",
-            "пределя": "Выбрать усилитель на пределе",
-            "золото": "Отправиться в золотое подземелье",
-            "родителя": "Выбрать усилитель Родитель года",
             "Дальний бой: Пусто": "скрафтить букашкомет",
             "жабу с работы": "@toadbot Завершить работу",
             "Забрать жабенка": "@toadbot Забрать жабенка",
             "Ближний бой: Пусто": "скрафтить клюв цапли",
-            "минималисто": "Выбрать усилитель минималист",
             "можно покормить": "@toadbot Покормить жабу",
             "Можно откормить": "@toadbot Откормить жабу",
             "Покормить жабенка": "@toadbot Покормить жабенка",
@@ -73,7 +58,9 @@ class ZhabaMod(loader.Module):
             async with self.client.conversation(chat, exclusive=False) as conv:
                 await conv.send_message(cmn)
                 global RSP
-                RSP = await conv.get_response()
+                RSP = await conv.wait_event(
+                    events.NewMessage(incoming=True, from_users=1124824021, chats=chat)
+                )
                 await conv.cancel_all()
         except Exception:
             pass
@@ -311,6 +298,20 @@ class ZhabaMod(loader.Module):
         if not RSP:
             return
         time = RSP.date
+        if "cs" in self.su and chat in self.su["cs"]:
+            job = "работа крупье"
+        elif "es" in self.su and chat in self.su["es"]:
+            job = "работа грабитель"
+        elif "ss" in self.su and chat in self.su["ss"]:
+            job = "поход в столовую"
+        elif "cs" in self.su and self.su["cs"] == []:
+            job = "работа крупье"
+        elif "es" in self.su and self.su["es"] == []:
+            job = "работа грабитель"
+        elif "ss" in self.su and self.su["ss"] == []:
+            job = "поход в столовую"
+        else:
+            job = 0
         for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
             await asyncio.sleep(
                 random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
@@ -335,6 +336,34 @@ class ZhabaMod(loader.Module):
                     continue
                 self.su["msg"].setdefault(chat, [chat, RSP.id])
                 msg = RSP
-            for p in (p for p in self.ded if p in msg.text):
-                await asyncio.sleep(random.randint(3, n + 3))
-                await RSP.respond(self.ded[p])
+            if "можно отправить" in msg.text:
+                hour = msg.date.hour
+                mins = msg.date.minute
+                cmn = job
+                tit = 8
+            elif "жабу с работы" in msg.text:
+                hour = msg.date.hour
+                mins = msg.date.minute
+                cmn = "завершить работу"
+                tit = 2
+            elif "Забрать жабу" in msg.text:
+                reg = reg.search(r"(\d+) часов (\d+) минут", msg.text)
+                hour = int(reg.group(1)) + msg.date.hour
+                mins = int(reg.group(2)) + msg.date.minute
+                cmn = "завершить работу"
+                tit = 2
+            else:
+                reg = reg.search(r"будет через (\d+)ч:(\d+)м", msg.text)
+                hour = int(reg.group(1)) + msg.date.hour
+                mins = int(reg.group(2)) + msg.date.minute
+                cmn = job
+                tit = 8
+            if (
+                timedelta(days=0)
+                < (
+                    timedelta(hours=time.hour, minutes=time.min)
+                    - timedelta(hours=hour, minutes=mins)
+                )
+                < timedelta(minutes=30)
+            ):
+                return
