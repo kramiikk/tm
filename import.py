@@ -281,7 +281,7 @@ class ZhabaMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
-        if ct.minute not in (n, n + 7):
+        if ct.minute != n + 7:
             return
         await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
         if "minute" not in self.su:
@@ -345,13 +345,13 @@ class ZhabaMod(loader.Module):
                 cmn = "завершить работу"
                 tit = 6
             elif "Забрать жабу" in msg.text:
-                reg = reg.search(r"(\d+) часов (\d+) минут", msg.text)
+                reg = re.search(r"(\d+) часов (\d+) минут", msg.text)
                 hour = int(reg.group(1)) + msg.date.hour
                 mins = int(reg.group(2)) + msg.date.minute
                 cmn = "завершить работу"
                 tit = 6
             else:
-                reg = reg.search(r"будет через (\d+)ч:(\d+)м", msg.text)
+                reg = re.search(r"будет через (\d+)ч:(\d+)м", msg.text)
                 hour = int(reg.group(1)) + msg.date.hour
                 mins = int(reg.group(2)) + msg.date.minute
                 cmn = job
