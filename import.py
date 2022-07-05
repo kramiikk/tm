@@ -281,7 +281,7 @@ class ZhabaMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
-        if ct.minute not in (n + 7):
+        if ct.minute not in (n, n + 7):
             return
         await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
         if "minute" not in self.su:
