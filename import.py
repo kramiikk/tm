@@ -65,7 +65,7 @@ class ZhabaMod(loader.Module):
         except Exception:
             pass
 
-    async def scmd(self, m):
+    async def stcmd(self, m):
         """статус юзербота"""
         ub = (
             "<b>Статус",
@@ -281,7 +281,7 @@ class ZhabaMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
-        if ct.minute != n:
+        if ct.minute not in (n + 7):
             return
         await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
         if "minute" not in self.su:
@@ -313,9 +313,6 @@ class ZhabaMod(loader.Module):
         else:
             job = 0
         for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
-            await asyncio.sleep(
-                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
-            )
             chat = int(i[2])
             if self.su["auto"] != [] and chat not in self.su["auto"]:
                 continue
