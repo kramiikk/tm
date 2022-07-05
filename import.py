@@ -359,7 +359,7 @@ class ZhabaMod(loader.Module):
             if (
                 datetime.timedelta(days=0)
                 < (
-                    datetime.timedelta(hours=time.hour, minutes=time.min)
+                    datetime.timedelta(hours=time.hour, minutes=time.minute)
                     - datetime.timedelta(hours=hour, minutes=mins)
                 )
                 < datetime.timedelta(minutes=30)
