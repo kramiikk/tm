@@ -366,7 +366,7 @@ class ZhabaMod(loader.Module):
             ):
                 await msg.respond(cmn)
             elif (
-                datetime.timedelta(hours=time.hour, minutes=time.min)
+                datetime.timedelta(hours=time.hour, minutes=time.minute)
                 - datetime.timedelta(hours=hour, minutes=mins)
             ) > datetime.timedelta(hours=tit):
                 await msg.respond(cmn)
