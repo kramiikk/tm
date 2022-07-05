@@ -279,11 +279,9 @@ class ZhabaMod(loader.Module):
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
-        n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
-        if ct.minute != n + 7:
+        if ct.minute not in (5, 15, 45, 55):
             return
-        await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
+        await asyncio.sleep(random.randint(33, 96 + (ct.microsecond % 100)) + ct.minute)
         if "minute" not in self.su:
             self.su.setdefault("minute", ct.hour + ct.minute)
             self.db.set("Su", "su", self.su)
@@ -357,14 +355,14 @@ class ZhabaMod(loader.Module):
                 cmn = job
                 tit = 8
             if job == 0:
-                return
+                continue
             if (
                 datetime.timedelta(days=0)
                 < (
                     datetime.timedelta(hours=time.hour, minutes=time.min)
                     - datetime.timedelta(hours=hour, minutes=mins)
                 )
-                < datetime.timedelta(hours=tit)
+                < datetime.timedelta(minutes=30)
             ):
                 await msg.respond(cmn)
             elif (
