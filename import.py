@@ -357,8 +357,8 @@ class ZhabaMod(loader.Module):
             if job == 0:
                 continue
             if (
-                datetime.timedelta(days=-1)
-                < (
+                datetime.timedelta(days=0)
+                <= (
                     datetime.timedelta(hours=time.hour, minutes=time.minute)
                     - datetime.timedelta(hours=hour, minutes=mins)
                 )
