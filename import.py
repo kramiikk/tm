@@ -1,4 +1,3 @@
-import asyncio
 import random
 
 from telethon.tl.types import Message
