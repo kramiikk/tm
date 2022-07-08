@@ -18,7 +18,7 @@ class AssMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        if not isinstance(m, Message) or not m.text.casefold().startswith("закидать ") or ("одер" not in m.text or "мин" not in m.text):
+        if not isinstance(m, Message) or not m.text.casefold().startswith("закидать ") or ("одер" not in m.text and "мин" not in m.text):
             return
         cmn = m.text.split(" ", 2)[1]
         if cmn in ("говном", "дерьмом"):
