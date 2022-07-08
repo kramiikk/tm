@@ -15,6 +15,7 @@ class AssMod(loader.Module):
     async def client_ready(self, client, db):
         """ready"""
         self.client = client
+        self.db = db
 
     async def watcher(self, m):
         """алко"""
@@ -28,3 +29,4 @@ class AssMod(loader.Module):
         else:
             cmn = "🪳"
         await m.respond(f"Спасибо! Вы покормили модерку{cmn} \n{random.randint(2, 5)} админа жабабота вам благодарны🌚")
+        
