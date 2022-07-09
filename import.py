@@ -42,8 +42,9 @@ class AssMod(loader.Module):
         if m.sender_id not in self.su:
             self.su.setdefault(m.sender_id, [0, m.sender.first_name])
         if isinstance(self.su[m.sender_id][1], int):
+            a = self.su[m.sender_id][0]
             self.su[m.sender_id][0] = self.su[m.sender_id][1]
-            self.su[m.sender_id][1] = m.sender.first_name
+            self.su[m.sender_id][1] = a
         num = random.randint(2, 5)
         self.su[m.sender_id][0] += num
         self.db.set("Su", "as", self.su)
