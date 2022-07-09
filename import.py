@@ -18,7 +18,7 @@ class AssMod(loader.Module):
         self.me = await client.get_me()
         self.su = db.get("Su", "as", {})
         if self.me.id not in self.su:
-            self.su.setdefault(self.me.id, [self.me.first_name, 0])
+            self.su.setdefault(self.me.id, [0, self.me.first_name])
 
     async def watcher(self, m):
         """алко"""
@@ -29,9 +29,12 @@ class AssMod(loader.Module):
         ):
             return
         if m.sender_id not in self.su:
-            self.su.setdefault(m.sender_id, [m.sender.first_name, 0])
+            self.su.setdefault(m.sender_id, [0, m.sender.first_name])
+        if isinstance(self.su[m.sender_id][1], int):
+            self.su[m.sender_id][0] = self.su[m.sender_id][1]
+            self.su[m.sender_id][1] = m.sender.first_name
         num = random.randint(2, 5)
-        self.su[m.sender_id][1] += num
+        self.su[m.sender_id][0] += num
         self.db.set("Su", "as", self.su)
         cmn = m.text.split(" ", 2)[1]
         if cmn in ("говном", "дерьмом"):
@@ -41,9 +44,5 @@ class AssMod(loader.Module):
         else:
             cmn = "👼🏾"
         await m.respond(
-            f"Спасибо! Вы покормили модерку{cmn} \n{num} админа жабабота вам благодарны🌚 \n\n <b>Ваша репутация в тп: -{self.su[m.sender_id][1]}🤡</b>"
+            f"Спасибо! Вы покормили модерку{cmn} \n{num} админа жабабота вам благодарны🌚 \n\n <b>Ваша репутация в тп: -{self.su[m.sender_id][0]}🤡</b>"
         )
-        cmn=""
-        for i in self.su:
-            cmn += str(i)
-        await m.respond(cmn)
