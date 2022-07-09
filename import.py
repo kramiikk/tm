@@ -25,9 +25,7 @@ class AssMod(loader.Module):
         if "топ" and len(m.message) == 3:
             top = "Топ багоюзеров:\n"
             for i in sorted(self.su.items(), key=lambda x: x[1], reverse=True):
-                top += f"\n{i}"
-            for num in "(),'":
-                top = top.replace(num, "")
+                top += f"\n{i[1][1]} {i[1][0]}"
             return await m.respond(top)
         if (
             not isinstance(m, Message)
