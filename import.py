@@ -23,12 +23,6 @@ class AssMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         if "топ" and len(m.message) == 3:
-            for i in self.su.items():
-                if isinstance(i[1][1], int):
-                    a = i[1][0]
-                    i[1][0] = i[1][1]
-                    i[1][1] = a
-            self.db.set("Su", "as", self.su)
             top = "Топ багоюзеров:\n"
             for i in sorted(self.su.items(), key=lambda x: x[1], reverse=True):
                 top += f"\n{i[1][1]} {i[1][0]}"
@@ -41,10 +35,6 @@ class AssMod(loader.Module):
             return
         if m.sender_id not in self.su:
             self.su.setdefault(m.sender_id, [0, m.sender.first_name])
-        if isinstance(self.su[m.sender_id][1], int):
-            a = self.su[m.sender_id][0]
-            self.su[m.sender_id][0] = self.su[m.sender_id][1]
-            self.su[m.sender_id][1] = a
         num = random.randint(2, 5)
         self.su[m.sender_id][0] += num
         self.db.set("Su", "as", self.su)
