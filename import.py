@@ -23,11 +23,11 @@ class AssMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         if "топ" and len(m.message) == 3:
-            for i in self.su:
-                if isinstance(i[1], int):
-                    a = i[0]
-                    i[0] = i[1]
-                    i[1] = a
+            for i in self.su.items():
+                if isinstance(i[1][1], int):
+                    a = i[1][0]
+                    i[1][0] = i[1][1]
+                    i[1][1] = a
             self.db.set("Su", "as", self.su)
             top = "Топ багоюзеров:\n"
             for i in sorted(self.su.items(), key=lambda x: x[1], reverse=True):
