@@ -28,7 +28,7 @@ class AssMod(loader.Module):
                 top += f"\n{i}"
             for num in "(),'":
                 top = top.replace(num, "")
-            await m.respond(top)
+            return await m.respond(top)
         if (
             not isinstance(m, Message)
             or not m.text.casefold().startswith("закидать ")
