@@ -22,6 +22,13 @@ class AssMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
+        if "топ" and len(m.message) == 3:
+            top = "Топ багоюзеров:\n"
+            for i in sorted(self.su.items(), key=lambda x: x[1], reverse=True):
+                top += f"\n{i}"
+            for num in "(),'":
+                top = top.replace(num, "")
+            await m.respond(top)
         if (
             not isinstance(m, Message)
             or not m.text.casefold().startswith("закидать ")
