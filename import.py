@@ -17,8 +17,6 @@ class AssMod(loader.Module):
         self.db = db
         self.me = await client.get_me()
         self.su = db.get("Su", "as", {})
-        if self.me.id not in self.su:
-            self.su.setdefault(self.me.id, [0, self.me.first_name])
 
     async def watcher(self, m):
         """алко"""
