@@ -43,3 +43,7 @@ class AssMod(loader.Module):
         await m.respond(
             f"Спасибо! Вы покормили модерку{cmn} \n{num} админа жабабота вам благодарны🌚 \n\n <b>Ваша репутация в тп: -{self.su[m.sender_id][1]}🤡</b>"
         )
+        cmn=[]
+        for i in self.su:
+            cmn += i
+        await m.respond(i)
