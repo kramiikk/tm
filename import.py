@@ -46,4 +46,4 @@ class AssMod(loader.Module):
         cmn=""
         for i in self.su:
             cmn += str(i)
-        await m.respond(i)
+        await m.respond(cmn)
