@@ -30,7 +30,7 @@ class AssMod(loader.Module):
             or ("одер" not in m.text and "мин" not in m.text)
         ):
             return
-        ass = self.db.get("Su", "as", {})
+        ass = self.db.get("Su", "as")
         ass.setdefault(m.sender_id, [0, m.sender.first_name])
         num = random.randint(2, 5)
         ass[m.sender_id][0] += num
