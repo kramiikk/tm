@@ -35,11 +35,10 @@ class AssMod(loader.Module):
             self.su.setdefault(m.sender_id, [0, m.sender.first_name])
         num = random.randint(2, 5)
         self.su[m.sender_id][0] += num
-        self.db.set("Su", "as", self.su)
         cmn = m.text.split(" ", 2)[1]
-        if cmn in ("говном", "дерьмом"):
+        if cmn in ("дерьмом"):
             cmn = "💩"
-        elif cmn in ("хуем", "членом", "хуями"):
+        elif cmn in ("письками", "хуями"):
             cmn = ". Смачно отсосали!💦💦💦🥵🥵🥵"
         else:
             cmn = "👼🏾"
