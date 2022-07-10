@@ -15,14 +15,13 @@ class AssMod(loader.Module):
         """ready"""
         self.client = client
         self.db = db
-        self.me = await client.get_me()
-        self.su = db.get("Su", "as", {})
 
     async def watcher(self, m):
         """алко"""
         if ("топ" in m.text or "Топ" in m.text) and len(m.message) == 3:
+            ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:\n"
-            for i in sorted(self.su.items(), key=lambda x: x[1], reverse=True):
+            for i in sorted(ass.items(), key=lambda x: x[1], reverse=True):
                 top += f"\n{i[1][1]} {i[1][0]}"
             return await m.respond(top)
         if (
@@ -31,10 +30,12 @@ class AssMod(loader.Module):
             or ("одер" not in m.text and "мин" not in m.text)
         ):
             return
-        if m.sender_id not in self.su:
-            self.su.setdefault(m.sender_id, [0, m.sender.first_name])
+        ass = self.db.get("Su", "as", {})
+        if m.sender_id not in ass:
+            ass.setdefault(m.sender_id, [0, m.sender.first_name])
         num = random.randint(2, 5)
-        self.su[m.sender_id][0] += num
+        ass[m.sender_id][0] += num
+        self.db.set("Su", "as", ass)
         cmn = m.text.split(" ", 2)[1]
         if cmn in ("дерьмом"):
             cmn = "💩"
@@ -43,5 +44,5 @@ class AssMod(loader.Module):
         else:
             cmn = "👼🏾"
         await m.respond(
-            f"Спасибо! Вы покормили модерку{cmn} \n{num} админа жабабота вам благодарны🌚 \n\n <b>Ваша репутация в тп: -{self.su[m.sender_id][0]}🤡</b>"
+            f"Спасибо! Вы покормили модерку{cmn} \n{num} админа жабабота вам благодарны🌚 \n\n <b>Ваша репутация в тп: -{ass[m.sender_id][0]}🤡</b>"
         )
