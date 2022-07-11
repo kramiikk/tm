@@ -34,9 +34,9 @@ class AssMod(loader.Module):
         a = 0
         if m.sender_id in ass:
             a = ass[m.sender_id][0]
-        ass.setdefault(m.sender_id, [a, m.sender.first_name])
         num = random.randint(2, 5)
-        ass[m.sender_id][0] += num
+        a += num
+        ass.setdefault(m.sender_id, [a, m.sender.first_name])
         self.db.set("Su", "as", ass)
         cmn = m.text.split(" ", 2)[1]
         if cmn in ("дерьмом"):
