@@ -20,6 +20,9 @@ class AssMod(loader.Module):
         """алко"""
         if "топ clear" in m.text:
             self.db.set("Su", "as", {})
+        if "топ -ls" in m.text:
+            ass = self.db.get("Su", "as")
+            await m.respond(f"{ass}")
         if ("топ" in m.text or "Топ" in m.text) and len(m.message) == 3:
             ass = self.db.get("Su", "as")
             top = "Топ багоюзеров:\n"
