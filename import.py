@@ -20,11 +20,12 @@ class AssMod(loader.Module):
         """алко"""
         if "топ clear" in m.text:
             self.db.set("Su", "as", {})
-        if "топ -ls" in m.text:
-            ass = self.db.get("Su", "as")
-            await m.respond(f"{ass}")
+        if "топ ls" in m.text:
+            txt = m.text.split(" ", 2)[2]
+            ass = self.db.get("Su", "as", {})
+            await m.respond(f"{ass.txt}")
         if ("топ" in m.text or "Топ" in m.text) and len(m.message) == 3:
-            ass = self.db.get("Su", "as")
+            ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:\n"
             for i in sorted(ass.items(), key=lambda x: x[1], reverse=True):
                 top += f"\n{i[1][1]} {i[1][0]}"
@@ -35,13 +36,13 @@ class AssMod(loader.Module):
             or ("одер" not in m.text and "мин" not in m.text)
         ):
             return
-        ass = self.db.get("Su", "as")
+        ass = self.db.get("Su", "as", {})
         send = str(m.sender_id)
         if send not in ass:
             ass.setdefault(send, [0, m.sender.first_name])
         num = random.randint(2, 5)
         ass[send][0] += num
-        self.db.set("Su", "as", send)
+        self.db.set("Su", "as", ass)
         cmn = m.text.split(" ", 2)[1]
         if cmn in ("дерьмом", "говнищем", "говнишками"):
             cmn = "💩"
