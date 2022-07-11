@@ -18,7 +18,7 @@ class AssMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        if ("топ" in m.text or "Топ" in m.text) and len(m.message) == 3:
+        if m.text.lower() == "топ":
             ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:\n"
             for i in sorted(ass.items(), key=lambda x: x[1], reverse=True):
