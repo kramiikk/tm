@@ -23,7 +23,7 @@ class AssMod(loader.Module):
         if "топ ls" in m.text:
             txt = m.text.split(" ", 2)[2]
             ass = self.db.get("Su", "as", {})
-            await m.respond(f"{ass.txt}")
+            await m.respond(f"{txt}")
         if ("топ" in m.text or "Топ" in m.text) and len(m.message) == 3:
             ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:\n"
