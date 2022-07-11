@@ -18,8 +18,10 @@ class AssMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
+        if "топ clear" in m.text:
+            self.db.set("Su", "as", {})
         if ("топ" in m.text or "Топ" in m.text) and len(m.message) == 3:
-            ass = self.db.get("Su", "as", {})
+            ass = self.db.get("Su", "as")
             top = "Топ багоюзеров:\n"
             for i in sorted(ass.items(), key=lambda x: x[1], reverse=True):
                 top += f"\n{i[1][1]} {i[1][0]}"
@@ -31,13 +33,11 @@ class AssMod(loader.Module):
         ):
             return
         ass = self.db.get("Su", "as")
-        a = 0
-        if m.sender_id in ass:
-            a = ass[m.sender_id][0]
+        if m.sender_id not in ass:
+            ass.setdefault(m.sender_id, [a, m.sender.first_name])
         num = random.randint(2, 5)
-        a += num
-        ass.setdefault(m.sender_id, [a, m.sender.first_name])
-        self.db.set("Su", "as", ass)
+        ass[m.sender_id][0] += num
+        self.db.set("Su", "as", m.sender_id)
         cmn = m.text.split(" ", 2)[1]
         if cmn in ("дерьмом"):
             cmn = "💩"
