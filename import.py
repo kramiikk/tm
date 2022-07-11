@@ -31,7 +31,10 @@ class AssMod(loader.Module):
         ):
             return
         ass = self.db.get("Su", "as")
-        ass.setdefault(m.sender_id, [0, m.sender.first_name])
+        a = 0
+        if m.sender_id in ass:
+            a = ass[m.sender_id][0]
+        ass.setdefault(m.sender_id, [a, m.sender.first_name])
         num = random.randint(2, 5)
         ass[m.sender_id][0] += num
         self.db.set("Su", "as", ass)
