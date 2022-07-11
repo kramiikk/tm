@@ -36,18 +36,19 @@ class AssMod(loader.Module):
         ):
             return
         ass = self.db.get("Su", "as")
-        if m.sender_id not in ass:
-            ass.setdefault(m.sender_id, [0, m.sender.first_name])
+        send = str(m.sender_id)
+        if send not in ass:
+            ass.setdefault(send, [0, m.sender.first_name])
         num = random.randint(2, 5)
-        ass[m.sender_id][0] += num
-        self.db.set("Su", "as", m.sender_id)
+        ass[send][0] += num
+        self.db.set("Su", "as", send)
         cmn = m.text.split(" ", 2)[1]
-        if cmn in ("дерьмом"):
+        if cmn in ("дерьмом", "говнищем", "говнишками"):
             cmn = "💩"
-        elif cmn in ("письками", "хуями"):
+        elif cmn in ("письками", "хуями", "членами"):
             cmn = ". Смачно отсосали!💦💦💦🥵🥵🥵"
         else:
             cmn = "👼🏾"
         await m.respond(
-            f"Спасибо! Вы покормили модерку{cmn} \n{num} админа жабабота вам благодарны🌚 \n\n <b>Ваша репутация в тп: -{ass[m.sender_id][0]}🤡</b>"
+            f"Спасибо! Вы покормили модерку{cmn} \n{num} админа жабабота вам благодарны🌚 \n\n <b>Ваша репутация в тп: -{ass[send][0]}🤡</b>"
         )
