@@ -26,7 +26,7 @@ class AssMod(loader.Module):
             for i in sorted(ass.items(), key=lambda x: x[1], reverse=True):
                 top += f"\n{i[1][1]} {i[1][0]}"
             return await m.respond(top)
-        elif (
+        if (
             not m.text.casefold().startswith("закидать ")
             or ("модер" not in m.text.casefold() and "админ" not in m.text.casefold())
             or m.text.count(" ") == 1
