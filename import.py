@@ -1,6 +1,5 @@
 # scope: ffmpeg
 # requires: pytube python-ffmpeg
-import asyncio
 import datetime
 import functools
 import os
@@ -22,7 +21,7 @@ class AssMod(loader.Module):
         """ready"""
         self.client = client
         self.db = db
-        self.su = self.db.get("Su", "as", {})
+        self.su = db.get("Su", "as", {})
 
     async def watcher(self, m):
         """алко"""
