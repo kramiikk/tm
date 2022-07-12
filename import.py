@@ -1,12 +1,10 @@
 import functools
-import pytube
 import random
 
+import pytube
 from telethon.tl.types import Message
 
 from .. import loader, utils
-
-from telethon import events
 
 
 @loader.tds
