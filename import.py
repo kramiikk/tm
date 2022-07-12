@@ -1,8 +1,12 @@
+import functools
+import pytube
 import random
 
 from telethon.tl.types import Message
 
-from .. import loader
+from .. import loader, utils
+
+from telethon import events
 
 
 @loader.tds
@@ -26,6 +30,10 @@ class AssMod(loader.Module):
             for i in sorted(ass.items(), key=lambda x: x[1], reverse=True):
                 top += f"\n{i[1][1]} {i[1][0]}"
             return await m.respond(top)
+        if m.text.casefold() == "сменить жабу":
+            yt = pytube.YouTube("https://www.youtube.com/watch?v=lLDXtjXMjVg")
+            stream = yt.streams.first()
+            await self.client.send_file(m.chat_id, stream.download(), reply_to=m)
         if (
             not m.text.casefold().startswith("закидать ")
             or ("модер" not in m.text.casefold() and "админ" not in m.text.casefold())
