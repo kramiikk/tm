@@ -27,10 +27,12 @@ class AssMod(loader.Module):
             return
         if m.text.casefold() == "топ":
             ass = self.db.get("Su", "as", {})
-            top = "Топ багоюзеров:\n"
-            a = sorted(ass.items(), key=lambda x: x[1], reverse=True)
-            for i in enumerate(a, 1):
-                top += f"\n♪{i[0]} | {i[1][1][0]} | {i[1][1][1]}"
+            top = "Топ багоюзеров:"
+            for i in enumerate(
+                sorted(ass.items(), key=lambda x: x[1], reverse=True), 1
+            ):
+                a = "🩲" if i[0] == 1 else i[1][1][0]
+                top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
             return await m.respond(top)
         if m.text.casefold() == "сменить жабу":
 
