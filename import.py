@@ -30,7 +30,7 @@ class AssMod(loader.Module):
             top = "Топ багоюзеров:\n"
             a = sorted(ass.items(), key=lambda x: x[1], reverse=True)
             for i in enumerate(a, 1):
-                top += f"\n♪{[0]} | {i[1][1][0]} | {i[1][1][1]}"
+                top += f"\n♪{i[0]} | {i[1][1][0]} | {i[1][1][1]}"
             return await m.respond(top)
         if m.text.casefold() == "сменить жабу":
 
