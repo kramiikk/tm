@@ -43,8 +43,8 @@ class AssMod(loader.Module):
         for i in top:
             cmn = "🤰🏼"
             if i in m.text.casefold():
-                cmn = "Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
+                cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                 break
         await m.respond(
-            f"Спасибо! Вы покормили модерку{cmn}🥞 \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{ass[send][0]}🤯</b>"
+            f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{ass[send][0]}🤯</b>"
         )
