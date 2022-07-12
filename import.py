@@ -28,7 +28,7 @@ class AssMod(loader.Module):
         if m.text.casefold() == "топ":
             ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:\n"
-            for i in (enumerate(i, 1) for i in sorted(ass.items(), key=lambda x: x[1], reverse=True)):
+            for i in enumerate(i for i in sorted(ass.items(), key=lambda x: x[1], reverse=True), 1):
                 top += f"\n| {i[1][0]} | {i[1][1]}"
             return await m.respond(top)
         if m.text.casefold() == "сменить жабу":
