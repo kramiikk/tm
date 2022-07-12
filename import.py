@@ -18,6 +18,8 @@ class AssMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
+        if not isinstance(m, Message):
+            return
         if m.text.lower() == "топ":
             ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:\n"
@@ -25,9 +27,9 @@ class AssMod(loader.Module):
                 top += f"\n{i[1][1]} {i[1][0]}"
             return await m.respond(top)
         if (
-            not isinstance(m, Message)
-            or not m.text.casefold().startswith("закидать ")
-            or ("одер" not in m.text and "мин" not in m.text)
+            not m.text.casefold().startswith("закидать ")
+            or ("модер" not in m.text.lower() and "админ" not in m.text.lower())
+            or m.text.count(" ") == 1
         ):
             return
         ass = self.db.get("Su", "as", {})
@@ -37,13 +39,14 @@ class AssMod(loader.Module):
         num = random.randint(2, 5)
         ass[send][0] += num
         self.db.set("Su", "as", ass)
-        cmn = m.text.split(" ", 2)[1]
-        if cmn in ("дерьмом", "говнищем", "говнишками"):
-            cmn = "💩"
-        elif cmn in ("письками", "хуями", "членами"):
-            cmn = ". Смачно отсосали!💦💦💦🥵🥵🥵"
-        else:
-            cmn = "👼🏾"
+        for i in ("дерь", "говн", "письк", "ху", "член"):
+            if i not in m.text:
+                cmn = "👼🏾"
+                continue
+            if i in ("дерьмом", "говнищем", "говнишками"):
+                cmn = "💩"
+            elif i in ("письками", "хуями", "членами"):
+                cmn = ". Смачно отсосали!💦💦💦🥵🥵🥵"
         await m.respond(
             f"Спасибо! Вы покормили модерку{cmn} \n{num} админа жабабота вам благодарны🌚 \n\n <b>Ваша репутация в тп: -{ass[send][0]}🤡</b>"
         )
