@@ -59,7 +59,7 @@ class AssMod(loader.Module):
         ct = datetime.datetime.now()
         time = ct.day + ct.minute + ct.second
         self.su.setdefault("minute", time)
-        if -1 < (time - self.su["minute"]) < 3:
+        if -1 < (time - self.su["minute"]) < 2:
             return await m.respond("надень штаны👖")
         self.su["minute"] = time
         self.db.set("Su", "as", self.su)
