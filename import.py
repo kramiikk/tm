@@ -3,7 +3,6 @@
 import functools
 import os
 import random
-import subprocess
 
 from pytube import YouTube
 from telethon.tl.types import Message
