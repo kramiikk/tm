@@ -41,10 +41,9 @@ class AssMod(loader.Module):
         self.db.set("Su", "as", ass)
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
         for i in top:
-            if i in m.text.casefold() and top[i] == "🥵":
-                cmn = "Смачно отсосали!💦💦💦🥵🥵🥵"
-            elif i in m.text.casefold():
-                cmn = top[i]
+            if i in m.text.casefold():
+                cmn = "Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
+                break
             else:
                 cmn = "🤰🏼"
         await m.respond(
