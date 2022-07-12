@@ -1,5 +1,7 @@
 # scope: ffmpeg
 # requires: pytube python-ffmpeg
+import asyncio
+import datetime
 import functools
 import os
 import random
@@ -20,16 +22,16 @@ class AssMod(loader.Module):
         """ready"""
         self.client = client
         self.db = db
+        self.su = self.db.get("Su", "as", {})
 
     async def watcher(self, m):
         """алко"""
         if not isinstance(m, Message):
             return
         if m.text.casefold() == "топ":
-            ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:"
             for i in enumerate(
-                sorted(ass.items(), key=lambda x: x[1], reverse=True), 1
+                sorted(self.su.items(), key=lambda x: x[1], reverse=True), 1
             ):
                 a = "🩲" if i[0] == 1 else i[1][1][0]
                 top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
@@ -55,13 +57,17 @@ class AssMod(loader.Module):
             or m.text.count(" ") == 1
         ):
             return
-        ass = self.db.get("Su", "as", {})
-        send = str(m.sender_id)
-        if send not in ass:
-            ass.setdefault(send, [0, m.sender.first_name])
+        ct = datetime.datetime.now()
+        time = ct.day + ct.minute + ct.second
+        self.su.setdefault("minute", time)
+        if -1 < (time - self.su["minute"]) < 3:
+            return await m.respond("надень штаны👖")
+        self.su["minute"] = time
+        self.db.set("Su", "as", self.su)
+        self.su.setdefault(str(m.sender_id), [0, m.sender.first_name])
         num = random.randint(2, 5)
-        ass[send][0] += num
-        self.db.set("Su", "as", ass)
+        self.su[str(m.sender_id)][0] += num
+        self.db.set("Su", "as", self.su)
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
         for i in top:
             cmn = "🤰🏼"
@@ -69,5 +75,5 @@ class AssMod(loader.Module):
                 cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                 break
         await m.respond(
-            f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{ass[send][0]}🤯</b>"
+            f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.su[str(m.sender_id)][0]}🤯</b>"
         )
