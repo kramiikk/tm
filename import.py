@@ -40,7 +40,7 @@ class AssMod(loader.Module):
         ass[send][0] += num
         self.db.set("Su", "as", ass)
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
-        for i in cmn:
+        for i in top:
             if i in m.text.casefold() and cmn[i] == "🥵":
                 cmn = "Смачно отсосали!💦💦💦🥵🥵🥵"
             elif i in m.text.casefold():
