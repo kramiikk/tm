@@ -41,7 +41,7 @@ class AssMod(loader.Module):
         self.db.set("Su", "as", ass)
         for i in ("дерь", "говн", "письк", "ху", "член"):
             if i not in m.text.casefold():
-                cmn = "🤰🏼👅😎"
+                cmn = "🤰🏼"
                 continue
             if i in ("дерь", "говн"):
                 cmn = "💩"
