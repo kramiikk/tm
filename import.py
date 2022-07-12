@@ -33,37 +33,18 @@ class AssMod(loader.Module):
                 top += f"\n{i[1][1]} {i[1][0]}"
             return await m.respond(top)
         if m.text.casefold() == "сменить жабу":
-            ext, args = "https://www.youtube.com/watch?v=lLDXtjXMjVg"
 
-            def dlyt(videourl, path):
-                yt = YouTube(videourl)
+            def dlyt():
+                yt = YouTube("https://www.youtube.com/watch?v=lLDXtjXMjVg")
                 yt = (
                     yt.streams.filter(progressive=True, file_extension="mp4")
                     .order_by("resolution")
                     .desc()
                     .first()
                 )
-                return yt.download(path)
+                return yt.download("/tmp")
 
-            def convert_video_to_audio_ffmpeg(video_file, output_ext="mp3"):
-                filename, ext = os.path.splitext(video_file)
-                out = f"{filename}.{output_ext}"
-                subprocess.call(
-                    ["ffmpeg", "-y", "-i", video_file, out],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.STDOUT,
-                )
-                os.remove(video_file)
-                return out
-
-            path = "/tmp"
-            try:
-                path = await utils.run_sync(dlyt, args, path)
-            except Exception:
-                await utils.answer(m, "not_found")
-                return
-            if ext == "mp3":
-                path = convert_video_to_audio_ffmpeg(path)
+            path = await utils.run_sync(dlyt)
             await self.client.send_file(m.peer_id, path, reply_to=m)
             os.remove(path)
         if (
