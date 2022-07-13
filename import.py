@@ -58,17 +58,9 @@ class AssMod(loader.Module):
             return
         ct = datetime.datetime.now()
         time = ct.day + ct.minute + ct.second
-        if "minute" in self.ass:
-            self.ass.pop("minute")
+        num = random.randint(2, 5)
         if "minute" in self.tis and -1 < (time - self.tis["minute"]) < 2:
             return await m.respond("надень штаны👖")
-        self.tis.setdefault("minute", time)
-        self.tis["minute"] = time
-        self.db.set("Su", "ti", self.tis)
-        self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
-        num = random.randint(2, 5)
-        self.ass[str(m.sender_id)][0] += num
-        self.db.set("Su", "as", self.ass)
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
         for i in top:
             cmn = "🤰🏼"
@@ -78,3 +70,9 @@ class AssMod(loader.Module):
         await m.respond(
             f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
         )
+        self.tis.setdefault("minute", time)
+        self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
+        self.ass[str(m.sender_id)][0] += num
+        self.tis["minute"] = time
+        self.db.set("Su", "ti", self.tis)
+        self.db.set("Su", "as", self.ass)
