@@ -67,12 +67,12 @@ class AssMod(loader.Module):
             if i in m.text.casefold():
                 cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                 break
+        self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
+        self.ass[str(m.sender_id)][0] += num
         await m.respond(
             f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
         )
         self.tis.setdefault("minute", time)
-        self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
-        self.ass[str(m.sender_id)][0] += num
         self.tis["minute"] = time
         self.db.set("Su", "ti", self.tis)
         self.db.set("Su", "as", self.ass)
