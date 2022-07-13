@@ -1,7 +1,6 @@
 # scope: ffmpeg
 # requires: pytube python-ffmpeg
 import datetime
-import functools
 import os
 import random
 
