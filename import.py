@@ -20,15 +20,16 @@ class AssMod(loader.Module):
         """ready"""
         self.client = client
         self.db = db
-        self.su = db.get("Su", "as", {})
+        self.su =
 
     async def watcher(self, m):
         """алко"""
         if not isinstance(m, Message):
             return
         if m.text.casefold() == "топ":
+            ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:"
-            num = sorted(self.su.items(), key=lambda x: x[1], reverse=True)
+            num = sorted(ass.items(), key=lambda x: x[1], reverse=True)
             for i in enumerate(num, 1):
                 a = "🩲" if i[0] == 1 else i[1][1][0]
                 top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
