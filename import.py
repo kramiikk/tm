@@ -29,8 +29,9 @@ class AssMod(loader.Module):
             return
         if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
-            for i in enumerate(
-                i for i in sorted(self.su.items(), key=lambda x: x[1], reverse=True), 1
+            for i in (
+                enumerate(i, 1)
+                for i in sorted(self.su.items(), key=lambda x: x[1], reverse=True)
             ):
                 a = "🩲" if i[0] == 1 else i[1][1][0]
                 top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
