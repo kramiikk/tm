@@ -21,6 +21,7 @@ class AssMod(loader.Module):
         self.client = client
         self.db = db
         self.ass = db.get("Su", "as", {})
+        self.tis = db.get("Su", "ti", {})
 
     async def watcher(self, m):
         """алко"""
@@ -28,7 +29,9 @@ class AssMod(loader.Module):
             return
         if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
-            for i in enumerate(sorted(self.ass.items(), key=lambda x: x[1], reverse=True), 1):
+            for i in enumerate(
+                sorted(self.ass.items(), key=lambda x: x[1], reverse=True), 1
+            ):
                 a = "🩲" if i[0] == 1 else i[1][1][0]
                 top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
             return await m.respond(top)
@@ -55,11 +58,13 @@ class AssMod(loader.Module):
             return
         ct = datetime.datetime.now()
         time = ct.day + ct.minute + ct.second
-        self.ass.setdefault("minute", time)
-        if -1 < (time - self.ass["minute"]) < 2:
+        if "minute" in self.ass:
+            self.ass.pop("minute")
+        if "minute" in self.tis and -1 < (time - self.tis["minute"]) < 2:
             return await m.respond("надень штаны👖")
-        self.ass["minute"] = time
-        self.db.set("Su", "as", self.ass)
+        self.tis.setdefault("minute", time)
+        self.tis["minute"] = time
+        self.db.set("Su", "ti", self.tis)
         self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
         num = random.randint(2, 5)
         self.ass[str(m.sender_id)][0] += num
