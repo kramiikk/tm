@@ -20,17 +20,15 @@ class AssMod(loader.Module):
         """ready"""
         self.client = client
         self.db = db
-        self.su = db.get("Su", "as", {})
+        self.ass = db.get("Su", "as", {})
 
     async def watcher(self, m):
         """алко"""
         if not isinstance(m, Message):
             return
         if m.text.casefold() == "топ":
-            ass = self.db.get("Su", "as", {})
             top = "Топ багоюзеров:"
-            num = sorted(ass.items(), key=lambda x: x[1], reverse=True)
-            for i in enumerate(num, 1):
+            for i in enumerate(sorted(self.ass.items(), key=lambda x: x[1], reverse=True), 1):
                 a = "🩲" if i[0] == 1 else i[1][1][0]
                 top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
             return await m.respond(top)
@@ -57,15 +55,15 @@ class AssMod(loader.Module):
             return
         ct = datetime.datetime.now()
         time = ct.day + ct.minute + ct.second
-        self.su.setdefault("minute", time)
-        if -1 < (time - self.su["minute"]) < 2:
+        self.ass.setdefault("minute", time)
+        if -1 < (time - self.ass["minute"]) < 2:
             return await m.respond("надень штаны👖")
-        self.su["minute"] = time
-        self.db.set("Su", "as", self.su)
-        self.su.setdefault(str(m.sender_id), [0, m.sender.first_name])
+        self.ass["minute"] = time
+        self.db.set("Su", "as", self.ass)
+        self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
         num = random.randint(2, 5)
-        self.su[str(m.sender_id)][0] += num
-        self.db.set("Su", "as", self.su)
+        self.ass[str(m.sender_id)][0] += num
+        self.db.set("Su", "as", self.ass)
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
         for i in top:
             cmn = "🤰🏼"
@@ -73,5 +71,5 @@ class AssMod(loader.Module):
                 cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                 break
         await m.respond(
-            f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.su[str(m.sender_id)][0]}🤯</b>"
+            f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
         )
