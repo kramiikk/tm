@@ -59,7 +59,7 @@ class AssMod(loader.Module):
         ct = datetime.datetime.now()
         time = ct.day + ct.minute + ct.second
         num = random.randint(2, 5)
-        if "minute" in self.tis and -1 < (time - self.tis["minute"]) < 2:
+        if "minute" in self.tis and -1 < (time - self.tis["minute"]) < 3:
             return await m.respond("надень штаны лох👖")
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
         for i in top:
