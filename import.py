@@ -1,10 +1,6 @@
-# scope: ffmpeg
-# requires: pytube python-ffmpeg
 import datetime
-import os
 import random
 
-from pytube import YouTube
 from telethon.tl.types import Message
 
 from .. import loader, utils
@@ -35,21 +31,6 @@ class AssMod(loader.Module):
                 a = "🩲" if i[0] == 1 else i[1][1][0]
                 top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
             return await m.respond(top)
-        if m.text.casefold() == "сменить жабу":
-
-            def dlyt():
-                yt = YouTube("https://www.youtube.com/watch?v=lLDXtjXMjVg")
-                yt = (
-                    yt.streams.filter(progressive=True, file_extension="mp4")
-                    .order_by("resolution")
-                    .desc()
-                    .first()
-                )
-                return yt.download("/tmp")
-
-            path = await utils.run_sync(dlyt)
-            await self.client.send_file(m.peer_id, path, reply_to=m)
-            os.remove(path)
         if (
             not m.text.casefold().startswith("закидать ")
             or ("модер" not in m.text.casefold() and "админ" not in m.text.casefold())
