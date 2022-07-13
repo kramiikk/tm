@@ -3,7 +3,7 @@ import random
 
 from telethon.tl.types import Message
 
-from .. import loader, utils
+from .. import loader
 
 
 @loader.tds
