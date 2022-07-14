@@ -25,9 +25,8 @@ class AssMod(loader.Module):
             return
         if m.text.casefold() == "инфо":
             self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
-            a = await self.client.get_messages(1688531303, ids=2)
             top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
-            await m.respond(top, file=a.photo)
+            await m.respond(top, file=(await self.client.get_messages(1688531303, ids=2)).photo)
             self.db.set("Su", "as", self.ass)
         if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
