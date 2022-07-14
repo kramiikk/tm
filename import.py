@@ -42,14 +42,12 @@ class AssMod(loader.Module):
                     "2",
                 ]
                 self.db.set("Su", "as", self.ass)
-            top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
+            a = await self.client.get_messages(
+                1688531303, ids=int(self.ass[str(m.sender_id)][2])
+            )
             await m.respond(
-                top,
-                file=(
-                    await self.client.get_messages(
-                        1688531303, ids=int(self.ass[str(m.sender_id)][2])
-                    )
-                ).photo,
+                f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: {self.ass[str(m.sender_id)][0]}",
+                file=a.photo if a.photo else a.gif,
             )
         if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
