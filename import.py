@@ -41,6 +41,7 @@ class AssMod(loader.Module):
                     m.sender.first_name,
                     "2",
                 ]
+                self.db.set("Su", "as", self.ass)
             top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
             await m.respond(
                 top,
@@ -50,7 +51,6 @@ class AssMod(loader.Module):
                     )
                 ).photo,
             )
-            self.db.set("Su", "as", self.ass)
         if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
             for i in enumerate(
