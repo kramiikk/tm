@@ -33,11 +33,12 @@ class AssMod(loader.Module):
             ]
             self.db.set("Su", "as", self.ass)
             top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
-            m.respond(
+            await m.respond(
                 top,
                 (
                     await self.client.get_messages(
-                        self.ass[str(m.sender_id)][2], ids=self.ass[str(m.sender_id)][3]
+                        self.ass[str(m.sender_id)
+                                 ][2], ids=self.ass[str(m.sender_id)][3]
                     )
                 ).photo,
             )
