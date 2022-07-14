@@ -1,6 +1,5 @@
 import datetime
 import random
-from requests import get
 
 from telethon.tl.types import Message
 
@@ -26,9 +25,10 @@ class AssMod(loader.Module):
             return
         if m.text.casefold() == "инфо":
             self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
-            self.db.set("Su", "as", self.ass)
+            a = await self.client.get_messages(1688531303, ids=2)
             top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
-            await m.respond(top, file=(get("http://img10.reactor.cc/pics/post/full/MiraiHikariArt-artist-oshiri-Anime-Ero-7494599.jpeg")). content)
+            await m.respond(top, file=a.photo)
+            self.db.set("Su", "as", self.ass)
         if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
             for i in enumerate(
