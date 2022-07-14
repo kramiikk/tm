@@ -33,15 +33,8 @@ class AssMod(loader.Module):
             ]
             self.db.set("Su", "as", self.ass)
             top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
-            await m.respond(
-                top,
-                (
-                    await self.client.get_messages(
-                        self.ass[str(m.sender_id)
-                                 ][2], ids=self.ass[str(m.sender_id)][3]
-                    )
-                ).photo,
-            )
+            a = await self.client.get_messages(self.ass[str(m.sender_id)][2], ids=self.ass[str(m.sender_id)][3])
+            await m.respond(top, a.photo)
         if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
             for i in enumerate(
