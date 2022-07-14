@@ -30,7 +30,6 @@ class AssMod(loader.Module):
             self.ass[str(m.sender_id)] = [
                 self.ass[str(m.sender_id)][0],
                 m.sender.first_name,
-                "1688531303",
                 str(a.id),
             ]
             self.db.set("Su", "as", self.ass)
