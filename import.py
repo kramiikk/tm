@@ -23,6 +23,24 @@ class AssMod(loader.Module):
         """алко"""
         if not isinstance(m, Message):
             return
+        if m.text.casefold() == "инфо":
+            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
+            self.ass[str(m.sender_id)] = [
+                str(m.sender_id),
+                [self.ass[str(m.sender_id)][0], m.sender.first_name],
+                1688531303,
+                2,
+            ]
+            self.db.set("Su", "as", self.ass)
+            top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
+            m.respond(
+                top,
+                (
+                    await self.client.get_messages(
+                        self.ass[str(m.sender_id)][2], ids=self.ass[str(m.sender_id)][3]
+                    )
+                ).photo,
+            )
         if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
             for i in enumerate(
