@@ -23,11 +23,36 @@ class AssMod(loader.Module):
         """алко"""
         if not isinstance(m, Message):
             return
-        if m.text.casefold() == "инфо":
+        if m.text.casefold() == "сменить" and m.photo:
+            await m.respond("Модерация успешно подрочила😊👍")
+            a = await self.client.send_message(1688531303, m.photo)
             self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
+            self.ass[str(m.sender_id)] = [
+                self.ass[str(m.sender_id)][0],
+                m.sender.first_name,
+                "1688531303",
+                str(a.id),
+            ]
+            self.db.set("Su", "as", self.ass)
+        if m.text.casefold() == "инфо":
+            self.ass.setdefault(
+                str(m.sender_id), [0, m.sender.first_name], "1688531303", "2"
+            )
+            if self.ass[str(m.sender_id)] == 2:
+                self.ass[str(m.sender_id)] = [
+                    self.ass[str(m.sender_id)][0],
+                    m.sender.first_name,
+                    "1688531303",
+                    "2",
+                ]
             top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
             await m.respond(
-                top, file=(await self.client.get_messages(1688531303, ids=2)).photo
+                top,
+                file=(
+                    await self.client.get_messages(
+                        1688531303, ids=self.ass[str(m.sender_id)][3]
+                    )
+                ).photo,
             )
             self.db.set("Su", "as", self.ass)
         if m.text.casefold() == "топ":
@@ -42,7 +67,12 @@ class AssMod(loader.Module):
             return await m.respond(top)
         if (
             not m.text.casefold().startswith("закидать ")
-            or ("модер" not in m.text.casefold() and "админ" not in m.text.casefold())
+            or (
+                "тп" not in m.text.casefold()
+                and "поддержку" not in m.text.casefold()
+                and "модер" not in m.text.casefold()
+                and "админ" not in m.text.casefold()
+            )
             or m.text.count(" ") == 1
         ):
             return
