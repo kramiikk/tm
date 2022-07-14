@@ -26,7 +26,8 @@ class AssMod(loader.Module):
         if m.text.casefold() == "сменить" and (m.photo or m.gif):
             await m.respond("Модерация успешно подрочила😊👍")
             a = await self.client.send_message(1688531303, m)
-            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [
+                                0, m.sender.first_name, "2"])
             self.ass[str(m.sender_id)] = [
                 self.ass[str(m.sender_id)][0],
                 m.sender.first_name,
@@ -34,7 +35,8 @@ class AssMod(loader.Module):
             ]
             self.db.set("Su", "as", self.ass)
         if m.text.casefold() == "инфо":
-            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [
+                                0, m.sender.first_name, "2"])
             if len(self.ass[str(m.sender_id)]) == 2:
                 self.ass[str(m.sender_id)] = [
                     self.ass[str(m.sender_id)][0],
@@ -67,6 +69,7 @@ class AssMod(loader.Module):
                 and "поддержку" not in m.text.casefold()
                 and "модер" not in m.text.casefold()
                 and "админ" not in m.text.casefold()
+                and "серв" not in m.text.casefold()
             )
             or m.text.count(" ") == 1
         ):
