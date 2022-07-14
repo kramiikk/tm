@@ -23,7 +23,7 @@ class AssMod(loader.Module):
         """алко"""
         if not isinstance(m, Message):
             return
-        if m.text.casefold() == "инфо":
+        if m.text.casefold() == "моя жаба":
             self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
             a = await self.client.get_messages(1688531303, ids=2)
             top = f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: -{self.ass[str(m.sender_id)][0]}"
