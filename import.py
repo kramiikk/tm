@@ -34,6 +34,8 @@ class AssMod(loader.Module):
                 str(a.id),
             ]
             self.db.set("Su", "as", self.ass)
+        if m.text.casefold() == "мяу":
+            await m.respond(file="CAADBQADOgkAAmXZgVYsIyelvGbrZgI")
         if m.text.casefold() == "инфо":
             self.ass.setdefault(str(m.sender_id), [
                                 0, m.sender.first_name, "2"])
