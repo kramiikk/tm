@@ -35,7 +35,7 @@ class AssMod(loader.Module):
             self.db.set("Su", "as", self.ass)
         if m.text.casefold() == "инфо":
             self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
-            if self.ass[str(m.sender_id)] == 2:
+            if len(self.ass[str(m.sender_id)]) == 2:
                 self.ass[str(m.sender_id)] = [
                     self.ass[str(m.sender_id)][0],
                     m.sender.first_name,
