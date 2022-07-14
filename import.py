@@ -27,7 +27,7 @@ class AssMod(loader.Module):
             self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name])
             self.ass[str(m.sender_id)] = [
                 str(m.sender_id),
-                [self.ass[str(m.sender_id)][0], m.sender.first_name],
+                self.ass[str(m.sender_id)][0], m.sender.first_name],
                 1688531303,
                 2,
             ]
