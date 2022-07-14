@@ -34,7 +34,7 @@ class AssMod(loader.Module):
                 str(a.id),
             ]
             self.db.set("Su", "as", self.ass)
-        elif m.text.casefold() == "инфо":
+        if m.text.casefold() == "инфо":
             self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
             if self.ass[str(m.sender_id)] == 2:
                 self.ass[str(m.sender_id)] = [
@@ -52,7 +52,7 @@ class AssMod(loader.Module):
                 ).photo,
             )
             self.db.set("Su", "as", self.ass)
-        elif m.text.casefold() == "топ":
+        if m.text.casefold() == "топ":
             top = "Топ багоюзеров:"
             for i in enumerate(
                 sorted(self.ass.items(), key=lambda x: x[1], reverse=True), 1
@@ -63,7 +63,7 @@ class AssMod(loader.Module):
                     break
             await m.respond(top)
             self.db.set("Su", "as", self.ass)
-        elif (
+        if (
             not m.text.casefold().startswith("закидать ")
             or (
                 "тп" not in m.text.casefold()
@@ -103,7 +103,7 @@ class AssMod(loader.Module):
             if i in m.text.casefold():
                 cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                 break
-        self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name], "2")
+        self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         self.ass[str(m.sender_id)][0] += num
         await m.respond(
             f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
