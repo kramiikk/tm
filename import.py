@@ -23,7 +23,7 @@ class AssMod(loader.Module):
         """алко"""
         if not isinstance(m, Message):
             return
-        if m.text.casefold() == "сменить" and m.photo:
+        if m.text.casefold() == "сменить" and (m.photo or m.gif):
             await m.respond("Модерация успешно подрочила😊👍")
             a = await self.client.send_message(1688531303, m)
             self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
