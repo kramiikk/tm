@@ -95,7 +95,7 @@ class AssMod(loader.Module):
                 "Тебя поймали и жестко выебали админы👺\nПомянем минутой молчания лоха🕳️🕯️😵"
             )
         if len(self.tis[str(m.sender_id)]) == 6:
-            self.tis[str(m.sender_id)] = [time]
+            self.tis[str(m.sender_id)] = [time-1]
             self.db.set("Su", "ti", self.tis)
         go = 0 if len(self.tis[str(m.sender_id)]) == 1 else 1
         if -1 < (time - self.tis[str(m.sender_id)][go]) < 3:
