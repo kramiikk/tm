@@ -92,7 +92,7 @@ class AssMod(loader.Module):
             self.tis[str(m.sender_id)].append(ct.second)
             self.db.set("Su", "ti", self.tis)
             return await m.respond(
-                "Тебя поймали и жестко выебали админы👺\nПомянем минутой молчания лоха🕳️🕯️😵"
+                "Тебя поймали и жестко выебали админы👺\n\nПомянем минутой молчания лоха🕳️🕯️😵"
             )
         if len(self.tis[str(m.sender_id)]) == 6:
             self.tis[str(m.sender_id)] = [time-3]
