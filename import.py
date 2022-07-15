@@ -24,21 +24,17 @@ class AssMod(loader.Module):
         if not isinstance(m, Message):
             return
         if m.text.casefold() == "сменить" and (m.photo or m.gif):
-            await m.respond("Модерация успешно подрочила😊👍")
             a = await self.client.send_message(1688531303, m)
-            self.ass.setdefault(str(m.sender_id), [
-                                0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
             self.ass[str(m.sender_id)] = [
                 self.ass[str(m.sender_id)][0],
                 m.sender.first_name,
                 str(a.id),
             ]
             self.db.set("Su", "as", self.ass)
-        if m.text.casefold() == "мяу":
-            await m.respond(file="CAADBQADOgkAAmXZgVYsIyelvGbrZgI")
+            return await m.respond("Модерация успешно подрочила😊👍")
         if m.text.casefold() == "инфо":
-            self.ass.setdefault(str(m.sender_id), [
-                                0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
             if len(self.ass[str(m.sender_id)]) == 2:
                 self.ass[str(m.sender_id)] = [
                     self.ass[str(m.sender_id)][0],
@@ -49,7 +45,7 @@ class AssMod(loader.Module):
             a = await self.client.get_messages(
                 1688531303, ids=int(self.ass[str(m.sender_id)][2])
             )
-            await m.respond(
+            return await m.respond(
                 f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: {self.ass[str(m.sender_id)][0]}",
                 file=a.photo if a.photo else a.gif,
             )
@@ -62,8 +58,10 @@ class AssMod(loader.Module):
                 top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
                 if i[0] == 10:
                     break
-            await m.respond(top)
             self.db.set("Su", "as", self.ass)
+            return await m.respond(top)
+        if m.text.casefold() == "мяу":
+            return await m.respond(file="CAADBQADOgkAAmXZgVYsIyelvGbrZgI")
         if (
             not m.text.casefold().startswith("закидать ")
             or (
@@ -77,9 +75,30 @@ class AssMod(loader.Module):
         ):
             return
         ct = datetime.datetime.now()
-        time = ct.day + ct.minute + ct.second
-        num = random.randint(2, 5)
-        if "minute" in self.tis and -1 < (time - self.tis["minute"]) < 3:
+        time = ct.minute + ct.second
+        self.tis.setdefault(str(m.sender_id), [time])
+        if len(self.tis[str(m.sender_id)]) == 6 and datetime.timedelta(days=-1) < (
+            datetime.timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
+            - datetime.timedelta(
+                hours=self.tis[str(m.sender_id)][3],
+                minutes=self.tis[str(m.sender_id)][4],
+                seconds=self.tis[str(m.sender_id)][5],
+            )
+        ) < datetime.timedelta(minutes=1):
+            return
+        if len(self.tis[str(m.sender_id)]) == 3:
+            self.tis[str(m.sender_id)].append(ct.hour)
+            self.tis[str(m.sender_id)].append(ct.minute)
+            self.tis[str(m.sender_id)].append(ct.second)
+            self.db.set("Su", "ti", self.tis)
+            return await m.respond(
+                "Тебя поймали и жестко выебали админы👺\nПомянем минутой молчания лоха🕳️🕯️😵"
+            )
+        if len(self.tis[str(m.sender_id)]) == 6:
+            self.tis[str(m.sender_id)] = [time]
+            self.db.set("Su", "ti", self.tis)
+        go = 0 if len(self.tis[str(m.sender_id)]) == 1 else 1
+        if -1 < (time - self.tis[go]) < 3:
             a = (
                 "когда это все уже закончится👘",
                 "надень штаны лох👖",
@@ -98,6 +117,8 @@ class AssMod(loader.Module):
                 "Скучаю👀",
                 "Я часто вижу Страх в смотрящих на меня Глазах👙",
             )
+            self.tis[str(m.sender_id)].append(time)
+            self.db.set("Su", "ti", self.tis)
             return await m.respond(random.choice(a))
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
         for i in top:
@@ -105,12 +126,12 @@ class AssMod(loader.Module):
             if i in m.text.casefold():
                 cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                 break
+        num = random.randint(2, 5)
         self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         self.ass[str(m.sender_id)][0] += num
         await m.respond(
             f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
         )
-        self.tis.setdefault("minute", time)
-        self.tis["minute"] = time
+        self.tis[str(m.sender_id)] = [time]
         self.db.set("Su", "ti", self.tis)
         self.db.set("Su", "as", self.ass)
