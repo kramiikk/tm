@@ -98,7 +98,7 @@ class AssMod(loader.Module):
             self.tis[str(m.sender_id)] = [time]
             self.db.set("Su", "ti", self.tis)
         go = 0 if len(self.tis[str(m.sender_id)]) == 1 else 1
-        if -1 < (time - self.tis[go]) < 3:
+        if -1 < (time - self.tis[str(m.sender_id)][go]) < 3:
             a = (
                 "когда это все уже закончится👘",
                 "надень штаны лох👖",
