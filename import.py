@@ -25,7 +25,8 @@ class AssMod(loader.Module):
             return
         if m.text.casefold() == "сменить" and (m.photo or m.gif):
             a = await self.client.send_message(1688531303, m)
-            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [
+                                0, m.sender.first_name, "2"])
             self.ass[str(m.sender_id)] = [
                 self.ass[str(m.sender_id)][0],
                 m.sender.first_name,
@@ -34,7 +35,8 @@ class AssMod(loader.Module):
             self.db.set("Su", "as", self.ass)
             return await m.respond("Модерация успешно подрочила😊👍")
         if m.text.casefold() == "инфо":
-            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [
+                                0, m.sender.first_name, "2"])
             if len(self.ass[str(m.sender_id)]) == 2:
                 self.ass[str(m.sender_id)] = [
                     self.ass[str(m.sender_id)][0],
@@ -78,7 +80,8 @@ class AssMod(loader.Module):
         time = ct.minute + ct.second
         self.tis.setdefault(str(m.sender_id), [time-3])
         if len(self.tis[str(m.sender_id)]) == 6 and datetime.timedelta(days=-1) < (
-            datetime.timedelta(hours=ct.hour, minutes=ct.minute, seconds=ct.second)
+            datetime.timedelta(
+                hours=ct.hour, minutes=ct.minute, seconds=ct.second)
             - datetime.timedelta(
                 hours=self.tis[str(m.sender_id)][3],
                 minutes=self.tis[str(m.sender_id)][4],
