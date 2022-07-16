@@ -77,7 +77,7 @@ class AssMod(loader.Module):
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
         n = 0
-        self.tis.setdefault(str(m.sender_id), [time - 3])
+        self.tis.setdefault(str(m.sender_id), [time - 7])
         if len(self.tis[str(m.sender_id)]) == 7 and (
             (
                 datetime.timedelta(days=-1)
@@ -99,14 +99,16 @@ class AssMod(loader.Module):
         elif len(self.tis[str(m.sender_id)]) == 7 and m.dice:
             if m.media.value < self.tis[str(m.sender_id)][6]:
                 self.tis[str(m.sender_id)][6] = (
-                    await m.respond(file=InputMediaDice("🎲"))
+                    await m.respond(
+                        file=InputMediaDice(random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳")))
+                    )
                 ).media.value
                 self.db.set("Su", "ti", self.tis)
                 return
             n = m.media.value
             cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
         if len(self.tis[str(m.sender_id)]) == 7:
-            self.tis[str(m.sender_id)] = [time - 3]
+            self.tis[str(m.sender_id)] = [time - 7]
             self.db.set("Su", "ti", self.tis)
         if len(self.tis[str(m.sender_id)]) == 3:
             await m.reply("Поиграем?😏🤭🤫")
@@ -133,7 +135,7 @@ class AssMod(loader.Module):
             f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
         )
         go = 0 if len(self.tis[str(m.sender_id)]) == 1 else 1
-        if -1 < (time - self.tis[str(m.sender_id)][go]) < 3:
+        if -1 < (time - self.tis[str(m.sender_id)][go]) < 7:
             self.tis[str(m.sender_id)].append(time)
         else:
             self.tis[str(m.sender_id)] = [time]
