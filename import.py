@@ -109,7 +109,8 @@ class AssMod(loader.Module):
             self.tis[str(m.sender_id)] = [time - 3]
             self.db.set("Su", "ti", self.tis)
         if len(self.tis[str(m.sender_id)]) == 3:
-            a = await client.send_message(m.chat_id, file=InputMediaDice("🎲"))
+            await m.reply("Поиграем?😏🤭🤫")
+            a = await self.client.send_message(m.chat_id, file=InputMediaDice("🎲"))
             self.tis[str(m.sender_id)].append(ct.hour)
             self.tis[str(m.sender_id)].append(ct.minute)
             self.tis[str(m.sender_id)].append(ct.second)
