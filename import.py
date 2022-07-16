@@ -25,8 +25,7 @@ class AssMod(loader.Module):
             return
         if m.text.casefold() == "сменить" and (m.photo or m.gif):
             a = await self.client.send_message(1688531303, m)
-            self.ass.setdefault(str(m.sender_id), [
-                                0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
             self.ass[str(m.sender_id)] = [
                 self.ass[str(m.sender_id)][0],
                 m.sender.first_name,
@@ -35,8 +34,7 @@ class AssMod(loader.Module):
             self.db.set("Su", "as", self.ass)
             return await m.respond("Модерация успешно подрочила😊👍")
         if m.text.casefold() == "инфо":
-            self.ass.setdefault(str(m.sender_id), [
-                                0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
             if len(self.ass[str(m.sender_id)]) == 2:
                 self.ass[str(m.sender_id)] = [
                     self.ass[str(m.sender_id)][0],
@@ -102,16 +100,14 @@ class AssMod(loader.Module):
         elif len(self.tis[str(m.sender_id)]) == 7 and m.dice:
             if m.media.value < self.tis[str(m.sender_id)][6]:
                 self.tis[str(m.sender_id)][6] = (
-                    await m.respond(
-                        file=InputMediaDice(dice))
-                    )
+                    await m.respond(file=InputMediaDice(dice))
                 ).media.value
                 self.db.set("Su", "ti", self.tis)
                 return
-            n=m.media.value
-            cmn=f"🛀\n+{n} получаете за победу в этой хуйне"
+            n = m.media.value
+            cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
         if len(self.tis[str(m.sender_id)]) == 7:
-            self.tis[str(m.sender_id)]=[time - 7]
+            self.tis[str(m.sender_id)] = [time - 7]
             self.db.set("Su", "ti", self.tis)
         if len(self.tis[str(m.sender_id)]) == 3:
             await m.reply("Поиграем?😏🤭🤫")
@@ -123,13 +119,13 @@ class AssMod(loader.Module):
             )
             self.db.set("Su", "ti", self.tis)
             return
-        num=-n if n != 0 else random.randint(2, 5)
+        num = -n if n != 0 else random.randint(2, 5)
         if n == 0:
-            top={"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+            top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
             for i in top:
-                cmn="🥞🤰🏼"
+                cmn = "🥞🤰🏼"
                 if i in m.text.casefold():
-                    cmn="👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
+                    cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                     break
             cmn += f"\n{num} админа жабабота вам благодарны🎉"
         self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
@@ -137,10 +133,10 @@ class AssMod(loader.Module):
         await m.respond(
             f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
         )
-        go=0 if len(self.tis[str(m.sender_id)]) == 1 else 1
+        go = 0 if len(self.tis[str(m.sender_id)]) == 1 else 1
         if -1 < (time - self.tis[str(m.sender_id)][go]) < 7:
             self.tis[str(m.sender_id)].append(time)
         else:
-            self.tis[str(m.sender_id)]=[time]
+            self.tis[str(m.sender_id)] = [time]
         self.db.set("Su", "ti", self.tis)
         self.db.set("Su", "as", self.ass)
