@@ -99,8 +99,7 @@ class AssMod(loader.Module):
             return
         elif len(self.tis[str(m.sender_id)]) == 7 and m.dice:
             if m.media.value < self.tis[str(m.sender_id)][6]:
-                a = await m.respond(file=InputMediaDice("🎲"))
-                self.tis[str(m.sender_id)][6] = a.media.value
+                self.tis[str(m.sender_id)][6] = (await m.respond(file=InputMediaDice("🎲"))).media.value
                 self.db.set("Su", "ti", self.tis)
                 return
             n = m.media.value
