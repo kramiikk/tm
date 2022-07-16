@@ -112,7 +112,7 @@ class AssMod(loader.Module):
             self.tis[str(m.sender_id)].append(ct.hour)
             self.tis[str(m.sender_id)].append(ct.minute)
             self.tis[str(m.sender_id)].append(ct.second)
-            self.tis[str(m.sender_id)].append((await m.respond(file=InputMediaDice("🎲")).media.value))
+            self.tis[str(m.sender_id)].append((await m.respond(file=InputMediaDice("🎲"))).media.value)
             self.db.set("Su", "ti", self.tis)
             return
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
