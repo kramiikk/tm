@@ -99,7 +99,7 @@ class AssMod(loader.Module):
             return
         elif len(self.tis[str(m.sender_id)]) == 7 and m.dice:
             if m.media.value < self.tis[str(m.sender_id)][6]:
-                a = await client.send_message(m.chat_id, file=InputMediaDice("🎲"))
+                a = await m.respond(file=InputMediaDice("🎲"))
                 self.tis[str(m.sender_id)][6] = a.media.value
                 self.db.set("Su", "ti", self.tis)
                 return
@@ -110,11 +110,10 @@ class AssMod(loader.Module):
             self.db.set("Su", "ti", self.tis)
         if len(self.tis[str(m.sender_id)]) == 3:
             await m.reply("Поиграем?😏🤭🤫")
-            a = await self.client.send_message(m.chat_id, file=InputMediaDice("🎲"))
             self.tis[str(m.sender_id)].append(ct.hour)
             self.tis[str(m.sender_id)].append(ct.minute)
             self.tis[str(m.sender_id)].append(ct.second)
-            self.tis[str(m.sender_id)].append(a.media.value)
+            self.tis[str(m.sender_id)].append((await m.respond(file=InputMediaDice("🎲")).media.value)
             self.db.set("Su", "ti", self.tis)
             return
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
