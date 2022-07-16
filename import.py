@@ -118,6 +118,7 @@ class AssMod(loader.Module):
             )
             self.db.set("Su", "ti", self.tis)
             return
+        num = -n if n != 0 else random.randint(2, 5)
         if n == 0:
             top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
             for i in top:
@@ -126,7 +127,6 @@ class AssMod(loader.Module):
                     cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                     break
             cmn += f"\n{num} админа жабабота вам благодарны🎉"
-        num = -n if n != 0 else random.randint(2, 5)
         self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         self.ass[str(m.sender_id)][0] += num
         await m.respond(
