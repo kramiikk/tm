@@ -1,7 +1,7 @@
 import datetime
 import random
 
-from telethon.tl.types import Message
+from telethon.tl.types import InputMediaDice, Message
 
 from .. import loader
 
