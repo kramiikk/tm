@@ -62,7 +62,7 @@ class AssMod(loader.Module):
             return await m.respond(top)
         if m.text.casefold() == "мяу":
             return await m.respond(file="CAADBQADOgkAAmXZgVYsIyelvGbrZgI")
-        if (
+        if (m.dice and len(self.tis[str(m.sender_id)]) != 7) or (
             not m.text.casefold().startswith("закидать ")
             or (
                 "тп" not in m.text.casefold()
@@ -72,7 +72,7 @@ class AssMod(loader.Module):
                 and "серв" not in m.text.casefold()
             )
             or m.text.count(" ") == 1
-        ) or (m.dice and len(self.tis[str(m.sender_id)]) != 7):
+        ):
             return
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
