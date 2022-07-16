@@ -78,8 +78,10 @@ class AssMod(loader.Module):
             return
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
+        n = 0
+        txt = ""
         self.tis.setdefault(str(m.sender_id), [time-3])
-        if len(self.tis[str(m.sender_id)]) == 6 and datetime.timedelta(days=-1) < (
+        if len(self.tis[str(m.sender_id)]) == 7 and ((datetime.timedelta(days=-1) < (
             datetime.timedelta(
                 hours=ct.hour, minutes=ct.minute, seconds=ct.second)
             - datetime.timedelta(
@@ -87,30 +89,39 @@ class AssMod(loader.Module):
                 minutes=self.tis[str(m.sender_id)][4],
                 seconds=self.tis[str(m.sender_id)][5],
             )
-        ) < datetime.timedelta(minutes=1):
+        ) < datetime.timedelta(minutes=1)) and not m.dice) :
             return
+        elif len(self.tis[str(m.sender_id)]) == 7 and m.dice:
+            if m.media.value < self.tis[str(m.sender_id)][6]:
+                a = await client.send_message(m.chat_id, file=InputMediaDice("🎲"))
+                self.tis[str(m.sender_id)][6] = (a.media.value)
+                self.db.set("Su", "ti", self.tis)
+                return
+            else:
+                n = m.media.value
+                txt = f"\n+{n} получаете за победу в хуйне"
+        if len(self.tis[str(m.sender_id)]) == 7:
+            self.tis[str(m.sender_id)] = [time-3]
+            self.db.set("Su", "ti", self.tis)
         if len(self.tis[str(m.sender_id)]) == 3:
+            a = await client.send_message(m.chat_id, file=InputMediaDice("🎲"))
             self.tis[str(m.sender_id)].append(ct.hour)
             self.tis[str(m.sender_id)].append(ct.minute)
             self.tis[str(m.sender_id)].append(ct.second)
+            self.tis[str(m.sender_id)].append(a.media.value)
             self.db.set("Su", "ti", self.tis)
-            return await m.respond(
-                "Тебя поймали и жестко выебали админы👺\n\nПомянем минутой молчания лоха🕳️🕯️😵"
-            )
-        if len(self.tis[str(m.sender_id)]) == 6:
-            self.tis[str(m.sender_id)] = [time-3]
-            self.db.set("Su", "ti", self.tis)
+            return
         top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
         for i in top:
             cmn = "🤰🏼"
             if i in m.text.casefold():
                 cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                 break
-        num = random.randint(2, 5)
+        num = random.randint(2, 5) - n
         self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         self.ass[str(m.sender_id)][0] += num
         await m.respond(
-            f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
+            f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>{txt}"
         )
         go = 0 if len(self.tis[str(m.sender_id)]) == 1 else 1
         if -1 < (time - self.tis[str(m.sender_id)][go]) < 3:
