@@ -72,7 +72,7 @@ class AssMod(loader.Module):
                 and "серв" not in m.text.casefold()
             )
             or m.text.count(" ") == 1
-        ):
+        ) or (m.dice and len(self.tis[str(m.sender_id)]) != 7):
             return
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
@@ -115,12 +115,15 @@ class AssMod(loader.Module):
             self.tis[str(m.sender_id)].append((await m.respond(file=InputMediaDice("🎲"))).media.value)
             self.db.set("Su", "ti", self.tis)
             return
-        top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
-        for i in top:
-            cmn = "🤰🏼"
-            if i in m.text.casefold():
-                cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
-                break
+        if n == 0:
+            top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+            for i in top:
+                cmn = "🤰🏼"
+                if i in m.text.casefold():
+                    cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
+                    break
+        else:
+            cmn = "🛀"
         num = random.randint(2, 5) - n
         self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         self.ass[str(m.sender_id)][0] += num
