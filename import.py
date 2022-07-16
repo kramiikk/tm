@@ -104,7 +104,7 @@ class AssMod(loader.Module):
                 self.db.set("Su", "ti", self.tis)
                 return
             n = m.media.value
-            cmn = f"🛀\n+{n} получаете за победу в хуйне"
+            cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
         if len(self.tis[str(m.sender_id)]) == 7:
             self.tis[str(m.sender_id)] = [time - 3]
             self.db.set("Su", "ti", self.tis)
