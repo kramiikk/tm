@@ -25,8 +25,7 @@ class AssMod(loader.Module):
             return
         if m.text.casefold() == "сменить" and (m.photo or m.gif):
             a = await self.client.send_message(1688531303, m)
-            self.ass.setdefault(str(m.sender_id), [
-                                0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
             self.ass[str(m.sender_id)] = [
                 self.ass[str(m.sender_id)][0],
                 m.sender.first_name,
@@ -35,8 +34,7 @@ class AssMod(loader.Module):
             self.db.set("Su", "as", self.ass)
             return await m.respond("Модерация успешно подрочила😊👍")
         if m.text.casefold() == "инфо":
-            self.ass.setdefault(str(m.sender_id), [
-                                0, m.sender.first_name, "2"])
+            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
             if len(self.ass[str(m.sender_id)]) == 2:
                 self.ass[str(m.sender_id)] = [
                     self.ass[str(m.sender_id)][0],
@@ -80,28 +78,36 @@ class AssMod(loader.Module):
         time = ct.minute + ct.second
         n = 0
         txt = ""
-        self.tis.setdefault(str(m.sender_id), [time-3])
-        if len(self.tis[str(m.sender_id)]) == 7 and ((datetime.timedelta(days=-1) < (
-            datetime.timedelta(
-                hours=ct.hour, minutes=ct.minute, seconds=ct.second)
-            - datetime.timedelta(
-                hours=self.tis[str(m.sender_id)][3],
-                minutes=self.tis[str(m.sender_id)][4],
-                seconds=self.tis[str(m.sender_id)][5],
+        self.tis.setdefault(str(m.sender_id), [time - 3])
+        if len(self.tis[str(m.sender_id)]) == 7 and (
+            (
+                datetime.timedelta(days=-1)
+                < (
+                    datetime.timedelta(
+                        hours=ct.hour, minutes=ct.minute, seconds=ct.second
+                    )
+                    - datetime.timedelta(
+                        hours=self.tis[str(m.sender_id)][3],
+                        minutes=self.tis[str(m.sender_id)][4],
+                        seconds=self.tis[str(m.sender_id)][5],
+                    )
+                )
+                < datetime.timedelta(minutes=1)
             )
-        ) < datetime.timedelta(minutes=1)) and not m.dice) :
+            and not m.dice
+        ):
             return
         elif len(self.tis[str(m.sender_id)]) == 7 and m.dice:
             if m.media.value < self.tis[str(m.sender_id)][6]:
                 a = await client.send_message(m.chat_id, file=InputMediaDice("🎲"))
-                self.tis[str(m.sender_id)][6] = (a.media.value)
+                self.tis[str(m.sender_id)][6] = a.media.value
                 self.db.set("Su", "ti", self.tis)
                 return
             else:
                 n = m.media.value
                 txt = f"\n+{n} получаете за победу в хуйне"
         if len(self.tis[str(m.sender_id)]) == 7:
-            self.tis[str(m.sender_id)] = [time-3]
+            self.tis[str(m.sender_id)] = [time - 3]
             self.db.set("Su", "ti", self.tis)
         if len(self.tis[str(m.sender_id)]) == 3:
             a = await client.send_message(m.chat_id, file=InputMediaDice("🎲"))
