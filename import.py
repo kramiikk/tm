@@ -97,7 +97,7 @@ class AssMod(loader.Module):
             and not m.dice
         ):
             return
-        elif len(self.tis[str(m.sender_id)]) == 7 and m.dice:
+        if len(self.tis[str(m.sender_id)]) == 7 and m.dice:
             if m.media.value < self.tis[str(m.sender_id)][6]:
                 self.tis[str(m.sender_id)][6] = (
                     await m.respond(file=InputMediaDice(dice))
@@ -109,7 +109,7 @@ class AssMod(loader.Module):
         if len(self.tis[str(m.sender_id)]) == 7:
             self.tis[str(m.sender_id)] = [time - 7]
             self.db.set("Su", "ti", self.tis)
-        if len(self.tis[str(m.sender_id)]) == 3:
+        elif len(self.tis[str(m.sender_id)]) == 3:
             await m.reply("Поиграем?😏🤭🤫")
             self.tis[str(m.sender_id)].append(ct.hour)
             self.tis[str(m.sender_id)].append(ct.minute)
