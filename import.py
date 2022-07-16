@@ -77,7 +77,6 @@ class AssMod(loader.Module):
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
         n = 0
-        txt = ""
         self.tis.setdefault(str(m.sender_id), [time - 3])
         if len(self.tis[str(m.sender_id)]) == 7 and (
             (
@@ -105,7 +104,7 @@ class AssMod(loader.Module):
                 self.db.set("Su", "ti", self.tis)
                 return
             n = m.media.value
-            txt = f"\n+{n} получаете за победу в хуйне"
+            cmn = f"🛀\n+{n} получаете за победу в хуйне"
         if len(self.tis[str(m.sender_id)]) == 7:
             self.tis[str(m.sender_id)] = [time - 3]
             self.db.set("Su", "ti", self.tis)
@@ -122,17 +121,16 @@ class AssMod(loader.Module):
         if n == 0:
             top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
             for i in top:
-                cmn = "🤰🏼"
+                cmn = "🥞🤰🏼"
                 if i in m.text.casefold():
-                    cmn = " Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
+                    cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                     break
-        else:
-            cmn = "🛀"
-        num = random.randint(2, 5) - n
+            cmn += f"\n{num} админа жабабота вам благодарны🎉"
+        num = -n if n != 0 else random.randint(2, 5)
         self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         self.ass[str(m.sender_id)][0] += num
         await m.respond(
-            f"Спасибо! Вы накормили модерку🥞{cmn} \n{num} админа жабабота вам благодарны🎉 \n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>{txt}"
+            f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
         )
         go = 0 if len(self.tis[str(m.sender_id)]) == 1 else 1
         if -1 < (time - self.tis[str(m.sender_id)][go]) < 3:
