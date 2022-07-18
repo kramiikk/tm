@@ -32,24 +32,18 @@ class AssMod(loader.Module):
             #         or -1 < (time - tis[str(m.sender_id)][2]) < 1
             #     )
             # )
+            or m.text.count(" ") == 1
+            or not m.text.casefold().startswith("закидать ")
             or (
-                not m.text.casefold().startswith("закидать ")
-                or (
-                    m.text.count(" ") == 1
-                    or (
-                        "тп" not in m.text.casefold()
-                        and "поддержку" not in m.text.casefold()
-                        and "модер" not in m.text.casefold()
-                        and "админ" not in m.text.casefold()
-                        and "серв" not in m.text.casefold()
-                    )
-                )
+                "тп" not in m.text.casefold()
+                and "поддержку" not in m.text.casefold()
+                and "модер" not in m.text.casefold()
+                and "админ" not in m.text.casefold()
+                and "серв" not in m.text.casefold()
             )
             or (
                 (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
-                and m.text.casefold() != "инфо"
-                and m.text.casefold() != "топ"
-                and m.text.casefold() != "мяу"
+                and m.text.casefold() not in ("инфо", "топ", "мяу")
             )
         ):
             return
