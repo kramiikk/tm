@@ -37,6 +37,7 @@ class AssMod(loader.Module):
             or (
                 (
                     not m.text.casefold().startswith("закидать ")
+                    or m.text.count(" ") == 1
                     or (
                         "тп" not in m.text.casefold()
                         and "поддержку" not in m.text.casefold()
@@ -44,7 +45,6 @@ class AssMod(loader.Module):
                         and "админ" not in m.text.casefold()
                         and "серв" not in m.text.casefold()
                     )
-                    or m.text.count(" ") == 1
                 )
                 or (m.text.casefold() != "сменить" or not m.photo and not m.gif)
                 and m.text.casefold() != "инфо"
@@ -64,12 +64,7 @@ class AssMod(loader.Module):
             tis[str(m.sender_id)].append(a.dice.emoticon)
             self.db.set("Su", "ti", tis)
             return
-        if (
-            len(tis[str(m.sender_id)]) == 5
-            and m.dice
-            and m.dice.value < tis[str(m.sender_id)][3]
-            and m.dice.emoticon == tis[str(m.sender_id)][4]
-        ):
+        if m.dic and m.dice.value < tis[str(m.sender_id)][3]:
             a = await m.respond(file=InputMediaDice(dice))
             tis[str(m.sender_id)][3] = a.dice.value
             tis[str(m.sender_id)][4] = a.dice.emoticon
