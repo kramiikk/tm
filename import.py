@@ -104,7 +104,8 @@ class AssMod(loader.Module):
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩",
+                       "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
@@ -118,7 +119,8 @@ class AssMod(loader.Module):
             -1
             < (
                 time
-                - tis[str(m.sender_id)][0 if len(tis[str(m.sender_id)]) == 1 else 1]
+                - tis[str(m.sender_id)
+                      ][0 if len(tis[str(m.sender_id)]) == 1 else 1]
             )
             < 7
         ):
