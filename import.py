@@ -7,136 +7,127 @@ from .. import loader
 
 
 @loader.tds
-class AssMod(loader.Module):
-    """Модуль"""
-
-    strings = {"name": "Ass"}
-
-    async def client_ready(self, client, db):
-        """ready"""
-        self.client = client
-        self.db = db
-        self.ass = db.get("Su", "as", {})
-        self.tis = db.get("Su", "ti", {})
+class Ass_Lib(loader.Library):
+    developer = "@undick"
 
     async def watcher(self, m):
         """алко"""
-        if not isinstance(m, Message):
+        ct = datetime.datetime.now()
+        time = ct.minute + ct.second
+        tis = db.get("Su", "ti", {})
+        if not isinstance(m, Message) or (
+            (
+                not m.dice
+                or (
+                    m.dice
+                    and (
+                        str(m.sender_id) not in tis
+                        or len(tis[str(m.sender_id)]) != 4
+                        or (
+                            len(tis[str(m.sender_id)]) == 4
+                            and -1
+                            < (
+                                time
+                                - tis[str(m.sender_id)][
+                                    0 if len(tis[str(m.sender_id)]) == 1 else 1
+                                ]
+                            )
+                            < 1
+                        )
+                    )
+                )
+            )
+            and (
+                not m.text.casefold().startswith("закидать ")
+                or (
+                    "тп" not in m.text.casefold()
+                    and "поддержку" not in m.text.casefold()
+                    and "модер" not in m.text.casefold()
+                    and "админ" not in m.text.casefold()
+                    and "серв" not in m.text.casefold()
+                )
+                or m.text.count(" ") == 1
+            )
+            and m.text.casefold() != "сменить"
+            and not m.photo
+            and not m.gif
+            and m.text.casefold() != "инфо"
+            and m.text.casefold() != "топ"
+            and m.text.casefold() != "мяу"
+        ):
             return
-        if m.text.casefold() == "сменить" and (m.photo or m.gif):
+        ass = db.get("Su", "as", {})
+        ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
+        tis.setdefault(str(m.sender_id), [time - 7])
+        dice = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
+        if (
+            len(tis[str(m.sender_id)]) == 4
+            and m.dice
+            and m.media.value < tis[str(m.sender_id)][3]
+        ):
+            tis[str(m.sender_id)][4] = (
+                await m.respond(file=InputMediaDice(dice))
+            ).media.value
+            self.db.set("Su", "ti", tis)
+            return
+        if len(tis[str(m.sender_id)]) == 3:
+            await m.reply("Поиграем?😏🤭🤫")
+            tis[str(m.sender_id)].append(time)
+            tis[str(m.sender_id)].append(
+                (await m.respond(file=InputMediaDice(dice))).media.value
+            )
+            return
+        if m.text.casefold() == "сменить":
             a = await self.client.send_message(1688531303, m)
-            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
-            self.ass[str(m.sender_id)] = [
-                self.ass[str(m.sender_id)][0],
+            ass[str(m.sender_id)] = [
+                ass[str(m.sender_id)][0],
                 m.sender.first_name,
                 str(a.id),
             ]
-            self.db.set("Su", "as", self.ass)
-            return await m.respond("Модерация успешно подрочила😊👍")
-        if m.text.casefold() == "инфо":
-            self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
-            if len(self.ass[str(m.sender_id)]) == 2:
-                self.ass[str(m.sender_id)] = [
-                    self.ass[str(m.sender_id)][0],
-                    m.sender.first_name,
-                    "2",
-                ]
-                self.db.set("Su", "as", self.ass)
+            txt = "Модерация успешно подрочила😊👍"
+            files = None
+        elif m.text.casefold() == "инфо":
             a = await self.client.get_messages(
-                1688531303, ids=int(self.ass[str(m.sender_id)][2])
+                1688531303, ids=int(ass[str(m.sender_id)][2])
             )
-            return await m.respond(
-                f"Имя: {self.ass[str(m.sender_id)][1]}\nОчки: {self.ass[str(m.sender_id)][0]}",
-                file=a.photo if a.photo else a.gif,
-            )
-        if m.text.casefold() == "топ":
-            top = "Топ багоюзеров:"
+            txt = f"Имя: {ass[str(m.sender_id)][1]}\nОчки: {ass[str(m.sender_id)][0]}"
+            files = a.photo if a.photo else a.gif
+        elif m.text.casefold() == "топ":
+            txt = "Топ багоюзеров:"
             for i in enumerate(
-                sorted(self.ass.items(), key=lambda x: x[1], reverse=True), 1
+                sorted(ass.items(), key=lambda x: x[1], reverse=True), 1
             ):
                 a = "🩲" if i[0] == 1 else i[1][1][0]
-                top += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
+                txt += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
                 if i[0] == 10:
                     break
-            self.db.set("Su", "as", self.ass)
-            return await m.respond(top)
-        if m.text.casefold() == "мяу":
-            return await m.respond(file="CAADBQADOgkAAmXZgVYsIyelvGbrZgI")
-        if (not m.dice or (m.dice and len(self.tis[str(m.sender_id)]) != 7)) and (
-            not m.text.casefold().startswith("закидать ")
-            or (
-                "тп" not in m.text.casefold()
-                and "поддержку" not in m.text.casefold()
-                and "модер" not in m.text.casefold()
-                and "админ" not in m.text.casefold()
-                and "серв" not in m.text.casefold()
-            )
-            or m.text.count(" ") == 1
-        ):
-            return
-        ct = datetime.datetime.now()
-        dice = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
-        time = ct.minute + ct.second
-        n = 0
-        self.tis.setdefault(str(m.sender_id), [time - 7])
-        if len(self.tis[str(m.sender_id)]) == 7 and (
-            (
-                datetime.timedelta(days=-1)
-                < (
-                    datetime.timedelta(
-                        hours=ct.hour, minutes=ct.minute, seconds=ct.second
-                    )
-                    - datetime.timedelta(
-                        hours=self.tis[str(m.sender_id)][3],
-                        minutes=self.tis[str(m.sender_id)][4],
-                        seconds=self.tis[str(m.sender_id)][5],
-                    )
-                )
-                < datetime.timedelta(minutes=1)
-            )
-            and not m.dice
-        ):
-            return
-        if len(self.tis[str(m.sender_id)]) == 7 and m.dice:
-            if m.media.value < self.tis[str(m.sender_id)][6]:
-                self.tis[str(m.sender_id)][6] = (
-                    await m.respond(file=InputMediaDice(dice))
-                ).media.value
-                self.db.set("Su", "ti", self.tis)
-                return
-            n = m.media.value
-            cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
-        if len(self.tis[str(m.sender_id)]) == 7:
-            self.tis[str(m.sender_id)] = [time - 7]
-            self.db.set("Su", "ti", self.tis)
-        elif len(self.tis[str(m.sender_id)]) == 3:
-            await m.reply("Поиграем?😏🤭🤫")
-            self.tis[str(m.sender_id)].append(ct.hour)
-            self.tis[str(m.sender_id)].append(ct.minute)
-            self.tis[str(m.sender_id)].append(ct.second)
-            self.tis[str(m.sender_id)].append(
-                (await m.respond(file=InputMediaDice(dice))).media.value
-            )
-            self.db.set("Su", "ti", self.tis)
-            return
-        num = -n if n != 0 else random.randint(2, 5)
-        if n == 0:
-            top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
-            for i in top:
-                cmn = "🥞🤰🏼"
-                if i in m.text.casefold():
-                    cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
-                    break
-            cmn += f"\n{num} админа жабабота вам благодарны🎉"
-        self.ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
-        self.ass[str(m.sender_id)][0] += num
-        await m.respond(
-            f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{self.ass[str(m.sender_id)][0]}🤯</b>"
-        )
-        go = 0 if len(self.tis[str(m.sender_id)]) == 1 else 1
-        if -1 < (time - self.tis[str(m.sender_id)][go]) < 7:
-            self.tis[str(m.sender_id)].append(time)
+            files = None
+        elif m.text.casefold() == "мяу":
+            txt = ""
+            files = "CAADBQADOgkAAmXZgVYsIyelvGbrZgI"
         else:
-            self.tis[str(m.sender_id)] = [time]
-        self.db.set("Su", "ti", self.tis)
-        self.db.set("Su", "as", self.ass)
+            cmn = "🥞🤰🏼"
+            n = 0
+            if len(tis[str(m.sender_id)]) == 4 and m.dice:
+                n = m.media.value
+                cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
+            elif len(tis[str(m.sender_id)]) == 4:
+                tis[str(m.sender_id)] = [time - 7]
+            else:
+                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+                for i in top:
+                    if i in m.text.casefold():
+                        cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
+                        break
+                cmn += f"\n{num} админа жабабота вам благодарны🎉"
+            num = -n if n != 0 else random.randint(2, 5)
+            ass[str(m.sender_id)][0] += num
+            txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
+            files = None
+        await m.respond(message=txt, file=files)
+        if -1 < (time - tis[str(m.sender_id)][go]) < 7:
+            tis[str(m.sender_id)].append(time)
+        else:
+            tis[str(m.sender_id)] = [time]
+        self.db.set("Su", "ti", tis)
+        self.db.set("Su", "as", ass)
