@@ -22,67 +22,59 @@ class AssMod(loader.Module):
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
         tis = self.db.get("Su", "ti", {})
-        if not isinstance(m, Message) or (
-            (
-                not m.dice
-                or (
-                    m.dice
-                    and (
-                        str(m.sender_id) not in tis
-                        or len(tis[str(m.sender_id)]) != 4
-                        or (
-                            len(tis[str(m.sender_id)]) == 4
-                            and -1
-                            < (
-                                time
-                                - tis[str(m.sender_id)][
-                                    0 if len(tis[str(m.sender_id)]) == 1 else 1
-                                ]
-                            )
-                            < 1
-                        )
+        if (
+            not isinstance(m, Message)
+            or (
+                str(m.sender_id) in tis
+                and len(tis[str(m.sender_id)]) == 5
+                and (
+                    (
+                        (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
+                        or -1 < (time - tis[str(m.sender_id)][2]) < 1
                     )
                 )
             )
-            and (
-                not m.text.casefold().startswith("закидать ")
-                or (
-                    "тп" not in m.text.casefold()
-                    and "поддержку" not in m.text.casefold()
-                    and "модер" not in m.text.casefold()
-                    and "админ" not in m.text.casefold()
-                    and "серв" not in m.text.casefold()
+            or (
+                (
+                    not m.text.casefold().startswith("закидать ")
+                    or (
+                        "тп" not in m.text.casefold()
+                        and "поддержку" not in m.text.casefold()
+                        and "модер" not in m.text.casefold()
+                        and "админ" not in m.text.casefold()
+                        and "серв" not in m.text.casefold()
+                    )
+                    or m.text.count(" ") == 1
                 )
-                or m.text.count(" ") == 1
+                and m.text.casefold() != "сменить"
+                and not m.photo
+                and not m.gif
+                and m.text.casefold() != "инфо"
+                and m.text.casefold() != "топ"
+                and m.text.casefold() != "мяу"
             )
-            and m.text.casefold() != "сменить"
-            and not m.photo
-            and not m.gif
-            and m.text.casefold() != "инфо"
-            and m.text.casefold() != "топ"
-            and m.text.casefold() != "мяу"
         ):
             return
         ass = self.db.get("Su", "as", {})
         ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         tis.setdefault(str(m.sender_id), [time - 7])
         dice = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
-        if (
-            len(tis[str(m.sender_id)]) == 4
-            and m.dice
-            and m.media.value < tis[str(m.sender_id)][3]
-        ):
-            tis[str(m.sender_id)][4] = (
-                await m.respond(file=InputMediaDice(dice))
-            ).media.value
-            self.db.set("Su", "ti", tis)
-            return
         if len(tis[str(m.sender_id)]) == 3:
             await m.reply("Поиграем?😏🤭🤫")
-            tis[str(m.sender_id)].append(time)
-            tis[str(m.sender_id)].append(
-                (await m.respond(file=InputMediaDice(dice))).media.value
-            )
+            a = await m.respond(file=InputMediaDice(dice))
+            tis[str(m.sender_id)].append(a.dice.value)
+            tis[str(m.sender_id)].append(a.dice.emoticon)
+            self.db.set("Su", "ti", tis)
+            return
+        if (
+            len(tis[str(m.sender_id)]) == 5
+            and m.dice
+            and m.dice.value < tis[str(m.sender_id)][3]
+            and m.dice.emoticon == tis[str(m.sender_id)][4]
+        ):
+            a = await m.respond(file=InputMediaDice(dice))
+            tis[str(m.sender_id)][3] = a.dice.value
+            tis[str(m.sender_id)][4] = a.dice.emoticon
             self.db.set("Su", "ti", tis)
             return
         if m.text.casefold() == "сменить":
@@ -117,14 +109,13 @@ class AssMod(loader.Module):
             cmn = "🥞🤰🏼"
             n = 0
             num = -n if n != 0 else random.randint(2, 5)
-            if len(tis[str(m.sender_id)]) == 4 and m.dice:
-                n = m.media.value
-                cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
-            elif len(tis[str(m.sender_id)]) == 4:
+            if len(tis[str(m.sender_id)]) == 5:
+                if m.dice:
+                    n = m.media.value
+                    cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                top = {"дерь": "💩", "говн": "💩",
-                       "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
@@ -138,8 +129,7 @@ class AssMod(loader.Module):
             -1
             < (
                 time
-                - tis[str(m.sender_id)
-                      ][0 if len(tis[str(m.sender_id)]) == 1 else 1]
+                - tis[str(m.sender_id)][0 if len(tis[str(m.sender_id)]) == 1 else 1]
             )
             < 7
         ):
