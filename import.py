@@ -24,6 +24,10 @@ class AssMod(loader.Module):
         tis = self.db.get("Su", "ti", {})
         if (
             not isinstance(m, Message)
+            or (
+                (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
+                and m.text.casefold() not in ("инфо", "топ", "мяу")
+            )
             # or (
             #     str(m.sender_id) in tis
             #     and len(tis[str(m.sender_id)]) == 5
@@ -41,10 +45,6 @@ class AssMod(loader.Module):
             #     and "админ" not in m.text.casefold()
             #     and "серв" not in m.text.casefold()
             # )
-            or (
-                (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
-                and m.text.casefold() not in ("инфо", "топ", "мяу")
-            )
         ):
             return
         ass = self.db.get("Su", "as", {})
@@ -58,7 +58,7 @@ class AssMod(loader.Module):
             tis[str(m.sender_id)].append(a.dice.emoticon)
             self.db.set("Su", "ti", tis)
             return
-        if m.dic and m.dice.value < tis[str(m.sender_id)][3]:
+        if m.dice and m.dice.value < tis[str(m.sender_id)][3]:
             a = await m.respond(file=InputMediaDice(dice))
             tis[str(m.sender_id)][3] = a.dice.value
             tis[str(m.sender_id)][4] = a.dice.emoticon
