@@ -7,11 +7,13 @@ from .. import loader
 
 
 @loader.tds
-class Ass_Lib(loader.Library):
-    """hack"""
+class AssMod(loader.Module):
+    """add"""
 
-    developer = "@undick"
+    strings = {"name": "Ass"}
+
     async def client_ready(self, client, db):
+        """ready"""
         self.client = client
         self.db = db
 
@@ -121,7 +123,8 @@ class Ass_Lib(loader.Library):
             elif len(tis[str(m.sender_id)]) == 4:
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩",
+                       "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
@@ -135,7 +138,8 @@ class Ass_Lib(loader.Library):
             -1
             < (
                 time
-                - tis[str(m.sender_id)][0 if len(tis[str(m.sender_id)]) == 1 else 1]
+                - tis[str(m.sender_id)
+                      ][0 if len(tis[str(m.sender_id)]) == 1 else 1]
             )
             < 7
         ):
