@@ -28,16 +28,14 @@ class AssMod(loader.Module):
                 str(m.sender_id) in tis
                 and len(tis[str(m.sender_id)]) == 5
                 and (
-                    (
-                        (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
-                        or -1 < (time - tis[str(m.sender_id)][2]) < 1
-                    )
+                    (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
+                    or -1 < (time - tis[str(m.sender_id)][2]) < 1
                 )
             )
             or (
-                (
-                    not m.text.casefold().startswith("закидать ")
-                    or m.text.count(" ") == 1
+                not m.text.casefold().startswith("закидать ")
+                or (
+                    m.text.count(" ") == 1
                     or (
                         "тп" not in m.text.casefold()
                         and "поддержку" not in m.text.casefold()
@@ -46,7 +44,9 @@ class AssMod(loader.Module):
                         and "серв" not in m.text.casefold()
                     )
                 )
-                or (m.text.casefold() != "сменить" or not m.photo and not m.gif)
+            )
+            or (
+                (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
                 and m.text.casefold() != "инфо"
                 and m.text.casefold() != "топ"
                 and m.text.casefold() != "мяу"
