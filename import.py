@@ -11,12 +11,15 @@ class Ass_Lib(loader.Library):
     """hack"""
 
     developer = "@undick"
+    async def client_ready(self, client, db):
+        self.client = client
+        self.db = db
 
     async def watcher(self, m):
         """алко"""
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
-        tis = db.get("Su", "ti", {})
+        tis = self.db.get("Su", "ti", {})
         if not isinstance(m, Message) or (
             (
                 not m.dice
@@ -58,7 +61,7 @@ class Ass_Lib(loader.Library):
             and m.text.casefold() != "мяу"
         ):
             return
-        ass = db.get("Su", "as", {})
+        ass = self.db.get("Su", "as", {})
         ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         tis.setdefault(str(m.sender_id), [time - 7])
         dice = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
@@ -78,6 +81,7 @@ class Ass_Lib(loader.Library):
             tis[str(m.sender_id)].append(
                 (await m.respond(file=InputMediaDice(dice))).media.value
             )
+            self.db.set("Su", "ti", tis)
             return
         if m.text.casefold() == "сменить":
             a = await self.client.send_message(1688531303, m)
