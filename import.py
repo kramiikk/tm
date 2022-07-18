@@ -24,9 +24,18 @@ class AssMod(loader.Module):
         tis = self.db.get("Su", "ti", {})
         if (
             not isinstance(m, Message)
+            or m.text.count(" ") == 1
             or (
                 (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
                 and m.text.casefold() not in ("инфо", "топ", "мяу")
+            )
+            or not m.text.casefold().startswith("закидать ")
+            or (
+                "тп" not in m.text.casefold()
+                and "поддержку" not in m.text.casefold()
+                and "модер" not in m.text.casefold()
+                and "админ" not in m.text.casefold()
+                and "серв" not in m.text.casefold()
             )
             # or (
             #     str(m.sender_id) in tis
@@ -35,15 +44,6 @@ class AssMod(loader.Module):
             #         (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
             #         or -1 < (time - tis[str(m.sender_id)][2]) < 1
             #     )
-            # )
-            # or m.text.count(" ") == 1
-            # or not m.text.casefold().startswith("закидать ")
-            # or (
-            #     "тп" not in m.text.casefold()
-            #     and "поддержку" not in m.text.casefold()
-            #     and "модер" not in m.text.casefold()
-            #     and "админ" not in m.text.casefold()
-            #     and "серв" not in m.text.casefold()
             # )
         ):
             return
