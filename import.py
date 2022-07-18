@@ -8,6 +8,8 @@ from .. import loader
 
 @loader.tds
 class Ass_Lib(loader.Library):
+    """hack"""
+
     developer = "@undick"
 
     async def watcher(self, m):
@@ -108,6 +110,7 @@ class Ass_Lib(loader.Library):
         else:
             cmn = "🥞🤰🏼"
             n = 0
+            num = -n if n != 0 else random.randint(2, 5)
             if len(tis[str(m.sender_id)]) == 4 and m.dice:
                 n = m.media.value
                 cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
@@ -120,12 +123,18 @@ class Ass_Lib(loader.Library):
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                         break
                 cmn += f"\n{num} админа жабабота вам благодарны🎉"
-            num = -n if n != 0 else random.randint(2, 5)
             ass[str(m.sender_id)][0] += num
             txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
             files = None
         await m.respond(message=txt, file=files)
-        if -1 < (time - tis[str(m.sender_id)][go]) < 7:
+        if (
+            -1
+            < (
+                time
+                - tis[str(m.sender_id)][0 if len(tis[str(m.sender_id)]) == 1 else 1]
+            )
+            < 7
+        ):
             tis[str(m.sender_id)].append(time)
         else:
             tis[str(m.sender_id)] = [time]
