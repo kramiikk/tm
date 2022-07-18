@@ -46,9 +46,7 @@ class AssMod(loader.Module):
                     )
                     or m.text.count(" ") == 1
                 )
-                and m.text.casefold() != "сменить"
-                and not m.photo
-                and not m.gif
+                or (m.text.casefold() != "сменить" or not m.photo and not m.gif)
                 and m.text.casefold() != "инфо"
                 and m.text.casefold() != "топ"
                 and m.text.casefold() != "мяу"
