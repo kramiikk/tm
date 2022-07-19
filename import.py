@@ -54,7 +54,7 @@ class AssMod(loader.Module):
         ass = self.db.get("Su", "as", {})
         ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         dic = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
-        if m.dice and m.dice.value < tis[str(m.sender_id)][3]:
+        if m.dice and m.dice.value <= tis[str(m.sender_id)][3]:
             a = await m.respond(file=InputMediaDice(dic))
             tis[str(m.sender_id)][3] = a.dice.value
             tis[str(m.sender_id)][4] = a.dice.emoticon
