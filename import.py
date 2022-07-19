@@ -50,20 +50,24 @@ class AssMod(loader.Module):
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
         tis.setdefault(str(m.sender_id), [time - 7])
-        if not m.dice and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1:
+        if (
+            not m.dice
+            and len(tis[str(m.sender_id)]) == 5
+            and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
+        ):
             return
         ass = self.db.get("Su", "as", {})
         ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
-        dice = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
+        dic = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
         if m.dice and m.dice.value < tis[str(m.sender_id)][3]:
-            a = await m.respond(file=InputMediaDice(dice))
+            a = await m.respond(file=InputMediaDice(dic))
             tis[str(m.sender_id)][3] = a.dice.value
             tis[str(m.sender_id)][4] = a.dice.emoticon
             self.db.set("Su", "ti", tis)
             return
         if len(tis[str(m.sender_id)]) == 3:
             await m.reply("Поиграем?😏🤭🤫")
-            a = await m.respond(file=InputMediaDice(dice))
+            a = await m.respond(file=InputMediaDice(dic))
             tis[str(m.sender_id)].append(a.dice.value)
             tis[str(m.sender_id)].append(a.dice.emoticon)
             self.db.set("Su", "ti", tis)
