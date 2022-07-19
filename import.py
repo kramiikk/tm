@@ -21,6 +21,8 @@ class AssMod(loader.Module):
         """алко"""
         ct = datetime.datetime.now()
         tis = self.db.get("Su", "ti", {})
+        if m.chat_id != -1001694246255:
+            return
         if not isinstance(m, Message) or (
             (
                 str(m.sender_id) in tis
