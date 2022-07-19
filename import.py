@@ -28,7 +28,7 @@ class AssMod(loader.Module):
                 and len(tis[str(m.sender_id)]) == 5
                 and (
                     (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
-                    or -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
+                    and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
                 )
             )
             or m.text.count(" ") == 1
