@@ -115,16 +115,8 @@ class AssMod(loader.Module):
             txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
             files = None
         await m.respond(message=txt, file=files)
-        if (
-            -1
-            < (
-                time
-                - tis[str(m.sender_id)
-                      ][0 if len(tis[str(m.sender_id)]) == 1 else 1]
-            )
-            < 7
-        ):
-            tis[str(m.sender_id)].append(time)
+        if -1 < (time - tis[str(m.sender_id)][0]) < 7:
+            tis[str(m.sender_id)].append(ct.hour + ct.minute)
         else:
             tis[str(m.sender_id)] = [time]
         self.db.set("Su", "ti", tis)
