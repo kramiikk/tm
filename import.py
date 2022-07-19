@@ -31,9 +31,9 @@ class AssMod(loader.Module):
                     and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
                 )
             )
-            and m.text.count(" ") == 1
             and (
                 not m.text.casefold().startswith("закидать ")
+                or m.text.count(" ") == 1
                 or (
                     "тп" not in m.text.casefold()
                     and "поддержку" not in m.text.casefold()
