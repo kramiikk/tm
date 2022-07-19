@@ -32,6 +32,7 @@ class AssMod(loader.Module):
             )
             and (
                 not m.text.casefold().startswith("закидать ")
+                or (m.text.count(" ") == 1)
                 or (
                     (
                         "тп" not in m.text.casefold()
@@ -40,7 +41,6 @@ class AssMod(loader.Module):
                         and "админ" not in m.text.casefold()
                         and "серв" not in m.text.casefold()
                     )
-                    or (m.text.count(" ") == 1)
                 )
             )
             and (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
