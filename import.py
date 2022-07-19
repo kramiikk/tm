@@ -22,9 +22,8 @@ class AssMod(loader.Module):
         tis = self.db.get("Su", "ti", {})
         if m.chat_id != -1001694246255:
             return
-        if (
-            not isinstance(m, Message)
-            and (
+        if not isinstance(m, Message) or (
+            (
                 not m.dice
                 or str(m.sender_id) not in tis
                 or len(tis[str(m.sender_id)]) != 5
@@ -32,7 +31,7 @@ class AssMod(loader.Module):
             )
             and (
                 not m.text.casefold().startswith("закидать ")
-                or (m.text.count(" ") == 1)
+                or m.text.count(" ") == 1
                 or (
                     (
                         "тп" not in m.text.casefold()
