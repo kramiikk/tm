@@ -32,9 +32,8 @@ class AssMod(loader.Module):
                 )
             )
             or (
-                not m.text.casefold().startswith("закидать ")
-                or (
-                    m.text.count(" ") == 1
+                (
+                    not m.text.casefold().startswith("закидать ")
                     or (
                         "тп" not in m.text.casefold()
                         and "поддержку" not in m.text.casefold()
@@ -42,6 +41,7 @@ class AssMod(loader.Module):
                         and "админ" not in m.text.casefold()
                         and "серв" not in m.text.casefold()
                     )
+                    or (m.text.count(" ") == 1)
                 )
                 and (
                     (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
@@ -106,7 +106,8 @@ class AssMod(loader.Module):
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩",
+                       "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
