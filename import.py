@@ -31,7 +31,7 @@ class AssMod(loader.Module):
                     and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
                 )
             )
-            and (
+            or (
                 not m.text.casefold().startswith("закидать ")
                 or m.text.count(" ") == 1
                 or (
@@ -42,7 +42,7 @@ class AssMod(loader.Module):
                     and "серв" not in m.text.casefold()
                 )
             )
-            and (
+            or (
                 (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
                 and m.text.casefold() not in ("инфо", "топ", "мяу")
             )
