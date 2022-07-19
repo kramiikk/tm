@@ -35,7 +35,7 @@ class AssMod(loader.Module):
             or m.text.count(" ") == 1
             or (
                 not m.text.casefold().startswith("закидать ")
-                and (
+                or (
                     "тп" not in m.text.casefold()
                     and "поддержку" not in m.text.casefold()
                     and "модер" not in m.text.casefold()
