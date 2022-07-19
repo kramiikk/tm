@@ -20,8 +20,6 @@ class AssMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         tis = self.db.get("Su", "ti", {})
-        if m.chat_id != -1001694246255:
-            return
         if not isinstance(m, Message) or (
             (
                 not m.dice
@@ -107,7 +105,8 @@ class AssMod(loader.Module):
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩",
+                       "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
