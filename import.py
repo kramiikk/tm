@@ -23,7 +23,7 @@ class AssMod(loader.Module):
         tis = self.db.get("Su", "ti", {})
         if m.chat_id != -1001694246255:
             return
-        if not isinstance(m, Message) or (
+        if not isinstance(m, Message) and (
             (
                 str(m.sender_id) in tis
                 and (
