@@ -21,9 +21,8 @@ class AssMod(loader.Module):
         """алко"""
         ct = datetime.datetime.now()
         tis = self.db.get("Su", "ti", {})
-        if (
-            not isinstance(m, Message)
-            or (
+        if not isinstance(m, Message) or (
+            (
                 str(m.sender_id) in tis
                 and len(tis[str(m.sender_id)]) == 5
                 and (
