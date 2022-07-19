@@ -24,28 +24,34 @@ class AssMod(loader.Module):
         if not isinstance(m, Message) or (
             (
                 str(m.sender_id) in tis
-                and len(tis[str(m.sender_id)]) == 5
                 and (
-                    (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
-                    and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
+                    (m.dice and (len(tis[str(m.sender_id)]) != 5))
+                    or (
+                        len(tis[str(m.sender_id)]) == 5
+                        and (
+                            (not m.dice or m.dice.emoticon !=
+                             tis[str(m.sender_id)][4])
+                            and -1
+                            < (ct.hour + ct.minute - tis[str(m.sender_id)][2])
+                            < 1
+                        )
+                    )
                 )
             )
             and (
-                (
-                    not m.text.casefold().startswith("закидать ")
-                    or (
-                        "тп" not in m.text.casefold()
-                        and "поддержку" not in m.text.casefold()
-                        and "модер" not in m.text.casefold()
-                        and "админ" not in m.text.casefold()
-                        and "серв" not in m.text.casefold()
-                    )
-                    or (m.text.count(" ") == 1)
+                not m.text.casefold().startswith("закидать ")
+                or (
+                    "тп" not in m.text.casefold()
+                    and "поддержку" not in m.text.casefold()
+                    and "модер" not in m.text.casefold()
+                    and "админ" not in m.text.casefold()
+                    and "серв" not in m.text.casefold()
                 )
-                and (
-                    (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
-                    and m.text.casefold() not in ("инфо", "топ", "мяу")
-                )
+                or (m.text.count(" ") == 1)
+            )
+            and (
+                (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
+                and m.text.casefold() not in ("инфо", "топ", "мяу")
             )
         ):
             return
@@ -54,17 +60,17 @@ class AssMod(loader.Module):
         time = ct.minute + ct.second
         tis.setdefault(str(m.sender_id), [time - 7])
         dice = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
+        if m.dice and m.dice.value < tis[str(m.sender_id)][3]:
+            a = await m.respond(file=InputMediaDice(dice))
+            tis[str(m.sender_id)][3] = a.dice.value
+            tis[str(m.sender_id)][4] = a.dice.emoticon
+            self.db.set("Su", "ti", tis)
+            return
         if len(tis[str(m.sender_id)]) == 3:
             await m.reply("Поиграем?😏🤭🤫")
             a = await m.respond(file=InputMediaDice(dice))
             tis[str(m.sender_id)].append(a.dice.value)
             tis[str(m.sender_id)].append(a.dice.emoticon)
-            self.db.set("Su", "ti", tis)
-            return
-        if m.dice and m.dice.value < tis[str(m.sender_id)][3]:
-            a = await m.respond(file=InputMediaDice(dice))
-            tis[str(m.sender_id)][3] = a.dice.value
-            tis[str(m.sender_id)][4] = a.dice.emoticon
             self.db.set("Su", "ti", tis)
             return
         if m.text.casefold() == "сменить":
