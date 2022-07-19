@@ -20,18 +20,17 @@ class AssMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         ct = datetime.datetime.now()
-        time = ct.minute + ct.second
         tis = self.db.get("Su", "ti", {})
         if (
             not isinstance(m, Message)
-            # or (
-            #     str(m.sender_id) in tis
-            #     and len(tis[str(m.sender_id)]) == 5
-            #     and (
-            #         (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
-            #         or -1 < (time - tis[str(m.sender_id)][2]) < 1
-            #     )
-            # )
+            or (
+                str(m.sender_id) in tis
+                and len(tis[str(m.sender_id)]) == 5
+                and (
+                    (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
+                    or -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
+                )
+            )
             or m.text.count(" ") == 1
             or (
                 not m.text.casefold().startswith("закидать ")
@@ -51,6 +50,7 @@ class AssMod(loader.Module):
             return
         ass = self.db.get("Su", "as", {})
         ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
+        time = ct.minute + ct.second
         tis.setdefault(str(m.sender_id), [time - 7])
         dice = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
         if len(tis[str(m.sender_id)]) == 3:
