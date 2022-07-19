@@ -28,7 +28,7 @@ class AssMod(loader.Module):
                 and len(tis[str(m.sender_id)]) == 5
                 and (
                     (not m.dice or m.dice.emoticon != tis[str(m.sender_id)][4])
-                    and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
+                    or -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
                 )
             )
             or m.text.count(" ") == 1
@@ -114,10 +114,10 @@ class AssMod(loader.Module):
             ass[str(m.sender_id)][0] += num
             txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
             files = None
-        await m.respond(message=txt, file=files)
         if -1 < (time - tis[str(m.sender_id)][0]) < 7:
             tis[str(m.sender_id)].append(ct.hour + ct.minute)
         else:
             tis[str(m.sender_id)] = [time]
         self.db.set("Su", "ti", tis)
         self.db.set("Su", "as", ass)
+        return await m.respond(message=txt, file=files)
