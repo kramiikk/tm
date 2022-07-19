@@ -19,48 +19,41 @@ class AssMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        ct = datetime.datetime.now()
         tis = self.db.get("Su", "ti", {})
         if m.chat_id != -1001694246255:
             return
-        if not isinstance(m, Message) and (
-            (
-                str(m.sender_id) in tis
-                and (
-                    (m.dice and (len(tis[str(m.sender_id)]) != 5))
-                    or (
-                        len(tis[str(m.sender_id)]) == 5
-                        and (
-                            (not m.dice or m.dice.emoticon !=
-                             tis[str(m.sender_id)][4])
-                            and -1
-                            < (ct.hour + ct.minute - tis[str(m.sender_id)][2])
-                            < 1
-                        )
-                    )
-                )
+        if (
+            not isinstance(m, Message)
+            and (
+                not m.dice
+                or str(m.sender_id) not in tis
+                or len(tis[str(m.sender_id)]) != 5
+                or m.dice.emoticon != tis[str(m.sender_id)][4]
             )
             and (
                 not m.text.casefold().startswith("закидать ")
                 or (
-                    "тп" not in m.text.casefold()
-                    and "поддержку" not in m.text.casefold()
-                    and "модер" not in m.text.casefold()
-                    and "админ" not in m.text.casefold()
-                    and "серв" not in m.text.casefold()
+                    (
+                        "тп" not in m.text.casefold()
+                        and "поддержку" not in m.text.casefold()
+                        and "модер" not in m.text.casefold()
+                        and "админ" not in m.text.casefold()
+                        and "серв" not in m.text.casefold()
+                    )
+                    or (m.text.count(" ") == 1)
                 )
-                or (m.text.count(" ") == 1)
             )
-            and (
-                (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
-                and m.text.casefold() not in ("инфо", "топ", "мяу")
-            )
+            and (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
+            and m.text.casefold() not in ("инфо", "топ", "мяу")
         ):
+            return
+        ct = datetime.datetime.now()
+        time = ct.minute + ct.second
+        tis.setdefault(str(m.sender_id), [time - 7])
+        if not m.dice and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1:
             return
         ass = self.db.get("Su", "as", {})
         ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
-        time = ct.minute + ct.second
-        tis.setdefault(str(m.sender_id), [time - 7])
         dice = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
         if m.dice and m.dice.value < tis[str(m.sender_id)][3]:
             a = await m.respond(file=InputMediaDice(dice))
@@ -113,8 +106,7 @@ class AssMod(loader.Module):
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                top = {"дерь": "💩", "говн": "💩",
-                       "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
