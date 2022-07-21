@@ -38,7 +38,7 @@ class AssMod(loader.Module):
                     and "серв" not in m.text.casefold()
                 )
             )
-            and (m.text.casefold() != "сменить" or (not m.photo and not m.gif and not m.video))
+            and (m.text.casefold() != "сменить" or (not m.photo and not m.gif and not m.video and not m.audio))
             and m.text.casefold() not in ("инфо", "топ", "мяу")
         ):
             return
