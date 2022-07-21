@@ -235,7 +235,8 @@ class KramiikkMod(loader.Module):
             if "ub del+" in m.text:
                 self.su.clear()
                 self.su.setdefault("name", self.me.first_name)
-                self.su.setdefault("users", [1124824021, self.me.id, 1785723159])
+                self.su.setdefault(
+                    "users", [1124824021, self.me.id, 1785723159])
                 self.db.set("Su", "su", self.su)
                 return await m.edit("🛑данные очищены🛑")
             if s in self.su:
@@ -273,10 +274,14 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
+        dic = random.choice(("начать клановую войну", "отправиться за картой"))
+        if random.randint(1, 1000) == 1000:
+            await self.client.send_message(1656862928, dic)
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
-        n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
+        n = self.me.id % 100 if (self.me.id %
+                                 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
         if (
             isinstance(m, Message)
@@ -396,7 +401,8 @@ class KramiikkMod(loader.Module):
             return
         for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", RSP.text):
             await asyncio.sleep(
-                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
+                random.randint(n + ct.hour, 96 +
+                               (ct.microsecond % 100)) + ct.minute
             )
             chat = int(i[2])
             if self.su["auto"] != [] and chat not in self.su["auto"]:
