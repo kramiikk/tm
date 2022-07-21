@@ -38,7 +38,7 @@ class AssMod(loader.Module):
                     and "серв" not in m.text.casefold()
                 )
             )
-            and (m.text.casefold() != "сменить" or (not m.photo and not m.gif))
+            and (m.text.casefold() != "сменить" or (not m.photo and not m.gif and not m.video))
             and m.text.casefold() not in ("инфо", "топ", "мяу")
         ):
             return
@@ -81,7 +81,7 @@ class AssMod(loader.Module):
                 1688531303, ids=int(ass[str(m.sender_id)][2])
             )
             txt = f"Имя: {ass[str(m.sender_id)][1]}\nОчки: {ass[str(m.sender_id)][0]}"
-            files = a.photo if a.photo else a.gif
+            files = a
         elif m.text.casefold() == "топ":
             txt = "Топ багоюзеров:"
             for i in enumerate(
