@@ -1,4 +1,7 @@
 from ..inline.types import BotInlineCall
+from telethon.tl.types import Message
+
+from .. import loader
 
 @loader.tds
 class AiMod(loader.Module):
@@ -29,7 +32,7 @@ class AiMod(loader.Module):
             )
         elif "lover" in m.message.casefold():
             await self.inline.bot.send_photo(
-                self.tg_id,
+                m.chat_id,
                 photo="https://i.postimg.cc/BZK4Cwgv/mona-4.jpg",
                 caption="где хуй?",
                 reply_markup=self.inline._generate_markup(
