@@ -16,7 +16,7 @@ class AiMod(loader.Module):
     async def watcher(self, m) -> None:
         if not isinstance(m, Message):
             return
-        elif "куат" in m.message.casefold():
+        if "куат" in m.message.casefold():
             await self.inline.bot.send_message(
                 1785723159, m.text, parse_mode="HTML"
             )
