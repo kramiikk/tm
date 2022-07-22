@@ -14,21 +14,11 @@ class AiMod(loader.Module):
         self.client = client
 
     async def watcher(self, m) -> None:
-        if "куат" in m.message.casefold():
+        if not isinstance(m, Message):
+            return
+        elif "куат" in m.message.casefold():
             await self.inline.bot.send_message(
                 1785723159, m.text, parse_mode="HTML"
-            )
-        elif "testo" in m.message.casefold():
-            await utils.answer(m, "hi")
-            await self.inline.bot.send_message(
-                -1001656862928,
-                "что это?",
-                reply_markup=self.inline._generate_markup(
-                    {
-                        "text": "это",
-                        "url": "https://telegram.me/fuckmasonbot?startgroup=stop",
-                    }
-                ),
             )
         elif "lover" in m.message.casefold():
             await self.inline.bot.send_photo(
