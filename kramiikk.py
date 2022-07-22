@@ -275,7 +275,7 @@ class KramiikkMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         dic = random.choice(("начать клановую войну", "отправиться за картой"))
-        if random.randint(1, 1000) == 1000:
+        if random.randint(1, 1000) == 1000 and self.me.id == 1785723159:
             await self.client.send_message(1656862928, dic)
         if "auto" not in self.su:
             return
