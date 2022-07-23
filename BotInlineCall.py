@@ -127,4 +127,4 @@ class AssMod(loader.Module):
         if m.text.casefold() in ("инфо", "мяу"):
             await m.respond(message=txt, file=files)
         else:
-            await self.inline.bot.send_message(m.chat_id, text, parse_mode="HTML")
+            await self.inline.bot.send_message(m.chat_id, txt, parse_mode="HTML")
