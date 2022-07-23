@@ -4,7 +4,6 @@ import random
 from telethon.tl.types import InputMediaDice, Message
 
 from .. import loader
-from ..inline.types import InlineCall
 
 
 @loader.tds
@@ -109,7 +108,8 @@ class AssMod(loader.Module):
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩",
+                       "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
