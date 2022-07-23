@@ -4,6 +4,7 @@ import random
 from telethon.tl.types import InputMediaDice, Message
 
 from .. import loader
+from ..inline.types import InlineCall
 
 
 @loader.tds
@@ -38,7 +39,10 @@ class AssMod(loader.Module):
                     and "серв" not in m.text.casefold()
                 )
             )
-            and (m.text.casefold() != "сменить" or (not m.photo and not m.gif and not m.video and not m.audio))
+            and (
+                m.text.casefold() != "сменить"
+                or (not m.photo and not m.gif and not m.video and not m.audio)
+            )
             and m.text.casefold() not in ("инфо", "топ", "мяу")
         ):
             return
@@ -105,8 +109,7 @@ class AssMod(loader.Module):
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                top = {"дерь": "💩", "говн": "💩",
-                       "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
@@ -121,4 +124,7 @@ class AssMod(loader.Module):
             tis[str(m.sender_id)] = [time]
         self.db.set("Su", "ti", tis)
         self.db.set("Su", "as", ass)
-        return await m.respond(message=txt, file=files)
+        if m.text.casefold() in ("инфо", "мяу"):
+            await m.respond(message=txt, file=files)
+        else:
+            await self.inline.bot.send_message(m.chat_id, txt, parse_mode="HTML")
