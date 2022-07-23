@@ -16,11 +16,11 @@ class AiMod(loader.Module):
         self.client = client
 
     async def aiogram_watcher(self, m: AiogramMessage):
-        if "куат" in m.message.casefold():
+        if "куат" in m.text.casefold():
             await self.inline.bot.send_message(
                 1785723159, m.text, parse_mode="HTML"
             )
-        elif "lover" in m.message.casefold():
+        elif "lover" in m.text.casefold():
             await self.inline.bot.send_file(
                 m.chat_id,
                 photo="https://i.postimg.cc/BZK4Cwgv/mona-4.jpg",
