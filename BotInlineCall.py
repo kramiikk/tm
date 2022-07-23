@@ -22,7 +22,7 @@ class AiMod(loader.Module):
             )
         elif "lover" in m.text.casefold():
             await self.inline.bot.send_file(
-                m.chat_id,
+                1785723159,
                 photo="https://i.postimg.cc/BZK4Cwgv/mona-4.jpg",
                 caption="где хуй?",
                 reply_markup=self.inline._generate_markup(
