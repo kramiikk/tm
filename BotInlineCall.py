@@ -1,7 +1,8 @@
 import abc
 from aiogram.types import Message as AiogramMessage
 from .. import loader
-from ..inline.types import InlineCall
+from ..inline.types import BotInlineCall
+
 
 @loader.tds
 class AiMod(loader.Module):
