@@ -156,5 +156,5 @@ class AssMod(loader.Module):
         else:
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
-                chat_id=m.chat_id, message_id=a.message_id, text=txt
+                chat_id=m.chat_id, message_id=e.message_id, text=txt
             )
