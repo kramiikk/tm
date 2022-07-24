@@ -109,9 +109,6 @@ class AssMod(loader.Module):
             ):
                 a = "🩲" if i[0] == 1 else i[1][1][0]
                 txt += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
-                await self.inline.bot.edit_message_text(
-                    chat_id=m.chat_id, message_id=e.message_id, text=txt
-                )
                 if i[0] == 10:
                     break
             e = await self.inline.bot.send_message(m.chat_id, "🤩", parse_mode="HTML")
