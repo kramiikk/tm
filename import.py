@@ -68,7 +68,7 @@ class AssMod(loader.Module):
             return
         if len(tis[str(m.sender_id)]) == 3:
             e = await self.inline.bot.send_message(
-                m.chat_id, "Поиграем?", parse_mode="HTML"
+                m.chat_id, "🤫", parse_mode="HTML"
             )
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
@@ -80,7 +80,7 @@ class AssMod(loader.Module):
             )
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
-                chat_id=m.chat_id, message_id=e.message_id, text="🤫"
+                chat_id=m.chat_id, message_id=e.message_id, text="Поиграем?"
             )
             a = await m.respond(file=InputMediaDice(dic))
             tis[str(m.sender_id)].append(a.dice.value)
@@ -141,10 +141,6 @@ class AssMod(loader.Module):
             e = await self.inline.bot.send_message(m.chat_id, cmn, parse_mode="HTML")
             ass[str(m.sender_id)][0] += num
             txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
-            await asyncio.sleep(1)
-            await self.inline.bot.edit_message_text(
-                chat_id=m.chat_id, message_id=e.message_id, text="🥵"
-            )
         if -1 < (time - tis[str(m.sender_id)][0]) < 7:
             tis[str(m.sender_id)].append(ct.hour + ct.minute)
         else:
