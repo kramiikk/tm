@@ -116,6 +116,9 @@ class AssMod(loader.Module):
                 )
                 if i[0] == 10:
                     break
+            await self.inline.bot.edit_message_text(
+                    chat_id=m.chat_id, message_id=e.message_id, text="🤩"
+                )
         elif m.text.casefold() == "мяу":
             txt = ""
             files = "CAADBQADOgkAAmXZgVYsIyelvGbrZgI"
@@ -140,7 +143,7 @@ class AssMod(loader.Module):
             txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
-                chat_id=m.chat_id, message_id=e.message_id, text=txt
+                chat_id=m.chat_id, message_id=e.message_id, text="🥵"
             )
         if -1 < (time - tis[str(m.sender_id)][0]) < 7:
             tis[str(m.sender_id)].append(ct.hour + ct.minute)
