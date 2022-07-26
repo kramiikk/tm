@@ -67,7 +67,7 @@ class AssMod(loader.Module):
             self.db.set("Su", "ti", tis)
             return
         if len(tis[str(m.sender_id)]) == 2:
-            e = await self.inline.bot.send_message(m.chat_id, "🤫", parse_mode="HTML")
+            e = await self.inline.bot.send_message(m.chat_id, "🤫", parse_mode="HTML", reply_to_message_id=m.id)
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
                 chat_id=m.chat_id, message_id=e.message_id, text="Поиграем?"
