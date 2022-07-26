@@ -132,7 +132,7 @@ class AssMod(loader.Module):
                 + f"{ass[str(m.sender_id)][0]}🤯"
             )
             files = 0
-        if -1 < (time - tis[str(m.sender_id)][0]) < 7:
+        if -1 < (time - tis[str(m.sender_id)][0]) < random.randint(3, 13):
             tis[str(m.sender_id)].append(ct.hour + ct.minute)
         else:
             tis[str(m.sender_id)] = [time]
