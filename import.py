@@ -115,12 +115,13 @@ class AssMod(loader.Module):
                 else:
                     n = random.randint(2, 6)
                     cmn = (
-                        f"🦩\n+{n} получаете просто так, да-да тут можно просто получить"
+                        f"🦩\n+{n} получаете просто так"
                     )
                 tis[str(m.sender_id)] = [time - eco]
             else:
                 num = random.randint(2, 5)
-                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩",
+                       "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
@@ -148,6 +149,7 @@ class AssMod(loader.Module):
                     [
                         "https://i0.wp.com/www.sexecherche.com/fr/blog/wp-content/uploads/2020/08/funny-porn-gifs-00001-1.gif",
                         "https://image.myanimelist.net/ui/OK6W_koKDTOqqqLDbIoPAkajdI1rwIc_Z7jTNA8TNJk",
+                        "https://img3.gelbooru.com/images/79/7d/797d0958efc9158905da20521c48edb0.gif",
                     ]
                 ),
                 caption=txt,
