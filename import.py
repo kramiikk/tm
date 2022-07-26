@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import random
 
-from telethon.tl.types import InputMediaDice, Message
+from telethon.tl.types import Message
 
 from .. import loader
 
