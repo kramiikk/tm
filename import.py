@@ -122,14 +122,26 @@ class AssMod(loader.Module):
                 cmn += f"\n{num} админа жабабота вам благодарны🎉"
             ass[str(m.sender_id)][0] += num
             txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
-            files = await self.client.get_messages(1688531303, ids=38)
+            files = 0
         if -1 < (time - tis[str(m.sender_id)][0]) < 7:
             tis[str(m.sender_id)].append(ct.hour + ct.minute)
         else:
             tis[str(m.sender_id)] = [time]
         self.db.set("Su", "ti", tis)
         self.db.set("Su", "as", ass)
-        if files is not None:
+        if files == 0:
+            await self.inline.bot.send_animation(
+                m.chat_id,
+                animation=random.choice(
+                    [
+                        "https://i.gifer.com/79xO.gif",
+                        "http://img0.fapreactor.com/pics/post/%D0%9F%D0%BE%D1%80%D0%BD%D0%BE-%D1%81%D0%B5%D0%BA%D1%80%D0%B5%D1%82%D0%BD%D1%8B%D0%B5-%D1%80%D0%B0%D0%B7%D0%B4%D0%B5%D0%BB%D1%8B-porn-gif-Blowjob-Porn-6661266.gif",
+                        "https://image.myanimelist.net/ui/OK6W_koKDTOqqqLDbIoPAkajdI1rwIc_Z7jTNA8TNJk",
+                    ]
+                ),
+                caption=txt,
+            )
+        elif files is not None:
             await m.respond(message=txt, file=files)
         else:
             e = await self.inline.bot.send_message(m.chat_id, e, parse_mode="HTML")
