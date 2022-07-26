@@ -107,21 +107,28 @@ class AssMod(loader.Module):
         else:
             cmn = "🥞🤰🏼"
             n = 0
-            num = -n if n != 0 else random.randint(2, 5)
             if len(tis[str(m.sender_id)]) == 4:
                 if m.dice:
                     n = m.media.value
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 tis[str(m.sender_id)] = [time - 7]
             else:
+                n = random.randint(2, 5)
                 top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                         break
-                cmn += f"\n{num} админа жабабота вам благодарны🎉"
+                cmn += f"\n{n} админа жабабота вам благодарны🎉"
+            num = -n if n != 0 else n
             ass[str(m.sender_id)][0] += num
-            txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
+            n = ass[str(m.sender_id)][0]
+            txt = (
+                f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп:</b> "
+                + "-"
+                if n > -1
+                else "+" + f"{ass[str(m.sender_id)][0]}🤯"
+            )
             files = 0
         if -1 < (time - tis[str(m.sender_id)][0]) < 7:
             tis[str(m.sender_id)].append(ct.hour + ct.minute)
