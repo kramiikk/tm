@@ -61,9 +61,9 @@ class AssMod(loader.Module):
         files = None
         e = None
         if m.dice and m.dice.value <= tis[str(m.sender_id)][3]:
-            a = await m.respond(file=InputMediaDice(dic))
+            a = await self.inline.bot.send_dice(m.chat_id, emoji=dic)
             tis[str(m.sender_id)][3] = a.dice.value
-            tis[str(m.sender_id)][4] = a.dice.emoticon
+            tis[str(m.sender_id)][4] = a.dice.emoji
             self.db.set("Su", "ti", tis)
             return
         if len(tis[str(m.sender_id)]) == 3:
@@ -72,9 +72,9 @@ class AssMod(loader.Module):
             await self.inline.bot.edit_message_text(
                 chat_id=m.chat_id, message_id=e.message_id, text="Поиграем?"
             )
-            a = await m.respond(file=InputMediaDice(dic))
+            a = await self.inline.bot.send_dice(m.chat_id, emoji=dic)
             tis[str(m.sender_id)].append(a.dice.value)
-            tis[str(m.sender_id)].append(a.dice.emoticon)
+            tis[str(m.sender_id)].append(a.dice.emoji)
             self.db.set("Su", "ti", tis)
             return
         if m.text.casefold() == "сменить":
