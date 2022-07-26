@@ -67,17 +67,7 @@ class AssMod(loader.Module):
             self.db.set("Su", "ti", tis)
             return
         if len(tis[str(m.sender_id)]) == 3:
-            e = await self.inline.bot.send_message(
-                m.chat_id, "🤫", parse_mode="HTML"
-            )
-            await asyncio.sleep(1)
-            await self.inline.bot.edit_message_text(
-                chat_id=m.chat_id, message_id=e.message_id, text="😏"
-            )
-            await asyncio.sleep(1)
-            await self.inline.bot.edit_message_text(
-                chat_id=m.chat_id, message_id=e.message_id, text="🤭"
-            )
+            e = await self.inline.bot.send_message(m.chat_id, "🤫", parse_mode="HTML")
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
                 chat_id=m.chat_id, message_id=e.message_id, text="Поиграем?"
@@ -95,13 +85,12 @@ class AssMod(loader.Module):
                 str(a.id),
             ]
             txt = "Модерация успешно подрочила😊"
-            e = await self.inline.bot.send_message(m.chat_id, "👍", parse_mode="HTML")
+            e = "👍"
         elif m.text.casefold() == "инфо":
-            a = await self.client.get_messages(
+            files = await self.client.get_messages(
                 1688531303, ids=int(ass[str(m.sender_id)][2])
             )
             txt = f"Имя: {ass[str(m.sender_id)][1]}\nОчки: {ass[str(m.sender_id)][0]}"
-            files = a
         elif m.text.casefold() == "топ":
             txt = "Топ багоюзеров:"
             for i in enumerate(
@@ -111,11 +100,7 @@ class AssMod(loader.Module):
                 txt += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
                 if i[0] == 10:
                     break
-            e = await self.inline.bot.send_message(m.chat_id, "🤩", parse_mode="HTML")
-            await asyncio.sleep(1)
-            await self.inline.bot.edit_message_text(
-                    chat_id=m.chat_id, message_id=e.message_id, text=txt
-                )
+            e = "🤩"
         elif m.text.casefold() == "мяу":
             txt = ""
             files = "CAADBQADOgkAAmXZgVYsIyelvGbrZgI"
@@ -136,9 +121,8 @@ class AssMod(loader.Module):
                         break
                 cmn += f"\n{num} админа жабабота вам благодарны🎉"
             ass[str(m.sender_id)][0] += num
-            txt = f"Спасибо! Вы накормили модерку{cmn}"
-            e = await self.inline.bot.send_message(m.chat_id, txt, parse_mode="HTML")
-            txt += f"\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
+            txt = f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп: -{ass[str(m.sender_id)][0]}🤯</b>"
+            files = await self.client.get_messages(1688531303, ids=38)
         if -1 < (time - tis[str(m.sender_id)][0]) < 7:
             tis[str(m.sender_id)].append(ct.hour + ct.minute)
         else:
@@ -148,6 +132,7 @@ class AssMod(loader.Module):
         if files is not None:
             await m.respond(message=txt, file=files)
         else:
+            e = await self.inline.bot.send_message(m.chat_id, e, parse_mode="HTML")
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
                 chat_id=m.chat_id, message_id=e.message_id, text=txt
