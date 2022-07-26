@@ -68,8 +68,7 @@ class AssMod(loader.Module):
             self.db.set("Su", "ti", tis)
             return
         if len(tis[str(m.sender_id)]) == 2:
-            e = await self.inline.bot.send_message(
-                m.chat_id, "🤫", parse_mode="HTML")
+            e = await self.inline.bot.send_message(m.chat_id, "🤫", parse_mode="HTML")
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
                 chat_id=m.chat_id, message_id=e.message_id, text="Поиграем?"
@@ -112,14 +111,16 @@ class AssMod(loader.Module):
             if len(tis[str(m.sender_id)]) == 4:
                 if m.dice:
                     n = m.media.value
-                    cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
+                    cmn = f"🧘🏿\n+{n} получаете за победу в этой хуйне"
                 else:
                     n = random.randint(2, 6)
+                    cmn = (
+                        f"🦩\n+{n} получаете просто так, да-да тут можно просто получить"
+                    )
                 tis[str(m.sender_id)] = [time - eco]
             else:
                 num = random.randint(2, 5)
-                top = {"дерь": "💩", "говн": "💩",
-                       "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
