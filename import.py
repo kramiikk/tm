@@ -111,16 +111,18 @@ class AssMod(loader.Module):
                 if m.dice:
                     n = m.media.value
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
+                else:
+                    n = random.randint(2, 5)
                 tis[str(m.sender_id)] = [time - 7]
             else:
-                n = random.randint(2, 5)
+                num = random.randint(2, 5)
                 top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
                         break
-                cmn += f"\n{n} админа жабабота вам благодарны🎉"
-            num = -n if n != 0 else n
+                cmn += f"\n{num} админа жабабота вам благодарны🎉"
+            num = -n if n != 0 else num
             ass[str(m.sender_id)][0] += num
             n = ass[str(m.sender_id)][0]
             txt = (
