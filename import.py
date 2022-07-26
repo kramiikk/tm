@@ -46,6 +46,22 @@ class AssMod(loader.Module):
             and m.text.casefold() not in ("инфо", "топ", "мяу")
         ):
             return
+        ass = self.db.get("Su", "as", {})
+        if m.text.casefold() == "топ":
+            e = await self.inline.bot.send_message(m.chat_id, "🤩", parse_mode="HTML")
+            txt = "Топ багоюзеров:"
+            for i in enumerate(
+                sorted(ass.items(), key=lambda x: x[1], reverse=True), 1
+            ):
+                a = "🩲" if i[0] == 1 else i[1][1][0]
+                txt += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
+                await asyncio.sleep(1)
+                await self.inline.bot.edit_message_text(
+                    chat_id=m.chat_id, message_id=e.message_id, text=txt
+                )
+                if i[0] == 10:
+                    break
+            return
         ct = datetime.datetime.now()
         time = ct.minute + ct.second
         tis.setdefault(str(m.sender_id), [time - 7])
@@ -55,7 +71,6 @@ class AssMod(loader.Module):
             and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][1]) < 1
         ):
             return
-        ass = self.db.get("Su", "as", {})
         ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         dic = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
         eco = random.randint(3, 13)
@@ -92,16 +107,6 @@ class AssMod(loader.Module):
                 1688531303, ids=int(ass[str(m.sender_id)][2])
             )
             txt = f"Имя: {ass[str(m.sender_id)][1]}\nОчки: {ass[str(m.sender_id)][0]}"
-        elif m.text.casefold() == "топ":
-            txt = "Топ багоюзеров:"
-            for i in enumerate(
-                sorted(ass.items(), key=lambda x: x[1], reverse=True), 1
-            ):
-                a = "🩲" if i[0] == 1 else i[1][1][0]
-                txt += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
-                if i[0] == 10:
-                    break
-            e = "🤩"
         elif m.text.casefold() == "мяу":
             txt = ""
             files = "CAADBQADOgkAAmXZgVYsIyelvGbrZgI"
