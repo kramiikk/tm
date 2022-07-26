@@ -58,6 +58,7 @@ class AssMod(loader.Module):
         ass = self.db.get("Su", "as", {})
         ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
         dic = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
+        eco = random.randint(3, 13)
         files = None
         e = None
         if m.dice and m.dice.value <= tis[str(m.sender_id)][2]:
@@ -113,11 +114,12 @@ class AssMod(loader.Module):
                     n = m.media.value
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
                 else:
-                    n = random.randint(2, 5)
-                tis[str(m.sender_id)] = [time - 7]
+                    n = random.randint(2, 6)
+                tis[str(m.sender_id)] = [time - eco]
             else:
                 num = random.randint(2, 5)
-                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩",
+                       "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
@@ -132,7 +134,7 @@ class AssMod(loader.Module):
                 + f"{ass[str(m.sender_id)][0]}🤯"
             )
             files = 0
-        if -1 < (time - tis[str(m.sender_id)][0]) < random.randint(3, 13):
+        if -1 < (time - tis[str(m.sender_id)][0]) < eco:
             tis[str(m.sender_id)].append(ct.hour + ct.minute)
         else:
             tis[str(m.sender_id)] = [time]
