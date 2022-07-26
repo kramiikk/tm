@@ -125,9 +125,8 @@ class AssMod(loader.Module):
             n = ass[str(m.sender_id)][0]
             txt = (
                 f"Спасибо! Вы накормили модерку{cmn}\n\n <b>Ваша репутация в тп:</b> "
-                + "-"
-                if n > -1
-                else "+" + f"{ass[str(m.sender_id)][0]}🤯"
+                + ("-" if n > -1 else "+")
+                + f"{ass[str(m.sender_id)][0]}🤯"
             )
             files = 0
         if -1 < (time - tis[str(m.sender_id)][0]) < 7:
