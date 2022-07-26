@@ -25,8 +25,8 @@ class AssMod(loader.Module):
             (
                 not m.dice
                 or str(m.sender_id) not in tis
-                or len(tis[str(m.sender_id)]) != 5
-                or m.dice.emoticon != tis[str(m.sender_id)][4]
+                or len(tis[str(m.sender_id)]) != 4
+                or m.dice.emoticon != tis[str(m.sender_id)][3]
             )
             and (
                 not m.text.casefold().startswith("закидать ")
@@ -51,8 +51,8 @@ class AssMod(loader.Module):
         tis.setdefault(str(m.sender_id), [time - 7])
         if (
             not m.dice
-            and len(tis[str(m.sender_id)]) == 5
-            and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][2]) < 1
+            and len(tis[str(m.sender_id)]) == 4
+            and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][1]) < 1
         ):
             return
         ass = self.db.get("Su", "as", {})
@@ -60,13 +60,13 @@ class AssMod(loader.Module):
         dic = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
         files = None
         e = None
-        if m.dice and m.dice.value <= tis[str(m.sender_id)][3]:
+        if m.dice and m.dice.value <= tis[str(m.sender_id)][2]:
             a = await self.inline.bot.send_dice(m.chat_id, emoji=dic)
-            tis[str(m.sender_id)][3] = a.dice.value
-            tis[str(m.sender_id)][4] = a.dice.emoji
+            tis[str(m.sender_id)][2] = a.dice.value
+            tis[str(m.sender_id)][3] = a.dice.emoji
             self.db.set("Su", "ti", tis)
             return
-        if len(tis[str(m.sender_id)]) == 3:
+        if len(tis[str(m.sender_id)]) == 2:
             e = await self.inline.bot.send_message(m.chat_id, "🤫", parse_mode="HTML")
             await asyncio.sleep(1)
             await self.inline.bot.edit_message_text(
@@ -108,7 +108,7 @@ class AssMod(loader.Module):
             cmn = "🥞🤰🏼"
             n = 0
             num = -n if n != 0 else random.randint(2, 5)
-            if len(tis[str(m.sender_id)]) == 5:
+            if len(tis[str(m.sender_id)]) == 4:
                 if m.dice:
                     n = m.media.value
                     cmn = f"🛀\n+{n} получаете за победу в этой хуйне"
