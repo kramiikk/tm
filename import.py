@@ -134,8 +134,7 @@ class AssMod(loader.Module):
                 m.chat_id,
                 animation=random.choice(
                     [
-                        "https://i.gifer.com/79xO.gif",
-                        "http://img0.fapreactor.com/pics/post/%D0%9F%D0%BE%D1%80%D0%BD%D0%BE-%D1%81%D0%B5%D0%BA%D1%80%D0%B5%D1%82%D0%BD%D1%8B%D0%B5-%D1%80%D0%B0%D0%B7%D0%B4%D0%B5%D0%BB%D1%8B-porn-gif-Blowjob-Porn-6661266.gif",
+                        "https://i0.wp.com/www.sexecherche.com/fr/blog/wp-content/uploads/2020/08/funny-porn-gifs-00001-1.gif",
                         "https://image.myanimelist.net/ui/OK6W_koKDTOqqqLDbIoPAkajdI1rwIc_Z7jTNA8TNJk",
                     ]
                 ),
