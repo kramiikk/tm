@@ -20,97 +20,120 @@ class AssMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        tis = self.db.get("Su", "ti", {})
-        if not isinstance(m, Message) or (
+        if isinstance(m, Message) and (
             (
-                not m.dice
-                or str(m.sender_id) not in tis
-                or len(tis[str(m.sender_id)]) != 4
-                or m.dice.emoticon != tis[str(m.sender_id)][3]
+                m.text.casefold() == "сменить"
+                and (m.photo or m.gif or m.video or m.audio)
             )
-            and (
-                not m.text.casefold().startswith("закидать ")
-                or m.text.count(" ") == 1
-                or (
-                    "тп" not in m.text.casefold()
-                    and "поддержку" not in m.text.casefold()
-                    and "модер" not in m.text.casefold()
-                    and "админ" not in m.text.casefold()
-                    and "серв" not in m.text.casefold()
-                )
-            )
-            and (
-                m.text.casefold() != "сменить"
-                or (not m.photo and not m.gif and not m.video and not m.audio)
-            )
-            and m.text.casefold() not in ("инфо", "топ", "мяу")
+            or m.text.casefold() in ("инфо", "топ", "мяу")
         ):
-            return
-        ass = self.db.get("Su", "as", {})
-        if m.text.casefold() == "топ":
-            e = await self.inline.bot.send_message(m.chat_id, "🤩", parse_mode="HTML")
-            txt = "Топ багоюзеров:"
-            for i in enumerate(
-                sorted(ass.items(), key=lambda x: x[1], reverse=True), 1
-            ):
-                a = "🩲" if i[0] == 1 else i[1][1][0]
-                txt += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
+            ass = self.db.get("Su", "as", {})
+            files = None
+            if m.text.casefold() == "топ":
+                e = await self.inline.bot.send_message(
+                    m.chat_id, "🤩", parse_mode="HTML"
+                )
+                txt = "Топ багоюзеров:"
+                for i in enumerate(
+                    sorted(ass.items(), key=lambda x: x[1], reverse=True), 1
+                ):
+                    a = "🩲" if i[0] == 1 else i[1][1][0]
+                    txt += f"\n{i[0]} | {i[1][1][1]} <code>{a}</code>"
+                    await asyncio.sleep(3)
+                    await self.inline.bot.edit_message_text(
+                        chat_id=m.chat_id, message_id=e.message_id, text=txt
+                    )
+                    if i[0] == 10:
+                        break
+                return
+            if m.text.casefold() == "сменить":
+                a = await self.client.send_message(1688531303, m)
+                ass[str(m.sender_id)] = [
+                    ass[str(m.sender_id)][0],
+                    m.sender.first_name,
+                    str(a.id),
+                ]
+                txt = "Модерация успешно подрочила😊"
+                e = "👍"
+            elif m.text.casefold() == "инфо":
+                files = await self.client.get_messages(
+                    1688531303, ids=int(ass[str(m.sender_id)][2])
+                )
+                txt = (
+                    f"Имя: {ass[str(m.sender_id)][1]}\nОчки: {ass[str(m.sender_id)][0]}"
+                )
+            else:
+                txt = ""
+                files = "CAADBQADOgkAAmXZgVYsIyelvGbrZgI"
+            if files is not None:
+                await m.respond(message=txt, file=files)
+            else:
+                e = await self.inline.bot.send_message(m.chat_id, e, parse_mode="HTML")
                 await asyncio.sleep(3)
                 await self.inline.bot.edit_message_text(
                     chat_id=m.chat_id, message_id=e.message_id, text=txt
                 )
-                if i[0] == 10:
-                    break
-            return
-        ct = datetime.datetime.now()
-        time = ct.minute + ct.second
-        tis.setdefault(str(m.sender_id), [time - 7])
-        if (
-            not m.dice
-            and len(tis[str(m.sender_id)]) == 4
-            and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][1]) < 1
+        elif isinstance(m, Message) and (
+            (
+                str(m.sender_id) not in tis
+                or (
+                    str(m.sender_id) in tis
+                    and (
+                        len(tis[str(m.sender_id)]) < 3
+                        or (
+                            len(tis[str(m.sender_id)]) == 4
+                            and m.dice
+                            and m.dice.emoticon == tis[str(m.sender_id)][3]
+                        )
+                    )
+                )
+            )
+            or (
+                m.text.casefold().startswith("закидать ")
+                and m.text.count(" ") != 1
+                and (
+                    "тп" in m.text.casefold()
+                    or "поддержку" in m.text.casefold()
+                    or "модер" in m.text.casefold()
+                    or "админ" in m.text.casefold()
+                    or "серв" in m.text.casefold()
+                )
+            )
         ):
-            return
-        ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
-        dic = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
-        eco = random.randint(3, 13)
-        files = None
-        e = None
-        if m.dice and m.dice.value <= tis[str(m.sender_id)][2]:
-            a = await self.inline.bot.send_dice(m.chat_id, emoji=dic)
-            tis[str(m.sender_id)][2] = a.dice.value
-            tis[str(m.sender_id)][3] = a.dice.emoji
-            self.db.set("Su", "ti", tis)
-            return
-        if len(tis[str(m.sender_id)]) == 2:
-            e = await self.inline.bot.send_message(m.chat_id, "🤫", parse_mode="HTML")
-            await asyncio.sleep(1)
-            await self.inline.bot.edit_message_text(
-                chat_id=m.chat_id, message_id=e.message_id, text="Поиграем?"
-            )
-            a = await self.inline.bot.send_dice(m.chat_id, emoji=dic)
-            tis[str(m.sender_id)].append(a.dice.value)
-            tis[str(m.sender_id)].append(a.dice.emoji)
-            self.db.set("Su", "ti", tis)
-            return
-        if m.text.casefold() == "сменить":
-            a = await self.client.send_message(1688531303, m)
-            ass[str(m.sender_id)] = [
-                ass[str(m.sender_id)][0],
-                m.sender.first_name,
-                str(a.id),
-            ]
-            txt = "Модерация успешно подрочила😊"
-            e = "👍"
-        elif m.text.casefold() == "инфо":
-            files = await self.client.get_messages(
-                1688531303, ids=int(ass[str(m.sender_id)][2])
-            )
-            txt = f"Имя: {ass[str(m.sender_id)][1]}\nОчки: {ass[str(m.sender_id)][0]}"
-        elif m.text.casefold() == "мяу":
-            txt = ""
-            files = "CAADBQADOgkAAmXZgVYsIyelvGbrZgI"
-        else:
+            ass = self.db.get("Su", "as", {})
+            tis = self.db.get("Su", "ti", {})
+            ct = datetime.datetime.now()
+            eco = random.randint(3, 13)
+            time = ct.minute + ct.second
+            tis.setdefault(str(m.sender_id), [time - eco])
+            if (
+                not m.dice
+                and len(tis[str(m.sender_id)]) == 4
+                and -1 < (ct.hour + ct.minute - tis[str(m.sender_id)][1]) < 1
+            ):
+                return
+            ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
+            dic = random.choice(("🎲", "🏀", "⚽️", "🎯", "🎳"))
+            e = None
+            if m.dice and m.dice.value <= tis[str(m.sender_id)][2]:
+                a = await self.inline.bot.send_dice(m.chat_id, emoji=dic)
+                tis[str(m.sender_id)][2] = a.dice.value
+                tis[str(m.sender_id)][3] = a.dice.emoji
+                self.db.set("Su", "ti", tis)
+                return
+            if len(tis[str(m.sender_id)]) == 2:
+                e = await self.inline.bot.send_message(
+                    m.chat_id, "🤫", parse_mode="HTML"
+                )
+                await asyncio.sleep(3)
+                await self.inline.bot.edit_message_text(
+                    chat_id=m.chat_id, message_id=e.message_id, text="Поиграем?"
+                )
+                a = await self.inline.bot.send_dice(m.chat_id, emoji=dic)
+                tis[str(m.sender_id)].append(a.dice.value)
+                tis[str(m.sender_id)].append(a.dice.emoji)
+                self.db.set("Su", "ti", tis)
+                return
             cmn = "🥞🤰🏼"
             n = 0
             if len(tis[str(m.sender_id)]) == 4:
@@ -119,14 +142,11 @@ class AssMod(loader.Module):
                     cmn = f"🧘🏿\n+{n} получаете за победу в этой хуйне"
                 else:
                     n = random.randint(2, 6)
-                    cmn = (
-                        f"🦩\n+{n} получаете просто так"
-                    )
+                    cmn = f"🦩\n+{n} получаете просто так"
                 tis[str(m.sender_id)] = [time - eco]
             else:
                 num = random.randint(2, 5)
-                top = {"дерь": "💩", "говн": "💩",
-                       "письк": "💩", "ху": "🥵", "член": "🥵"}
+                top = {"дерь": "💩", "говн": "💩", "письк": "💩", "ху": "🥵", "член": "🥵"}
                 for i in top:
                     if i in m.text.casefold():
                         cmn = "👄 Смачно отсосали!💦💦💦🥵🥵🥵" if top[i] == "🥵" else top[i]
@@ -140,14 +160,6 @@ class AssMod(loader.Module):
                 + ("-" if n > -1 else "+")
                 + f"{ass[str(m.sender_id)][0]}🤯"
             )
-            files = 0
-        if -1 < (time - tis[str(m.sender_id)][0]) < eco:
-            tis[str(m.sender_id)].append(ct.hour + ct.minute)
-        else:
-            tis[str(m.sender_id)] = [time]
-        self.db.set("Su", "ti", tis)
-        self.db.set("Su", "as", ass)
-        if files == 0:
             await self.inline.bot.send_animation(
                 m.chat_id,
                 animation=random.choice(
@@ -160,11 +172,9 @@ class AssMod(loader.Module):
                 ),
                 caption=txt,
             )
-        elif files is not None:
-            await m.respond(message=txt, file=files)
-        else:
-            e = await self.inline.bot.send_message(m.chat_id, e, parse_mode="HTML")
-            await asyncio.sleep(1)
-            await self.inline.bot.edit_message_text(
-                chat_id=m.chat_id, message_id=e.message_id, text=txt
-            )
+            if -1 < (time - tis[str(m.sender_id)][0]) < eco:
+                tis[str(m.sender_id)].append(ct.hour + ct.minute)
+            else:
+                tis[str(m.sender_id)] = [time]
+            self.db.set("Su", "ti", tis)
+            self.db.set("Su", "as", ass)
