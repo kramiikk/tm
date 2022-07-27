@@ -76,16 +76,13 @@ class AssMod(loader.Module):
                 )
         elif isinstance(m, Message) and (
             (
-                str(m.sender_id) not in tis
-                or (
-                    str(m.sender_id) in tis
-                    and (
-                        len(tis[str(m.sender_id)]) < 3
-                        or (
-                            len(tis[str(m.sender_id)]) == 4
-                            and m.dice
-                            and m.dice.emoticon == tis[str(m.sender_id)][3]
-                        )
+                str(m.sender_id) in tis
+                and (
+                    len(tis[str(m.sender_id)]) < 3
+                    or (
+                        len(tis[str(m.sender_id)]) == 4
+                        and m.dice
+                        and m.dice.emoticon == tis[str(m.sender_id)][3]
                     )
                 )
             )
