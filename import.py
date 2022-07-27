@@ -155,6 +155,7 @@ class AssMod(loader.Module):
                         "https://i0.wp.com/www.sexecherche.com/fr/blog/wp-content/uploads/2020/08/funny-porn-gifs-00001-1.gif",
                         "https://image.myanimelist.net/ui/OK6W_koKDTOqqqLDbIoPAkajdI1rwIc_Z7jTNA8TNJk",
                         "https://img3.gelbooru.com/images/79/7d/797d0958efc9158905da20521c48edb0.gif",
+                        "https://64.media.tumblr.com/512141ad8c03d1760b9f561acd94d60f/tumblr_ou8tyyV4Gk1tlyjpto1_540.gif",
                     ]
                 ),
                 caption=txt,
