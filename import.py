@@ -20,6 +20,7 @@ class AssMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
+        tis = self.db.get("Su", "ti", {})
         if isinstance(m, Message) and (
             (
                 m.text.casefold() == "сменить"
@@ -101,7 +102,6 @@ class AssMod(loader.Module):
             )
         ):
             ass = self.db.get("Su", "as", {})
-            tis = self.db.get("Su", "ti", {})
             ct = datetime.datetime.now()
             eco = random.randint(3, 13)
             time = ct.minute + ct.second
