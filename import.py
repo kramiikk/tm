@@ -56,13 +56,14 @@ class AssMod(loader.Module):
                 ]
                 txt = "Модерация успешно подрочила😊"
                 e = "👍"
-                self.db.set("Su", "as", ass)
             elif m.text.casefold() == "инфо":
                 files = await self.client.get_messages(
                     1688531303, ids=int(ass[str(m.sender_id)][2])
                 )
+                name = m.sender.first_name
+                ass[str(m.sender_id)][1] = name
                 txt = (
-                    f"Имя: {ass[str(m.sender_id)][1]}\nОчки: {ass[str(m.sender_id)][0]}"
+                    f"Имя: {name}\nОчки: {ass[str(m.sender_id)][0]}"
                 )
             else:
                 txt = ""
@@ -75,6 +76,7 @@ class AssMod(loader.Module):
                 await self.inline.bot.edit_message_text(
                     chat_id=m.chat_id, message_id=e.message_id, text=txt
                 )
+            self.db.set("Su", "as", ass)
         elif isinstance(m, Message) and (
             (
                 str(m.sender_id) in tis
