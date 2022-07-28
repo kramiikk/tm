@@ -48,6 +48,7 @@ class AssMod(loader.Module):
                         break
                 return
             if m.text.casefold() == "сменить":
+                ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
                 a = await self.client.send_message(1688531303, m)
                 ass[str(m.sender_id)] = [
                     ass[str(m.sender_id)][0],
@@ -57,6 +58,7 @@ class AssMod(loader.Module):
                 txt = "Модерация успешно подрочила😊"
                 e = "👍"
             elif m.text.casefold() == "инфо":
+                ass.setdefault(str(m.sender_id), [0, m.sender.first_name, "2"])
                 files = await self.client.get_messages(
                     1688531303, ids=int(ass[str(m.sender_id)][2])
                 )
