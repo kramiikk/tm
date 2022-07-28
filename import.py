@@ -62,10 +62,9 @@ class AssMod(loader.Module):
                 files = await self.client.get_messages(
                     1688531303, ids=int(ass[str(m.sender_id)][2])
                 )
-                name = m.sender.first_name
-                ass[str(m.sender_id)][1] = name
+                ass[str(m.sender_id)][1] = m.sender.first_name
                 txt = (
-                    f"Имя: {name}\nОчки: {ass[str(m.sender_id)][0]}"
+                    f"Имя: {ass[str(m.sender_id)][1]}\nОчки: {ass[str(m.sender_id)][0]}"
                 )
             else:
                 txt = ""
