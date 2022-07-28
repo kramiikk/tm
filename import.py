@@ -78,12 +78,9 @@ class AssMod(loader.Module):
             (
                 str(m.sender_id) in tis
                 and (
-                    len(tis[str(m.sender_id)]) < 3
-                    or (
-                        len(tis[str(m.sender_id)]) == 4
-                        and m.dice
-                        and m.dice.emoticon == tis[str(m.sender_id)][3]
-                    )
+                    len(tis[str(m.sender_id)]) == 4
+                    and m.dice
+                    and m.dice.emoticon == tis[str(m.sender_id)][3]
                 )
             )
             or (
