@@ -101,7 +101,7 @@ class AssMod(loader.Module):
         ):
             ass = self.db.get("Su", "as", {})
             ct = datetime.datetime.now()
-            eco = random.randint(3, 13)
+            eco = random.randint(3, 9)
             time = ct.minute + ct.second
             tis.setdefault(str(m.sender_id), [time - eco])
             if (
