@@ -56,6 +56,7 @@ class AssMod(loader.Module):
                 ]
                 txt = "Модерация успешно подрочила😊"
                 e = "👍"
+                self.db.set("Su", "as", ass)
             elif m.text.casefold() == "инфо":
                 files = await self.client.get_messages(
                     1688531303, ids=int(ass[str(m.sender_id)][2])
