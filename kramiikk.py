@@ -276,7 +276,8 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        dic = random.choice(("отправиться за картой", "лена напади", "ваня напади", "нелс напади", "оботи напади", "напасть на клан"))
+        dic = random.choice(("отправиться за картой", "лена напади",
+                            "ваня напади", "нелс напади", "оботи напади", "напасть на клан"))
         if random.randint(1, 1000) == 1000 and self.me.id == 1785723159:
             await self.client.send_message(1656862928, dic)
         if "auto" not in self.su:
@@ -300,10 +301,7 @@ class KramiikkMod(loader.Module):
             )
         ):
             chat = m.chat_id
-            s = n
-            if chat in (-1001656862928, -1001380664241):
-                s = 2
-            await asyncio.sleep(random.randint(1, s + 1))
+            await asyncio.sleep(random.randint(1, n + 1))
             reply = await m.get_reply_message()
             cn = (
                 0
