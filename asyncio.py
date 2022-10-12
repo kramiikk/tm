@@ -14,7 +14,7 @@ class IsMod(loader.Module):
         self.client = client
         self.db = db
 
-    async def watcher(self, event):
-        if not isinstance(event, Message) or utils.get_chat_id(event) != 1605756650:
+    async def watcher(self, m: Message):
+        if not isinstance(m, Message) or m.from_id != -1001605756650:
             return
-        await self.client.send_message(1605756650, "pon")
+        await m.reply("pon")
