@@ -15,9 +15,9 @@ class IsMod(loader.Module):
         self.db = db
 
     async def watcher(self, m: Message):
-        if not isinstance(m, Message) or m.from_id != -1001398750595:
+        if not isinstance(m, Message) or m.from_id != -1001398750595 or m.text == "":
             return
-        await asyncio.sleep(random.randint(1, 33))
+        await asyncio.sleep(random.randint(1, 3))
         await m.reply(
             random.choice(
                 (
