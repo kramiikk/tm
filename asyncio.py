@@ -1,5 +1,3 @@
-import asyncio
-import random
 from .. import loader, utils
 from telethon.tl.types import Message
 
@@ -17,12 +15,11 @@ class IsMod(loader.Module):
     async def watcher(self, m: Message):
         if not isinstance(m, Message) or m.from_id != -1001398750595 or m.text == "":
             return
-        await asyncio.sleep(random.randint(0, 1))
         await m.reply(
             random.choice(
                 (
                     "у кого есть Кэйя с6?",
-                    "кто со мной собирать геокулусы?\n\nUID: <code>746264860</code>",
+                    "кто со мной собирать геокулусы? У меня не хватает для крафта ресурсов!\n\nUID: <code>746264860</code>",
                 )
             )
         )
