@@ -17,11 +17,11 @@ class IsMod(loader.Module):
     async def watcher(self, m: Message):
         if not isinstance(m, Message) or m.from_id != -1001398750595 or m.text == "":
             return
-        await asyncio.sleep(random.randint(0, 3))
+        await asyncio.sleep(random.randint(0, 1))
         await m.reply(
             random.choice(
                 (
-                    "го раскрывать новые пространства!",
+                    "у кого есть Кэйя с6?",
                     "кто со мной собирать геокулусы?",
                 )
             )
