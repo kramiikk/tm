@@ -23,7 +23,7 @@ class ILYMod(loader.Module):
 
     strings = {
         "name": "LoveMagic",
-        "message": "<b>❤️‍🔥 I want to tell you something...</b>\n<i>{}</i>",
+        "message": "<b>❤️‍🔥 У меня для вас задание...</b>\n<i>{}</i>",
     }
 
     async def client_ready(self):
@@ -66,7 +66,7 @@ class ILYMod(loader.Module):
         await self.inline.form(
             self.strings("message").format("*" * (len(args) or 9)),
             reply_markup={
-                "text": "🧸 Open",
+                "text": "🧸 Показать",
                 "callback": self.ily_handler,
                 "args": (args or "Кто сходит в данж и сольет смолу?❤️",),
                 "kwargs": {"inline": True},
