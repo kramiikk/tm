@@ -51,7 +51,7 @@ class ILYMod(loader.Module):
             await obj.edit(
                 f"<b>{text}</b>",
                 reply_markup={
-                    "text": "напишите мне",
+                    "text": "Напишите мне🙂",
                     "url": "https://t.me/undick",
                 },
             )
