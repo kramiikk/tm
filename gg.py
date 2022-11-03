@@ -30,7 +30,7 @@ class ILYMod(loader.Module):
         self.classic_frames = (
             await utils.run_sync(
                 requests.get,
-                "https://gist.github.com/hikariatama/89d0246c72e5882e12af43be63f5bca5/raw/08a5df7255d5e925ab2ede1efc892d9dc93af8e1/ily_classic.json",
+                "https://gist.githubusercontent.com/kramiikk/5b254d5c688e1f8d59994220e7749919/raw/b833ff5745345e733a68efbffd956cc6e0f9c491/ily.json",
             )
         ).json()
 
