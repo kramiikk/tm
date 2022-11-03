@@ -59,18 +59,7 @@ class ILYMod(loader.Module):
 
             await obj.unload()
 
-    @loader.command(ru_doc="Отправить анимацию сердец в инлайне")
+    @loader.command
     async def ilyicmd(self, message: Message):
         """Send inline message with animated hearts"""
-        args = utils.get_args_raw(message)
-        await self.inline.form(
-            self.strings("message").format("*" * (len(args) or 9)),
-            reply_markup={
-                "text": "🧸 Показать",
-                "callback": self.ily_handler,
-                "args": (args or "Кто сходит в данж и сольет смолу? ❤️",),
-                "kwargs": {"inline": True},
-            },
-            message=message,
-            disable_security=True,
-        )
+        self.ily_handler
