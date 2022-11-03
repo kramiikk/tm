@@ -68,7 +68,7 @@ class ILYMod(loader.Module):
             reply_markup={
                 "text": "🧸 Показать",
                 "callback": self.ily_handler,
-                "args": (args or "Кто сходит в данж и сольет смолу?❤️",),
+                "args": (args or "Кто сходит в данж и сольет смолу? ❤️",),
                 "kwargs": {"inline": True},
             },
             message=message,
