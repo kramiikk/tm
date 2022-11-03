@@ -11,4 +11,4 @@ class IsMod(loader.Module):
     async def watcher(self, m: Message):
         if not isinstance(m, Message) or m.from_id != -1001398750595 or m.text == "":
             return
-        await m.reply("Охуеть")
+        await m.reply("Еба новый пост\n\n Марсель в описании нет рекламы!!!")
