@@ -1,4 +1,3 @@
-
 # scope: inline
 # scope: hikka_only
 # scope: hikka_min 1.3.0
@@ -45,9 +44,9 @@ class ILYMod(loader.Module):
             for i in range(len(text.split()))
         ]
 
-        obj = await self.animate(obj, frames, interval=0.5, inline=inline)
+        obj = await self.animate(obj, frames, interval=1, inline=inline)
 
-        await sleep(10)
+        await sleep(1)
         if not isinstance(obj, Message):
             await obj.edit(
                 f"<b>{text}</b>",
@@ -62,4 +61,15 @@ class ILYMod(loader.Module):
     @loader.command
     async def ilyicmd(self, message: Message):
         """Send inline message with animated hearts"""
-        self.ily_handler
+        args = utils.get_args_raw(message)
+        await self.inline.form(
+            self.strings("message").format("*" * (len(args) or 9)),
+            reply_markup={
+                "text": "🧸 Показать",
+                "callback": self.ily_handler,
+                "args": (args or "Кто сходит в данж и сольет смолу? ❤️",),
+                "kwargs": {"inline": True},
+            },
+            message=message,
+            disable_security=True,
+        )
