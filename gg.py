@@ -4,7 +4,6 @@
 # scope: hikka_min 1.3.0
 
 import json
-import random
 from asyncio import sleep
 from typing import Union
 import logging
