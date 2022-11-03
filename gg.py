@@ -58,7 +58,6 @@ class ILYMod(loader.Module):
 
             await obj.unload()
 
-    @loader.command
     async def ilyicmd(self, message: Message):
         """Send inline message with animated hearts"""
         args = utils.get_args_raw(message)
