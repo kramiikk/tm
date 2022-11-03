@@ -68,7 +68,7 @@ class ILYMod(loader.Module):
             reply_markup={
                 "text": "🧸 Open",
                 "callback": self.ily_handler,
-                "args": (args or "I ❤️ you!",),
+                "args": (args or "Кто сходит в данж и сольет смолу?❤️",),
                 "kwargs": {"inline": True},
             },
             message=message,
