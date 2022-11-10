@@ -42,7 +42,7 @@ class ikkMod(loader.Module):
         await self.err(chat, cmn)
         if not RSP:
             txt += "\n---"
-        txt += f"\n{RSP}"
+        txt += f"\n{RSP.text}"
         await asyncio.sleep(1)
         chat = 5390607371
         cmn = f"/check {ids}"
@@ -50,5 +50,5 @@ class ikkMod(loader.Module):
         await self.err(chat, cmn)
         if not RSP:
             txt += "\n---"
-        txt += f"\n{RSP}"
+        txt += f"\n{RSP.text}"
         await m.respond(txt)
