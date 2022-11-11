@@ -29,13 +29,15 @@ class ikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        if not isinstance(m, Message) or m.chat_id != 1709411724:
+        if (
+            not isinstance(m, Message)
+            or not m.text.startswith("$ ")
+            or m.sender_id != 1261343954
+        ):
             return
-        ids = (
-            (await self.client.get_entity(m.raw_text)).id
-            if not (m.raw_text).isdigit()
-            else m.raw_text
-        )
+        reply = await message.get_reply_message()
+        id = m.text.split(" ", 2)[1] if not reply else reply.sender_id
+        ids = (await self.client.get_entity(id)).id if not (id).isdigit() else id
         chat = 5136727087
         cmn = f"/чек {ids}"
         txt = f"<b><a href='tg://user?id={ids}'>link</a>\n<a href='t.me/system_global_bot'>SGB:</b></a>"
@@ -51,4 +53,4 @@ class ikkMod(loader.Module):
         if not RSP:
             txt += "\n---"
         txt += f"\n{RSP.text}"
-        await m.respond(txt)
+        await m.edit(txt)
