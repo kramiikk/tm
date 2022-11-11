@@ -44,7 +44,7 @@ class ikkMod(loader.Module):
         )
         chat = 5136727087
         cmn = f"/чек {ids}"
-        txt = f"<b><a href='tg://user?id={ids}'>link</a>\n<a href='t.me/system_global_bot'>SGB:</b></a>"
+        txt = f"<b><a href='tg://user?id={ids}'>link</a>\n{i}\n<code>{ids}</code>\n\n<a href='t.me/system_global_bot'>SGB:</a></b>"
         await self.err(chat, cmn)
         await self.client.delete_dialog(chat, revoke=True)
         if not RSP:
