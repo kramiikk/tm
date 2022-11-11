@@ -36,8 +36,12 @@ class ikkMod(loader.Module):
         ):
             return
         reply = await m.get_reply_message()
-        id = m.text.split(" ", 2)[1] if not reply else str(reply.sender_id)
-        ids = (await self.client.get_entity(id)).id if not (id).isdigit() else id
+        i = m.text.split(" ", 2)[1]
+        ids = (
+            ((await self.client.get_entity(i)).id if not (i).isdigit() else i)
+            if not reply
+            else reply.sender_id
+        )
         chat = 5136727087
         cmn = f"/чек {ids}"
         txt = f"<b><a href='tg://user?id={ids}'>link</a>\n<a href='t.me/system_global_bot'>SGB:</b></a>"
@@ -55,8 +59,9 @@ class ikkMod(loader.Module):
         if not RSP:
             txt += "\n---"
         txt += f"\n{RSP.text}"
+        await asyncio.sleep(1)
         txt += "\n\n\n<a href='t.me/Biblootekabk'><b>Библиотека бк:</b></a>\n"
-        p = await self.client.get_messages(1584117978, search=ids)
+        p = await self.client.get_messages(1584117978, search=str(ids))
         if p.total == 0:
             txt += "---"
         else:
