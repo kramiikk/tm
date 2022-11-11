@@ -42,6 +42,7 @@ class ikkMod(loader.Module):
         cmn = f"/чек {ids}"
         txt = f"<b><a href='tg://user?id={ids}'>link</a>\n<a href='t.me/system_global_bot'>SGB:</b></a>"
         await self.err(chat, cmn)
+        await self.client.delete_dialog(chat, revoke=True)
         if not RSP:
             txt += "\n---"
         txt += f"\n{RSP.text}"
@@ -50,6 +51,7 @@ class ikkMod(loader.Module):
         cmn = f"/check {ids}"
         txt += "\n\n\n<a href='t.me/SSelestia_bot'><b>Stop Scam:</b></a>"
         await self.err(chat, cmn)
+        await self.client.delete_dialog(chat, revoke=True)
         if not RSP:
             txt += "\n---"
         txt += f"\n{RSP.text}"
