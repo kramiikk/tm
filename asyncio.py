@@ -36,7 +36,7 @@ class ikkMod(loader.Module):
         ):
             return
         reply = await m.get_reply_message()
-        id = m.text.split(" ", 2)[1] if not reply else reply.sender_id
+        id = m.text.split(" ", 2)[1] if not reply else str(reply.sender_id)
         ids = (await self.client.get_entity(id)).id if not (id).isdigit() else id
         chat = 5136727087
         cmn = f"/чек {ids}"
