@@ -55,4 +55,11 @@ class ikkMod(loader.Module):
         if not RSP:
             txt += "\n---"
         txt += f"\n{RSP.text}"
+        txt += "\n\n\n<a href='t.me/Biblootekabk'><b>Библиотека бк:</b></a>\n"
+        p = await self.client.get_messages(1584117978, search=ids)
+        if p.total == 0:
+            txt += "---"
+        else:
+            for i in p:
+                txt += i.text
         await m.edit(txt)
