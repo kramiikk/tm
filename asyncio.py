@@ -44,27 +44,25 @@ class ikkMod(loader.Module):
         )
         chat = 5136727087
         cmn = f"/чек {ids}"
-        txt = f"<b><a href='tg://user?id={ids}'>link</a>\n{i}\n<code>{ids}</code>\n\n<a href='t.me/system_global_bot'>SGB:</a></b>"
+        txt = f"<b>{i}\n<code>{ids}</code>\n\nSGB:</b>"
         await self.err(chat, cmn)
-        await self.client.delete_dialog(chat, revoke=True)
         if not RSP:
             txt += "\n---"
-        txt += f"\n{RSP.text}"
+        txt += f"\n{RSP.raw_text}"
         await asyncio.sleep(1)
         chat = 5390607371
         cmn = f"/check {ids}"
-        txt += "\n\n\n<a href='t.me/SSelestia_bot'><b>Stop Scam:</b></a>"
+        txt += "\n\n\n<b>SS:</b>"
         await self.err(chat, cmn)
-        await self.client.delete_dialog(chat, revoke=True)
         if not RSP:
             txt += "\n---"
-        txt += f"\n{RSP.text}"
+        txt += f"\n{RSP.raw_text}"
         await asyncio.sleep(1)
-        txt += "\n\n\n<a href='t.me/Biblootekabk'><b>Библиотека бк:</b></a>\n"
+        txt += "\n\n\n<b>БК:</b>\n"
         p = await self.client.get_messages(1584117978, search=str(ids))
         if p.total == 0:
-            txt += "---"
+            txt += "не в бане"
         else:
             for i in p:
-                txt += i.text
+                txt += i.raw_text
         await m.edit(txt)
