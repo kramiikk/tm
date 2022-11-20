@@ -1,5 +1,3 @@
-import asyncio
-
 from telethon.tl.types import Message
 
 from .. import loader
@@ -15,17 +13,6 @@ class ikkMod(loader.Module):
         """ready"""
         self.client = client
         self.db = db
-
-    async def err(self, chat, cmn):
-        """работа с ответом жабабота"""
-        try:
-            async with self.client.conversation(chat, exclusive=False) as conv:
-                await conv.send_message(cmn)
-                global RSP
-                RSP = await conv.get_response()
-                await conv.cancel_all()
-        except Exception:
-            pass
 
     async def watcher(self, m):
         """алко"""
@@ -48,18 +35,16 @@ class ikkMod(loader.Module):
             txt += ""
         else:
             txt += "<b>sgb:</b> ban\n\n"
-        await asyncio.sleep(1)
         p = await self.client.get_messages(1539778138, search=str(ids))
         if p.total == 0:
             txt += ""
         else:
             txt += "<b>ss:</b> ban\n\n"
-        await asyncio.sleep(1)
         p = await self.client.get_messages(1584117978, search=str(ids))
         if p.total == 0:
             txt += ""
         else:
             txt += "<b>bk:</b> ban\n"
         if "ban" not in txt:
-            txt += "ещё не слит"
+            txt += "нет в слитых"
         await m.edit(txt)
