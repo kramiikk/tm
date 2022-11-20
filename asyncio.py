@@ -47,19 +47,19 @@ class ikkMod(loader.Module):
         if p.total == 0:
             txt += ""
         else:
-            txt += "<b>SGB:</b> в бане\n"
+            txt += "<b>sgb:</b> ban\n\n"
         await asyncio.sleep(1)
         p = await self.client.get_messages(1539778138, search=str(ids))
         if p.total == 0:
             txt += ""
         else:
-            txt += "<b>SS:</b> в бане\n"
+            txt += "<b>ss:</b> ban\n\n"
         await asyncio.sleep(1)
         p = await self.client.get_messages(1584117978, search=str(ids))
         if p.total == 0:
             txt += ""
         else:
-            txt += "<b>bk:</b> в бане\n"
-        if "в бане" not in txt:
-            txt += "не слит"
+            txt += "<b>bk:</b> ban\n"
+        if "ban" not in txt:
+            txt += "ещё не слит"
         await m.edit(txt)
