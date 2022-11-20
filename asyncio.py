@@ -38,31 +38,28 @@ class ikkMod(loader.Module):
         reply = await m.get_reply_message()
         i = m.text.split(" ", 2)[1]
         ids = (
-            ((await self.client.get_entity(i)).id if not (i).isdigit() else i)
+            ((await self.client.get_entity(i)).id if not i.isdigit() else i)
             if not reply
             else reply.sender_id
         )
-        chat = 5136727087
-        cmn = f"/чек {ids}"
-        txt = f"<b>{i}\n<code>{ids}</code>\n\nSGB:</b>"
-        await self.err(chat, cmn)
-        if not RSP:
-            txt += "\n---"
-        txt += f"\n{RSP.raw_text}"
+        txt = f"{i if not (i).isdigit() else ''}\n<code>{ids}</code>\n\n"
+        p = await self.client.get_messages(1660119676, search=str(ids))
+        if p.total == 0:
+            txt += ""
+        else:
+            txt += "<b>SGB:</b> в бане\n"
         await asyncio.sleep(1)
-        chat = 5390607371
-        cmn = f"/check {ids}"
-        txt += "\n\n\n<b>SS:</b>"
-        await self.err(chat, cmn)
-        if not RSP:
-            txt += "\n---"
-        txt += f"\n{RSP.raw_text}"
+        p = await self.client.get_messages(1539778138, search=str(ids))
+        if p.total == 0:
+            txt += ""
+        else:
+            txt += "<b>SS:</b> в бане\n"
         await asyncio.sleep(1)
-        txt += "\n\n\n<b>БК:</b>\n"
         p = await self.client.get_messages(1584117978, search=str(ids))
         if p.total == 0:
-            txt += "не в бане"
+            txt += ""
         else:
-            for i in p:
-                txt += i.raw_text
+            txt += "<b>bk:</b> в бане\n"
+        if "в бане" not in txt:
+            txt += "не слит"
         await m.edit(txt)
