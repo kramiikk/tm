@@ -5,7 +5,7 @@ from telethon.tl.types import Message
 from .. import loader
 
 
-chat = [1857641810, 1545199233]
+chat = [1857641810, 1545199233, 1870072448]
 
 
 @loader.tds
