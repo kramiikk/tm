@@ -1,3 +1,5 @@
+import re
+
 from telethon.tl.types import Message
 
 from .. import loader
