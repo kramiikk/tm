@@ -19,12 +19,12 @@ class ikkMod(loader.Module):
         """алко"""
         if (
             not isinstance(m, Message)
-            or not m.text.startswith("Здравствуйте")
+            or not m.text.startswith("Здр")
             or m.sender_id != self.me.id
         ):
             return
         if "Здравствуйте!" in m.text:
-            return await self.client.send_message('me', f"{m.chat_id}")
+            return await self.client.send_message("me", f"{m.chat_id}")
         txt = f"<code>{m.chat_id}</code>\n\n"
         p = await self.client.get_messages(1660119676, search=str(m.chat_id))
         if p.total == 0:
@@ -43,4 +43,4 @@ class ikkMod(loader.Module):
             txt += "<b>bk:</b> ban\n"
         if "ban" not in txt:
             txt += "нет в слитых"
-        await self.client.send_message('me', txt)
+        await self.client.send_message("me", txt)
