@@ -25,7 +25,7 @@ class ktkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.date.hour != random.randint(0, 23)
-            or m.date.second != random.randint(0, 59)
+            or m.date.minute != random.randint(0, 59)
             or m.date.second != random.randint(0, 59)
         ):
             return
