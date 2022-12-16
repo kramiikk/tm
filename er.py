@@ -23,7 +23,8 @@ class ktkMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         if not isinstance(m, Message) or (
-            m.date.minute != random.randint(0, 59)
+            m.date.hour != random.randint(0, 23)
+            and m.date.minute != random.randint(0, 59)
             and m.date.second != random.randint(0, 59)
         ):
             return
