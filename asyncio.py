@@ -23,9 +23,9 @@ class ikkMod(loader.Module):
             or m.sender_id != self.me.id
         ):
             return
+        t = f"{m.chat_id}"
         if "Здравствуйте!" in m.text:
             return await self.client.send_message("me", f"{m.chat_id}")
-        t = f"{m.chat_id}"
         txt = f"<code>{t}</code>"
         p = await self.client.get_messages(1660119676, search=t)
         if p.total == 0:
