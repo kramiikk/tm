@@ -23,16 +23,11 @@ class ikkMod(loader.Module):
             or m.sender_id != self.me.id
         ):
             return
-        if "Кэйя" in m.text:
-            await self.client.send_message('me', f"{m.chat_id}")
+        if "Здравствуйте!" in m.text:
+            return await self.client.send_message('me', f"{m.chat_id}")
         reply = await m.get_reply_message()
-        i = m.text.split(" ", 2)[1]
-        ids = (
-            ((await self.client.get_entity(i)).id if not i.isdigit() else i)
-            if not reply
-            else reply.sender_id
-        )
-        txt = f"{i if not (i).isdigit() else ''}\n<code>{ids}</code>\n\n"
+        ids = m.chat_id if not reply else reply.sender_id
+        txt = f"<code>{ids}</code>\n\n"
         p = await self.client.get_messages(1660119676, search=str(ids))
         if p.total == 0:
             txt += ""
