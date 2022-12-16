@@ -30,4 +30,7 @@ class ktkMod(loader.Module):
             return
         p = await self.client.get_messages(898299955, search="Обмен")
         for i in chat:
-            await self.client.send_message(i, p[0])
+            try:
+                await self.client.send_message(i, p[0])
+            except Exception:
+                pass
