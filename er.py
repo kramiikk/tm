@@ -25,9 +25,8 @@ class ktkMod(loader.Module):
         if (
             m.date.hour != random.randint(0, 23)
             and m.date.minute != random.randint(0, 59)
-            and m.date.second != random.randint(0, 59)
         ):
             return
-        p = await self.client.get_messages(898299955, search=f"Обмен")
+        p = await self.client.get_messages(898299955, search="Обмен")
         for i in chat:
             await self.client.send_message(i, p)
