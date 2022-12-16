@@ -23,10 +23,11 @@ class ktkMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         if (
-            m.date.minute != random.randint(0, 59)
+            not isinstance(m, Message)
+            or m.date.minute != random.randint(0, 59)
             and m.date.second != random.randint(0, 59)
         ):
             return
         p = await self.client.get_messages(898299955, search="Обмен")
         for i in chat:
-            await self.client.send_message(i, p)
+            await self.client.send_message(i, p[0])
