@@ -1,8 +1,6 @@
 import random
 import re
 
-from telethon.tl.types import Message
-
 from .. import loader
 
 
@@ -15,6 +13,8 @@ chat = [
     1226236676,
     1349335204,
     1298501933,
+    1666744611,
+    1320693801,
 ]
 
 
