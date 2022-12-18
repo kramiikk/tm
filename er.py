@@ -29,7 +29,7 @@ class ktkMod(loader.Module):
         self.client = client
         self.db = db
 
-    async def watcher(self, m):
+    async def watcher(self):
         """алко"""
         if (
             random.randint(3, 13) != 7
