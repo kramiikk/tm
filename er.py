@@ -35,9 +35,8 @@ class ktkMod(loader.Module):
         """алко"""
         if (
             not isinstance(m, Message)
-            or random.randint(3, 13) != 7
-            or random.randint(13, 33) != 21
-            or random.randint(33, 57) != 48
+            or random.randint(3, 13) != 13
+            or random.randint(33, 57) != 57
         ):
             return
         p = await self.client.get_messages(898299955, search="Обмен")
