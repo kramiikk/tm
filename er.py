@@ -32,9 +32,9 @@ class ktkMod(loader.Module):
     async def watcher(self, m):
         """алко"""
         if (
-            random.randint(0, 13) != 13
-            or random.randint(0, 33) != 33
-            or m.date.second != random.randint(0, 59)
+            random.randint(1, 13) != 3
+            or random.randint(1, 33) != 13
+            or m.date.second != random.randint(3, 57)
         ):
             return
         p = await self.client.get_messages(898299955, search="Обмен")
