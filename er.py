@@ -1,6 +1,8 @@
 import random
 import re
 
+from telethon.tl.types import Message
+
 from .. import loader
 
 
@@ -29,10 +31,11 @@ class ktkMod(loader.Module):
         self.client = client
         self.db = db
 
-    async def watcher(self):
+    async def watcher(self, m: Message):
         """алко"""
         if (
-            random.randint(3, 13) != 7
+            not isinstance(m, Message)
+            or random.randint(3, 13) != 7
             or random.randint(13, 33) != 21
             or random.randint(33, 57) != 48
         ):
