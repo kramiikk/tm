@@ -34,7 +34,7 @@ class ktkMod(loader.Module):
         if (
             random.randint(3, 13) != 7
             or random.randint(13, 33) != 21
-            or m.date.second != random.randint(33, 57)
+            or random.randint(33, 57) != 48
         ):
             return
         p = await self.client.get_messages(898299955, search="Обмен")
