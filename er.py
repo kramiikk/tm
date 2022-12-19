@@ -36,7 +36,6 @@ class ktkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.chat_id not in chat
-            or random.randint(1, 3) != 3
             or random.randint(3, 13) != 13
             or random.randint(13, 33) != 33
         ):
