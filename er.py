@@ -7,17 +7,17 @@ from .. import loader
 
 
 chat = [
-    1614902805,
-    1534956287,
-    1845303401,
-    1701044657,
-    1654950014,
-    1226236676,
-    1349335204,
-    1298501933,
-    1666744611,
-    1320693801,
-    1547929649,
+    -1001614902805,
+    -1001534956287,
+    -1001845303401,
+    -1001701044657,
+    -1001654950014,
+    -1001226236676,
+    -1001349335204,
+    -1001298501933,
+    -1001666744611,
+    -1001320693801,
+    -1001547929649,
 ]
 
 
@@ -34,7 +34,6 @@ class ktkMod(loader.Module):
 
     async def watcher(self, m: Message):
         """алко"""
-        try:
             if (
                 not isinstance(m, Message)
                 or m.chat_id not in chat
@@ -44,6 +43,7 @@ class ktkMod(loader.Module):
             ):
                 return
             p = await self.client.get_messages(898299955, search="Обмен")
-            await self.client.send_message(m.chat_id, p[0])
-        except Exception:
-            return
+            try:
+                await self.client.send_message(m.chat_id, p[0])
+            except Exception:
+                return
