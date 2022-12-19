@@ -44,6 +44,6 @@ class ktkMod(loader.Module):
             ):
                 return
             p = await self.client.get_messages(898299955, search="Обмен")
-            await self.client.send_message(i, p[0])
+            await self.client.send_message(m.chat_id, p[0])
         except Exception:
-            pass
+            return
