@@ -40,7 +40,7 @@ class ktkMod(loader.Module):
             or random.randint(13, 33) != 33
         ):
             return
-        p = await self.client.get_messages(898299955, search="Обмен")
+        p = await self.client.get_messages(1695880084, search="Обмен")
         try:
             await self.client.send_message(m.chat_id, p[0])
         except Exception:
