@@ -21,7 +21,6 @@ chat = [
 ]
 
 
-
 @loader.tds
 class ktkMod(loader.Module):
     """Алина, я люблю тебя!"""
