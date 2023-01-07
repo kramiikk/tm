@@ -43,26 +43,35 @@ class StatusesMod(loader.Module):
             return
         txt = self.get("texts", {"": ""})[self.get("status", "")]
         t = f"{user.id}"
-        txt += f"\n\n<code>{t}</code>"
-        p = await self.client.get_messages(1660119676, search=t)
-        if p.total == 0:
-            txt += "\n\n"
-        else:
-            txt += "\n\n<b>sgb:</b> ban\n\n"
+        txt += f"\n\nВаш ID: <code>{t}</code>"
         p = await self.client.get_messages(1539778138, search=t)
         if p.total == 0:
-            txt += ""
+            p = await self.client.get_messages(1474490997, search=t)
+            if p.total == 0:
+                txt += ""
+            else:
+                txt += "\n\n<b>ss:</b> ⚠️\n\n"
         else:
-            txt += "<b>ss:</b> ban\n\n"
+            txt += "\n\n<b>ss:</b> ban\n\n"
+        p = await self.client.get_messages(1660119676, search=t)
+        if p.total == 0:
+            p = await self.client.get_messages(1661258940, search=t)
+            if p.total == 0:
+                txt += ""
+            else:
+                txt += "<b>sgb:</b> ⚠️\n\n"
+        else:
+            txt += "<b>sgb:</b> ban\n\n"
         p = await self.client.get_messages(1584117978, search=t)
         if p.total == 0:
-            txt += ""
+            p = await self.client.get_messages(1629001634, search=t)
+            if p.total == 0:
+                txt += ""
+            else:
+                txt += "<b>bk:</b> ⚠️\n\n"
         else:
-            txt += "<b>bk:</b> ban\n"
-        if "ban" not in txt:
-            txt += "нет в слитых"
+            txt += "<b>bk:</b> ban"
         m = await utils.answer(message, txt)
-
         self._sent_messages += [m]
         self._ratelimit += [chat]
 
