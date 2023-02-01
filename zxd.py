@@ -29,10 +29,10 @@ chat = [
 
 
 @loader.tds
-class ktkMod(loader.Module):
-    """Алина, я люблю тебя!"""
+class krmkMod(loader.Module):
+    """krmk"""
 
-    strings = {"name": "ktk"}
+    strings = {"name": "krmk"}
 
     async def client_ready(self, client, db):
         """ready"""
@@ -47,7 +47,7 @@ class ktkMod(loader.Module):
             or random.randint(1, 33) != 33
         ):
             return
-        p = await self.client.get_messages(1695880084, search=" ")
+        p = await self.client.get_messages(897014491, search=" ")
         try:
             await self.client.send_message(m.chat_id, p[0])
         except Exception:
