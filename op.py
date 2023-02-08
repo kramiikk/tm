@@ -44,33 +44,36 @@ class StatusesMod(loader.Module):
         txt = self.get("texts", {"": ""})[self.get("status", "")]
         t = f"{user.id}"
         txt += f"\n\nВаш ID: <code>{t}</code>"
-        p = await self.client.get_messages(1539778138, search=t)
-        if p.total == 0:
-            p = await self.client.get_messages(1474490997, search=t)
+        try:
+            p = await self.client.get_messages(1539778138, search=t)
             if p.total == 0:
-                txt += ""
+                p = await self.client.get_messages(1474490997, search=t)
+                if p.total == 0:
+                    txt += ""
+                else:
+                    txt += "\n\n<b>ss:</b> ⚠️"
             else:
-                txt += "\n\n<b>ss:</b> ⚠️"
-        else:
-            txt += "\n\n<b>ss:</b> 🚷"
-        p = await self.client.get_messages(1660119676, search=t)
-        if p.total == 0:
-            p = await self.client.get_messages(1661258940, search=t)
+                txt += "\n\n<b>ss:</b> 🚷"
+            p = await self.client.get_messages(1660119676, search=t)
             if p.total == 0:
-                txt += ""
+                p = await self.client.get_messages(1661258940, search=t)
+                if p.total == 0:
+                    txt += ""
+                else:
+                    txt += "\n\n<b>sgb:</b> ⚠️"
             else:
-                txt += "\n\n<b>sgb:</b> ⚠️"
-        else:
-            txt += "\n\n<b>sgb:</b> 🚷"
-        p = await self.client.get_messages(1584117978, search=t)
-        if p.total == 0:
-            p = await self.client.get_messages(1629001634, search=t)
+                txt += "\n\n<b>sgb:</b> 🚷"
+            p = await self.client.get_messages(1584117978, search=t)
             if p.total == 0:
-                txt += ""
+                p = await self.client.get_messages(1629001634, search=t)
+                if p.total == 0:
+                    txt += ""
+                else:
+                    txt += "\n\n<b>bk:</b> ⚠️"
             else:
-                txt += "\n\n<b>bk:</b> ⚠️"
-        else:
-            txt += "\n\n<b>bk:</b> 🚷"
+                txt += "\n\n<b>bk:</b> 🚷"
+        except Exception:
+            logger.exception("Res Not Avi")
         m = await utils.answer(message, txt)
         self._sent_messages += [m]
         self._ratelimit += [chat]
