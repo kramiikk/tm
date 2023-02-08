@@ -24,24 +24,20 @@ class ikkMod(loader.Module):
         ):
             return
         t = f"{m.chat_id}"
+        r = (1660119676, 1539778138, 1584117978)
         if "Здравствуйте!" in m.text:
             return await self.client.send_message("me", f"{m.chat_id}")
         txt = f"<code>{t}</code>"
-        p = await self.client.get_messages(1660119676, search=t)
-        if p.total == 0:
-            txt += "\n\n"
-        else:
-            txt += "\n\n<b>sgb:</b> ban\n\n"
-        p = await self.client.get_messages(1539778138, search=t)
-        if p.total == 0:
-            txt += ""
-        else:
-            txt += "<b>ss:</b> ban\n\n"
-        p = await self.client.get_messages(1584117978, search=t)
-        if p.total == 0:
-            txt += ""
-        else:
-            txt += "<b>bk:</b> ban\n"
-        if "ban" not in txt:
-            txt += "нет в слитых"
+        for i in r:
+            if i == 1660119676:
+                n = "sgb"
+            elif i == 1539778138:
+                n = "ss"
+            else:
+                n = "bk"
+            p = await self.client.get_messages(i, search=t)
+            if p.total == 0:
+                txt += "\n\n"
+            else:
+                txt += f"\n\n<b>{n}:</b> ban\n\n"
         await self.client.send_message("me", txt)

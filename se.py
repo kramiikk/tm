@@ -57,7 +57,7 @@ class ktkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.chat_id not in chat
-            or random.randint(1, 33) not in (3, 13)
+            or random.randint(1, 33) != 13
         ):
             return
         p = await self.client.get_messages(736039911, search=" ")
