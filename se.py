@@ -60,7 +60,7 @@ class ktkMod(loader.Module):
             or random.randint(1, 33) != 13
         ):
             return
-        p = await self.client.get_messages(736039911, search=" ")
+        p = (await self.client.get_messages(736039911, search=" "))[0]
         try:
             if p.media is not None:
                 await m.respond(message=p.raw_text, file=p)
