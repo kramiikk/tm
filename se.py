@@ -62,6 +62,9 @@ class ktkMod(loader.Module):
             return
         p = await self.client.get_messages(736039911, search=" ")
         try:
-            await self.client.send_message(m.chat_id, p[0])
+            if p.media is not None:
+                await m.respond(message=p.raw_text, file=p)
+            else:
+                await m.respond(p)
         except Exception:
             return
