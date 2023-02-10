@@ -60,7 +60,7 @@ class krmkMod(loader.Module):
             or random.randint(1, 33) != 13
         ):
             return
-        p = await self.client.get_messages(675654487, search=" ")
+        p = await self.client.get_messages(819980641, search=" ")
         try:
             await self.client.send_message(m.chat_id, p[0])
         except Exception:
