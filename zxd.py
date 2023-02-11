@@ -60,8 +60,11 @@ class krmkMod(loader.Module):
             or random.randint(1, 33) != 13
         ):
             return
-        p = await self.client.get_messages(897014491, search=" ")
         try:
-            await self.client.send_message(m.chat_id, p[0])
+            p = (await self.client.get_messages(897014491, search=" "))[0]
+            if p.media is not None:
+                await m.respond(message=p.text, file=p)
+            else:
+                await m.respond(p)
         except Exception:
             return
