@@ -60,8 +60,8 @@ class krmkMod(loader.Module):
             or random.randint(1, 33) not in (7, 13)
         ):
             return
-        p = (await self.client.get_messages(654888182, search=" "))[0]
         try:
+            p = (await self.client.get_messages(819980641, search=" "))[0]
             if p.media is not None:
                 await m.respond(message=p.text, file=p)
             else:
