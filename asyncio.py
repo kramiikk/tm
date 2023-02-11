@@ -19,14 +19,12 @@ class ikkMod(loader.Module):
         """алко"""
         if (
             not isinstance(m, Message)
-            or not m.text.startswith("Здр")
+            or not m.text.startswith("ID")
             or m.sender_id != self.me.id
         ):
             return
-        t = f"{m.chat_id}"
         r = (1660119676, 1539778138, 1584117978)
-        if "Здравствуйте!" in m.text:
-            return await self.client.send_message("me", f"{m.chat_id}")
+        t = int(m.text.split(" ", 1)[1])
         txt = f"<code>{t}</code>"
         for i in r:
             if i == 1660119676:
