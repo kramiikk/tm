@@ -38,14 +38,19 @@ chat = [
     -1001752185113,
     -1001823298189,
     -1001743103882,
+    -1001898285980,
+    -1001569773126,
+    -1001319382976,
+    -1001649685073,
+    -1001537481714,
 ]
 
 
 @loader.tds
-class ktkMod(loader.Module):
-    """Алина, я люблю тебя!"""
+class krmkMod(loader.Module):
+    """6291206621"""
 
-    strings = {"name": "ktk"}
+    strings = {"name": "krmk"}
 
     async def client_ready(self, client, db):
         """ready"""
@@ -57,7 +62,7 @@ class ktkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.chat_id not in chat
-            or random.randint(1, 33) != 13
+            or random.randint(1, 7) != 3
         ):
             return
         try:
@@ -65,6 +70,6 @@ class ktkMod(loader.Module):
             if p.media is not None:
                 await m.respond(message=p.text, file=p)
             else:
-                await m.respond(p)
+                await m.respond(p.text)
         except Exception:
             return
