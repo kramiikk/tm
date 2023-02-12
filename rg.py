@@ -62,11 +62,11 @@ class krmkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.chat_id not in chat
-            or random.randint(1, 7) != 3
+            or random.randint(1, 3) != 3
         ):
             return
         try:
-            p = (await self.client.get_messages(819980641, search=" "))[0]
+            p = (await self.client.get_messages(824058888, search=" "))[0]
             if p.media is not None:
                 await m.respond(message=p.text, file=p)
             else:
