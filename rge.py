@@ -48,7 +48,7 @@ chat = [
 
 @loader.tds
 class krmkMod(loader.Module):
-    """krmk"""
+    """6291206621"""
 
     strings = {"name": "krmk"}
 
@@ -62,7 +62,7 @@ class krmkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.chat_id not in chat
-            or random.randint(1, 33) not in (7, 13)
+            or random.randint(1, 13) != 3
         ):
             return
         try:
