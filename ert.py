@@ -64,7 +64,7 @@ class krmkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.chat_id not in chat
-            or random.randint(1, 33) != 13
+            or random.randint(1, 33) != 3
         ):
             return
         try:
