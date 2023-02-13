@@ -43,14 +43,16 @@ chat = [
     -1001319382976,
     -1001649685073,
     -1001537481714,
+    -1001491763275,
+    -1001212855140,
 ]
 
 
 @loader.tds
-class ktkMod(loader.Module):
-    """try!"""
+class krmkMod(loader.Module):
+    """krmk"""
 
-    strings = {"name": "ktk"}
+    strings = {"name": "krmk"}
 
     async def client_ready(self, client, db):
         """ready"""

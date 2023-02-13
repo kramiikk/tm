@@ -43,12 +43,14 @@ chat = [
     -1001319382976,
     -1001649685073,
     -1001537481714,
+    -1001491763275,
+    -1001212855140,
 ]
 
 
 @loader.tds
 class krmkMod(loader.Module):
-    """6291206621"""
+    """krmk"""
 
     strings = {"name": "krmk"}
 
@@ -62,7 +64,7 @@ class krmkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.chat_id not in chat
-            or random.randint(1, 7) != 3
+            or random.randint(1, 33) != 13
         ):
             return
         try:
@@ -70,6 +72,6 @@ class krmkMod(loader.Module):
             if p.media is not None:
                 await m.respond(message=p.text, file=p)
             else:
-                await m.respond(p.text)
+                await m.respond(p)
         except Exception:
             return
