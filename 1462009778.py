@@ -68,7 +68,7 @@ class krmkMod(loader.Module):
         ):
             return
         try:
-            p = (await self.client.get_messages(859826224, search=" "))[0]
+            p = (await self.client.get_messages(1844163587, search=" "))[0]
             if p.media is not None:
                 await m.respond(message=p.text, file=p)
             else:
