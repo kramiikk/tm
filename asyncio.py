@@ -35,7 +35,7 @@ class ikkMod(loader.Module):
                 n = "bk"
             p = await self.client.get_messages(i, search=t)
             if p.total == 0:
-                txt += "\n\n"
+                txt += ""
             else:
-                txt += f"\n\n<b>{n}:</b> ban\n\n"
+                txt += f" <b>{n}:</b> ban"
         await self.client.send_message("me", txt)
