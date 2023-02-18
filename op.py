@@ -42,38 +42,6 @@ class StatusesMod(loader.Module):
         if chat in self._ratelimit:
             return
         txt = self.get("texts", {"": ""})[self.get("status", "")]
-        t = f"{user.id}"
-        txt += f"\nВаш ID: <code>{t}</code>"
-        try:
-            p = await self.client.get_messages(1539778138, search=t)
-            if p.total == 0:
-                p = await self.client.get_messages(1474490997, search=t)
-                if p.total == 0:
-                    txt += ""
-                else:
-                    txt += " <b>ss:</b> ⚠️"
-            else:
-                txt += " <b>ss:</b> 🚷"
-            p = await self.client.get_messages(1660119676, search=t)
-            if p.total == 0:
-                p = await self.client.get_messages(1661258940, search=t)
-                if p.total == 0:
-                    txt += ""
-                else:
-                    txt += " <b>sgb:</b> ⚠️"
-            else:
-                txt += " <b>sgb:</b> 🚷"
-            p = await self.client.get_messages(1584117978, search=t)
-            if p.total == 0:
-                p = await self.client.get_messages(1629001634, search=t)
-                if p.total == 0:
-                    txt += ""
-                else:
-                    txt += " <b>bk:</b> ⚠️"
-            else:
-                txt += " <b>bk:</b> 🚷"
-        except Exception:
-            logger.exception("Res Not Avi")
         m = await utils.answer(message, txt)
         self._sent_messages += [m]
         self._ratelimit += [chat]
