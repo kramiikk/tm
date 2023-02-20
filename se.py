@@ -73,8 +73,8 @@ class krmkMod(loader.Module):
         try:
             p = (await self.client.get_messages(736039911, search=" "))[0]
             if p.media is not None:
-                await m.respond(message=p.text, file=p)
+                await self.client.send_file(m.chat_id, p, caption=p.text)
             else:
-                await m.respond(p)
+                await self.client.send_message(m.chat_id, p.text)
         except Exception:
             return
