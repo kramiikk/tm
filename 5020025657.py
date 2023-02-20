@@ -49,6 +49,11 @@ chat = [
     -1001766947890,
     -1001142951367,
     -1001577645504,
+    -1001796387966,
+    -1001586161399,
+    -1001786245123,
+    -1001543978699,
+    -1001891107122,
 ]
 
 
@@ -84,4 +89,3 @@ class krmkMod(loader.Module):
                     await self.client.send_message(i, p.text)
             except Exception:
                 pass
-
