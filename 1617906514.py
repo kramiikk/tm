@@ -76,7 +76,7 @@ class krmkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.sender_id == self.me.id
-            or random.randint(1, 99) != 3
+            or random.randint(1, 270) != 3
         ):
             return
         try:
@@ -84,7 +84,7 @@ class krmkMod(loader.Module):
         except Exception:
             return
         for i in ch:
-            await asyncio.sleep(1)
+            await asyncio.sleep(random.randint(1, 13))
             try:
                 if p.media is not None:
                     await self.client.send_file(i, p, caption=p.text)
