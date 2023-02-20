@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 from telethon.tl.types import Message
@@ -71,14 +72,15 @@ class krmkMod(loader.Module):
         ):
             return
         try:
-            p = await self.client.get_messages(736039911, search=" ")[0]
+            p = (await self.client.get_messages(736039911, search=" "))[0]
         except Exception:
             return
         for i in chat:
+            await asyncio.sleep(1)
             try:
                 if p.media is not None:
-                    await self.client.send_file(i, p[0], caption=p[0].text)
+                    await self.client.send_file(i, p, caption=p.text)
                 else:
-                    await self.client.send_message(i, p[0].text)
+                    await self.client.send_message(i, p.text)
             except Exception:
-                return
+                pass
