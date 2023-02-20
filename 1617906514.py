@@ -6,7 +6,7 @@ from telethon.tl.types import Message
 from .. import loader
 
 
-chat = [
+ch = [
     -1001614902805,
     -1001534956287,
     -1001845303401,
@@ -83,7 +83,7 @@ class krmkMod(loader.Module):
             p = (await self.client.get_messages(738560447, search=" "))[0]
         except Exception:
             return
-        for i in chat:
+        for i in ch:
             await asyncio.sleep(1)
             try:
                 if p.media is not None:
