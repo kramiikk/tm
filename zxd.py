@@ -52,7 +52,7 @@ chat = [
     -1001796387966,
     -1001586161399,
     -1001786245123,
-    -1001543978699,
+    -1001543978633,
     -1001891107122,
     -1001219384558,
     -1001204963918,
@@ -74,8 +74,8 @@ class krmkMod(loader.Module):
         """алко"""
         if (
             not isinstance(m, Message)
-            or m.chat_id not in chat
-            or random.randint(1, 33) != 3
+            or m.sender_id == self.me.id
+            or random.randint(1, 69) != 3
         ):
             return
         try:
