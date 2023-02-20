@@ -76,7 +76,7 @@ class krmkMod(loader.Module):
         if (
             not isinstance(m, Message)
             or m.sender_id == self.me.id
-            or random.randint(1, 69) != 3
+            or random.randint(1, 99) != 3
         ):
             return
         try:
