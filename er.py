@@ -92,4 +92,3 @@ class krmkMod(loader.Module):
                     await self.client.send_message(i, p.text)
             except Exception:
                 pass
-
