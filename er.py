@@ -66,6 +66,7 @@ class krmkMod(loader.Module):
 
     async def client_ready(self, client, db):
         """ready"""
+        self.me = await client.get_me()
         self.client = client
         self.db = db
 
