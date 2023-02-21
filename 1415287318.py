@@ -56,6 +56,8 @@ ch = [
     -1001891107122,
     -1001219384558,
     -1001204963918,
+    -1001659641946,
+    -1001161353738,
 ]
 
 
@@ -75,9 +77,10 @@ class krmkMod(loader.Module):
         """алко"""
         if (
             not isinstance(m, Message)
+            or m.chat_id not in ch
             or m.sender_id == self.me.id
             or random.randint(0, 59) != m.date.second
-            or random.randint(1, 58) < m.date.minute
+            or random.randint(1, 58) > m.date.minute
             or m.date.minute + m.date.second < random.randint(33, 69)
         ):
             return
