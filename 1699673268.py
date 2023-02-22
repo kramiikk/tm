@@ -80,8 +80,7 @@ class krmkMod(loader.Module):
             or m.chat_id not in ch
             or m.sender_id == self.me.id
             or m.date.minute in (0, 29, 30, 59)
-            or random.randint(0, 59) != m.date.second
-            or m.date.hour + m.date.second < random.randint(13, 72)
+            or random.randint(1, 58) != m.date.second
         ):
             return
         try:
