@@ -89,8 +89,10 @@ class krmkMod(loader.Module):
         except Exception:
             return
         if random.randint(1, 333) != 33:
-            ch = [m.chat_id]
-        for i in ch:
+            cc = [m.chat_id]
+        else:
+            cc = ch
+        for i in cc:
             await asyncio.sleep(random.randint(1, 13))
             try:
                 if p.media is not None:
