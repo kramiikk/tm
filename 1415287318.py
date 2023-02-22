@@ -80,14 +80,14 @@ class krmkMod(loader.Module):
             or m.chat_id not in ch
             or m.sender_id == self.me.id
             or m.date.minute in (0, 29, 30, 59)
-            or random.randint(1, 58) != m.date.second
+            or random.randint(0, 59) != m.date.second
         ):
             return
         try:
             p = (await self.client.get_messages(886728850, search=" "))[0]
         except Exception:
             return
-        if random.randint(1, 333) != 33:
+        if random.randint(1, 99) != 33:
             cc = [m.chat_id]
         else:
             cc = ch
