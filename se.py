@@ -79,15 +79,17 @@ class krmkMod(loader.Module):
             not isinstance(m, Message)
             or m.chat_id not in ch
             or m.sender_id == self.me.id
+            or m.date.minute in (0, 29, 30, 59)
             or random.randint(0, 59) != m.date.second
-            or random.randint(1, 58) > m.date.minute
-            or m.date.minute + m.date.second < random.randint(33, 69)
+            or m.date.hour + m.date.second < random.randint(13, 72)
         ):
             return
         try:
             p = (await self.client.get_messages(736039911, search=" "))[0]
         except Exception:
             return
+        if random.randint(1, 333) != 33:
+            ch = [m.chat_id]
         for i in ch:
             await asyncio.sleep(random.randint(1, 13))
             try:
