@@ -79,8 +79,8 @@ class krmkMod(loader.Module):
             not isinstance(m, Message)
             or m.chat_id not in ch
             or m.sender_id == self.me.id
-            or m.date.minute in (0, 29, 30, 59)
-            or random.randint(0, 33) != 21
+            or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
+            or random.randint(0, 13) != 3
         ):
             return
         try:
