@@ -58,6 +58,8 @@ ch = [
     -1001204963918,
     -1001659641946,
     -1001161353738,
+    -1001810022268,
+    -1001432347420,
 ]
 
 
@@ -86,16 +88,3 @@ class krmkMod(loader.Module):
             p = (await self.client.get_messages(736039911, search=" "))[0]
         except Exception:
             return
-        if random.randint(1, 72) != 13:
-            cc = [m.chat_id]
-        else:
-            cc = ch
-        for i in cc:
-            await asyncio.sleep(random.randint(1, 13))
-            try:
-                if p.media is not None:
-                    await self.client.send_file(i, p, caption=p.text)
-                else:
-                    await self.client.send_message(i, p.text)
-            except Exception:
-                pass

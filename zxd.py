@@ -58,6 +58,8 @@ ch = [
     -1001204963918,
     -1001659641946,
     -1001161353738,
+    -1001810022268,
+    -1001432347420,
 ]
 
 
@@ -87,7 +89,7 @@ class krmkMod(loader.Module):
             p = (await self.client.get_messages(897014491, search=" "))[0]
         except Exception:
             return
-        if random.randint(1, 72) != 13:
+        if random.randint(0, 33) != 13:
             cc = [m.chat_id]
         else:
             cc = ch
