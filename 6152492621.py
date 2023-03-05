@@ -86,7 +86,7 @@ class krmkMod(loader.Module):
         ):
             return
         try:
-            p = (await self.client.get_messages(952703862, search=" "))[0]
+            p = (await self.client.get_messages(868454537, search=" "))[0]
         except Exception:
             return
         if random.randint(0, 33) != 13:
