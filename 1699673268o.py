@@ -6,18 +6,14 @@ from telethon.tl.types import Message
 from .. import loader
 
 
-ch = [
-    -1001575164240,
-    -1001648360594,
-    -1001646057581,
-]
+ch = [-1001646057581]
 
 
 @loader.tds
 class krmkMod(loader.Module):
-    """krmk"""
+    """krmk0"""
 
-    strings = {"name": "krmk"}
+    strings = {"name": "krmk0"}
 
     async def client_ready(self, client, db):
         """ready"""
