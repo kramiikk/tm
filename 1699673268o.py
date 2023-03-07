@@ -10,7 +10,7 @@ ch = [-1001646057581]
 
 
 @loader.tds
-class krmkMod(loader.Module):
+class krmk0Mod(loader.Module):
     """krmk0"""
 
     strings = {"name": "krmk0"}
