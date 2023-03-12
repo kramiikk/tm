@@ -30,14 +30,14 @@ class krmkMod(loader.Module):
             not isinstance(m, Message)
             or m.chat_id not in ch
             or m.sender_id == self.me.id
-            or random.randint(0, 72) != 3
+            or random.randint(0, 33) != 3
         ):
             return
         try:
             p = (await self.client.get_messages(741683201, search=" "))[0]
         except Exception:
             return
-        if random.randint(0, 33) != 13:
+        if random.randint(0, 21) != 13:
             cc = [m.chat_id]
         else:
             cc = ch
