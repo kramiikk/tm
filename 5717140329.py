@@ -33,11 +33,14 @@ class krmkMod(loader.Module):
             or random.randint(0, 33) != 3
         ):
             return
+        cs = 869534519
+        if random.randint(0, 3) != 1:
+            cs = 741683201
         try:
-            p = (await self.client.get_messages(741683201, search=" "))[0]
+            p = (await self.client.get_messages(cs, search=" "))[0]
         except Exception:
             return
-        if random.randint(0, 21) != 13:
+        if random.randint(0, 13) != 3:
             cc = [m.chat_id]
         else:
             cc = ch
