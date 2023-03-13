@@ -27,18 +27,14 @@ class krmk0Mod(loader.Module):
             not isinstance(m, Message)
             or m.chat_id not in ch
             or m.sender_id == self.me.id
-            or random.randint(0, 21) != 3
+            or random.randint(0, 33) != 3
         ):
             return
         try:
             p = (await self.client.get_messages(862023922, search=" "))[0]
         except Exception:
             return
-        if random.randint(0, 33) != 13:
-            cc = [m.chat_id]
-        else:
-            cc = ch
-        for i in cc:
+        for i in ch:
             await asyncio.sleep(random.randint(1, 13))
             try:
                 if p.media is not None:
