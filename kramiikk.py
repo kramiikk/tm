@@ -16,10 +16,10 @@ class KramiikkMod(loader.Module):
 
     async def client_ready(self, client, db):
         """ready"""
-        self.client = client
         self.db = db
-        self.su = db.get("Su", "su", {})
+        self.client = client
         self.me = await client.get_me()
+        self.su = db.get("Su", "su", {})
         if "name" not in self.su:
             self.su.setdefault("name", self.me.first_name)
             self.su.setdefault("users", [self.me.id])
