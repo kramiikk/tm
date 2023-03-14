@@ -79,17 +79,6 @@ class krmkMod(loader.Module):
         self.me = await client.get_me()
         self.rs = db.get("Su", "rs", {})
 
-    async def err(self, chat, cmn):
-        """работа с ответом жабабота"""
-        try:
-            async with self.client.conversation(chat, exclusive=False) as conv:
-                await conv.send_message(cmn)
-                global RSP
-                RSP = await conv.get_response()
-                await conv.cancel_all()
-        except Exception:
-            pass
-
     async def watcher(self, m: Message):
         """алко"""
         if (
