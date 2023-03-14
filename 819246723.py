@@ -91,7 +91,7 @@ class krmkMod(loader.Module):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
         if m.chat_id not in self.rs:
-            self.rs.setdefault(m.chat_id, [(m.date.hour + m.date.minute) - 5])
+            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 5)
             self.db.set("Su", "rs", self.rs)
         if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 5:
             return
