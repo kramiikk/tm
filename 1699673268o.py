@@ -28,14 +28,15 @@ class krmk0Mod(loader.Module):
             not isinstance(m, Message)
             or m.chat_id not in ch
             or m.sender_id == self.me.id
+            or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
             or random.randint(0, 21) != 3
         ):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
         if m.chat_id not in self.rs:
-            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 5)
+            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 15)
             self.db.set("Su", "rs", self.rs)
-        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 5:
+        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 15:
             return
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Su", "rs", self.rs)
