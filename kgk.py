@@ -20,4 +20,4 @@ class kgkMod(loader.Module):
             or m.sender_id != -1001920586126
         ):
             return
-        await utils.answer(m, "!ban")
+        await m.reply("!ban")
