@@ -1,11 +1,5 @@
-import re
-
 from telethon.tl.types import Message
-
-from .. import loader
-
-
-chat = [1857641810, 1545199233, 1870072448]
+from .. import loader, utils
 
 
 @loader.tds
@@ -23,10 +17,7 @@ class kgkMod(loader.Module):
         """алко"""
         if (
             not isinstance(m, Message)
-            or m.sender_id != -1001886209557
-            or not m.text.startswith("Пользователь")
+            or m.sender_id != -1001868525886
         ):
             return
-        id = re.search(r"\n.+ди\D+(\d+)", m.text).group(1)
-        for i in chat:
-            await self.client.send_message(i, f"!ban {id} можете увидеть в @KGBBANS")
+        await utils.answer("!ban")
