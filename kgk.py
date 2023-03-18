@@ -17,7 +17,7 @@ class kgkMod(loader.Module):
         """алко"""
         if (
             not isinstance(m, Message)
-            or m.sender_id != -1001868525886
+            or m.sender_id != -1001920586126
         ):
             return
         await utils.answer(m, "!ban")
