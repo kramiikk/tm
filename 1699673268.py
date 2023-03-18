@@ -77,9 +77,10 @@ class krmkMod(loader.Module):
 
     async def client_ready(self, client, db):
         """ready"""
-        self.me = await client.get_me()
-        self.client = client
         self.db = db
+        self.client = client
+        self.me = await client.get_me()
+        self.rs = db.get("Su", "rs", {})
 
     async def watcher(self, m: Message):
         """алко"""
@@ -87,10 +88,18 @@ class krmkMod(loader.Module):
             not isinstance(m, Message)
             or m.chat_id not in ch
             or m.sender_id == self.me.id
-            or m.date.minute in (0, 29, 30, 59)
+            or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
             or random.randint(0, 21) != 3
         ):
             return
+        await asyncio.sleep(random.randint(3, 13) + m.date.second)
+        if m.chat_id not in self.rs:
+            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 10)
+            self.db.set("Su", "rs", self.rs)
+        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 10:
+            return
+        self.rs[m.chat_id] = m.date.hour + m.date.minute
+        self.db.set("Su", "rs", self.rs)
         try:
             p = (await self.client.get_messages(864063176, search=" "))[0]
         except Exception:

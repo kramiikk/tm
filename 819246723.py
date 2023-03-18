@@ -92,7 +92,14 @@ class krmkMod(loader.Module):
             or random.randint(0, 21) != 3
         ):
             return
-
+        await asyncio.sleep(random.randint(3, 13) + m.date.second)
+        if m.chat_id not in self.rs:
+            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 10)
+            self.db.set("Su", "rs", self.rs)
+        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 10:
+            return
+        self.rs[m.chat_id] = m.date.hour + m.date.minute
+        self.db.set("Su", "rs", self.rs)
         try:
             p = (await self.client.get_messages(804338273, search=" "))[0]
         except Exception:
