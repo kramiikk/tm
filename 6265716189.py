@@ -66,6 +66,9 @@ ch = [
     -1001257002272,
     -1001528652715,
     -1001834328505,
+    -1001987562545,
+    -1001932898997,
+    -1001398331955,
 ]
 
 
@@ -94,9 +97,9 @@ class krmkMod(loader.Module):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
         if m.chat_id not in self.rs:
-            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 10)
+            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 5)
             self.db.set("Su", "rs", self.rs)
-        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 10:
+        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 5:
             return
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Su", "rs", self.rs)
