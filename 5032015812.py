@@ -149,8 +149,6 @@ class KramiikkMod(loader.Module):
                 if msg in ("карту", "лидерку"):
                     return await m.reply(self.ded[msg])
                 await m.respond(self.ded[msg])
-        if not m.text.casefold().startswith("Eronimo"):
-            return
         await asyncio.sleep(random.randint(0, 1 + (ct.microsecond % 100)) + ct.minute)
         if "minute" not in self.su:
             self.su.setdefault("minute", ct.hour + ct.minute)
