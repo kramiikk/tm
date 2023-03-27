@@ -53,14 +53,13 @@ class KramiikkMod(loader.Module):
 
     async def err(self, chat, cmn, rsp):
         """работа с ответом жабабота"""
-        try:
-            async with self.client.conversation(chat, exclusive=False) as conv:
-                await conv.send_message(cmn)
-                rsp = await conv.get_response()
-                await conv.cancel_all()
-                return rsp
-        except Exception:
-            pass
+        
+        async with self.client.conversation(chat, exclusive=False) as conv:
+            await conv.send_message(cmn)
+            rsp = await conv.get_response()
+            await conv.cancel_all()
+            return rsp
+
 
     async def scmd(self, m):
         """статус юзербота"""
