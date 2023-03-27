@@ -189,9 +189,7 @@ class KramiikkMod(loader.Module):
                 txt += "\n\n(<code>.s su</code> ID или реплай)"
                 return await m.edit(txt)
             msg = reply.sender_id if reply else int(m.text.split(" ", 2)[2])
-            if msg in (1124824021, self.me.id):
-                txt = "🗿<b>нельзя менять</b>"
-            elif msg in self.su["users"]:
+            if msg in self.su["users"]:
                 self.su["users"].remove(msg)
                 txt = f"🖕🏾 {msg} <b>удален</b>"
             else:
