@@ -53,7 +53,7 @@ class KramiikkMod(loader.Module):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
             await conv.send_message(cmn)
-            rsp = await conv.get_response()
+            rsp = (await conv.get_response()).text
             return rsp
 
     async def watcher(self, m):
@@ -63,7 +63,7 @@ class KramiikkMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
-        rsp = None
+        rsp = ""
         if (
             isinstance(m, Message)
             and (
