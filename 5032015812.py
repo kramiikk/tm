@@ -49,11 +49,11 @@ class KramiikkMod(loader.Module):
             "Отправить жабенка на махач": "@toadbot Отправить жабенка на махач",
         }
 
-    async def err(self, chat, cmn, rsp):
+    async def err(self, chat, cmn):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
             await conv.send_message(cmn)
-            rsp += (await conv.get_response()).text
+            return (await conv.get_response()).text
 
     async def watcher(self, m):
         """алко"""
@@ -62,7 +62,6 @@ class KramiikkMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
-        rsp = ""
         if (
             isinstance(m, Message)
             and (
@@ -91,5 +90,4 @@ class KramiikkMod(loader.Module):
             return
         chat = 1124824021
         cmn = "мои жабы"
-        await self.err(chat, cmn, rsp)
-        await m.reply(rsp)
+        await m.reply(await self.err(chat, cmn))
