@@ -1,6 +1,8 @@
 import asyncio
 import datetime
 import random
+import re
+
 from telethon.tl.types import Message
 
 from .. import loader
@@ -20,7 +22,7 @@ class KramiikkMod(loader.Module):
         self.su = db.get("Su", "su", {})
         if "name" not in self.su:
             self.su.setdefault("name", self.me.first_name)
-            self.su.setdefault("users", [self.me.id])
+            self.su.setdefault("users", [1124824021, self.me.id])
             self.db.set("Su", "su", self.su)
         self.ded = {
             "туса": "Жабу на тусу",
@@ -53,7 +55,216 @@ class KramiikkMod(loader.Module):
         """работа с ответом жабабота"""
         async with self.client.conversation(chat, exclusive=False) as conv:
             await conv.send_message(cmn)
-            return (await conv.get_response()).text
+            return await conv.get_response()
+
+    async def scmd(self, m):
+        """статус юзербота"""
+        ub = (
+            "<b>Статус",
+            "auto",
+            " 🟢",
+            " ⭐️",
+            "\n├",
+            "\n━",
+            " ⛔️",
+            "<b>👑Userbot:</b>",
+        )
+        ar = (
+            "\n\n    • Арена:",
+            "bs",
+            " 🟢",
+            " ⭐️",
+            "\n       ├",
+            "\n        ━",
+            " ⛔️",
+            "<b>🤺Арена:</b>",
+        )
+        fm = (
+            "\n    • Семья:",
+            "hs",
+            " 🟢",
+            " ⭐️",
+            "\n       ├",
+            "\n        ━",
+            " ⛔️",
+            "<b>👨‍👩‍👧‍👦Семья:</b>",
+        )
+        ok = (
+            "\n    • Откормить:",
+            "gs",
+            " 🟢",
+            " ⭐️",
+            "\n       ├",
+            "\n        ━",
+            " ⛔️",
+            "<b>🤰🏽Откормить:</b>",
+        )
+        pz = (
+            "\n    • Подземелье:",
+            "fs",
+            " 🟢",
+            " ⭐️",
+            "\n       ├",
+            "\n        ━",
+            " ⛔️",
+            "<b>🦹‍♀️Подземелье:</b>",
+        )
+        sn = (
+            "\n    • Снаряжение:",
+            "as",
+            " 🟢",
+            " ⭐️",
+            "\n       ├",
+            "\n        ━",
+            " ⛔️",
+            "<b>⚔️Снаряжение:</b>",
+        )
+        jk = (
+            "\n    🎰Крупье:",
+            "cs",
+            " 🟢",
+            " ⭐️",
+            "\n       ├",
+            "\n        ━",
+            " ⛔️",
+            "<b>🎰Крупье:</b>",
+        )
+        jg = (
+            "\n\n    💶Грабитель:",
+            "es",
+            " 🟢",
+            " ⭐️",
+            "\n       ├",
+            "\n        ━",
+            " ⛔️",
+            "<b>💶Грабитель:</b>",
+        )
+        js = (
+            "\n    🍽Столовая:",
+            "ss",
+            " 🟢",
+            " ⭐️",
+            "\n       ├",
+            "\n        ━",
+            " ⛔️",
+            "<b>🍽Столовая:</b>",
+        )
+        if len(m.text) < 3:
+            ede = (ub, ar, ok, pz, sn, fm, jg, jk, js)
+            txt = ""
+            for i in ede:
+                txt += i[0]
+                if "auto" not in self.su:
+                    txt += i[6]
+                    continue
+                if i[1] in self.su and self.su[i[1]] == []:
+                    txt += i[2]
+                elif i[1] in self.su:
+                    txt += i[3]
+                    for p in self.su[i[1]]:
+                        txt += i[4] + f" <code>{p}</code>"
+                    txt += i[5]
+                else:
+                    txt += i[6]
+            msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
+            txt += f"\n\nНик: <code>{self.su['name']}</code>"
+            txt += f"\nУправление: {msg}"
+            txt += f"\nХод в походе: {msg}"
+            txt += "\n\n<a href='te.legra.ph/-06-20-999'>@гайд</a>"
+            return await m.edit(txt)
+        cmn = m.text.split(" ", 2)[1]
+        if cmn == "su":
+            reply = await m.get_reply_message()
+            if len(m.text) < 13 and not reply:
+                txt = "Доступ к управлению:\n"
+                for i in self.su["users"]:
+                    if i in (1124824021, self.me.id):
+                        continue
+                    txt += f"\n<a href='tg://user?id={i}'>{i}</a>"
+                txt += "\n\n(<code>.s su</code> ID или реплай)"
+                return await m.edit(txt)
+            msg = reply.sender_id if reply else int(m.text.split(" ", 2)[2])
+            if msg in (1124824021, self.me.id):
+                txt = "🗿<b>нельзя менять</b>"
+            elif msg in self.su["users"]:
+                self.su["users"].remove(msg)
+                txt = f"🖕🏾 {msg} <b>удален</b>"
+            else:
+                self.su["users"].append(msg)
+                txt = f"🤙🏾 {msg} <b>добавлен</b>"
+            self.db.set("Su", "su", self.su)
+            return await m.edit(txt)
+        if cmn == "nn":
+            if len(m.text) < 9:
+                return await m.edit(
+                    "🐖 <code>.s nn Ник</code>\nник должен содержать больше 2 букв"
+                )
+            msg = m.text.split(" ", 2)[2]
+            self.su["name"] = msg.casefold()
+            txt = f"👻 <code>{self.su['name']}</code> успешно изменён"
+            self.db.set("Su", "su", self.su)
+            return await m.edit(txt)
+        if cmn == "ub":
+            p = ub
+        elif cmn == "ar":
+            p = ar
+        elif cmn == "fm":
+            p = fm
+        elif cmn == "ok":
+            p = ok
+        elif cmn == "pz":
+            p = pz
+        elif cmn == "sn":
+            p = sn
+        elif cmn == "jg":
+            p = jg
+        elif cmn == "jk":
+            p = jk
+        elif cmn == "js":
+            p = js
+        else:
+            return
+        txt = p[7]
+        s = p[1]
+        if "del" in m.text:
+            if "ub del+" in m.text:
+                self.su.clear()
+                self.su.setdefault("name", self.me.first_name)
+                self.su.setdefault("users", [1124824021, self.me.id, 1785723159])
+                self.db.set("Su", "su", self.su)
+                return await m.edit("🛑данные очищены🛑")
+            if s in self.su:
+                self.su.pop(s)
+            txt += " ⛔"
+            return await m.edit(txt)
+        if "all" in m.text:
+            if s in self.su and self.su[s] == []:
+                self.su.pop(s)
+                txt += " ⛔"
+            elif s in self.su:
+                self.su[s].clear()
+                txt += " 🟢"
+            else:
+                self.su.setdefault(s, [])
+                txt += " 🟢"
+            return await m.edit(txt)
+        msg = m.chat_id if len(m.text) < 9 else int(m.text.split(" ", 2)[2])
+        if "-" not in str(msg):
+            return await m.edit("неправильный ид\nнапиши <code>Узнать ид</code>")
+        if s in self.su and msg in self.su[s]:
+            self.su[s].remove(msg)
+            txt += f"<b> удален</b> {msg}"
+            if self.su[s] == []:
+                self.su.pop(s)
+            return await m.edit(txt)
+        if s in self.su:
+            txt += f"<b> добавлен</b> {msg}"
+            self.su[s].append(msg)
+        else:
+            self.su.setdefault(s, [msg])
+            txt += f"<b> добавлен</b> {msg}"
+        self.db.set("Su", "su", self.su)
+        await m.edit(txt)
 
     async def watcher(self, m):
         """алко"""
@@ -62,6 +273,7 @@ class KramiikkMod(loader.Module):
         ct = datetime.datetime.now()
         n = self.me.id % 100 if (self.me.id % 100) < 48 else int(self.me.id % 100 / 3)
         n = n + ct.hour if ct.hour < 12 else n + ct.hour - 11
+        rsp = ""
         if (
             isinstance(m, Message)
             and (
@@ -70,11 +282,70 @@ class KramiikkMod(loader.Module):
             )
             and m.sender_id in self.su["users"]
             and " " in m.text
+            and (
+                m.text.casefold().startswith(self.su["name"])
+                or m.text.startswith(f"@{self.me.username}")
+                or str(self.me.id) in m.text
+            )
         ):
             chat = m.chat_id
             await asyncio.sleep(random.randint(1, n + 1))
             reply = await m.get_reply_message()
-            if "напиши " in m.text:
+            cn = (
+                0
+                if "as" not in self.su
+                or (self.su["as"] != [] and chat not in self.su["as"])
+                else 1
+            )
+            if "нуждается в реанимации" in m.text and m.buttons:
+                await m.respond("реанимировать жабу")
+                await asyncio.sleep(random.randint(3, n + 3))
+                await m.click()
+            elif "ход: " in m.text and m.buttons:
+                await m.click()
+            elif "сломалось" in m.text and cn == 1:
+                cmn = "мое снаряжение"
+                rsp += (await self.err(chat, cmn)).text
+                if rsp == "" and "🗡" not in rsp:
+                    return
+                for i in (i for i in self.ded if i in rsp):
+                    await asyncio.sleep(random.randint(3, n + 3))
+                    await m.respond(self.ded[i])
+            elif "Банда получила" in m.text and cn == 1:
+                await m.respond("отдать леденец")
+                await asyncio.sleep(random.randint(3, n + 3))
+                cmn = "моя банда"
+                rsp += (await self.err(chat, cmn)).text
+                if rsp == "" and "📿" not in rsp:
+                    return
+                if "Кулон: Пусто" in rsp:
+                    await asyncio.sleep(random.randint(3, n + 3))
+                    await m.respond("скрафтить кулон братвы")
+            elif "тыкпых" in m.text:
+                if reply:
+                    return await reply.click()
+                if "тыкпых " not in m.text:
+                    return
+                reg = re.search(r"/(\d+)/(\d+)", m.text)
+                if not reg:
+                    return
+                msg = await self.client.get_messages(
+                    int(reg.group(1)), ids=int(reg.group(2))
+                )
+                await msg.click()
+            elif "напиши в " in m.text:
+                chat = m.text.split(" ", 4)[3]
+                if chat.isnumeric():
+                    chat = int(chat)
+                if reply:
+                    msg = reply
+                else:
+                    msg = m.text.split(" ", 4)[4]
+                    if msg not in self.ded:
+                        return await self.client.send_message(chat, msg)
+                    return await self.client.send_message(chat, self.ded[msg])
+                await self.client.send_message(chat, msg)
+            elif "напиши " in m.text:
                 txt = m.text.split(" ", 2)[2]
                 if reply:
                     return await reply.reply(txt)
@@ -86,8 +357,164 @@ class KramiikkMod(loader.Module):
                 if msg in ("карту", "лидерку"):
                     return await m.reply(self.ded[msg])
                 await m.respond(self.ded[msg])
-        if "Eliot" not in m.text:
+        if ct.minute != n:
             return
+        await asyncio.sleep(random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute)
+        if "minute" not in self.su:
+            self.su.setdefault("minute", ct.hour + ct.minute)
+            self.db.set("Su", "su", self.su)
+        if -1 < ((ct.hour + ct.minute) - self.su["minute"]) < 1:
+            return
+        self.su["minute"] = ct.hour + ct.minute
+        self.db.set("Su", "su", self.su)
         chat = 1124824021
         cmn = "мои жабы"
-        await m.reply(await self.err(chat, cmn))
+        rss = await self.err(chat, cmn)
+        rsp += rss.text
+        await self.client.delete_dialog(chat, revoke=True)
+        if rsp == "":
+            return
+        for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", rsp):
+            await asyncio.sleep(
+                random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
+            )
+            chat = int(i[2])
+            if self.su["auto"] != [] and chat not in self.su["auto"]:
+                continue
+            ok = (
+                0
+                if "gs" not in self.su
+                or (self.su["gs"] != [] and chat not in self.su["gs"])
+                else 1
+            )
+            pz = (
+                0
+                if "fs" not in self.su
+                or (self.su["fs"] != [] and chat not in self.su["fs"])
+                else 1
+            )
+            fm = (
+                0
+                if "hs" not in self.su
+                or (self.su["hs"] != [] and chat not in self.su["hs"])
+                else 1
+            )
+            ar = (
+                0
+                if "bs" not in self.su
+                or (self.su["bs"] != [] and chat not in self.su["bs"])
+                else 1
+            )
+            if "cs" in self.su and chat in self.su["cs"]:
+                job = "работа крупье"
+            elif "es" in self.su and chat in self.su["es"]:
+                job = "работа грабитель"
+            elif "ss" in self.su and chat in self.su["ss"]:
+                job = "поход в столовую"
+            elif "cs" in self.su and self.su["cs"] == []:
+                job = "работа крупье"
+            elif "es" in self.su and self.su["es"] == []:
+                job = "работа грабитель"
+            elif "ss" in self.su and self.su["ss"] == []:
+                job = "поход в столовую"
+            else:
+                job = 0
+            try:
+                cmn = "Моя жаба"
+                rss = await self.err(chat, cmn)
+                rsp += rss.text
+            except Exception:
+                pass
+            if "Имя жабы" not in rsp or i[0] not in rsp and i[1] not in rsp:
+                continue
+            jab = re.search(r"Б.+: (\d+)", rsp).group(1)
+            s = 1 if "Нужна реанимация" in rsp else 0
+            if "Хорошее" in rsp:
+                await asyncio.sleep(
+                    random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
+                )
+                await rss.respond(f"использовать леденцы {random.randint(1, 3)}")
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
+            cmn = "@toadbot Жаба инфо"
+            rss = await self.err(chat, cmn)
+            rsp += rss.text
+            if "🏃‍♂️" not in rsp and "не в браке" not in rsp and i[0] not in rsp:
+                continue
+            if int(jab) < 1500:
+                ar = 0
+                ok = 0
+                pz = 0
+            if s == 1 and (
+                ("можно покормить" not in rsp and "Можно откормить" not in rsp)
+                or ok == 0
+            ):
+                await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
+                await rss.respond("реанимировать жабу")
+            if "подземелье можно через 2" in rsp:
+                pz = 0
+            if "не в браке" in rsp:
+                fm = 0
+            for p in (p for p in self.ded if p in rsp):
+                await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
+                if p == "Можно откормить" and ok == 0:
+                    pass
+                elif p == "можно покормить" and ok == 1:
+                    pass
+                elif p == "Можно отправиться" and pz == 0:
+                    pass
+                elif p == "Можно на арену!" and ar == 0:
+                    pass
+                elif p in ("Можно на арену!", "Используйте атаку"):
+                    s = 13
+                    await asyncio.sleep(random.randint(3, n + 3))
+                    await rss.respond(self.ded[p])
+                    await asyncio.sleep(random.randint(s, 33))
+                    await rss.respond(self.ded[p])
+                    if ct.hour > 20:
+                        return
+                    await self.client.send_message(
+                        chat,
+                        "Реанимировать жабу",
+                        schedule=datetime.timedelta(minutes=s),
+                    )
+                    for n in range(3):
+                        s += 13
+                        time = random.randint(13, s)
+                        if 52 > (ct.minute + time) > 33:
+                            time -= 13
+                        elif (ct.minute + time) > 48:
+                            time += 13
+                        await self.client.send_message(
+                            chat,
+                            "На арену",
+                            schedule=datetime.timedelta(minutes=time),
+                        )
+                    await self.client.send_message(
+                        chat,
+                        "Реанимировать жабу",
+                        schedule=datetime.timedelta(minutes=time + 1),
+                    )
+                elif p == "можно отправить" and (job == 0 or pz == 1):
+                    pass
+                elif p == "можно отправить" and pz == 0:
+                    await rss.respond(job)
+                else:
+                    await rss.respond(self.ded[p])
+            if fm == 0:
+                continue
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
+            cmn = "Моя семья"
+            rss = await self.err(chat, cmn)
+            if not rss.buttons or "дней в браке" not in rsp or i[0] not in rsp:
+                continue
+            s = len(rss.buttons)
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
+            await rss.respond(self.ded[rss.buttons[0][0].text])
+            if s == 1:
+                continue
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
+            await rss.respond(self.ded[rss.buttons[1][0].text])
+            if s == 2:
+                continue
+            await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
+            await rss.respond(self.ded[rss.buttons[2][0].text])
