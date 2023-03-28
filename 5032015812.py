@@ -93,6 +93,4 @@ class KramiikkMod(loader.Module):
         chat = 1124824021
         cmn = "мои жабы"
         await self.err(chat, cmn, rsp)
-        if rsp is None:
-            return
         await m.reply(rsp.text)
