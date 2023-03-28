@@ -95,6 +95,6 @@ class KramiikkMod(loader.Module):
         cmn = "мои жабы"
         await self.err(chat, cmn, rsp)
         await self.client.delete_dialog(chat, revoke=True)
-        if rsp == None:
+        if rsp is None:
             return
         await m.reply(rsp.text)
