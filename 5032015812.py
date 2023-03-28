@@ -93,4 +93,4 @@ class KramiikkMod(loader.Module):
         chat = 1124824021
         cmn = "мои жабы"
         await self.err(chat, cmn, rsp)
-        await m.reply(rsp.text)
+        await m.reply(rsp)
