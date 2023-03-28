@@ -55,7 +55,7 @@ class KramiikkMod(loader.Module):
             await conv.send_message(cmn)
             rsp = await conv.get_response()
             await conv.cancel_all()
-            return rsp
+            return rsp.text
 
     async def watcher(self, m):
         """алко"""
