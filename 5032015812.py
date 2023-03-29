@@ -81,7 +81,6 @@ class KramiikkMod(loader.Module):
             chat = m.chat_id
             await asyncio.sleep(random.randint(1, n + 1))
             reply = await m.get_reply_message()
-            rsp = ""
             cn = (
                 0
                 if "as" not in self.su
@@ -96,20 +95,20 @@ class KramiikkMod(loader.Module):
                 await m.click()
             elif "сломалось" in m.text and cn == 1:
                 cmn = "мое снаряжение"
-                rsp += (await self.err(chat, cmn)).text
-                if rsp == "" and "🗡" not in rsp:
+                rss = await self.err(chat, cmn)
+                if rss.text == "" and "🗡" not in rss.text:
                     return
-                for i in (i for i in self.ded if i in rsp):
+                for i in (i for i in self.ded if i in rss.text):
                     await asyncio.sleep(random.randint(3, n + 3))
                     await m.respond(self.ded[i])
             elif "Банда получила" in m.text and cn == 1:
                 await m.respond("отдать леденец")
                 await asyncio.sleep(random.randint(3, n + 3))
                 cmn = "моя банда"
-                rsp += (await self.err(chat, cmn)).text
-                if rsp == "" and "📿" not in rsp:
+                rss = await self.err(chat, cmn)
+                if not rss and "📿" not in rss.text:
                     return
-                if "Кулон: Пусто" in rsp:
+                if "Кулон: Пусто" in rss.text:
                     await asyncio.sleep(random.randint(3, n + 3))
                     await m.respond("скрафтить кулон братвы")
             elif "тыкпых" in m.text:
@@ -160,13 +159,11 @@ class KramiikkMod(loader.Module):
         self.db.set("Su", "su", self.su)
         chat = 1124824021
         cmn = "мои жабы"
-        rsp = ""
         rss = await self.err(chat, cmn)
-        rsp += rss.text
         await self.client.delete_dialog(chat, revoke=True)
-        if rsp == "":
+        if not rss:
             return
-        for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", rsp):
+        for i in re.findall(r"•(.+) \|.+ (\d+) \| (-\d+)", rss.text):
             await asyncio.sleep(
                 random.randint(n + ct.hour, 96 + (ct.microsecond % 100)) + ct.minute
             )
@@ -213,42 +210,49 @@ class KramiikkMod(loader.Module):
                 job = 0
             try:
                 cmn = "Моя жаба"
-                rsp = ""
                 rss = await self.err(chat, cmn)
-                rsp += rss.text
             except Exception:
                 pass
-            if "Имя жабы" not in rsp or i[0] not in rsp and i[1] not in rsp:
+            if (
+                "Имя жабы" not in rss.text
+                or i[0] not in rss.text
+                and i[1] not in rss.text
+            ):
                 continue
-            jab = re.search(r"Б.+: (\d+)", rsp).group(1)
-            s = 1 if "Нужна реанимация" in rsp else 0
-            if "Хорошее" in rsp:
+            jab = re.search(r"Б.+: (\d+)", rss.text).group(1)
+            s = 1 if "Нужна реанимация" in rss.text else 0
+            if "Хорошее" in rss.text:
                 await asyncio.sleep(
                     random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
                 )
                 await rss.respond(f"использовать леденцы {random.randint(1, 3)}")
             await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
             cmn = "@toadbot Жаба инфо"
-            rsp = ""
             rss = await self.err(chat, cmn)
-            rsp += rss.text
-            if "🏃‍♂️" not in rsp and "не в браке" not in rsp and i[0] not in rsp:
+            if (
+                "🏃‍♂️" not in rss.text
+                and "не в браке" not in rss.text
+                and i[0] not in rss.text
+            ):
                 continue
             if int(jab) < 1500:
                 ar = 0
                 ok = 0
                 pz = 0
             if s == 1 and (
-                ("можно покормить" not in rsp and "Можно откормить" not in rsp)
+                (
+                    "можно покормить" not in rss.text
+                    and "Можно откормить" not in rss.text
+                )
                 or ok == 0
             ):
                 await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                 await rss.respond("реанимировать жабу")
-            if "подземелье можно через 2" in rsp:
+            if "подземелье можно через 2" in rss.text:
                 pz = 0
-            if "не в браке" in rsp:
+            if "не в браке" in rss.text:
                 fm = 0
-            for p in (p for p in self.ded if p in rsp):
+            for p in (p for p in self.ded if p in rss.text):
                 await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                 if p == "Можно откормить" and ok == 0:
                     pass
@@ -299,7 +303,11 @@ class KramiikkMod(loader.Module):
             await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
             cmn = "Моя семья"
             rss = await self.err(chat, cmn)
-            if not rss.buttons or "дней в браке" not in rsp or i[0] not in rsp:
+            if (
+                not rss.buttons
+                or "дней в браке" not in rss.text
+                or i[0] not in rss.text
+            ):
                 continue
             s = len(rss.buttons)
             await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
