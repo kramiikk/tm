@@ -26,6 +26,7 @@ class KramiikkMod(loader.Module):
             self.db.set("Su", "su", self.su)
 
     async def jkl(self, aa, bb, cc):
+        """dy"""
         txt = ""
         if "auto" not in self.su:
             txt += " ⛔️"
@@ -41,6 +42,7 @@ class KramiikkMod(loader.Module):
         return txt
 
     async def check(self, chat, key):
+        """y"""
         return (
             0
             if key not in self.su or self.su[key] != [] and chat not in self.su[key]
@@ -54,29 +56,23 @@ class KramiikkMod(loader.Module):
             msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
             txt = "<b>Статус</b>" + await self.jkl(self, "auto", "\n├", "\n━")
             txt += "\n\n    • Снаряжение:" + await self.jkl(
-                self, "as", "\n       ├", "\n        ━"
+                "as", "\n       ├", "\n        ━"
             )
             txt += "\n    • Подземелье:" + await self.jkl(
-                self, "fs", "\n       ├", "\n        ━"
+                "fs", "\n       ├", "\n        ━"
             )
             txt += "\n    • Откормить:" + await self.jkl(
-                self, "gs", "\n       ├", "\n        ━"
+                "gs", "\n       ├", "\n        ━"
             )
-            txt += "\n    • Семья:" + await self.jkl(
-                self, "hs", "\n       ├", "\n        ━"
-            )
-            txt += "\n    • Арена:" + await self.jkl(
-                self, "bs", "\n       ├", "\n        ━"
-            )
+            txt += "\n    • Семья:" + await self.jkl("hs", "\n       ├", "\n        ━")
+            txt += "\n    • Арена:" + await self.jkl("bs", "\n       ├", "\n        ━")
             txt += "\n\n    💶Грабитель:" + await self.jkl(
-                self, "es", "\n       ├", "\n        ━"
+                "es", "\n       ├", "\n        ━"
             )
             txt += "\n    🍽Столовая:" + await self.jkl(
-                self, "ss", "\n       ├", "\n        ━"
+                "ss", "\n       ├", "\n        ━"
             )
-            txt += "\n    🎰Крупье:" + await self.jkl(
-                self, "cs", "\n       ├", "\n        ━"
-            )
+            txt += "\n    🎰Крупье:" + await self.jkl("cs", "\n       ├", "\n        ━")
             txt += f"Ник: {nk}\nУправление: {msg}\nХод в походе: {msg}\n\n<a href='http://te.legra.ph/-06-20-999'>@гайд</a>"
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
