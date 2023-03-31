@@ -54,7 +54,7 @@ class KramiikkMod(loader.Module):
         if len(m.text) < 3:
             nk = f"<code>{self.su['name']}</code>"
             msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
-            txt = "<b>Статус</b>" + await self.jkl(self, "auto", "\n├", "\n━")
+            txt = "<b>Статус</b>" + await self.jkl("auto", "\n├", "\n━")
             txt += "\n\n    • Снаряжение:" + await self.jkl(
                 "as", "\n       ├", "\n        ━"
             )
