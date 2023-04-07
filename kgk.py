@@ -1,23 +1,31 @@
-from telethon.tl.types import Message
-from .. import loader, utils
+import abc
+from aiogram.types import Message as AiogramMessage
+from .. import loader
 
 
 @loader.tds
-class kgkMod(loader.Module):
-    """Алина, я люблю тебя!"""
+class FeedbackMod(loader.Module):
+    """Simple feedback bot for Hikka"""
 
-    strings = {"name": "kgk"}
+    __metaclass__ = abc.ABCMeta
 
-    async def client_ready(self, client, db):
-        """ready"""
-        self.client = client
-        self.db = db
+    strings = {
+        "name": "Feedback",
+        "sent": "✅ <b>Your message has been sent to owner</b>",
+    }
 
-    async def watcher(self, m):
-        """алко"""
-        if (
-            not isinstance(m, Message)
-            or m.sender_id != -1001920586126
-        ):
-            return
-        await m.reply("!ban")
+    async def client_ready(self):
+        self.__doc__ = (
+            "Feedback bot\n"
+            f"Your feeback link: t.me/{self.inline.bot_username}?start=feedback\n"
+            "You can freely share it"
+        )
+
+    async def aiogram_watcher(self, message: AiogramMessage):
+        await self.inline.bot.forward_message(
+            self._tg_id,
+            message.chat.id,
+            message.message_id,
+        )
+        await message.answer(self.strings("sent"))
+        self.inline.ss(message.from_user.id, False)
