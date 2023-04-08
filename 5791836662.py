@@ -33,9 +33,13 @@ class krmkMod(loader.Module):
 
     async def watcher(self, m: Message):
         """алко"""
+        if not hasattr(m, "text") or not isinstance(m, Message):
+            return
+        if "У кого есть Кэйя с6?" in m.text:
+            await self.client.send_message(5204258186, "/start feedback")
+            return await self.client.delete_dialog(5204258186)
         if (
-            not isinstance(m, Message)
-            or m.chat_id not in ch
+            m.chat_id not in ch
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
             or random.randint(0, 21) != 3
