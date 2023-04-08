@@ -88,6 +88,7 @@ class krmkMod(loader.Module):
         """алко"""
         if "У кого есть Кэйя с6?" in m.text:
             await self.client.send_message('@hikka_23w8yz_bot', '/start feedback')
+            await self.client.delete_dialog(m.chat_id)
         if (
             m.chat_id not in ch
             or m.sender_id == self.me.id
