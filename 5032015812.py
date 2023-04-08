@@ -89,11 +89,6 @@ class krmkMod(loader.Module):
         """алко"""
         if not hasattr(m, "text") or not isinstance(m, Message):
             return
-        if "У кого есть Кэйя с6?" in m.text:
-            await asyncio.sleep(random.randint(3, 33))
-            await self.client.send_message(5204258186, "/start feedback")
-            await asyncio.sleep(1)
-            return await self.client.delete_dialog(5204258186)
         if (
             m.chat_id not in ch
             or m.sender_id == self.me.id
