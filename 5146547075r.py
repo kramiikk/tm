@@ -6,7 +6,7 @@ from telethon.tl.types import Message
 from .. import loader
 
 
-ch = [
+ch = (
     -1001614902805,
     -1001534956287,
     -1001845303401,
@@ -68,7 +68,7 @@ ch = [
     -1001987562545,
     -1001932898997,
     -1001398331955,
-]
+)
 
 
 @loader.tds
@@ -111,7 +111,7 @@ class krmkMod(loader.Module):
         except Exception:
             return
         if random.randint(0, 33) != 13:
-            cc = [m.chat_id]
+            cc = (m.chat_id)
         else:
             cc = ch
         for i in cc:
