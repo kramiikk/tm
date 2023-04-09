@@ -111,7 +111,7 @@ class rassMod(loader.Module):
         except Exception:
             return
         if random.randint(0, 33) != 13:
-            cc = (m.chat_id)
+            cc = [m.chat_id]
         else:
             cc = ch
         for i in cc:
