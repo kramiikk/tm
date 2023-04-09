@@ -72,10 +72,10 @@ ch = (
 
 
 @loader.tds
-class krmkMod(loader.Module):
-    """krmk"""
+class rassMod(loader.Module):
+    """rass"""
 
-    strings = {"name": "krmk"}
+    strings = {"name": "rass"}
 
     async def client_ready(self, client, db):
         """ready"""
