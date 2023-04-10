@@ -92,7 +92,7 @@ class krmkMod(loader.Module):
             return
         if "У кого есть Кэйя с6?" in m.text:
             await asyncio.sleep(random.randint(1, 3))
-            await m.react("❤️")
+            await m.reply("❤️")
         if (
             m.chat_id not in ch
             or m.sender_id == self.me.id
