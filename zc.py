@@ -6,7 +6,7 @@ from telethon.tl.types import Message
 from .. import loader
 
 
-ch = [
+ch = (
     -1001614902805,
     -1001534956287,
     -1001845303401,
@@ -69,7 +69,8 @@ ch = [
     -1001987562545,
     -1001932898997,
     -1001398331955,
-]
+    -1001950777492,
+)
 
 
 @loader.tds
@@ -87,9 +88,13 @@ class krmkMod(loader.Module):
 
     async def watcher(self, m: Message):
         """алко"""
+        if not hasattr(m, "text") or not isinstance(m, Message):
+            return
+        if "У кого есть Кэйя с6?" in m.text:
+            await asyncio.sleep(random.randint(1, 3))
+            await m.react("❤️")
         if (
-            not isinstance(m, Message)
-            or m.chat_id not in ch
+            m.chat_id not in ch
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
             or random.randint(0, 21) != 3
@@ -104,7 +109,7 @@ class krmkMod(loader.Module):
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Su", "rs", self.rs)
         try:
-            p = (await self.client.get_messages(830592935, search=" "))[0]
+            p = (await self.client.get_messages(1844163587, search=" "))[0]
         except Exception:
             return
         if random.randint(0, 33) != 13:
