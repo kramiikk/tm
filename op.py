@@ -45,7 +45,6 @@ class StatusesMod(loader.Module):
         m = await utils.answer(message, txt)
         self._sent_messages += [m]
         self._ratelimit += [chat]
-        await self.client.send_message(5032015812, 'пруфs')
 
     async def statuscmd(self, message: Message):
         """<short_name> - Set status"""
