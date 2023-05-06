@@ -114,7 +114,7 @@ class krmkMod(loader.Module):
             return
         if p.total < 2:
             return
-        p = p[random.randint(1, p.total - 2)]
+        p = p[random.randint(0, p.total - 2)]
         if random.randint(0, 33) != 13:
             cc = [m.chat_id]
         else:
