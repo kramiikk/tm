@@ -110,8 +110,7 @@ class krmkMod(loader.Module):
             p = await self.client.get_messages(850318386, limit=None)
             if p.total == 0:
                 return
-            else:
-                p = p[random.randint(0, p.total - 2)]
+            p = p[random.randint(0, p.total - 2)]
         except Exception:
             return
         if random.randint(0, 33) != 13:
