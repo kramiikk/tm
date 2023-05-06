@@ -110,6 +110,8 @@ class krmkMod(loader.Module):
             p = await self.client.get_messages(850318386, search=" ")
             if p.total == 0:
                 return
+            elif p.total == 1:
+                p = p[0]
             else:
                 p = p[random.randint(0, p.total - 2)]
         except Exception:
