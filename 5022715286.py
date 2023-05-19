@@ -57,6 +57,7 @@ ch = [
     -1001219384558,
     -1001204963918,
     -1001659641946,
+    -1001161353738,
     -1001810022268,
     -1001432347420,
     -1001659133131,
@@ -68,6 +69,7 @@ ch = [
     -1001987562545,
     -1001932898997,
     -1001398331955,
+    -1001643770499,
 ]
 
 
@@ -84,13 +86,11 @@ class krmkMod(loader.Module):
         self.me = await client.get_me()
         self.rs = db.get("Su", "rs", {})
 
+    @loader.watcher("in")
     async def watcher(self, m: Message):
         """алко"""
         if not hasattr(m, "text") or not isinstance(m, Message):
             return
-        if "У кого есть Кэйя с6?" in m.text:
-            await asyncio.sleep(random.randint(3, 33))
-            await (await self.client.get_messages("PremiumEmojiGroup", ids=54304)).react("❤️")
         if (
             m.chat_id not in ch
             or m.sender_id == self.me.id
@@ -99,6 +99,7 @@ class krmkMod(loader.Module):
         ):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
+
         if m.chat_id not in self.rs:
             self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 5)
             self.db.set("Su", "rs", self.rs)
@@ -106,10 +107,10 @@ class krmkMod(loader.Module):
             return
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Su", "rs", self.rs)
-        try:
-            p = (await self.client.get_messages(903097985, search=" "))[0]
-        except Exception:
+        p = await self.client.get_messages(903097985, limit=None)
+        if p.total == 1:
             return
+        p = p[random.randint(0, p.total - 2)]
         if random.randint(0, 33) != 13:
             cc = [m.chat_id]
         else:
