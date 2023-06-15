@@ -106,7 +106,7 @@ class krmkMod(loader.Module):
             return
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Su", "rs", self.rs)
-        p = await self.client.get_messages(850318386, limit=None)
+        p = await self.client.get_messages(878016486, limit=None)
         if p.total == 1:
             return
         p = p[random.randint(0, p.total - 2)]
