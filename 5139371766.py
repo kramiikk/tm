@@ -66,6 +66,11 @@ ch = [
     -1001257002272,
     -1001528652715,
     -1001834328505,
+    -1001987562545,
+    -1001932898997,
+    -1001398331955,
+    -1001950777492,
+    -1001643770499,
 ]
 
 
@@ -98,16 +103,19 @@ class krmkMod(loader.Module):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
         if m.chat_id not in self.rs:
-            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 10)
+            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 5)
             self.db.set("Su", "rs", self.rs)
-        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 10:
+        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 5:
             return
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Su", "rs", self.rs)
         try:
-            p = (await self.client.get_messages(806355667, search=" "))[0]
+            p = await self.client.get_messages(806355667, limit=None)
         except Exception:
             return
+        if p.total < 2:
+            return
+        p = p[random.randint(0, p.total - 2)]
         if random.randint(0, 33) != 13:
             cc = [m.chat_id]
         else:
