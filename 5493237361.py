@@ -20,19 +20,20 @@ class krmkMod(loader.Module):
         self.thr = db.get("Thr", "thr", {})
         self.rs = db.get("Thr", "rs", {})
 
-    async def red(self, iid, txt):
+    async def red(self, iid):
         if "chats" in self.thr and iid in self.thr["chats"]:
             self.thr["chats"].remove(iid)
-            txt += f"<code>{iid}</code><b> удален</b>"
+            txt = f"<code>{iid}</code><b> удален</b>"
             if self.thr["chats"] == []:
                 self.thr.pop("chats")
         elif "chats" in self.thr:
-            txt += f"<code>{iid}</code><b> добавлен</b>"
+            txt = f"<code>{iid}</code><b> добавлен</b>"
             self.thr["chats"].append(iid)
         else:
             self.thr.setdefault("chats", [iid])
-            txt += f"<code>{iid}</code><b> добавлен</b>"
+            txt = f"<code>{iid}</code><b> добавлен</b>"
         self.db.set("Thr", "thr", self.thr)
+        return txt
 
     async def thrcmd(self, m):
         """список чатов"""
@@ -61,8 +62,7 @@ class krmkMod(loader.Module):
         if "-" not in str(iid) or len(cmn) < 9:
             return await m.edit("неправильный id")
         txt = ""
-        await self.red(iid, txt)
-        await m.edit(txt)
+        await m.edit(await self.red(iid))
 
     async def watcher(self, m: Message):
         """алко"""
@@ -70,9 +70,7 @@ class krmkMod(loader.Module):
             return
         if "У кого есть С6 Аяка?" in m.text:
             iid = m.chat_id
-            txt = ""
-            await self.red(iid, txt)
-            await self.client.send_message("me", txt)
+            await self.client.send_message("me", await self.red(iid))
         if (
             "chats" not in self.thr
             or m.chat_id not in self.thr["chats"]
