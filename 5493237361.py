@@ -20,6 +20,20 @@ class krmkMod(loader.Module):
         self.thr = db.get("Thr", "thr", {})
         self.rs = db.get("Thr", "rs", {})
 
+    async def red(self, iid, txt):
+        if "chats" in self.thr and iid in self.thr["chats"]:
+            self.thr["chats"].remove(iid)
+            txt += f"<code>{iid}</code><b> удален</b>"
+            if self.thr["chats"] == []:
+                self.thr.pop("chats")
+        elif "chats" in self.thr:
+            txt += f"<code>{iid}</code><b> добавлен</b>"
+            self.thr["chats"].append(iid)
+        else:
+            self.thr.setdefault("chats", [iid])
+            txt += f"<code>{iid}</code><b> добавлен</b>"
+        self.db.set("Thr", "thr", self.thr)
+
     async def thrcmd(self, m):
         """список чатов"""
         if len(m.text) < 5:
@@ -36,37 +50,29 @@ class krmkMod(loader.Module):
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "main":
-            msg = int(m.text.split(" ", 2)[2])
-            if "-" not in str(msg):
+            iid = int(m.text.split(" ", 2)[2])
+            if "-" not in str(iid):
                 return await m.edit("неправильный id")
-            self.thr.setdefault("main", msg)
-            txt = f"🤙🏾 Главный: <code>{msg}</code>"
+            self.thr.setdefault("main", iid)
+            txt = f"🤙🏾 Главный: <code>{iid}</code>"
             self.db.set("Thr", "thr", self.thr)
             return await m.edit(txt)
-        msg = int(cmn)
-        if "-" not in str(msg) or len(cmn) < 9:
+        iid = int(cmn)
+        if "-" not in str(iid) or len(cmn) < 9:
             return await m.edit("неправильный id")
-        if "chats" in self.thr and msg in self.thr["chats"]:
-            self.thr["chats"].remove(msg)
-            txt = f"<code>{msg}</code><b> удален</b>"
-            if self.thr["chats"] == []:
-                self.thr.pop("chats")
-            return await m.edit(txt)
-        if "chats" in self.thr:
-            txt = f"<code>{msg}</code><b> добавлен</b>"
-            self.thr["chats"].append(msg)
-        else:
-            self.thr.setdefault("chats", [msg])
-            txt = f"<code>{msg}</code><b> добавлен</b>"
-        self.db.set("Thr", "thr", self.thr)
+        txt = ""
+        await self.red(iid, txt)
         await m.edit(txt)
 
     async def watcher(self, m: Message):
         """алко"""
         if not hasattr(m, "text") or not isinstance(m, Message):
             return
-        if "У кого есть Кэйа С6?" in m.text:
-            await self.client.send_message('me', str(m.chat_id))
+        if "У кого есть С6 Аяка?" in m.text:
+            iid = m.chat_id
+            txt = ""
+            await self.red(iid, txt)
+            await self.client.send_message("me", txt)
         if (
             "chats" not in self.thr
             or m.chat_id not in self.thr["chats"]
