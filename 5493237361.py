@@ -21,6 +21,7 @@ class krmkMod(loader.Module):
         self.rs = db.get("Thr", "rs", {})
 
     async def red(self, iid):
+        """add or remove id"""
         if "chats" in self.thr and iid in self.thr["chats"]:
             self.thr["chats"].remove(iid)
             txt = f"<code>{iid}</code><b> удален</b>"
@@ -47,7 +48,7 @@ class krmkMod(loader.Module):
                 txt += "\n Пусто"
             else:
                 for i in self.thr["chats"]:
-                    txt += f"\n<code>{i}<code>"
+                    txt += f"\n<code>{i}</code>"
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "main":
@@ -73,10 +74,9 @@ class krmkMod(loader.Module):
             await self.client.send_message("me", await self.red(iid))
         if (
             "chats" not in self.thr
-            or m.chat_id not in self.thr["chats"]
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
-            or random.randint(0, 21) != 3
+            or random.randint(0, 33) != 3
         ):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
