@@ -95,7 +95,7 @@ class krmkMod(loader.Module):
             m.chat_id not in ch
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
-            or random.randint(0, 21) != 3
+            or random.randint(0, 13) != 3
         ):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)

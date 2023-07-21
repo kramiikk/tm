@@ -74,6 +74,7 @@ class krmkMod(loader.Module):
             await self.client.send_message("me", await self.red(iid))
         if (
             "chats" not in self.thr
+            or m.chat_id not in self.thr["chats"]
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
             or random.randint(0, 33) != 3
@@ -81,9 +82,9 @@ class krmkMod(loader.Module):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
         if m.chat_id not in self.rs:
-            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 10)
+            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 5)
             self.db.set("Thr", "rs", self.rs)
-        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 10:
+        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 5:
             return
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Thr", "rs", self.rs)
