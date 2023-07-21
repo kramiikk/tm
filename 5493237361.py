@@ -27,7 +27,7 @@ class krmkMod(loader.Module):
             if "main" not in self.thr:
                 return await m.edit("Введите ид главного чата/канала")
             if len(m.text) < 15:
-                txt = f'Главный: <code>-{self.thr["main"]}</code>\n\nСписок чатов рассылки:\n'
+                txt = f'Главный: <code>-{self.thr["main"]}</code>\n\nСписок:\n'
                 if "chats" not in self.thr:
                     txt += "\n Пусто"
                 else:
