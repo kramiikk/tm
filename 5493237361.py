@@ -22,18 +22,22 @@ class krmkMod(loader.Module):
 
     async def thrcmd(self, m):
         """список чатов"""
+        if len(m.text) < 5:
+            txt = "Главный: "
+            if "main" not in self.thr:
+                txt += f"не задан\n\nСписок:"
+            else:
+                txt += f'<code>-{self.thr["main"]}</code>\n\nСписок:'
+            if "chats" not in self.thr:
+                txt += "\n Пусто"
+            else:
+                for i in self.thr["chats"]:
+                    txt += f"\n<code>{i}<code>"
+            return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "main":
             if "main" not in self.thr:
                 return await m.edit("Введите ид главного чата/канала")
-            if len(m.text) < 15:
-                txt = f'Главный: <code>-{self.thr["main"]}</code>\n\nСписок:\n'
-                if "chats" not in self.thr:
-                    txt += "\n Пусто"
-                else:
-                    for i in self.thr["chats"]:
-                        txt += f"\n<code>{i}<code>"
-                return await m.edit(txt)
             msg = int(m.text.split(" ", 2)[2])
             if "-" not in str(msg):
                 return await m.edit("неправильный id")
