@@ -35,9 +35,6 @@ class krmkMod(loader.Module):
         """алко"""
         if not hasattr(m, "text") or not isinstance(m, Message):
             return
-        if "У кого Кэйя с6" in m.text:
-            await asyncio.sleep(random.randint(3, 33))
-            await (await self.client.get_messages("tginfochat", ids=1419481)).react("❤️")
         if (
             m.chat_id not in ch
             or m.sender_id == self.me.id
@@ -47,9 +44,9 @@ class krmkMod(loader.Module):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
         if m.chat_id not in self.rs:
-            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 5)
+            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 10)
             self.db.set("Su", "rs", self.rs)
-        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 5:
+        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 10:
             return
         self.rs[m.chat_id] = m.date.hour + m.date.minute
         self.db.set("Su", "rs", self.rs)

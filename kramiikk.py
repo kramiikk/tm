@@ -55,7 +55,6 @@ class KramiikkMod(loader.Module):
     async def scmd(self, m):
         """статус юзербота"""
         if len(m.text) < 3:
-            nk = f"<code>{self.su['name']}</code>"
             msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
             txt = (
                 "<b>Статус</b>"
@@ -76,7 +75,7 @@ class KramiikkMod(loader.Module):
                 + await self.jkl("ss", "\n       ├", "\n        ━")
                 + "\n    🎰Крупье:"
                 + await self.jkl("cs", "\n       ├", "\n        ━")
-                + f"\n\nНик: {nk}\nУправление: {msg}\nХод в походе: {msg}"
+                + f"\n\nНик: <code>{self.su['name']}</code>\nУправление: {msg}\nХод в походе: {msg}"
                 + "\n\n<a href='http://te.legra.ph/-06-20-999'>@гайд</a>"
             )
             return await m.edit(txt)
