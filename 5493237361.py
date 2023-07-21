@@ -36,8 +36,6 @@ class krmkMod(loader.Module):
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "main":
-            if "main" not in self.thr:
-                return await m.edit("Введите ид главного чата/канала")
             msg = int(m.text.split(" ", 2)[2])
             if "-" not in str(msg):
                 return await m.edit("неправильный id")
