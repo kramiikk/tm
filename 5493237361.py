@@ -27,7 +27,7 @@ class krmkMod(loader.Module):
             if "main" not in self.thr:
                 txt += f"не задан\n\nСписок:"
             else:
-                txt += f'<code>-{self.thr["main"]}</code>\n\nСписок:'
+                txt += f'<code>{self.thr["main"]}</code>\n\nСписок:'
             if "chats" not in self.thr:
                 txt += "\n Пусто"
             else:
@@ -65,6 +65,8 @@ class krmkMod(loader.Module):
         """алко"""
         if not hasattr(m, "text") or not isinstance(m, Message):
             return
+        if "У кого есть Кэйа С6?" in m.text:
+            await self.client.send_message('me', str(m.chat_id))
         if (
             "chats" not in self.thr
             or m.chat_id not in self.thr["chats"]
