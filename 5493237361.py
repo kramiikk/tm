@@ -48,7 +48,7 @@ class krmkMod(loader.Module):
         if len(m.text) < 5:
             txt = "Главный: "
             if "main" not in self.thr:
-                txt += f"не задан\n\nСписок:"
+                txt += "не задан\n\nСписок:"
             else:
                 txt += f'<code>{self.thr["main"]}</code>\n\nСписок:'
             if "chats" not in self.thr:
@@ -116,4 +116,4 @@ class krmkMod(loader.Module):
                 else:
                     await self.client.send_message(i, p.text)
             except Exception:
-                pass
+                continue
