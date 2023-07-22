@@ -41,6 +41,7 @@ class krmkMod(loader.Module):
         cmn = m.text.split(" ", 1)[1]
         self.thr["min"] = int(cmn)
         self.db.set("Thr", "thr", self.thr)
+        await m.edit(f"Будет отправлять каждые {cmn} минут")
 
     async def thrcmd(self, m):
         """список чатов"""
