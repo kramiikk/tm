@@ -37,14 +37,18 @@ class krmkMod(loader.Module):
         return txt
 
     async def thtcmd(self, m):
-        """edit time"""
+        """изменить частоту в минутах"""
+        if len(m.text) < 5:
+            return await m.edit(f"Отправляет каждые {self.thr['min']} минут")
         cmn = m.text.split(" ", 1)[1]
+        if not 0 < int(cmn) < 60:
+            return await m.edit(f"Введите в интервале 1 - 59")
         self.thr["min"] = int(cmn)
         self.db.set("Thr", "thr", self.thr)
         await m.edit(f"Будет отправлять каждые {cmn} минут")
 
     async def thrcmd(self, m):
-        """список чатов"""
+        """список\nукажите откуда рассылка <code>.thr main</code> id"""
         if len(m.text) < 5:
             txt = "Главный: "
             if "main" not in self.thr:
