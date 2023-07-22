@@ -18,7 +18,7 @@ class krmkMod(loader.Module):
         self.client = client
         self.me = await client.get_me()
         self.thr = db.get("Thr", "thr", {})
-        self.rs = db.get("Thr", "rs", {})
+        self.thr.setdefault("min", 5)
 
     async def red(self, iid):
         """add or remove id"""
@@ -35,6 +35,12 @@ class krmkMod(loader.Module):
             txt = f"<code>{iid}</code><b> добавлен</b>"
         self.db.set("Thr", "thr", self.thr)
         return txt
+
+    async def thtcmd(self, m):
+        """edit time"""
+        cmn = m.text.split(" ", 1)[1]
+        self.thr["min"] = int(cmn)
+        self.db.set("Thr", "thr", self.thr)
 
     async def thrcmd(self, m):
         """список чатов"""
@@ -77,17 +83,19 @@ class krmkMod(loader.Module):
             or m.chat_id not in self.thr["chats"]
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
-            or random.randint(0, 33) != 3
+            or random.randint(0, 13) != 3
         ):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
-        if m.chat_id not in self.rs:
-            self.rs.setdefault(m.chat_id, (m.date.hour + m.date.minute) - 5)
-            self.db.set("Thr", "rs", self.rs)
-        if -1 < ((m.date.hour + m.date.minute) - self.rs[m.chat_id]) < 5:
+        if m.chat_id not in self.thr:
+            self.thr.setdefault(
+                m.chat_id, (m.date.hour + m.date.minute) - self.thr["min"]
+            )
+            self.db.set("Thr", "thr", self.thr)
+        if -1 < ((m.date.hour + m.date.minute) - self.thr[m.chat_id]) < self.thr["min"]:
             return
-        self.rs[m.chat_id] = m.date.hour + m.date.minute
-        self.db.set("Thr", "rs", self.rs)
+        self.thr[m.chat_id] = m.date.hour + m.date.minute
+        self.db.set("Thr", "thr", self.thr)
         try:
             p = await self.client.get_messages(self.thr["main"], limit=100)
         except Exception:
@@ -95,7 +103,7 @@ class krmkMod(loader.Module):
         if p.total < 2:
             return
         p = p[random.randint(0, p.total - 2)]
-        if random.randint(0, 33) != 13:
+        if random.randint(0, 33) != 3:
             cc = [m.chat_id]
         else:
             cc = self.thr["chats"]
