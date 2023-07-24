@@ -33,7 +33,6 @@ class krmkMod(loader.Module):
         else:
             self.thr.setdefault("chats", [iid])
             txt = f"<code>{iid}</code><b> добавлен</b>"
-        self.db.set("Thr", "thr", self.thr)
         return txt
 
     async def thtcmd(self, m):
@@ -44,7 +43,6 @@ class krmkMod(loader.Module):
         if not 0 < int(cmn) < 60:
             return await m.edit("Введите в интервале 1 - 59")
         self.thr["min"] = int(cmn)
-        self.db.set("Thr", "thr", self.thr)
         await m.edit(f"Будет отправлять каждые {cmn} минут")
 
     async def thrcmd(self, m):
@@ -72,7 +70,6 @@ class krmkMod(loader.Module):
                 return await m.edit("неправильный id")
             self.thr.setdefault("main", iid)
             txt = f"🤙🏾 Главный: <code>{iid}</code>"
-            self.db.set("Thr", "thr", self.thr)
             return await m.edit(txt)
         iid = int(cmn)
         if "-" not in str(iid) or len(cmn) < 9:
@@ -100,11 +97,9 @@ class krmkMod(loader.Module):
             self.thr.setdefault(
                 m.chat_id, (m.date.hour + m.date.minute) - self.thr["min"]
             )
-            self.db.set("Thr", "thr", self.thr)
         if -1 < ((m.date.hour + m.date.minute) - self.thr[m.chat_id]) < self.thr["min"]:
             return
         self.thr[m.chat_id] = m.date.hour + m.date.minute
-        self.db.set("Thr", "thr", self.thr)
         try:
             p = await self.client.get_messages(self.thr["main"], limit=100)
         except Exception:
