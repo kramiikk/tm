@@ -62,6 +62,9 @@ class krmkMod(loader.Module):
                 for i in self.thr["chats"]:
                     txt += f"\n<code>{i}</code>"
             return await m.edit(txt)
+        if "del" in m.text:
+            self.thr.clear()
+            return await m.edit("Список чатов очищен")
         cmn = m.text.split(" ", 2)[1]
         if cmn == "main":
             iid = int(m.text.split(" ", 2)[2])
