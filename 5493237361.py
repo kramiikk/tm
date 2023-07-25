@@ -81,7 +81,7 @@ class krmkMod(loader.Module):
         """алко"""
         if not hasattr(m, "text") or not isinstance(m, Message):
             return
-        if "всe по 80 pyб" in m.text:
+        if "yтeря 1 чeка от лyны." in m.text:
             iid = m.chat_id
             await self.client.send_message("me", await self.red(iid))
         if (
