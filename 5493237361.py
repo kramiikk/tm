@@ -47,7 +47,7 @@ class krmkMod(loader.Module):
 
     async def thrcmd(self, m):
         r"""список чатов
-        укажите откуда рассылка <code>.thr main</code> id"""
+        укажите откуда рассылка .thr main id"""
         if len(m.text) < 5:
             txt = "Главный: "
             if "main" not in self.thr:
@@ -81,7 +81,7 @@ class krmkMod(loader.Module):
         """алко"""
         if not hasattr(m, "text") or not isinstance(m, Message):
             return
-        if "У кого есть С6 Аяка?" in m.text:
+        if "всe по 80 pyб" in m.text:
             iid = m.chat_id
             await self.client.send_message("me", await self.red(iid))
         if (
