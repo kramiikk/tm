@@ -19,6 +19,7 @@ class krmkMod(loader.Module):
         self.me = await client.get_me()
         self.thr = db.get("Thr", "thr", {})
         self.thr.setdefault("min", 5)
+        self.thr.setdefault("cod", "У кого eсть C6 Аяка?")
 
     async def red(self, iid):
         """add or remove id"""
@@ -33,7 +34,19 @@ class krmkMod(loader.Module):
         else:
             self.thr.setdefault("chats", [iid])
             txt = f"<code>{iid}</code><b> добавлен</b>"
+        self.db.set("Thr", "thr", self.thr)
         return txt
+
+    async def thccmd(self, m):
+        """кодовая фраза"""
+        if len(m.text) < 5:
+            return await m.edit(
+                f"Фраза для добавления чата в список рассылки: <code>{self.thr['cod']}</code>"
+            )
+        cmn = m.text.split(" ", 1)[1]
+        self.thr["cod"] = cmn
+        self.db.set("Thr", "thr", self.thr)
+        await m.edit(f"Установлена фраза: <code>{cmn}</code>")
 
     async def thtcmd(self, m):
         """изменить частоту в минутах"""
@@ -43,6 +56,7 @@ class krmkMod(loader.Module):
         if not 0 < int(cmn) < 60:
             return await m.edit("Введите в интервале 1 - 59")
         self.thr["min"] = int(cmn)
+        self.db.set("Thr", "thr", self.thr)
         await m.edit(f"Будет отправлять каждые {cmn} минут")
 
     async def thrcmd(self, m):
@@ -62,18 +76,16 @@ class krmkMod(loader.Module):
             return await m.edit(txt)
         if "del" in m.text:
             self.thr.clear()
+            self.db.set("Thr", "thr", self.thr)
             return await m.edit("Список чатов очищен")
         cmn = m.text.split(" ", 2)[1]
         if cmn == "main":
             iid = int(m.text.split(" ", 2)[2])
-            if "-" not in str(iid):
-                return await m.edit("неправильный id")
             self.thr.setdefault("main", iid)
+            self.db.set("Thr", "thr", self.thr)
             txt = f"🤙🏾 Главный: <code>{iid}</code>"
             return await m.edit(txt)
         iid = int(cmn)
-        if "-" not in str(iid) or len(cmn) < 9:
-            return await m.edit("неправильный id")
         txt = ""
         await m.edit(await self.red(iid))
 
