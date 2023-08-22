@@ -50,7 +50,7 @@ class StatusesMod(loader.Module):
         """<short_name> - Set status"""
         args = utils.get_args_raw(message)
         if args not in self.get("texts", {}):
-            await utils.answer(message, self.strings("status_not_found"))
+            await utils.answer(message, self.strings["status_not_found"])
             await asyncio.sleep(3)
             await message.delete()
             return
@@ -58,7 +58,7 @@ class StatusesMod(loader.Module):
         self._ratelimit = []
         await utils.answer(
             message,
-            self.strings("status_set").format(
+            self.strings["status_set"].format(
                 utils.escape_html(self.get("texts", {})[args])
             ),
         )
@@ -69,7 +69,7 @@ class StatusesMod(loader.Module):
         args = utils.get_args_raw(message)
         args = args.split(" ", 1)
         if len(args) < 2:
-            await utils.answer(message, self.strings("pzd_with_args"))
+            await utils.answer(message, self.strings["pzd_with_args"])
             await asyncio.sleep(3)
             await message.delete()
             return
@@ -79,7 +79,7 @@ class StatusesMod(loader.Module):
 
         await utils.answer(
             message,
-            self.strings("status_created").format(
+            self.strings["status_created"].format(
                 utils.escape_html(args[0]),
                 args[1],
             ),
@@ -89,7 +89,7 @@ class StatusesMod(loader.Module):
         """<short_name> - Delete status"""
         args = utils.get_args_raw(message)
         if args not in self.get("texts", {}):
-            await utils.answer(message, self.strings("status_not_found"))
+            await utils.answer(message, self.strings["status_not_found"])
             await asyncio.sleep(3)
             await message.delete()
             return
@@ -100,7 +100,7 @@ class StatusesMod(loader.Module):
     async def unstatuscmd(self, message: Message):
         """Remove status"""
         if not self.get("status", False):
-            await utils.answer(message, self.strings("no_status"))
+            await utils.answer(message, self.strings["no_status"])
             await asyncio.sleep(3)
             await message.delete()
             return
@@ -114,11 +114,11 @@ class StatusesMod(loader.Module):
                 logger.exception("Message not deleted due to")
         self._sent_messages = []
 
-        await utils.answer(message, self.strings("status_unset"))
+        await utils.answer(message, self.strings["status_unset"])
 
     async def statusescmd(self, message: Message):
         """Show available statuses"""
-        res = self.strings("available_statuses")
+        res = self.strings["available_statuses"]
         for short_name, status in self.get("texts", {}).items():
             res += f"<b><u>{short_name}</u></b>\n{status}\n➖➖➖➖➖➖➖➖➖\n"
         await utils.answer(message, res)
