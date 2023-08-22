@@ -341,7 +341,8 @@ class KramiikkMod(loader.Module):
                 and i[1] not in rss.text
             ):
                 continue
-            jab = re.search(r"Б.+: (\d+)", rss.text).group(1)
+            match = re.search(r"Б.+: (\d+)", rss.text)
+            jab = match.group(1) if match else None
             s = 1 if "Нужна реанимация" in rss.text else 0
             if "Хорошее" in rss.text:
                 await asyncio.sleep(
@@ -357,7 +358,7 @@ class KramiikkMod(loader.Module):
                 and i[0] not in rss.text
             ):
                 continue
-            if int(jab) < 1500:
+            if jab is not None and int(jab) < 1500:
                 ar = 0
                 ok = 0
                 pz = 0
@@ -375,6 +376,8 @@ class KramiikkMod(loader.Module):
             if "не в браке" in rss.text:
                 fm = 0
             for p in (p for p in ded if p in rss.text):
+                s = 13
+                time = random.randint(13, s)
                 await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
                 if p == "Можно откормить" and ok == 0:
                     pass
@@ -385,7 +388,6 @@ class KramiikkMod(loader.Module):
                 elif p == "Можно на арену!" and ar == 0:
                     pass
                 elif p in ("Можно на арену!", "Используйте атаку"):
-                    s = 13
                     await asyncio.sleep(random.randint(3, n + 3))
                     await rss.respond(ded[p])
                     await asyncio.sleep(random.randint(s, 33))
@@ -398,8 +400,6 @@ class KramiikkMod(loader.Module):
                         schedule=datetime.timedelta(minutes=s),
                     )
                     for n in range(3):
-                        s += 13
-                        time = random.randint(13, s)
                         if 52 > (ct.minute + time) > 33:
                             time -= 13
                         elif (ct.minute + time) > 48:
