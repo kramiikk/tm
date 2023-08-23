@@ -56,28 +56,25 @@ class KramiikkMod(loader.Module):
         """статус юзербота"""
         if len(m.text) < 3:
             msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
-            txt = (
-                "<b>Статус</b>"
-                + await self.jkl("auto", "\n├", "\n━")
-                + "\n\n    • Снаряжение:"
-                + await self.jkl("as", "\n       ├", "\n        ━")
-                + "\n    • Подземелье:"
-                + await self.jkl("fs", "\n       ├", "\n        ━")
-                + "\n    • Откормить:"
-                + await self.jkl("gs", "\n       ├", "\n        ━")
-                + "\n    • Семья:"
-                + await self.jkl("hs", "\n       ├", "\n        ━")
-                + "\n    • Арена:"
-                + await self.jkl("bs", "\n       ├", "\n        ━")
-                + "\n\n    💶Грабитель:"
-                + await self.jkl("es", "\n       ├", "\n        ━")
-                + "\n    🍽Столовая:"
-                + await self.jkl("ss", "\n       ├", "\n        ━")
-                + "\n    🎰Крупье:"
-                + await self.jkl("cs", "\n       ├", "\n        ━")
-                + f"\n\nНик: <code>{self.su['name']}</code>\nУправление: {msg}\nХод в походе: {msg}"
-                + "\n\n<a href='http://te.legra.ph/-06-20-999'>@гайд</a>"
-            )
+            sections = [
+                ("Статус", "auto", "\n├", "\n━"),
+                ("Снаряжение", "as", "\n       ├", "\n        ━"),
+                ("Подземелье", "fs", "\n       ├", "\n        ━"),
+                ("Откормить", "gs", "\n       ├", "\n        ━"),
+                ("Семья", "hs", "\n       ├", "\n        ━"),
+                ("Арена", "bs", "\n       ├", "\n        ━"),
+                ("Грабитель", "es", "\n       ├", "\n        ━"),
+                ("Столовая", "ss", "\n       ├", "\n        ━"),
+                ("Крупье", "cs", "\n       ├", "\n        ━"),
+            ]
+            section_text = ""
+            for label, arg1, arg2_start, arg2_end in sections:
+                section_text += f"\n    • {label}:" + await self.jkl(
+                    arg1, arg2_start, arg2_end
+                )
+            user_info = f"\n\nНик: <code>{self.su['name']}</code>\nУправление: {msg}\nХод в походе: {msg}"
+            guide_link = "\n\n<a href='http://te.legra.ph/-06-20-999'>@гайд</a>"
+            txt = "<b>Статус</b>" + section_text + user_info + guide_link
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "su":
