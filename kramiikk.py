@@ -54,6 +54,7 @@ class KramiikkMod(loader.Module):
 
     async def scmd(self, m):
         """статус юзербота"""
+        nick = f"<code>{self.su['name']}</code>"
         if len(m.text) < 3:
             msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
             sections = [
@@ -72,9 +73,9 @@ class KramiikkMod(loader.Module):
                 section_text += f"\n    • {label}:" + await self.jkl(
                     arg1, arg2_start, arg2_end
                 )
-            user_info = f"\n\nНик: <code>{self.su['name']}</code>\nУправление: {msg}\nХод в походе: {msg}"
+            user = f"\n\nНик: {nick}\nУправление: {msg}\nХод в походе: {msg}"
             guide_link = "\n\n<a href='http://te.legra.ph/-06-20-999'>@гайд</a>"
-            txt = "<b>Статус</b>" + section_text + user_info + guide_link
+            txt = "<b>Статус</b>" + section_text + user + guide_link
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "su":
@@ -105,7 +106,7 @@ class KramiikkMod(loader.Module):
                 )
             msg = m.text.split(" ", 2)[2]
             self.su["name"] = msg.casefold()
-            txt = f"👻 <code>{self.su['name']}</code> успешно изменён"
+            txt = f"👻 {nick} успешно изменён"
             self.db.set("Su", "su", self.su)
             return await m.edit(txt)
         dung = {
