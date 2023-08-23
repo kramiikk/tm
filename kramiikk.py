@@ -317,23 +317,26 @@ class KramiikkMod(loader.Module):
             chat = int(i[2])
             if self.su["auto"] != [] and chat not in self.su["auto"]:
                 continue
+            job = None
+            jobs_mapping = {
+                "cs": "работа крупье",
+                "es": "работа грабитель",
+                "ss": "поход в столовую",
+            }
             ok = await self.check(chat, "gs")
             pz = await self.check(chat, "fs")
             fm = await self.check(chat, "hs")
             ar = await self.check(chat, "bs")
-            if "cs" in self.su and chat in self.su["cs"]:
-                job = "работа крупье"
-            elif "es" in self.su and chat in self.su["es"]:
-                job = "работа грабитель"
-            elif "ss" in self.su and chat in self.su["ss"]:
-                job = "поход в столовую"
-            elif "cs" in self.su and self.su["cs"] == []:
-                job = "работа крупье"
-            elif "es" in self.su and self.su["es"] == []:
-                job = "работа грабитель"
-            elif "ss" in self.su and self.su["ss"] == []:
-                job = "поход в столовую"
-            else:
+            for code in jobs_mapping:
+                if code in self.su and chat in self.su[code]:
+                    job = jobs_mapping[code]
+                    break
+            if job is None:
+                for code in jobs_mapping:
+                    if code in self.su and not self.su[code]:
+                        job = jobs_mapping[code]
+                        break
+            if job is None:
                 job = 0
             try:
                 cmn = "Моя жаба"
