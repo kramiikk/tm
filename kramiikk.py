@@ -16,6 +16,8 @@ class KramiikkMod(loader.Module):
 
     async def client_ready(self, client, db):
         """ready"""
+        self.db = db
+        self.client = client
         self.su = db.get("Su", "su", {})
         self.su.setdefault("name", client.me.first_name)
         self.su.setdefault("users", [1124824021, self.me.id])
