@@ -37,6 +37,7 @@ class KramiikkMod(loader.Module):
         return txt
 
     async def check(self, chat, key):
+        """чек"""
         if key in self.su and (not self.su[key] or chat in self.su[key]):
             return 1
         return 0
