@@ -349,11 +349,6 @@ class KramiikkMod(loader.Module):
             match = re.search(r"Б.+: (\d+)", rss.text)
             jab = match.group(1) if match else None
             s = 1 if "Нужна реанимация" in rss.text else 0
-            if "Хорошее" in rss.text:
-                await asyncio.sleep(
-                    random.randint(n, 96 + (ct.microsecond % 100)) + ct.minute
-                )
-                await rss.respond(f"использовать леденцы {random.randint(1, 3)}")
             await asyncio.sleep(random.randint(3, n + 3) + ct.minute)
             cmn = "@toadbot Жаба инфо"
             rss = await self.err(chat, cmn)
