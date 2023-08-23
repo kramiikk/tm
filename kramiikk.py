@@ -73,6 +73,8 @@ class KramiikkMod(loader.Module):
                 section_text += f"\n    • {label}:" + await self.jkl(
                     arg1, arg2_start, arg2_end
                 )
+                if label == "Арена":
+                    section_text += "\n"
             user = f"\n\nНик: {nick}\nУправление: {msg}\nХод в походе: {msg}"
             guide_link = "\n\n<a href='http://te.legra.ph/-06-20-999'>@гайд</a>"
             txt = "<b>Статус</b>" + section_text + user + guide_link
