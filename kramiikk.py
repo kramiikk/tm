@@ -18,6 +18,7 @@ class KramiikkMod(loader.Module):
         """ready"""
         self.db = db
         self.client = client
+        self.me = await client.get_me()
         self.su = db.get("Su", "su", {})
 
     async def jkl(self, aa, bb, cc):
