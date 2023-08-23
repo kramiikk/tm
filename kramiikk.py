@@ -58,7 +58,6 @@ class KramiikkMod(loader.Module):
         if len(m.text) < 3:
             msg = "⛔️" if "auto" not in self.su and "chats" not in self.su else "🟢"
             sections = [
-                ("Статус", "auto", "\n├", "\n━"),
                 ("Снаряжение", "as", "\n       ├", "\n        ━"),
                 ("Подземелье", "fs", "\n       ├", "\n        ━"),
                 ("Откормить", "gs", "\n       ├", "\n        ━"),
@@ -77,7 +76,13 @@ class KramiikkMod(loader.Module):
                     section_text += "\n"
             user = f"\n\nНик: {nick}\nУправление: {msg}\nХод в походе: {msg}"
             guide_link = "\n\n<a href='http://te.legra.ph/-06-20-999'>@гайд</a>"
-            txt = "<b>Статус</b>" + section_text + user + guide_link
+            txt = (
+                "<b>Статус</b>"
+                + await self.jkl("auto", "\n├", "\n━")
+                + section_text
+                + user
+                + guide_link
+            )
             return await m.edit(txt)
         cmn = m.text.split(" ", 2)[1]
         if cmn == "su":
