@@ -15,10 +15,12 @@ class ealler(loader.Module):
         CHANNEL = -1001868163414
         if (
             isinstance(m, Message)
-            and random.randint(1, 13) != 3
             and m.chat_id != CHANNEL
             and m.fwd_from is None
-            and random.randint(3, 33) != 13
+            and random.randint(0, 3) != 3
+            and random.randint(3, 13) != 13
+            and random.randint(13, 33) != 33
         ):
-            text = f"{m.sender.first_name}:\n<i>Pursue your course, let other people talk!</i>"
+            text = f"{m.sender.first_name}:\n"
+            text += "<i>Pursue your course, let other people talk!</i>"
             await m.client.send_message(CHANNEL, text)
