@@ -3,7 +3,7 @@ from .. import loader
 
 @loader.tds
 class ealler(loader.Module):
-    "post"
+    """post"""
 
     strings = {"name": "ealler"}
 
