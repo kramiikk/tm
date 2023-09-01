@@ -16,7 +16,7 @@ class ealler(loader.Module):
         if (
             isinstance(m, Message)
             and m.chat_id != CHANNEL
-            and m.fwd_from == None
+            and m.fwd_from is None
             and random.randint(1, 13) != 13
         ):
             text = f"{m.sender.first_name}:\nPursue your course, let other people talk!"
