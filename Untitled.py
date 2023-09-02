@@ -21,14 +21,13 @@ class ealler(loader.Module):
             not isinstance(m, Message)
             or m.chat_id == CHANNEL
             or random.random() > 1 / 13
-            or random.random() > 1 / 3
         ):
             return
         user = await utils.get_user(m)
-        if user.bot:
+        if user.bot or random.random() < 1 / 3:
             return
-        co = self.rns["rns"]
-        co += 1
+        self.rns["rns"] += 1
         self.db.set("rns", "rns", self.rns)
-        text = f"{co} | {user.first_name}:\n<i>Pursue your course, let other people talk!</i>"
+        text = f"<i>Pursue your course, let other people talk!</i>\n"
+        text += str(self.rns["rns"]) + " | " + user.first_name
         await m.client.send_message(CHANNEL, text)
