@@ -17,13 +17,13 @@ class ealler(loader.Module):
         """on channel"""
         CHANNEL = -1001868163414
         user = await utils.get_user(m)
-        rns = self.db.get("rns", "rns", {})
         if (
             isinstance(m, Message)
             and m.chat_id != CHANNEL
             and random.randint(3, 33) == 13
             and not user.bot
         ):
+            rns = self.db.get("rns", "rns", {})
             rns.setdefault("rns", 0)
             count = rns["rns"] + 1
             text = f"{count} | {user.first_name}:\n"
