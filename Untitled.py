@@ -16,9 +16,9 @@ class ealler(loader.Module):
         user = await utils.get_user(m)
         if (
             isinstance(m, Message)
-            and not user.bot
             and m.chat_id != CHANNEL
-            and random.randint(3, 13) == 7
+            and random.randint(3, 33) == 13
+            and not user.bot
         ):
             text = f"{user.first_name}:\n"
             text += "<i>Pursue your course, let other people talk!</i>"
