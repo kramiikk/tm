@@ -28,6 +28,6 @@ class ealler(loader.Module):
             return
         self.rns["rns"] += 1
         self.db.set("rns", "rns", self.rns)
-        text = f"<i>Pursue your course, let other people talk!</i>\n"
+        text = "<i>Pursue your course, let other people talk!</i>\n"
         text += str(self.rns["rns"]) + " | " + user.first_name
         await m.client.send_message(CHANNEL, text)
