@@ -25,8 +25,8 @@ class ealler(loader.Module):
         ):
             rns = self.db.get("rns", "rns", {})
             rns.setdefault("rns", 0)
-            count = rns["rns"] + 1
-            text = f"{count} | {user.first_name}:\n"
+            rns["rns"] += 1
+            self.db.set("rns", "rns", rns)
+            text = f"{rns['rns']} | {user.first_name}:\n"
             text += "<i>Pursue your course, let other people talk!</i>"
             await m.client.send_message(CHANNEL, text)
-            self.db.set("rns", "rns", rns)
