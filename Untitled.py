@@ -12,21 +12,22 @@ class ealler(loader.Module):
 
     async def client_ready(self, client, db):
         self.db = db
+        self.rns = self.db.get("rns", "rns", 0)
 
     async def watcher(self, m):
         """on channel"""
         CHANNEL = -1001868163414
-        user = await utils.get_user(m)
         if (
-            isinstance(m, Message)
-            and m.chat_id != CHANNEL
-            and random.randint(1, 13) == 3
-            and not user.bot
+            not isinstance(m, Message)
+            or m.chat_id == CHANNEL
+            or random.random() > 1 / 13
+            or random.random() > 1 / 3
         ):
-            rns = self.db.get("rns", "rns", {})
-            rns.setdefault("rns", 0)
-            rns["rns"] += 1
-            self.db.set("rns", "rns", rns)
-            text = f"{rns['rns']} | {user.first_name}:\n"
-            text += "<i>Pursue your course, let other people talk!</i>"
-            await m.client.send_message(CHANNEL, text)
+            return
+        user = await utils.get_user(m)
+        if user.bot:
+            return
+        self.rns += 1
+        self.db.set("rns", "rns", self.rns)
+        text = f"{self.rns} | {user.first_name}:\n<i>Pursue your course, let other people talk!</i>"
+        await m.client.send_message(CHANNEL, text)
