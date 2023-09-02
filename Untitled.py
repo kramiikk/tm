@@ -1,4 +1,4 @@
-from .. import loader
+from .. import loader, utils
 import random
 
 from telethon.tl.types import Message
@@ -13,13 +13,13 @@ class ealler(loader.Module):
     async def watcher(self, m):
         """on channel"""
         CHANNEL = -1001868163414
+        user = await utils.get_user(m)
         if (
             isinstance(m, Message)
+            and not user.bot
             and m.chat_id != CHANNEL
-            and m.fwd_from is None
-            and random.randint(0, 3) == 1
-            and random.randint(7, 33) == 13
+            and random.randint(3, 13) == 7
         ):
-            text = f"{m.sender.first_name}:\n"
+            text = f"{user.first_name}:\n"
             text += "<i>Pursue your course, let other people talk!</i>"
             await m.client.send_message(CHANNEL, text)
