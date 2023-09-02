@@ -27,7 +27,8 @@ class ealler(loader.Module):
         user = await utils.get_user(m)
         if user.bot:
             return
-        self.rns += 1
+        co = self.rns["rns"]
+        co += 1
         self.db.set("rns", "rns", self.rns)
-        text = f"{self.rns} | {user.first_name}:\n<i>Pursue your course, let other people talk!</i>"
+        text = f"{co} | {user.first_name}:\n<i>Pursue your course, let other people talk!</i>"
         await m.client.send_message(CHANNEL, text)
