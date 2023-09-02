@@ -20,7 +20,7 @@ class ealler(loader.Module):
         if (
             isinstance(m, Message)
             and m.chat_id != CHANNEL
-            and random.randint(3, 33) == 13
+            and random.randint(1, 13) == 3
             and not user.bot
         ):
             rns = self.db.get("rns", "rns", {})
