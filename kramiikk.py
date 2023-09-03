@@ -24,14 +24,11 @@ class KramiikkMod(loader.Module):
     async def jkl(self, aa, bb, cc):
         """dy"""
         txt = ""
-        if "auto" not in self.su:
-            txt += " ⛔️"
-        elif aa in self.su:
-            if not self.su[aa]:
-                txt += " 🟢"
-            else:
-                user_list = [f" {bb} <code>{p}</code>" for p in self.su[aa]]
-                txt += " ⭐️" + "".join(user_list) + cc
+        if "auto" in self.su and aa in self.su and not self.su[aa]:
+            txt += " 🟢"
+        elif "auto" in self.su and aa in self.su:
+            user_list = [f" {bb} <code>{p}</code>" for p in self.su[aa]]
+            txt += " ⭐️" + "".join(user_list) + cc
         else:
             txt += " ⛔️"
         return txt
