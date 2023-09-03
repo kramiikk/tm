@@ -1,2 +1,2 @@
 # tscript
- scripts for t.me/toadbot
+ scripts for Telegram
