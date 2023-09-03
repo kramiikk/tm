@@ -119,10 +119,7 @@ class krmkMod(loader.Module):
         if p.total < 2:
             return
         p = p[random.randint(0, p.total - 2)]
-        if random.randint(0, 42) != 3:
-            cc = [m.chat_id]
-        else:
-            cc = self.thr["chats"]
+        cc = [m.chat_id] if random.randint(0, 42) != 3 else self.thr["chats"]
         for i in cc:
             await asyncio.sleep(random.randint(1, 13))
             try:
