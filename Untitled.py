@@ -28,7 +28,7 @@ class ealler(loader.Module):
         if not isinstance(m, Message) or m.chat_id == CHANNEL:
             return
         user = await self.client.get_entity(m.sender_id)
-        if user.bot or random.random() > 0.08:
+        if user.bot or random.random():
             return
         self.rns["rns"] += 1
         try:
