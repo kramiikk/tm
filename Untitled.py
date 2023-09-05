@@ -32,7 +32,7 @@ class ealler(loader.Module):
             x = await self.jaccard(self.rns["txt"], m.raw_text)
         except ZeroDivisionError:
             return
-        if x > 0.07 or x != 1.0:
+        if x > 0.07 and x != 1.0:
             self.rns["rns"] += 1
             await self.client.send_message(1825043289, self.rns["txt"])
             await self.client.send_message(1825043289, m.raw_text)
