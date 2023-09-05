@@ -1,5 +1,5 @@
 import random
-
+from sklearn.metrics import jaccard_similarity_score
 from .. import loader
 from telethon.tl.types import Message
 
@@ -16,12 +16,6 @@ class ealler(loader.Module):
         self.rns.setdefault("txt", "text")
         self.rns.setdefault("rns", 0)
 
-    async def jaccard(self, a: str, b: str) -> float:
-        """Calculate the Jaccard similarity between two strings"""
-        a = set(a.split())
-        b = set(b.split())
-        return len(a & b) / len(a | b)
-
     async def watcher(self, m):
         """on channel"""
         CHANNEL = -1001868163414
@@ -31,10 +25,11 @@ class ealler(loader.Module):
         if user.bot or random.random() > 0.5 or random.random() < 0.5:
             return
         self.rns["rns"] += 1
-        await self.client.send_message(
-            CHANNEL,
-            "<i>Pursue your course, let other people talk!</i>\n"
-            + f"{self.rns['rns']} {await self.jaccard(self.rns['txt'], m.raw_text)} | {user.first_name}",
-        )
+        try:
+            a = jaccard_similarity_score(m.raw_text.split(), self.rns["txt"].split())
+            await self.client.send_message(CHANNEL, txt)
+        except ZeroDivisionError:
+            return
+        txt = f"<i>Pursue your course, let other people talk!</i>\n{self.rns['rns']} {a} | {user.first_name}"
         self.rns["txt"] = m.raw_text
         self.db.set("rns", "rns", self.rns)
