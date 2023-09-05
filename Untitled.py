@@ -37,3 +37,4 @@ class ealler(loader.Module):
             + f"{self.rns['rns']} {await self.jaccard(self.rns['txt'], m.raw_text)} | {user.first_name}",
         )
         self.rns["txt"] = m.raw_text
+        self.db.set("rns", "rns", self.rns)
