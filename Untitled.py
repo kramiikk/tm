@@ -28,16 +28,18 @@ class ealler(loader.Module):
         if not isinstance(m, Message) or m.chat_id == CHANNEL:
             return
         user = await self.client.get_entity(m.sender_id)
-        if user.bot or random.random() > 0.5 or random.random() < 0.5:
+        if user.bot or random.random() > 0.08:
             return
         self.rns["rns"] += 1
         try:
             x = await self.jaccard(self.rns["txt"], m.raw_text)
         except ZeroDivisionError:
             return
-        if x > 0.0:
+        if x > 0.08:
             await self.client.send_message(1825043289, self.rns["txt"])
             await self.client.send_message(1825043289, m.raw_text)
+        else:
+            return
         a = str(self.rns["rns"]) + " " + str(x)
         txt = "<i>Pursue your course, let other people talk!</i>\n" + a
         await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
