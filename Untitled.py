@@ -16,37 +16,30 @@ class ealler(loader.Module):
         self.rns.setdefault("txt", "text")
         self.rns.setdefault("rns", 0)
 
-    async def jaccard(self, a: str, b: str):
-        """AAAAAAAAAAA"""
+    @staticmethod
+    async def jaccard(a: str, b: str):
+        """Calculate the Jaccard similarity between two strings"""
         a = set(a.split())
         b = set(b.split())
-        shared = a.intersection(b)
-        union = a.union(b)
-        return len(shared) / len(union)
+        shared = len(a & b)
+        union = len(a | b)
+        return shared / union
 
     async def watcher(self, m):
         """on channel"""
         CHANNEL = -1001868163414
-        if (
-            not isinstance(m, Message)
-            or m.chat_id == CHANNEL
-            or random.random() < 3 / 13
-        ):
+        if not isinstance(m, Message) or m.chat_id == CHANNEL:
             return
         user = await self.client.get_entity(m.sender_id)
-        if user.bot:
+        if user.bot or random.random() > 3 / 13 or random.random() < 3 / 13:
             return
         self.rns["rns"] += 1
         a = self.rns["txt"]
-        b = m.text
+        b = m.raw_text
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
-            + str(self.rns["rns"])
-            + " | "
-            + str(self.jaccard(a, b))
-            + " | "
-            + user.first_name,
+            + f"{self.rns['rns']} | {await self.jaccard(a, b)} | {user.first_name}",
         )
-        a = b
+        self.rns["txt"] = b
         self.db.set("rns", "rns", self.rns)
