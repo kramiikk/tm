@@ -27,7 +27,7 @@ class ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
             return
-        if m.text not in self.txt:
+        if m.text not in self.txt["txt"]:
             self.txt["txt"] = m.text
             self.db.set("rns", "txt", self.txt)
         else:
@@ -39,3 +39,4 @@ class ealler(loader.Module):
             "<i>Pursue your course, let other people talk!</i>\n"
             + f"{self.rns['rns']} | {user.first_name}",
         )
+        await self.client.send_message("me", self.txt["txt"])
