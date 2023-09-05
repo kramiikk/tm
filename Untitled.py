@@ -31,5 +31,5 @@ class ealler(loader.Module):
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
-            + f"{self.rns} | {user.first_name}",
+            + f"{self.rns['rns']} | {user.first_name}",
         )
