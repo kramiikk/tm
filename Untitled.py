@@ -16,7 +16,8 @@ class ealler(loader.Module):
         self.rns.setdefault("txt", "text")
         self.rns.setdefault("rns", 0)
 
-    async def jaccard(x: str, y: str):
+    async def jaccard(self, x: str, y: str):
+        """AAAAAAAAAAA"""
         x = set(x.split())
         y = set(y.split())
         shared = x.intersection(y)
