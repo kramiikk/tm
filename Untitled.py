@@ -16,6 +16,13 @@ class ealler(loader.Module):
         self.rns.setdefault("txt", "text")
         self.rns.setdefault("rns", 0)
 
+    async def jaccard(x: str, y: str):
+        x = set(x.split())
+        y = set(y.split())
+        shared = x.intersection(y)
+        union = x.union(y)
+        return len(shared) / len(union)
+
     async def watcher(self, m):
         """on channel"""
         CHANNEL = -1001868163414
@@ -28,12 +35,13 @@ class ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
             return
-        self.rns["txt"] = m.text
-        self.rns["rns"] += 1
-        self.db.set("rns", "rns", self.rns)
+        x = self.rns["txt"]
+        y = m.text
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
-            + f"{self.rns['rns']} | {user.first_name}",
+            + f"{self.rns['rns']} {self.jaccard(x, y)} | {user.first_name}",
         )
-        await self.client.send_message("me", self.rns["txt"])
+        x = y
+        self.rns["rns"] += 1
+        self.db.set("rns", "rns", self.rns)
