@@ -16,13 +16,12 @@ class ealler(loader.Module):
         self.rns.setdefault("txt", "text")
         self.rns.setdefault("rns", 0)
 
-    @staticmethod
-    async def jaccard(x: str, y: str):
+    async def jaccard(a: str, b: str):
         """AAAAAAAAAAA"""
-        x = set(x.split())
-        y = set(y.split())
-        shared = x.intersection(y)
-        union = x.union(y)
+        a = set(a.split())
+        b = set(b.split())
+        shared = a.intersection(b)
+        union = a.union(b)
         return len(shared) / len(union)
 
     async def watcher(self, m):
@@ -43,7 +42,10 @@ class ealler(loader.Module):
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
-            + f"{self.rns['rns']} {str(self.jaccard(a, b))} | {user.first_name}",
+            + self.rns["rns"]
+            + str(self.jaccard(a, b))
+            + " | "
+            + user.first_name,
         )
         a = b
         self.db.set("rns", "rns", self.rns)
