@@ -16,7 +16,7 @@ class ealler(loader.Module):
         self.rns.setdefault("txt", "text")
         self.rns.setdefault("rns", 0)
 
-    async def jaccard(a: str, b: str):
+    async def jaccard(self, a: str, b: str):
         """AAAAAAAAAAA"""
         a = set(a.split())
         b = set(b.split())
