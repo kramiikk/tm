@@ -20,7 +20,7 @@ class ealler(loader.Module):
         if (
             not isinstance(m, Message)
             or m.chat_id == CHANNEL
-            or random.random() > 3 / 13
+            or random.random() < 3 / 13
         ):
             return
         user = await self.client.get_entity(m.sender_id)
