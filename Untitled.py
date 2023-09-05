@@ -42,7 +42,8 @@ class ealler(loader.Module):
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
-            + self.rns["rns"]
+            + str(self.rns["rns"])
+            + " | "
             + str(self.jaccard(a, b))
             + " | "
             + user.first_name,
