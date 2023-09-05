@@ -28,12 +28,12 @@ class ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
             return
-        self.rns["rns"] += 1
         try:
             x = await self.jaccard(self.rns["txt"], m.raw_text)
         except ZeroDivisionError:
             return
-        if x > 0.07:
+        if x > 0.07 or x != 1.0:
+            self.rns["rns"] += 1
             await self.client.send_message(1825043289, self.rns["txt"])
             await self.client.send_message(1825043289, m.raw_text)
             a = str(self.rns["rns"]) + " " + str(x)
