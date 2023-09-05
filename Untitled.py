@@ -32,12 +32,14 @@ class ealler(loader.Module):
             return
         self.rns["rns"] += 1
         try:
-            a = str(await self.jaccard(self.rns["txt"], m.raw_text))
+            x = await self.jaccard(self.rns["txt"], m.raw_text)
         except ZeroDivisionError:
             return
-        txt = (
-            "<i>Pursue your course, let other people talk!</i>\n" + self.rns["rns"] + a
-        )
+        if x > 0.0:
+            await self.client.send_message(1825043289, self.rns["txt"])
+            await self.client.send_message(1825043289, m.raw_text)
+        a = self.rns["rns"] + " " + str(x)
+        txt = "<i>Pursue your course, let other people talk!</i>\n" + a
         await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
         self.rns["txt"] = m.raw_text
         self.db.set("rns", "rns", self.rns)
