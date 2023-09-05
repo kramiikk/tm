@@ -5,14 +5,14 @@ from telethon.tl.types import Message
 
 
 @loader.tds
-class Ealler(loader.Module):
+class ealler(loader.Module):
     """post"""
 
     strings = {"name": "ealler"}
 
     async def client_ready(self, client, db):
         self.db = db
-        self.rns = await db.get("rns", "rns", 0)
+        self.rns = self.db.get("rns", "rns", 0)
 
     async def watcher(self, m):
         """on channel"""
@@ -26,7 +26,8 @@ class Ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot or random.random() < 1 / 3:
             return
-        self.rns += 1
+        self.rns["rns"] += 1
+        self.db.set("rns", "rns", self.rns)
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
