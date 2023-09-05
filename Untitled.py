@@ -34,12 +34,10 @@ class ealler(loader.Module):
         if user.bot or random.random() > 3 / 13 or random.random() < 3 / 13:
             return
         self.rns["rns"] += 1
-        a = self.rns["txt"]
-        b = m.raw_text
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
-            + f"{self.rns['rns']} | {await self.jaccard(a, b)} | {user.first_name}",
+            + f"{self.rns['rns']} {await self.jaccard(self.rns['txt'], m.raw_text)} | {user.first_name}",
         )
-        self.rns["txt"] = b
+        self.rns["txt"] = m.raw_text
         self.db.set("rns", "rns", self.rns)
