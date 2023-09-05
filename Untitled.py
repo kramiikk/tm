@@ -13,6 +13,7 @@ class ealler(loader.Module):
     async def client_ready(self, client, db):
         self.db = db
         self.rns = self.db.get("rns", "rns", 0)
+        self.txt = self.db.get("rns", "txt", "text")
 
     async def watcher(self, m):
         """on channel"""
@@ -25,6 +26,11 @@ class ealler(loader.Module):
             return
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
+            return
+        if m.text not in self.txt:
+            self.txt["txt"] = m.text
+            self.db.set("rns", "txt", self.txt)
+        else:
             return
         self.rns["rns"] += 1
         self.db.set("rns", "rns", self.rns)
