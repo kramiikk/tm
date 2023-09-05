@@ -22,7 +22,7 @@ class ealler(loader.Module):
         if not isinstance(m, Message) or m.chat_id == CHANNEL:
             return
         user = await self.client.get_entity(m.sender_id)
-        if user.bot or random.random() > 3 / 13 or random.random() < 3 / 13:
+        if user.bot or random.random() > 0.5 or random.random() < 0.5:
             return
         self.rns["rns"] += 1
         await self.client.send_message(
@@ -31,10 +31,8 @@ class ealler(loader.Module):
             + f"{self.rns['rns']} {await self.jaccard(self.rns['txt'], m.raw_text)} | {user.first_name}",
         )
         self.rns["txt"] = m.raw_text
-        self.db.set("rns", "rns", self.rns)
 
-    @staticmethod
-    async def jaccard(a: str, b: str):
+    async def jaccard(self, a: str, b: str) -> float:
         """Calculate the Jaccard similarity between two strings"""
         a = set(a.split())
         b = set(b.split())
