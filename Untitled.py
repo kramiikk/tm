@@ -26,10 +26,14 @@ class ealler(loader.Module):
             return
         self.rns["rns"] += 1
         try:
-            a = jaccard_similarity_score(m.raw_text.split(), self.rns["txt"].split())
-            await self.client.send_message(CHANNEL, txt)
+            a = str(
+                jaccard_similarity_score(m.raw_text.split(), self.rns["txt"].split())
+            )
         except ZeroDivisionError:
             return
-        txt = f"<i>Pursue your course, let other people talk!</i>\n{self.rns['rns']} {a} | {user.first_name}"
+        txt = (
+            "<i>Pursue your course, let other people talk!</i>\n" + self.rns["rns"] + a
+        )
+        await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
         self.rns["txt"] = m.raw_text
         self.db.set("rns", "rns", self.rns)
