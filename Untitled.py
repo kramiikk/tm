@@ -28,11 +28,11 @@ class ealler(loader.Module):
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
-            + f"{self.rns['rns']} {await self.jaccard(self.rns['txt'], m.raw_text)} | {user.first_name}",
+            + f"{self.rns['rns']} {self.jaccard(self.rns['txt'], m.raw_text)} | {user.first_name}",
         )
         self.rns["txt"] = m.raw_text
 
-    async def jaccard(self, a: str, b: str) -> float:
+    def jaccard(a: str, b: str):
         """Calculate the Jaccard similarity between two strings"""
         a = set(a.split())
         b = set(b.split())
