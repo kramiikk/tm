@@ -20,7 +20,7 @@ class ealler(loader.Module):
         """Calculate the Jaccard similarity between two strings"""
         a = set(a.split())
         b = set(b.split())
-        return len(a & b) / len(a | b)
+        return len(a.intersection(b)) / len(a.union(b))
 
     async def watcher(self, m):
         """on channel"""
