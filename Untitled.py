@@ -36,10 +36,10 @@ class ealler(loader.Module):
         if x > 0.07:
             await self.client.send_message(1825043289, self.rns["txt"])
             await self.client.send_message(1825043289, m.raw_text)
+            a = str(self.rns["rns"]) + " " + str(x)
+            txt = "<i>Pursue your course, let other people talk!</i>\n" + a
+            await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
         else:
-            return
-        a = str(self.rns["rns"]) + " " + str(x)
-        txt = "<i>Pursue your course, let other people talk!</i>\n" + a
-        await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
+            pass
         self.rns["txt"] = m.raw_text
         self.db.set("rns", "rns", self.rns)
