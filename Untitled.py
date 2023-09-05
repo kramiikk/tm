@@ -37,13 +37,13 @@ class ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
             return
-        x = self.rns["txt"]
-        y = m.text
+        self.rns["rns"] += 1
+        a = self.rns["txt"]
+        b = m.text
         await self.client.send_message(
             CHANNEL,
             "<i>Pursue your course, let other people talk!</i>\n"
-            + f"{self.rns['rns']} {self.jaccard(x, y)} | {user.first_name}",
+            + f"{self.rns['rns']} {str(self.jaccard(a, b))} | {user.first_name}",
         )
-        x = y
-        self.rns["rns"] += 1
+        a = b
         self.db.set("rns", "rns", self.rns)
