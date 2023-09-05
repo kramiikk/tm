@@ -1,5 +1,6 @@
 import random
 
+from .. import loader
 from telethon.tl.types import Message
 
 
