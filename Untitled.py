@@ -11,8 +11,9 @@ class ealler(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        self.rns = self.db.get("rns", "rns", {})
-        self.rns.setdefault("rns", 0)
+        self.rns = self.db.get("Rns", "rns", {})
+        self.thr = self.db.get("Thr", "thr", {})
+        self.thr.setdefault("tmm", 0)
         keys = [f"txt{i}" for i in range(13)]
         self.rns = dict.fromkeys(keys)
 
@@ -34,14 +35,15 @@ class ealler(loader.Module):
             return
         t = None
         tex = [self.rns[f"txt{i}"] for i in range(13)]
-        for t in (await self.jaccard(t, m.raw_text) for t in tex):
-            if t > 1.0:
+        for t in tex:
+            x = await self.jaccard(t, m.raw_text)
+            if x > 1.0:
                 break
-        if t > 1.0:
-            self.rns["rns"] += 1
-            await self.client.send_message(1825043289, self.rns["txt"])
+        if x > 1.0:
+            self.thr["tmm"] += 1
+            await self.client.send_message(1825043289, t)
             await self.client.send_message(1825043289, m.raw_text)
-            a = str(self.rns["rns"]) + " " + str(t)
+            a = str(self.thr["tmm"]) + " " + str(x)
             txt = "<i>Pursue your course, let other people talk!</i>\n" + a
             await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
         else:
@@ -51,4 +53,4 @@ class ealler(loader.Module):
         values = values[-1:] + values[:-1]
         pairs = zip(keys, values)
         self.rns = dict(pairs)
-        self.db.set("rns", "rns", self.rns)
+        self.db.set("Rns", "rns", self.rns)
