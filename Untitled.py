@@ -34,7 +34,7 @@ class ealler(loader.Module):
             tex = [self.rns["txt"], self.rns["txt1"], self.rns["txt2"]]
             for t in tex:
                 x = await self.jaccard(t, m.raw_text)
-                if x >= 1.3:
+                if x > 1.0:
                     break
         except ZeroDivisionError:
             return
