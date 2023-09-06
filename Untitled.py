@@ -38,7 +38,7 @@ class ealler(loader.Module):
                     break
         except ZeroDivisionError:
             return
-        if x > 1.3:
+        if x > 1.0:
             self.rns["rns"] += 1
             await self.client.send_message(1825043289, self.rns["txt"])
             await self.client.send_message(1825043289, m.raw_text)
