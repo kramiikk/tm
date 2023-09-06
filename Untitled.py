@@ -36,7 +36,7 @@ class ealler(loader.Module):
         max_pair = max(pairs, key=lambda p: p[1])
         t = max_pair[0]
         x = max_pair[1]
-        if x >= 1.0:
+        if x > 1.0:
             self.thr["tmm"] += 1
             self.db.set("Thr", "thr", self.thr)
             await self.client.send_message(1825043289, t)
