@@ -13,5 +13,5 @@ class ealler(loader.Module):
         if not isinstance(m, Message):
             return
         i = (await self.client.get_messages(1868163414, limit=1))[0].id
-        txt = "{} | <i>Pursue your course, let other people talk!</i>"
-        await self.client.send_message(1868163414, txt.format(i))
+        txt = f"{i} | <i>Pursue your course, let other people talk!</i>"
+        await self.client.send_message(1868163414, txt)
