@@ -11,15 +11,15 @@ class ealler(loader.Module):
     async def client_ready(self, client, db):
         self.db = db
         self.rns = self.db.get("rns", "rns", {})
-        self.rns.setdefault("txt", "text")
-        self.rns.setdefault("txt1", "text")
-        self.rns.setdefault("txt2", "text")
-        self.rns.setdefault("rns", 0)
+        for key in ("txt", "txt1", "txt2", "rns"):
+            self.rns.setdefault(key, key)
 
     async def jaccard(self, a: str, b: str) -> float:
         """Calculate the Jaccard similarity between two strings"""
         a = set(a.split())
         b = set(b.split())
+        if not (a or b):
+            return 0.0
         return len(a.intersection(b)) / len(a.union(b))
 
     async def watcher(self, m):
@@ -30,15 +30,12 @@ class ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
             return
-        try:
-            tex = [self.rns["txt"], self.rns["txt1"], self.rns["txt2"]]
-            for t in tex:
-                x = await self.jaccard(t, m.raw_text)
-                if x > 1.0:
-                    break
-        except ZeroDivisionError:
-            return
-        if x > 1.0:
+        tex = [self.rns["txt"], self.rns["txt1"], self.rns["txt2"]]
+        for t in tex:
+            x = await self.jaccard(t, m.raw_text)
+            if x >= 1.0:
+                break
+        if x >= 1.0:
             self.rns["rns"] += 1
             await self.client.send_message(1825043289, self.rns["txt"])
             await self.client.send_message(1825043289, m.raw_text)
