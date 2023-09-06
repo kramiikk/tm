@@ -9,6 +9,7 @@ class ealler(loader.Module):
     strings = {"name": "ealler"}
 
     async def client_ready(self, client, db):
+        self.client = client
         self.db = db
         self.rns = self.db.get("rns", "rns", {})
         self.rns.setdefault("rns", 0)
