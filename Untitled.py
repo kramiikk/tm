@@ -14,8 +14,7 @@ class ealler(loader.Module):
         self.rns = self.db.get("Rns", "rns", {})
         self.thr = self.db.get("Thr", "thr", {})
         self.thr.setdefault("tmm", 0)
-        keys = [f"txt{i}" for i in range(13)]
-        self.rns = dict.fromkeys(keys)
+        self.rns = [None] * 13
 
     async def jaccard(self, a: str, b: str) -> float:
         """Calculate the Jaccard similarity between two strings"""
@@ -33,14 +32,13 @@ class ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
             return
-        t = None
-        tex = [self.rns[f"txt{i}"] for i in range(13)]
-        for t in tex:
+        for t in self.rns:
             x = await self.jaccard(t, m.raw_text)
             if x > 1.0:
                 break
         if x > 1.0:
             self.thr["tmm"] += 1
+            self.db.set("Thr", "thr", self.thr)
             await self.client.send_message(1825043289, t)
             await self.client.send_message(1825043289, m.raw_text)
             a = str(self.thr["tmm"]) + " " + str(x)
@@ -48,9 +46,5 @@ class ealler(loader.Module):
             await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
         else:
             pass
-        keys = [f"txt{i}" for i in range(13)]
-        values = list(self.rns.values())
-        values = values[-1:] + values[:-1]
-        pairs = zip(keys, values)
-        self.rns = dict(pairs)
+        self.rns = self.rns[1:] + [self.rns[0]]
         self.db.set("Rns", "rns", self.rns)
