@@ -17,7 +17,7 @@ class ealler(loader.Module):
     async def watcher(self, m):
         """channel"""
         if m and m.chat_id != -1001868163414 and not m.photo:
-            txt = " | <i>Pursue your course, let other people talk!</i>"
-            await self.client.send_message(1868163414, str(self.thr["count"]) + txt)
             self.thr["count"] += 1
             self.db.set("Thr", "thr", self.thr)
+            txt = " | <i>Pursue your course, let other people talk!</i>"
+            await self.client.send_message(1868163414, str(self.thr["count"]) + txt)
