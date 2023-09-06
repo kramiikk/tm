@@ -32,10 +32,8 @@ class ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
             return
-        keys = [f"txt{i}" for i in range(13)]
-        values = list(self.rns.values())
-        for v in values:
-            x = await self.jaccard(v, m.raw_text)
+        tex = [self.rns[f"txt{i}"] for i in range(13)]
+        for x in (await self.jaccard(x, m.raw_text) for x in tex):
             if x > 1.0:
                 break
         if x > 1.0:
