@@ -32,15 +32,16 @@ class ealler(loader.Module):
         user = await self.client.get_entity(m.sender_id)
         if user.bot:
             return
+        t = None
         tex = [self.rns[f"txt{i}"] for i in range(13)]
-        for x in (await self.jaccard(x, m.raw_text) for x in tex):
-            if x > 1.0:
+        for t in (await self.jaccard(t, m.raw_text) for t in tex):
+            if t > 1.0:
                 break
-        if x > 1.0:
+        if t > 1.0:
             self.rns["rns"] += 1
             await self.client.send_message(1825043289, self.rns["txt"])
             await self.client.send_message(1825043289, m.raw_text)
-            a = str(self.rns["rns"]) + " " + str(x)
+            a = str(self.rns["rns"]) + " " + str(t)
             txt = "<i>Pursue your course, let other people talk!</i>\n" + a
             await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
         else:
