@@ -12,6 +12,8 @@ class ealler(loader.Module):
         self.db = db
         self.rns = self.db.get("rns", "rns", {})
         self.rns.setdefault("txt", "text")
+        self.rns.setdefault("txt1", "text")
+        self.rns.setdefault("txt2", "text")
         self.rns.setdefault("rns", 0)
 
     async def jaccard(self, a: str, b: str) -> float:
@@ -29,7 +31,11 @@ class ealler(loader.Module):
         if user.bot:
             return
         try:
-            x = await self.jaccard(self.rns["txt"], m.raw_text)
+            tex = [self.rns["txt"], self.rns["txt1"], self.rns["txt2"]]
+            for t in tex:
+                x = await self.jaccard(t, m.raw_text)
+                if x >= 1.3:
+                    break
         except ZeroDivisionError:
             return
         if x > 1.3:
@@ -41,5 +47,6 @@ class ealler(loader.Module):
             await self.client.send_message(CHANNEL, f"{txt} | {user.first_name}")
         else:
             pass
-        self.rns["txt"] = m.raw_text
+        val = [m.raw_text, self.rns["txt"], self.rns["txt1"]]
+        self.rns["txt"], self.rns["txt1"], self.rns["txt2"] = val[-1:] + val[:-1]
         self.db.set("rns", "rns", self.rns)
