@@ -10,8 +10,8 @@ class ealler(loader.Module):
 
     async def watcher(self, m):
         """channel"""
-        CHANNEL = -1001868163414
-        if not isinstance(m, Message) or m.chat_id != CHANNEL:
+        if not isinstance(m, Message):
             return
+        i = (await self.client.get_messages(1868163414, limit=1))[0].id
         txt = "{} | <i>Pursue your course, let other people talk!</i>"
-        await self.client.send_message(CHANNEL, txt.format(m.id))
+        await self.client.send_message(1868163414, txt.format(i))
