@@ -33,9 +33,9 @@ class ealler(loader.Module):
         tex = [self.rns["txt"], self.rns["txt1"], self.rns["txt2"]]
         for t in tex:
             x = await self.jaccard(t, m.raw_text)
-            if x >= 1.0:
+            if x > 1.0:
                 break
-        if x >= 1.0:
+        if x > 1.0:
             self.rns["rns"] += 1
             await self.client.send_message(1825043289, self.rns["txt"])
             await self.client.send_message(1825043289, m.raw_text)
