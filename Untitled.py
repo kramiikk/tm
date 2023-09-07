@@ -10,7 +10,6 @@ class ealler(loader.Module):
 
     THR = {"count": 0, "sec": 1}
 
-    @loader.ratelimit(1)
     async def watcher(self, m):
         """channel"""
         if m and m.chat_id != -1001868163414 and not m.photo:
