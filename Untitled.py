@@ -10,9 +10,9 @@ class ealler(loader.Module):
 
     THR = {"count": 0, "sec": 1}
 
-    async def watcher(self, m):
+    async def cher(self, m):
         """channel"""
-        if m and m.chat_id != -1001868163414 and not m.photo:
+        while True:
             txt = "<i>Pursue your course, let other people talk!</i>"
             if time.time() % 60 != self.THR["sec"]:
                 self.THR["sec"] = time.time() % 60
