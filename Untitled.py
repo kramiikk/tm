@@ -1,3 +1,4 @@
+import datetime
 from .. import loader
 
 
@@ -11,13 +12,15 @@ class ealler(loader.Module):
         """ready"""
         self.db = db
         self.client = client
-        self.thr = db.get("Thr", "thr", {})
-        self.thr.setdefault("count", 0)
+        self.thr = {"count": 0, "sec": 1}
 
     async def watcher(self, m):
         """channel"""
         if m and m.chat_id != -1001868163414 and not m.photo:
-            self.thr["count"] += 1
-            self.db.set("Thr", "thr", self.thr)
+            ct = datetime.datetime.now()
             txt = " | <i>Pursue your course, let other people talk!</i>"
-            await self.client.send_message(1868163414, str(self.thr["count"]) + txt)
+            if ct.second != self.thr["sec"]:
+                self.thr["sec"] = ct.second
+                self.thr["count"] += 1
+                self.db.set("Thr", "thr", self.thr)
+                await self.client.send_message(1868163414, f"{self.thr['count']}{txt}")
