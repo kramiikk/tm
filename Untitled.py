@@ -10,7 +10,7 @@ class ealler(loader.Module):
 
     THR = {"count": 0, "sec": 1}
 
-    async def cher(self, m):
+    async def cher(self):
         """channel"""
         while True:
             txt = "<i>Pursue your course, let other people talk!</i>"
