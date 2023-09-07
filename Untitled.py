@@ -10,12 +10,14 @@ class ealler(loader.Module):
 
     THR = {"count": 0, "sec": 1}
 
-    async def client_ready(self):
+    async def watcher(self, m):
         """channel"""
+        if not m and m.chat_id != 5274754956:
+            return
         while True:
             txt = "<i>Pursue your course, let other people talk!</i>"
-            if time.time() % 60 != self.THR["sec"]:
-                self.THR["sec"] = time.time() % 60
+            if int(time.time() % 60) != self.THR["sec"]:
+                self.THR["sec"] = int(time.time() % 60)
                 self.THR["count"] += 1
                 await self.client.send_message(
                     1868163414, f"{self.THR['count']} | {txt}"
