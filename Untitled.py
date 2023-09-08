@@ -18,7 +18,4 @@ class ealler(loader.Module):
         while True:
             self.THR += 1
             await asyncio.sleep(1)
-            await self.client.send_message(1868163414, gtext())
-
-            def gtext():
-                return f"{self.THR} | {txt}"
+            await self.client.send_message(1868163414, f"{self.THR} | {txt}")
