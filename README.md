@@ -1,2 +1,7 @@
-# tscript
- scripts for Telegram
+```elixir
+def code do
+  [
+    {:me, "~life"}
+  ]
+end
+```
