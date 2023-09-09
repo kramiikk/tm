@@ -1,2 +1,5 @@
-# tscript
- scripts for Telegram
+def code do
+  [
+    {:me, "~life"}
+  ]
+end
