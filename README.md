@@ -1,6 +1,7 @@
-<code>def code do
+```elixir
+def code do
   [
     {:me, "~life"}
   ]
 end
-</code>
+```
