@@ -1,5 +1,6 @@
-def code do
+<code>def code do
   [
     {:me, "~life"}
   ]
 end
+</code>
