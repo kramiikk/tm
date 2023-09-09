@@ -5,30 +5,23 @@
          form { font-family: Arial, sans-serif; max-width: 400px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
          form > h1 { text-align: center; font-size: 24px; color: #333; }
          input, select { display: block; width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-         input[type=“submit”] { background-color: #333; color: white; font-weight: bold; cursor: pointer; }
+         input[type=“submit”] { background-color: #333; color: white; font-weight: bold; cursor: pointer; margin-top: 20px; }
          label { display: block; font-size: 14px; color: #333; }
       </style>
    </head>
    <body>
       <form id="fs-frm" name="basic-rsvp-form" accept-charset="utf-8" action="https://formspree.io/f/mdorzvqz" method="post">
          <fieldset id="fs-frm-inputs">
-            <label for="full-name">Tag</label>
+            <label for="full-name">Your Telegram</label>
             <input type="text" name="name" id="full-name" placeholder="@username" required="">
-            <label for="attending">Will you?</label>
+            <label for="attending">Are you alone?</label>
             <select name="attending" id="attending" required="">
-               <option value="" selected="" disabled="">Select</option>
                <option value="Yes">Yes</option>
                <option value="No">No</option>
             </select>
-            <label for="plus">how many?</label>
-            <select name="plus" id="plus" required="">
-               <option value="1">1</option>
-               <option value="2">2</option>
-               <option value="3">3</option>
-            </select>
             <input type="hidden" name="_subject" id="email-subject" value="RSVP">
          </fieldset>
-         <input type="submit" value="RSVP">
+         <input type="submit" value="Send">
       </form>
    </body>
 </html>
