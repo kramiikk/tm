@@ -24,6 +24,9 @@
          border: 1px solid #ccc;
          border-radius: 5px;
          }
+         input[name="name"]:invalid + input[type="submit"] {
+         visibility: hidden;
+         }
          input[type="submit"] {
          margin-top: 20px;
          background-color: #333;
@@ -31,10 +34,19 @@
          font-weight: bold;
          cursor: pointer;
          }
-         label {
+         form:invalid::after {
+         content: "";
          display: block;
-         font-size: 14px;
-         color: #333;
+         width: 240px;
+         height: 240px;
+         margin: 13px auto;
+         background-image: url("https://i.imgur.com/BuHkgMn_d.webp?maxwidth=760");
+         background-size: cover;
+         background-repeat: no-repeat;
+         }
+         form:valid video {
+         display: block;
+         margin: 13px auto;
          }
       </style>
    </head>
@@ -51,6 +63,10 @@
             <input type="hidden" name="_subject" id="email-subject" value="Demand">
          </fieldset>
          <input type="submit" value="Send">
+         <!-- Вставьте тег video здесь -->
+         <video autoplay muted width="240px" height="240px" hidden>
+            <source src="https://i.imgur.com/TiBRMHE.mp4" type="video/mp4">
+         </video>
       </form>
    </body>
 </html>
