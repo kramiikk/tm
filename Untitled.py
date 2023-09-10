@@ -16,6 +16,6 @@ class ealler(loader.Module):
             return
         txt = "<i>Pursue your course, let other people talk!</i>"
         while True:
-            await asyncio.sleep(1.3)
+            await asyncio.sleep(1.5)
             await self.client.send_message(1868163414, f"{self.THR} | {txt}")
             self.THR += 1
