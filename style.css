@@ -4,12 +4,17 @@
     bottom: 0;
     min-width: 100%;
     min-height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: -1;
+    background-color: #000000;
 }
+
 
 form {
     font-family: Arial, sans-serif;
     max-width: max-content;
-    margin: 20px auto 20px;
+    margin: 150px auto;
     padding: 10px 10px;
     border: 1px solid #ffffff;
     border-radius: 10px;
@@ -52,4 +57,9 @@ form:invalid::after {
 form:valid video {
     display: block;
     margin: auto;
+}
+
+label {
+    color: #ffffff;
+    box-shadow: inset 0 -12px #000000; 
 }
