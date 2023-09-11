@@ -16,9 +16,6 @@ form {
     max-width: max-content;
     margin: 150px auto;
     padding: 10px 10px;
-    border: 1px solid #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 input,
@@ -37,21 +34,11 @@ input[name="name"]:required+input[type="submit"] {
 
 input[type="submit"] {
     margin-top: 10px;
-    background-color: #000000;
-    color: #ffffff;
+    box-shadow: inset 0 -5px #000000;
+    background-color: #ffffff;
+    color: #000000;
     font-weight: 700;
     cursor: pointer;
-}
-
-form:invalid::after {
-    content: "";
-    display: block;
-    width: 210px;
-    height: 210px;
-    margin: auto;
-    background-image: url("https://i.imgur.com/BuHkgMn_d.webp?maxwidth=760");
-    background-size: cover;
-    background-repeat: no-repeat;
 }
 
 form:valid video {
@@ -60,6 +47,6 @@ form:valid video {
 }
 
 label {
-    color: #ffffff;
-    box-shadow: inset 0 -12px #000000; 
+    color: #000000;
+    background-color: #ffffff; 
 }
