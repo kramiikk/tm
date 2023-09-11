@@ -1,9 +1,9 @@
 form {
     font-family: Arial, sans-serif;
-    max-width: 400px;
-    margin: 20px auto;
-    padding: 20px;
-    border: 1px solid white;
+    max-width: 25%;
+    margin: 20px auto 20px;
+    padding: 10px 10px;
+    border: 1px solid #ffffff;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
@@ -15,14 +15,14 @@ input, select {
     border: 1px solid;
     border-radius: 5px;
 }
-input[name="name"]:invalid + input[type="submit"] {
-    visibility: hidden;
+input[name="name"]:required + input[type="submit"] {
+    display: none;
 }
 input[type="submit"] {
     margin-top: 10px;
-    background-color: black;
-    color: white;
-    font-weight: bold;
+    background-color: #000000;
+    color: #ffffff;
+    font-weight: 700;
     cursor: pointer;
 }
 form:invalid::after {
