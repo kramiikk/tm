@@ -1,6 +1,6 @@
 form {
     font-family: Arial, sans-serif;
-    max-width: 25%;
+    max-width: max-content;
     margin: 20px auto 20px;
     padding: 10px 10px;
     border: 1px solid #ffffff;
