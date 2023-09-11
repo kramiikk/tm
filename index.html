@@ -1,49 +1,7 @@
 <html>
    <head>
       <title>Contact me</title>
-      <style>
-         form {
-         font-family: Arial, sans-serif; 
-         max-width: 400px; 
-         margin: 20px auto; 
-         padding: 20px; 
-         border: 1px solid white; 
-         border-radius: 10px; 
-         box-shadow: 0 0 10px rgba(0,0,0,0.1);
-         }
-         input, select {
-         display: block; 
-         width: 100%;
-         margin-bottom: 10px;
-         padding: 10px;
-         border: 1px solid;
-         border-radius: 5px;
-         }
-         input[name="name"]:invalid + input[type="submit"] {
-         visibility: hidden;
-         }
-         input[type="submit"] {
-         margin-top: 10px;
-         background-color: black;
-         color: white;
-         font-weight: bold;
-         cursor: pointer;
-         }
-         form:invalid::after {
-         content: "";
-         display: block;
-         width: 210px;
-         height: 210px;
-         margin: auto;
-         background-image: url("https://i.imgur.com/BuHkgMn_d.webp?maxwidth=760");
-         background-size: cover;
-         background-repeat: no-repeat;
-         }
-         form:valid video {
-         display: block;
-         margin: auto;
-         }
-      </style>
+      <link rel="stylesheet" href="style.css">
    </head>
    <body>
       <form id="fs-frm" name="basic-rsvp-form" accept-charset="utf-8" action="https://formspree.io/f/mdorzvqz" method="post">
