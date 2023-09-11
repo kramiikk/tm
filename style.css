@@ -1,3 +1,11 @@
+#bg-video {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
+}
+
 form {
     font-family: Arial, sans-serif;
     max-width: max-content;
@@ -5,9 +13,11 @@ form {
     padding: 10px 10px;
     border: 1px solid #ffffff;
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
-input, select {
+
+input,
+select {
     display: block;
     width: 100%;
     margin-bottom: 10px;
@@ -15,9 +25,11 @@ input, select {
     border: 1px solid;
     border-radius: 5px;
 }
-input[name="name"]:required + input[type="submit"] {
+
+input[name="name"]:required+input[type="submit"] {
     display: none;
 }
+
 input[type="submit"] {
     margin-top: 10px;
     background-color: #000000;
@@ -25,6 +37,7 @@ input[type="submit"] {
     font-weight: 700;
     cursor: pointer;
 }
+
 form:invalid::after {
     content: "";
     display: block;
@@ -35,6 +48,7 @@ form:invalid::after {
     background-size: cover;
     background-repeat: no-repeat;
 }
+
 form:valid video {
     display: block;
     margin: auto;
