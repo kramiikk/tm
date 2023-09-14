@@ -1,55 +1,39 @@
-#bg-video {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    min-width: 100%;
-    min-height: 100%;
-    object-fit: cover;
-    object-position: center;
-    z-index: -1;
-    background-color: #000000;
+@font-face {
+    font-family: "P5 Hatty";
+    src: url("p5hatty.ttf");
 }
 
-#full-name {
-	width: auto;
+button {
+    font-family: "P5 Hatty", sans-serif;
+    font-size: 2em;
+    color: #000000;
+    text-shadow: 1px 1px #fdfdfd, 2px 2px #ff0000; 
 }
 
-form {
-    font-family: Arial, sans-serif;
-    max-width: max-content;
-    margin: 150px auto;
-    padding: 10px 10px;
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-input,
-select {
+.button {
+    width: 200px;
+    height: 50px;
+    margin: 10px;
+    font-size: 20px;
+    margin-top: 10px;
+    box-shadow: inset 0 -5px #000000;
+    background-color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
     display: block;
-    width: 100%;
     margin-bottom: 10px;
     padding: 10px;
     border: 1px solid;
     border-radius: 5px;
 }
 
-input[name="name"]:required+input[type="submit"] {
-    display: none;
-}
-
-input[type="submit"] {
-    margin-top: 10px;
-    box-shadow: inset 0 -5px #000000;
-    background-color: #ffffff;
-    color: #000000;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-form:valid video {
-    display: block;
-    margin: auto;
-}
-
-label {
-    color: #000000;
-    background-color: #ffffff; 
+.button:hover {
+    box-shadow: 0 0 13px #712121;
 }

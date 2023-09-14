@@ -1,0 +1,54 @@
+#bg-video {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+    background-color: #000000;
+}
+
+#full-name {
+	width: auto;
+}
+
+form {
+    font-family: Arial, sans-serif;
+    max-width: max-content;
+    margin: 180px auto;
+    padding: 10px 10px;
+}
+
+input,
+select {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid;
+    border-radius: 5px;
+}
+
+input[name="name"]:required+input[type="submit"] {
+    display: none;
+}
+
+input[type="submit"] {
+    margin-top: 10px;
+    box-shadow: inset 0 -5px #000000;
+    background-color: #ffffff;
+    color: #000000;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+form:valid video {
+    display: block;
+    margin: auto;
+}
+
+label {
+    color: #000000;
+    background-color: #ffffff; 
+}
