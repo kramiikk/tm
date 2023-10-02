@@ -1,7 +1,7 @@
-
 __version__ = (3, 0, 1)
 
-import logging, time
+import logging
+import time
 from telethon.utils import get_display_name
 from aiogram.types import Message as AiogramMessage
 from .. import loader, utils
@@ -38,7 +38,7 @@ class FeedbackBotMod(loader.Module):
 
     async def client_ready(self, client, db):
         self._client = client
-
+        db = self.db
         self._name = utils.escape_html(get_display_name(await client.get_me()))
 
         self._ratelimit = {}
@@ -56,7 +56,6 @@ class FeedbackBotMod(loader.Module):
         if message.text == "/start feedback":
             if str(message.from_user.id) in map(str, self._ban_list):
                 return await message.answer(self.strings("banned"))
-
             _markup = self.inline.generate_markup(
                 {"text": self.strings("fb_message"), "data": "fb_message"}
             )
@@ -65,7 +64,6 @@ class FeedbackBotMod(loader.Module):
                 self.strings("start").format(self._name),
                 reply_markup=_markup,
             )
-
         if self.inline.gs(message.from_user.id) == "fb_send_message":
             await self.inline.bot.forward_message(
                 self._tg_id,
@@ -95,7 +93,6 @@ class FeedbackBotMod(loader.Module):
                 call.message.message_id,
             )
             return
-
         if call.data.split("/")[0] == "fb_ban":
             fb_ban_id = call.data.split("/")[1]
             if str(fb_ban_id) in str(self._ban_list):
@@ -103,16 +100,13 @@ class FeedbackBotMod(loader.Module):
             else:
                 self._ban_list.append(fb_ban_id)
                 await call.answer(self.strings("user_banned").format(fb_ban_id))
-
         if call.data != "fb_message":
             return
-
         if str(call.from_user.id) in str(self._ban_list):
             await call.answer(
                 self.strings("banned"),
                 show_alert=True,
             )
-
         if (
             call.from_user.id in self._ratelimit
             and self._ratelimit[call.from_user.id] > time.time()
@@ -124,7 +118,6 @@ class FeedbackBotMod(loader.Module):
                 show_alert=True,
             )
             return
-
         self.inline.ss(call.from_user.id, "fb_send_message")
 
         await call.answer(
