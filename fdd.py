@@ -1,9 +1,8 @@
 import logging
 import time
-from aiogram import types
 from telethon.utils import get_display_name
 from aiogram.types import Message as AiogramMessage
-from aiogram.types.web_app_info import WebAppInfo
+from aiogram.types import web_app_info
 from .. import loader, utils
 from ..inline.types import InlineCall
 
@@ -56,7 +55,7 @@ class FeedbackBotMod(loader.Module):
         if message.text == "/start":
             if str(message.from_user.id) in map(str, self._ban_list):
                 return await message.answer(self.strings("banned"))
-            web_app = WebAppInfo(url="https://kramiikk.github.io/tm/")
+            web_app = web_app_info.WebAppInfo(url="https://kramiikk.github.io/tm/")
             _markup = self.inline.generate_markup(
                 {"text": self.strings("fb_message"), "data": web_app}
             )
