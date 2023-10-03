@@ -1,4 +1,3 @@
-import logging, time
 import logging
 import time
 from telethon.utils import get_display_name
@@ -37,7 +36,6 @@ class FeedbackBotMod(loader.Module):
 
     async def client_ready(self, client, db):
         self._client = client
-
         db = self.db
         self._name = utils.escape_html(get_display_name(await client.get_me()))
 
