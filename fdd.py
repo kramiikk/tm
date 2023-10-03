@@ -45,12 +45,12 @@ class FeedbackBotMod(loader.Module):
             "Module from add feedback bot 👨‍💻\n\n"
             "📝 Dev: @vsecoder\n"
             "📥 Source: github.com/vsecoder/hikka_modules"
-            f"🔗 Feedback link: t.me/{self.inline.bot_username}?start=feedback\n\n"
+            f"🔗 Feedback link: t.me/{self.inline.bot_username}\n\n"
             '❌ Toggle in .security "✅ Everyone (inline)" to use'
         )
 
     async def aiogram_watcher(self, message: AiogramMessage):
-        if message.text == "/start":
+        if "start" in message.text:
             if str(message.from_user.id) in map(str, self._ban_list):
                 return await message.answer(self.strings("banned"))
             _markup = self.inline.generate_markup(
