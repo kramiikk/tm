@@ -1,8 +1,8 @@
+import logging, time
 import logging
 import time
 from telethon.utils import get_display_name
 from aiogram.types import Message as AiogramMessage
-from aiogram.types import web_app_info
 from .. import loader, utils
 from ..inline.types import InlineCall
 
@@ -37,17 +37,17 @@ class FeedbackBotMod(loader.Module):
 
     async def client_ready(self, client, db):
         self._client = client
-        self.db = db
+
+        db = self.db
         self._name = utils.escape_html(get_display_name(await client.get_me()))
 
         self._ratelimit = {}
         self._ban_list = []
-
         self.__doc__ = (
             "Module from add feedback bot 👨‍💻\n\n"
             "📝 Dev: @vsecoder\n"
             "📥 Source: github.com/vsecoder/hikka_modules"
-            f"🔗 Feedback link: t.me/{self.inline.bot_username}\n\n"
+            f"🔗 Feedback link: t.me/{self.inline.bot_username}?start=feedback\n\n"
             '❌ Toggle in .security "✅ Everyone (inline)" to use'
         )
 
@@ -55,11 +55,9 @@ class FeedbackBotMod(loader.Module):
         if message.text == "/start":
             if str(message.from_user.id) in map(str, self._ban_list):
                 return await message.answer(self.strings("banned"))
-            web_app = web_app_info.WebAppInfo(url="https://kramiikk.github.io/tm/")
             _markup = self.inline.generate_markup(
-                {"text": self.strings("fb_message"), "data": web_app}
+                {"text": self.strings("fb_message"), "data": "fb_message"}
             )
-
             await message.answer(
                 self.strings("start").format(self._name),
                 reply_markup=_markup,
