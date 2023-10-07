@@ -1,117 +1,128 @@
 <!doctype html>
-<html lang="ru">
-   <head>
-      <meta charset="UTF-8">
-      <meta name = "vieport"
-         content = "width=device-widthm user-scalable=nom initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-      <meta http-equiv="X-UA-Compatible" content="ie=edge">
-      <title>Shop</title>
-      <style>
-         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wqht@200;500&display=swap');
-         * {
-         margin: 0;
-         padding: 0;
-         box-sizing: border-box;
-         }
-         body {
-         font-family: 'Montserrat', sans-serif;
-         font-weight: 200;
-         color: var(--tg-theme-text-color);
-         background: var(--tg-theme-bg-color);
-         }
-         #main {
-         width: 100%;
-         padding: 20px;
-         text-align: center;
-         }
-         h1 {
-         margin-top: 50px;
-         margin-bottom: 10px;
-         }
-         img {
-         width: 70px;
-         margin: 30px auto;
-         }
-         p {
-         width: 350px;
-         margin: 0 auto;
-         }
-         button {
-         border: 0;
-         border-radius: 5px;
-         margin-top: 50px;
-         height: 60px;
-         width: 200px;
-         font-size: 20px;
-         font-weight: 500;
-         cursor: pointer;
-         transition: all 500ms ease;
-         color: var(--tg-theme-button-color);
-         background: var(--tg-theme-button-text-color);
-         }
-         button:hover {
-         background: var(--tg-theme-secondary-bg-color);
-         }
-         #form {
-         display: none;
-         text-align: center;
-         }
-         input {
-         width: 90%;
-         outline: none;
-         margin: 10px 5%;
-         padding: 15px 10px;
-         font-size: 14px;
-         border: 2px solid silver;
-         border-radius: 5px;
-         }
-         input:focus {
-         border-color: #db5d5d;
-         }
-      </style>
-   </head>
-   <body>
-      <div id="main">
-         <h1>Hello!</h1>
-         <img src="https://cdn-icons-png.flaticon.com/512/4359/4359880.png"> 
-         <p>"Endi oılashy, biz birge bolsaq ne bolady?"</p>
-         <button id="buy">Next</button>
-      </div>
-      <form id="form">
-         <h1>Contact me</h1>
-         <input type="text" placeholder="Your Name" id="user_name">
-         <input type="text" placeholder="@username" id="user_username">
-         <button id="order">Send</button>
-      </form>
-      <script scr="https://telegram.org/js/telegram-web-app.js"></script>
-      <script>
-         let tg = window.Telegram.WebApp;
-         let buy = document.getElementById("buy");
-         let order = document.getElementById("order");
-         tg.expand();
-         buy.addEventListener("click", () => {
-             document.getElementById("main").style.display = "none";
-             document.getElementById("form").style.display = "block";
-         });
-         
-         order.addEventListener("click", () => {
-             let name = document.getElementById("user_name").value;
-             let username = document.getElementById("user_username").value;
-             tg.close();
-         });
-         
-         if(name.length < 1) {
-             document.getElementById("error").innerText = ("Error in name")
-         }
-         if(username.length < 4) {
-             document.getElementById("error").innerText = ("Error in username")
-         }
-         
-         let data = {
-             name: name,
-             username: username, 
-         }
-         tg.sendData(JSON.stringify(data))
-      </script>
-   </body>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Shop</title>
+	<style>
+	@import url('https://fonts.googleapis.com/css2?family=Montserrat:wqht@200;500&display=swap');
+	* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+	}
+	
+	body {
+		font-family: 'Montserrat', sans-serif;
+		font-weight: 200;
+		color: var(--tg-theme-text-color);
+		background: var(--tg-theme-bg-color);
+	}
+	
+	#main {
+		width: 100%;
+		padding: 20px;
+		text-align: center;
+	}
+	
+	h1 {
+		margin-top: 50px;
+		margin-bottom: 10px;
+	}
+	
+	img {
+		width: 70px;
+		margin: 30px auto;
+	}
+	
+	p {
+		width: 350px;
+		margin: 0 auto;
+	}
+	
+	button {
+		border: 0;
+		border-radius: 5px;
+		margin-top: 50px;
+		height: 60px;
+		width: 200px;
+		font-size: 20px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 500ms ease;
+		color: var(--tg-theme-button-color);
+		background: var(--tg-theme-button-text-color);
+	}
+	
+	button:hover {
+		background: var(--tg-theme-secondary-bg-color);
+	}
+	
+	#form {
+		display: none;
+		text-align: center;
+	}
+	
+	input {
+		width: 90%;
+		outline: none;
+		margin: 10px 5%;
+		padding: 15px 10px;
+		font-size: 14px;
+		border: 2px solid silver;
+		border-radius: 5px;
+	}
+	
+	input:focus {
+		border-color: #db5d5d;
+	}
+	</style>
+</head>
+
+<body>
+	<div id="main">
+		<h1>Hello!</h1> <img src="https://cdn-icons-png.flaticon.com/512/4359/4359880.png">
+		<p>"Endi oılashy, biz birge bolsaq ne bolady?"</p>
+		<button id="buy">Next</button>
+	</div>
+	<form id="form">
+		<h1>Contact me</h1>
+		<input type="text" placeholder="Your Name" id="user">
+		<input type="text" placeholder="@username" id="username">
+		<div id="error"></div>
+		<button id="order">Send</button>
+	</form>
+	<script src="https://telegram.org/js/telegram-web-app.js"></script>
+	<script>
+	let tg = window.Telegram.WebApp;
+	let buy = document.getElementById("buy");
+	let order = document.getElementById("order");
+	tg.expand();
+	buy.addEventListener("click", () => {
+		document.getElementById("main").style.display = "none";
+		document.getElementById("form").style.display = "block";
+	});
+	order.addEventListener("click", () => {
+		document.getElementById("error").innerText = '';
+		let name = document.getElementById("user").value;
+		let username = document.getElementById("username").value;
+		if(name.length < 1) {
+			document.getElementById("error").innerText = 'Error in name';
+			return;
+		}
+		if(username.length < 4) {
+			document.getElementById("error").innerText = 'Error in username';
+			return;
+		}
+		tg.close();
+	});
+	let data = {
+		name: name,
+		username: username,
+	}
+	tg.sendData(JSON.stringify(data));
+	</script>
+</body>
+
 </html>
