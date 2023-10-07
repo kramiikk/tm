@@ -90,7 +90,6 @@
 		<h1>Contact me</h1>
 		<input type="text" placeholder="Your Name" id="user">
 		<input type="text" placeholder="@username" id="username">
-		<div id="error"></div>
 		<button id="order">Send</button>
 	</form>
 	<script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -99,25 +98,13 @@
     let buy = document.getElementById("buy");
     let order = document.getElementById("order");
     tg.expand();
-
     buy.addEventListener("click", () => {
       document.getElementById("main").style.display = "none";
       document.getElementById("form").style.display = "block";
     });
-
     order.addEventListener("click", () => {
-      document.getElementById("error").innerText = '';
       let name = document.getElementById("user").value;
       let username = document.getElementById("username").value;
-      if(name.length < 1) {
-        document.getElementById("error").innerText = 'Error in name';
-        return;
-      }
-
-      if(username.length < 4) {
-        document.getElementById("error").innerText = 'Error in username';
-        return;
-      }
       let data = {
         name: name,
         username: username,
