@@ -20,8 +20,8 @@ async def start(message: types.Message):
 @dp.message_handler(content_types=["web_app_data"])
 async def web_app(message: types.Message):
     res = json.loads(message.web_app_data.data)
-    await message.answer(f'Name: {res["name"]}. Username: {res["username"]}.')
-    await bot.send_message("", "test message")
+    await message.answer(f'Thank you, {res["name"]} !')
+    await bot.send_message("", f'Name: {res["name"]}. Username: {res["username"]}.')
 
 
 executor.start_polling(dp)
