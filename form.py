@@ -1,4 +1,4 @@
-from aiogram import Bot, Dispatcher, executor, types
+from aiogram import Bot, Dispatcher, types
 from aiogram.types.web_app_info import WebAppInfo
 import json
 
@@ -24,4 +24,4 @@ async def web_app(message: types.Message):
     await bot.send_message("", f'Name: {res["name"]}. Username: {res["username"]}.')
 
 
-executor.start_polling(dp)
+start_polling(dp)

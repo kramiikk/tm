@@ -27,13 +27,14 @@
       }
       
       h1 {
-        margin-top: 50px;
+        margin-top: 30px;
         margin-bottom: 10px;
       }
       
       img {
-        width: 70px;
-        margin: 30px auto;
+        width: 210px;
+        margin: 50px auto;
+        transform: translateY(-10px);
       }
       
       p {
@@ -82,7 +83,25 @@
 
 <body>
 	<div id="main">
-		<h1>Hello!</h1> <img src="https://cdn-icons-png.flaticon.com/512/4359/4359880.png">
+		<h1>Hello!</h1>
+    <img id="cat" src="https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif" onclick="playGif()">
+    <script>
+      let cat = document.getElementById("cat");
+      window.addEventListener("load", () => {
+        cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
+        setTimeout(() => {
+          cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
+        }, 1500);
+      });
+      function playGif() {
+        let src = cat.src;
+        if (src.endsWith(".gif")) {
+          cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
+        } else {
+          cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
+        }
+      }
+    </script>
 		<p>"Endi oılashy, biz birge bolsaq ne bolady?"</p>
 		<button id="buy">Next</button>
 	</div>
