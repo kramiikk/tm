@@ -9,11 +9,7 @@ dp = Dispatcher(bot)
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
     markup = types.ReplyKeyboardMarkup()
-    markup.add(
-        types.KeyboardButton(
-            "Open WebApp", web_app=WebAppInfo(url="")
-        )
-    )
+    markup.add(types.KeyboardButton("Open WebApp", web_app=WebAppInfo(url="")))
     await message.answer("Click button!", reply_markup=markup)
 
 
@@ -24,4 +20,8 @@ async def web_app(message: types.Message):
     await bot.send_message("", f'Name: {res["name"]}. Username: {res["username"]}.')
 
 
-start_polling(dp)
+if __name__ == "__main__":
+    dp = Dispatcher(bot)
+    dp.register_message_handler(start)
+    dp.register_message_handler(web_app, content_types=["web_app_data"])
+    dp.start_polling()
