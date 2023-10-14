@@ -1,5 +1,5 @@
 from aiogram import Bot, Dispatcher, types
-from aiogram.types.web_app_info import WebAppInfo
+from aiogram.types import WebAppInfo
 import json
 
 bot = Bot("")
