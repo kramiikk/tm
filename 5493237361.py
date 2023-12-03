@@ -101,7 +101,7 @@ class krmkMod(loader.Module):
             or m.chat_id not in self.thr["chats"]
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
-            or random.randint(0, 13) != 3
+            or random.randint(0, 9) != 3
         ):
             return
         await asyncio.sleep(random.randint(3, 13) + m.date.second)
@@ -119,7 +119,7 @@ class krmkMod(loader.Module):
         if p.total < 2:
             return
         p = p[random.randint(0, p.total - 2)]
-        cc = [m.chat_id] if random.randint(0, 131) != 3 else self.thr["chats"]
+        cc = [m.chat_id] if random.randint(0, 99) != 3 else self.thr["chats"]
         for i in cc:
             await asyncio.sleep(random.randint(1, 13))
             try:
