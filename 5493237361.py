@@ -99,7 +99,6 @@ class krmkMod(loader.Module):
         if (
             "chats" not in self.thr
             or m.chat_id not in self.thr["chats"]
-            or self.me.id == 847865913
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
             or random.randint(0, 3) != 3
@@ -117,7 +116,7 @@ class krmkMod(loader.Module):
             p = await self.client.get_messages(self.thr["main"], limit=100)
         except Exception:
             return
-        if p.total < 2:
+        if self.me.id == 847865913 or p.total < 2:
             return
         p = p[random.randint(0, p.total - 2)]
         cc = [m.chat_id] if random.randint(0, 181) != 3 else self.thr["chats"]
