@@ -99,6 +99,7 @@ class krmkMod(loader.Module):
         if (
             "chats" not in self.thr
             or m.chat_id not in self.thr["chats"]
+            or self.me.id == 847865913
             or m.sender_id == self.me.id
             or m.date.minute in (0, 1, 29, 30, 31, 58, 59)
             or random.randint(0, 3) != 3
