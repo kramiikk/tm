@@ -52,7 +52,6 @@ class AutoProfileMod(loader.Module):
     @loader.command()
     async def autonamecmd(self, message):
         """autoname '<message, time as {time}>'"""
-
         msg = utils.get_args(message)
         if len(msg) != 1:
             return await utils.answer(message, self.strings["invalid_args"])
@@ -76,7 +75,6 @@ class AutoProfileMod(loader.Module):
     @loader.command()
     async def stopautonamecmd(self, message):
         """just write .stopautoname"""
-
         if self.name_enabled is False:
             return await utils.answer(message, self.strings["name_not_enabled"])
         self.name_enabled = False
