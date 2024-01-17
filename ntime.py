@@ -73,8 +73,8 @@ class AutoProfileMod(loader.Module):
             await self.client(functions.account.UpdateProfileRequest(first_name=name))
             txt = "<i>Pursue your course, let people talk!</i> "
             txt += "<emoji document_id=5850528923611304959>💚</emoji>"
-            await self.client.send_message(1868163414, "{} | {}".format(self.thr, txt))
-            self.thr += 1
+            await self.client.send_message(1868163414, f"{self.rwd} | {txt}")
+            self.rwd += 1
             await asyncio.sleep(61.3)
 
     @loader.command()
