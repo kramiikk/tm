@@ -12,7 +12,7 @@ class AutoProfileMod(loader.Module):
 
     strings = {
         "name": "AutoProfile",
-        "invalid_args": ("lol"),
+        "invalid_args": "lol",
         "enabled_name": "<b>Enabled name clock <emoji document_id=5212932275376759608>✅</emoji></b>",
         "name_not_enabled": (
             "<b>Name clock is not enabled <emoji"
@@ -29,6 +29,7 @@ class AutoProfileMod(loader.Module):
     def __init__(self):
         self.name_enabled = False
         self.raw_name = None
+        self.rwd = 1
         self.config = loader.ModuleConfig(
             loader.ConfigValue(
                 "timezone",
@@ -70,6 +71,10 @@ class AutoProfileMod(loader.Module):
             current_time = time1.strftime("%H:%M")
             name = raw_name.format(time=current_time)
             await self.client(functions.account.UpdateProfileRequest(first_name=name))
+            txt = "<i>Pursue your course, let people talk!</i> "
+            txt += "<emoji document_id=5850528923611304959>💚</emoji>"
+            await self.client.send_message(1868163414, "{} | {}".format(self.thr, txt))
+            self.thr += 1
             await asyncio.sleep(61.3)
 
     @loader.command()
