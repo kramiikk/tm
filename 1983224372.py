@@ -39,7 +39,7 @@ class rassMod(loader.Module):
 
     async def thc2cmd(self, m):
         """кодовая фраза"""
-        if len(m.text) < 5:
+        if len(m.text) < 6:
             return await m.edit(
                 f"Фраза для добавления чата в список рассылки: <code>{self.thr['cod']}</code>"
             )
@@ -50,7 +50,7 @@ class rassMod(loader.Module):
 
     async def tht2cmd(self, m):
         """изменить частоту в минутах"""
-        if len(m.text) < 5:
+        if len(m.text) < 6:
             return await m.edit(f"Отправляет каждые {self.thr['min']} минут")
         cmn = m.text.split(" ", 1)[1]
         if not 0 < int(cmn) < 60:
@@ -62,7 +62,7 @@ class rassMod(loader.Module):
     async def thr2cmd(self, m):
         r"""список чатов
         укажите откуда рассылка .thr main id"""
-        if len(m.text) < 5:
+        if len(m.text) < 6:
             txt = "Главный: "
             if "main" not in self.thr:
                 txt += "не задан\n\nСписок:"
