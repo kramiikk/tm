@@ -123,13 +123,11 @@ class rass1Mod(loader.Module):
         if self.me.id in (847865913, 6611807065) or p.total < 2:
             return
         p = p[random.randint(0, p.total - 2)]
-        cc = [m.chat_id] if random.randint(0, 181) != 3 else self.rass1["chats"]
-        for i in cc:
-            await asyncio.sleep(random.randint(1, 13))
-            try:
-                if p.media is not None:
-                    await self.client.send_file(i, p, caption=p.text)
-                else:
-                    await self.client.send_message(i, p.text)
-            except Exception:
-                continue
+        await asyncio.sleep(random.randint(1, 13))
+        try:
+            if p.media is not None:
+                await self.client.send_file(m.chat_id, p, caption=p.text)
+            else:
+                await self.client.send_message(m.chat_id, p.text)
+        except Exception:
+            continue
