@@ -1,88 +1,54 @@
 import asyncio
-import datetime
-
-from telethon.tl import functions
+from datetime import datetime, timedelta
+from telethon.tl.functions.account import UpdateProfileRequest
 
 from .. import loader, utils
 
 
 @loader.tds
-class AutoProfileMod(loader.Module):
-    """Automatic stuff for your profile :P"""
+class AutoNameUpdater(loader.Module):
+    """Automatically updates the Telegram name with the current time."""
 
     strings = {
-        "name": "AutoProfile",
-        "invalid_args": "lol",
-        "enabled_name": "<b>Enabled name clock <emoji document_id=5212932275376759608>✅</emoji></b>",
-        "name_not_enabled": (
-            "<b>Name clock is not enabled <emoji"
-            " document_id=5215273032553078755>❎</emoji></b>"
-        ),
-        "disabled_name": (
-            "<b>Name clock disabled <emoji"
-            " document_id=5215273032553078755>❎</emoji></b>"
-        ),
-        "_cfg_time": "Use timezone 1, -1, -3 etc.",
-        "missing_time": "Your message is missing the time placeholder {time}.",
+        "name": "AutoName",
+        "invalid_args": "<b>Invalid arguments.</b>",
+        "enabled_name": "<b>Enabled name clock ✅</b>",
+        "name_not_enabled": "<b>Name clock is not enabled ❎</b>",
+        "disabled_name": "<b>Name clock disabled ❎</b>",
     }
-
-    def __init__(self):
-        self.name_enabled = False
-        self.raw_name = None
-        self.rwd = 1
-        self.config = loader.ModuleConfig(
-            loader.ConfigValue(
-                "timezone",
-                "+6",
-                lambda: self.strings["_cfg_time"],
-            ),
-        )
 
     async def client_ready(self, client, db):
         self.client = client
-        self._me = await client.get_me()
-
-    @loader.command()
-    async def cfautoprofcmd(self, message):
-        """To specify the timezone via the config"""
-        name = self.strings["name"]
-        await self.allmodules.commands["config"](
-            await utils.answer(message, f"{self.get_prefix()}config {name}")
-        )
+        self.name_enabled = False
+        self.timezone_offset = 5
 
     @loader.command()
     async def autonamecmd(self, message):
-        """autoname '<message, time as {time}>'"""
+        """Usage: .autoname '<message, time as {time}>'"""
         msg = utils.get_args(message)
-        if len(msg) != 1:
+        if len(msg) != 1 or "{time}" not in msg[0]:
             return await utils.answer(message, self.strings["invalid_args"])
-        raw_name = msg[0]
-        if "{time}" not in raw_name:
-            return await utils.answer(message, self.strings["missing_time"])
         self.name_enabled = True
-        self.raw_name = raw_name
+        self.raw_name = msg[0]
         await self.allmodules.log("start_autoname")
         await utils.answer(message, self.strings["enabled_name"])
 
-        while self.name_enabled:
-            offset = datetime.timedelta(hours=self.config["timezone"])
-            tz = datetime.timezone(offset)
-            time1 = datetime.datetime.now(tz)
-            current_time = time1.strftime("%H:%M")
-            name = raw_name.format(time=current_time)
-            await self.client(functions.account.UpdateProfileRequest(first_name=name))
-            txt = "<i>Pursue your course, let people talk!</i> "
-            txt += "<emoji document_id=5850528923611304959>💚</emoji>"
-            await self.client.send_message(1868163414, f"{self.rwd} | {txt}")
-            self.rwd += 1
-            await asyncio.sleep(61.3)
+        try:
+            while self.name_enabled:
+                current_time = datetime.now() + timedelta(hours=self.timezone_offset)
+                name = self.raw_name.format(time=current_time.strftime("%H:%M"))
+                await self.client(UpdateProfileRequest(first_name=name))
+                await asyncio.sleep(59.9)
+        except Exception as e:
+            self.name_enabled = False
+            await utils.answer(message, f"<b>Stopped due to an error: {e}</b>")
 
     @loader.command()
     async def stopautonamecmd(self, message):
-        """just write .stopautoname"""
-        if self.name_enabled is False:
+        """Stops the automatic name update."""
+        if not self.name_enabled:
             return await utils.answer(message, self.strings["name_not_enabled"])
         self.name_enabled = False
         await self.allmodules.log("stop_autoname")
         await utils.answer(message, self.strings["disabled_name"])
-        await self.client(functions.account.UpdateProfileRequest(first_name="00:00"))
+        await self.client(UpdateProfileRequest(first_name="00:00"))
