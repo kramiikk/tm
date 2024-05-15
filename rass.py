@@ -114,7 +114,7 @@ class RassMod(loader.Module):
         await m.edit(f"Будет отправлять каждые {minutes} минут")
 
     async def set_message(self, m):
-        """Добавление сообщения для рассылки в список или установка дефолтного сообщения"""
+        """Добавление сообщения"""
         reply = await m.get_reply_message()
         if not reply:
             await m.edit("Ответьте на сообщение")
@@ -176,9 +176,7 @@ class RassMod(loader.Module):
         """Установка кодовой фразы для добавления чата"""
         args = m.text.split(" ", 2)
         if len(args) < 3:
-            await m.edit(
-                f"Фраза для добавления чата в список рассылки: <code>{self.rass['code']}</code>"
-            )
+            await m.edit(f"Фраза для добавления чата: <code>{self.rass['code']}</code>")
             return
         self.rass["code"] = args[2]
         self.db.set("Thr", "rass", self.rass)
@@ -245,7 +243,7 @@ class RassMod(loader.Module):
                     )
                 else:
                     await self.client.send_message(chat_id, message.text)
-            except Exception as e:
+            except:
                 pass
             finally:
                 await asyncio.sleep(13)
