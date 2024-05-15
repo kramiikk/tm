@@ -136,7 +136,7 @@ class BroadcastMod(loader.Module):
         message_id = int(args[2])
 
         removed_chats = []
-        for chat_id, message_ids in self.broadcast_config["messages"].items():
+        async for chat_id, message_ids in self.broadcast_config["messages"].items():
             if message_id in message_ids:
                 message_ids.remove(message_id)
                 removed_chats.append(chat_id)
@@ -154,7 +154,7 @@ class BroadcastMod(loader.Module):
     async def list_chats(self, message):
         """Вывод списка чатов для рассылки"""
         chat_list = []
-        for chat_id in self.broadcast_config["chats"]:
+        async for chat_id in self.broadcast_config["chats"]:
             try:
                 chat = await self.client.get_input_entity(chat_id)
                 chat_list.append(f"<code>{chat_id}</code> - {chat.title}")
