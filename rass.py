@@ -10,6 +10,17 @@ class RassMod(loader.Module):
 
     strings = {"name": "rass"}
 
+    command_handlers = {
+        "add": "manage_chats",
+        "rem": "manage_chats",
+        "setmsg": "set_message",
+        "delmsgchat": "delete_message_chat",
+        "setint": "set_interval",
+        "list": "list_chats",
+        "setcode": "set_code",
+        "setmain": "set_main",
+    }
+
     async def client_ready(self, client, db):
         self.db = db
         self.client = client
@@ -43,22 +54,8 @@ class RassMod(loader.Module):
             await self.help(m)
             return
         command = args[1].lower()
-        if command == "add":
-            await self.manage_chats(m, add=True)
-        elif command == "rem":
-            await self.manage_chats(m, add=False)
-        elif command == "setmsg":
-            await self.set_message(m)
-        elif command == "delmsgchat":
-            await self.delete_message_chat(m)
-        elif command == "setint":
-            await self.set_interval(m)
-        elif command == "list":
-            await self.list_chats(m)
-        elif command == "setcode":
-            await self.set_code(m)
-        elif command == "setmain":
-            await self.set_main(m)
+        if handler := getattr(self, self.command_handlers.get(command, "help"), None):
+            await handler(m)
         else:
             await self.help(m)
 
@@ -86,12 +83,11 @@ class RassMod(loader.Module):
         if chat_id not in self.allowed_ids:
             await m.edit("Указанный ID чата не является валидным")
             return
-        if add:
-            if chat_id in self.rass["chats"]:
-                await m.edit("Чат уже в списке рассылки")
-            else:
-                self.rass["chats"].append(chat_id)
-                await m.edit("Чат добавлен в список рассылки")
+        if add and chat_id in self.rass["chats"]:
+            await m.edit("Чат уже в списке рассылки")
+        elif add:
+            self.rass["chats"].append(chat_id)
+            await m.edit("Чат добавлен в список рассылки")
         elif chat_id in self.rass["chats"]:
             self.rass["chats"].remove(chat_id)
             await m.edit("Чат удален из списка рассылки")
@@ -122,18 +118,22 @@ class RassMod(loader.Module):
         args = m.text.split(" ", 2)
         message_id = reply.id
 
-        if len(args) == 2:  # Изменено условие
-            self.rass["message"] = message_id
-            text = "Сообщение установлено как дефолтное для рассылки"
-        elif args[2].lower() == "list":
-            self.rass["messages_list"].append(message_id)
-            text = "Сообщение добавлено в общий список для рассылки"
+        if len(args) <= 2 or args[2].lower() == "list":
+            await self.handle_message_id(m, message_id, is_default=(len(args) <= 2))
         else:
             chat_id = int(args[2])
             self.rass["messages"].setdefault(chat_id, []).append(message_id)
-            text = f"Сообщение добавлено в список для рассылки в чат {chat_id}"
+            await m.edit(f"Сообщение добавлено в список для рассылки в чат {chat_id}")
+
+    async def handle_message_id(self, m, message_id, is_default):
+        """Обработка message_id в зависимости от флага is_default"""
+        if is_default:
+            self.rass["message"] = message_id
+            await m.edit("Сообщение установлено как дефолтное для рассылки")
+        else:
+            self.rass["messages_list"].append(message_id)
+            await m.edit("Сообщение добавлено в общий список для рассылки")
         self.db.set("Thr", "rass", self.rass)
-        await m.edit(text)
 
     async def delete_message_chat(self, m):
         """Удалить сообщение из списка для рассылки в указанный чат"""
@@ -160,17 +160,14 @@ class RassMod(loader.Module):
 
     async def list_chats(self, m):
         """Вывод списка чатов для рассылки"""
-        if not self.rass["chats"]:
-            await m.edit("Список чатов пуст")
-            return
         chat_list = []
-        for iid in self.rass["chats"]:
+        for chat_id in self.rass["chats"]:
             try:
-                chat = await self.client.get_input_entity(iid)
-                chat_list.append(f"<code>{iid}</code> - {chat.title}")
+                chat = await self.client.get_input_entity(chat_id)
+                chat_list.append(f"<code>{chat_id}</code> - {chat.title}")
             except Exception:
-                chat_list.append(f"<code>{iid}</code>")
-        await m.edit("\n".join(chat_list))
+                chat_list.append(f"<code>{chat_id}</code>")
+        await m.edit("\n".join(chat_list) if chat_list else "Список чатов пуст")
 
     async def set_code(self, m):
         """Установка кодовой фразы для добавления чата"""
