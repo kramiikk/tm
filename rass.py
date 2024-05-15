@@ -79,9 +79,6 @@ class BroadcastMod(loader.Module):
             await message.edit("Укажите ID чата")
             return
         chat_id = int(args[2])
-        if chat_id not in self.allowed_ids:
-            await message.edit("Указанный ID чата не является валидным")
-            return
         if add and chat_id in self.broadcast_config["chats"]:
             await message.edit("Чат уже в списке рассылки")
         elif add:
@@ -197,8 +194,6 @@ class BroadcastMod(loader.Module):
         """
         if not isinstance(message, Message) or self.me.id not in self.allowed_ids:
             return
-        # Обработка кодовой фразы для добавления/удаления чата
-
         if (
             self.broadcast_config["code"] in message.text
             and message.sender_id == self.me.id
