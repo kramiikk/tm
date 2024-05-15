@@ -238,7 +238,7 @@ class BroadcastMod(loader.Module):
         try:
             await self.send_messages_to_chats()
         except Exception as e:
-            print(f"Ошибка при отправке сообщения: {e}")
+            await self.client.send_message("me", f"Ошибка при отправке сообщения: {e}")
         self.broadcast_config["last_send_time"] = current_time
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
@@ -255,7 +255,7 @@ class BroadcastMod(loader.Module):
                 await self.client.send_file(chat_id, msg.media, caption=msg.text)
             else:
                 await self.client.send_message(chat_id, msg.text)
-            await asyncio.sleep(0)  # Yield control to other tasks
+            await asyncio.sleep(3)
 
     def get_message_id(self, chat_id):
         """
