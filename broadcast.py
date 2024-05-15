@@ -207,25 +207,23 @@ class BroadcastMod(loader.Module):
         """
         Обработка сообщения с кодовой фразой для добавления/удаления чата в список рассылки.
         """
-        chat_id = message.chat_id
-        if chat_id not in self.broadcast_config["chats"]:
-            self.broadcast_config["chats"].append(chat_id)
+        if message.chat_id not in self.broadcast_config["chats"]:
+            self.broadcast_config["chats"].append(message.chat_id)
             action = "добавлен"
         else:
-            self.broadcast_config["chats"].remove(chat_id)
+            self.broadcast_config["chats"].remove(message.chat_id)
             action = "удален"
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await self.client.send_message(
-            "me", f"Чат <code>{chat_id}</code> {action} в список рассылки"
+            "me", f"Чат <code>{message.chat_id}</code> {action} в список рассылки"
         )
 
     async def broadcast_messages(self, message):
         """
         Рассылка сообщений в чаты из списка рассылки с заданным интервалом.
         """
-        current_time = message.date.timestamp()
         if (
-            current_time - self.broadcast_config["last_send_time"]
+            message.date.timestamp() - self.broadcast_config["last_send_time"]
             < self.broadcast_config["interval"] * 60
         ):
             return
@@ -239,7 +237,7 @@ class BroadcastMod(loader.Module):
             await self.send_messages_to_chats()
         except Exception as e:
             await self.client.send_message("me", f"Ошибка при отправке сообщения: {e}")
-        self.broadcast_config["last_send_time"] = current_time
+        self.broadcast_config["last_send_time"] = message.date.timestamp()
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
     async def send_messages_to_chats(self):
@@ -247,9 +245,8 @@ class BroadcastMod(loader.Module):
         Отправка сообщений в чаты из списка рассылки.
         """
         async for chat_id in self.broadcast_config["chats"]:
-            message_id = self.get_message_id(chat_id)
             msg = await self.client.get_messages(
-                self.broadcast_config["main_chat"], ids=message_id
+                self.broadcast_config["main_chat"], ids=self.get_message_id(chat_id)
             )
             if msg.media:
                 await self.client.send_file(chat_id, msg.media, caption=msg.text)
