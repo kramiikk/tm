@@ -246,7 +246,7 @@ class BroadcastMod(loader.Module):
         """
         Отправка сообщений в чаты из списка рассылки.
         """
-        for chat_id in self.broadcast_config["chats"]:
+        async for chat_id in self.broadcast_config["chats"]:
             message_id = self.get_message_id(chat_id)
             msg = await self.client.get_messages(
                 self.broadcast_config["main_chat"], ids=message_id
