@@ -2,7 +2,6 @@ import asyncio
 import random
 from typing import Optional
 from telethon.tl.types import Message
-from contextlib import suppress
 from .. import loader, utils
 
 
@@ -276,7 +275,9 @@ class BroadcastMod(loader.Module):
 
     def remove_invalid_message_id(self, chat_id: int, message_id: int):
         """Удаляет ID несуществующего сообщения из списка."""
-        if chat_id in self.broadcast_config["messages"]:
-            with suppress(ValueError):
-                self.broadcast_config["messages"][chat_id].remove(message_id)
+        if (
+            chat_id in self.broadcast_config["messages"]
+            and message_id in self.broadcast_config["messages"][chat_id]
+        ):
+            self.broadcast_config["messages"][chat_id].remove(message_id)
             self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
