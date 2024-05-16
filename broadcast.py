@@ -55,15 +55,11 @@ class BroadcastMod(loader.Module):
     async def broadcastcmd(self, message):
         """Обработчик команды .broadcast."""
         args = message.text.split(maxsplit=1)
-        # Извлекаем команду из аргументов
-
         command = (
             args[0].split(".")[1].lower() if len(args) > 0 else "help"
         )  # if len(args) == 0 - help
-        # Вызываем соответствующий обработчик команды
-
         handler = getattr(self, self.command_handlers.get(command, "help"), self.help)
-        await handler(message, *args[1:])
+        await handler(message)
 
     async def help(self, message):
         """Вывод справки по модулю."""
@@ -181,6 +177,9 @@ class BroadcastMod(loader.Module):
             await message.edit(
                 "Неверный формат аргумента. Введите число минут от 1 до 59."
             )
+            return
+        if minutes < 1 or minutes > 59:
+            await message.edit("Введите число минут от 1 до 59.")
             return
         self.broadcast_config["interval"] = minutes
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
