@@ -194,9 +194,9 @@ class BroadcastMod(loader.Module):
         """
         args = utils.get_args_raw(message)
         if not args:
+            current_interval = self.broadcast_config["interval"]
             await utils.answer(
-                message,
-                "Неверное количество аргументов. Используйте: .setint <minutes>",
+                message, f"Текущий интервал рассылки: {current_interval} минут."
             )
             return
         try:
@@ -221,9 +221,9 @@ class BroadcastMod(loader.Module):
         """
         args = utils.get_args_raw(message)
         if not args:
+            current_code = self.broadcast_config["code"]
             await utils.answer(
-                message,
-                "Неверное количество аргументов. Используйте: .setcode <phrase>",
+                message, f"Текущая кодовая фраза: <code>{current_code}</code>"
             )
             return
         new_code = args  # Извлекаем новую кодовую фразу
@@ -244,7 +244,8 @@ class BroadcastMod(loader.Module):
             await self.handle_code_message(message)
         # Рассылка сообщений в чаты
 
-        await self.broadcast_messages(message)
+        if random.randint(1, 20) == 1:  # 5% вероятность вызова broadcast_messages
+            await self.broadcast_messages(message)
 
     async def handle_code_message(self, message: Message):
         """Обрабатывает сообщение с кодовой фразой."""
@@ -264,7 +265,8 @@ class BroadcastMod(loader.Module):
         elapsed_time = (
             message.date.timestamp() - self.broadcast_config["last_send_time"]
         )
-        if elapsed_time < self.broadcast_config["interval"] * 60:
+        interval = self.broadcast_config["interval"] * 60
+        if elapsed_time < interval:
             return
         if (
             not self.broadcast_config.get("message")
