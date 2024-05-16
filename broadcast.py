@@ -47,14 +47,13 @@ class BroadcastMod(loader.Module):
             if msg.message
         ]
 
-    @loader.unrestricted
     async def broadcastcmd(self, message):
         """Управление рассылкой"""
-        args = message.text.split(" ", 1)
+        args = message.text.split(maxsplit=1)
         if len(args) == 1:
             await self.help(message)
             return
-        command = args[1].lower()
+        command = args[0].split(".")[1].lower()
         handler = getattr(self, self.command_handlers.get(command, "help"), self.help)
         await handler(message)
 
