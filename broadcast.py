@@ -11,8 +11,8 @@ class BroadcastMod(loader.Module):
     strings = {"name": "Broadcast"}
 
     command_handlers = {
-        "add": "manage_chats",
-        "rem": "manage_chats",
+        "add": "add_chat",
+        "rem": "remove_chat",
         "list": "list_chats",
         "setmsg": "set_message",
         "delmsg": "delete_message",
@@ -52,17 +52,19 @@ class BroadcastMod(loader.Module):
             if msg.message and msg.message.isdigit()
         ]
 
+    @loader.unretr.cmd(outgoing=True, pattern=r"\.broadcast(|$)(\s+(.*))?")
     async def broadcastcmd(self, message):
         """Обработчик команды .broadcast."""
-        args = message.text.split()
-        if len(args) < 2 or not args[1].startswith(".broadcast"):
+        args = message.pattern_match.group(3)
+        if not args:
             await self.help(message)
             return
-        command = args[1].split(".broadcast ")[1].lower()
-        handler = getattr(self, command, self.help)
+        args = args.split()
+        command = args[0].lower()
+        handler = getattr(self, self.command_handlers.get(command, "help"), self.help)
 
         try:
-            await handler(message)
+            await handler(message, *args[1:])
         except Exception as e:
             await message.edit(f"Ошибка при выполнении команды: {e}")
 
@@ -70,36 +72,41 @@ class BroadcastMod(loader.Module):
         """Вывод справки по модулю."""
         help_text = (
             "<b>Команды управления рассылкой:</b>\n"
-            "<code>.broadcast add <chat_id></code> - Добавить чат в список рассылки\n"
-            "<code>.broadcast rem <chat_id></code> - Удалить чат из списка рассылки\n"
+            "<code>.broadcast add &lt;chat_id&gt;</code> - Добавить чат в список рассылки\n"
+            "<code>.broadcast rem &lt;chat_id&gt;</code> - Удалить чат из списка рассылки\n"
             "<code>.broadcast setmsg [chat_id]</code> - Установить сообщение.\n"
             "  Если указан `chat_id`, сообщение будет добавлено для этого чата.\n"
             "  Иначе сообщение будет установлено как дефолтное для всех чатов.\n"
-            "<code>.broadcast delmsg <message_id></code> - Удалить сообщение\n"
-            "<code>.broadcast setint <minutes></code> - Установить интервал в минутах\n"
+            "<code>.broadcast delmsg &lt;message_id&gt;</code> - Удалить сообщение\n"
+            "<code>.broadcast setint &lt;minutes&gt;</code> - Установить интервал в минутах\n"
             "<code>.broadcast list</code> - Показать список чатов для рассылки\n"
-            "<code>.broadcast setcode <phrase></code> - Установить код рассылки\n"
-            "<code>.broadcast setmain <chat_id></code> - Установить главный чат"
+            "<code>.broadcast setcode &lt;phrase&gt;</code> - Установить код рассылки\n"
+            "<code>.broadcast setmain &lt;chat_id&gt;</code> - Установить главный чат"
         )
         await message.edit(help_text)
 
-    async def manage_chats(self, message, add=True):
-        """Добавление или удаление чата из списка рассылки."""
-        args = message.text.split()
-        if len(args) < 3:  # Проверяем наличие ID чата
-            await message.edit("Укажите ID чата")
-            return
+    async def add_chat(self, message, chat_id):
+        """Добавление чата в список рассылки."""
         try:
-            chat_id = int(args[2])
+            chat_id = int(chat_id)
         except ValueError:
             await message.edit("Неверный формат ID чата")
             return
-        if add and chat_id in self.broadcast_config["chats"]:
+        if chat_id in self.broadcast_config["chats"]:
             await message.edit("Чат уже в списке рассылки")
-        elif add:
+        else:
             self.broadcast_config["chats"].append(chat_id)
             await message.edit("Чат добавлен в список рассылки")
-        elif chat_id in self.broadcast_config["chats"]:
+        self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+
+    async def remove_chat(self, message, chat_id):
+        """Удаление чата из списка рассылки."""
+        try:
+            chat_id = int(chat_id)
+        except ValueError:
+            await message.edit("Неверный формат ID чата")
+            return
+        if chat_id in self.broadcast_config["chats"]:
             self.broadcast_config["chats"].remove(chat_id)
             await message.edit("Чат удален из списка рассылки")
         else:
@@ -117,18 +124,17 @@ class BroadcastMod(loader.Module):
                 chat_list.append(f"<code>{chat_id}</code>")
         await message.edit("\n".join(chat_list) if chat_list else "Список чатов пуст")
 
-    async def set_message(self, message):
+    async def set_message(self, message, *args):
         """Установка сообщения для рассылки."""
         reply_msg = await message.get_reply_message()
         if not reply_msg:  # Проверяем, есть ли ответ на сообщение
             await message.edit("Ответьте на сообщение")
             return
-        args = message.text.split(" ", 2)
         message_id = reply_msg.id
 
-        if len(args) > 2:  # Если указан ID чата, добавляем сообщение для этого чата
+        if args:  # Если указан ID чата, добавляем сообщение для этого чата
             try:
-                chat_id = int(args[2])
+                chat_id = int(args[0])
             except ValueError:
                 await message.edit("Неверный формат ID чата")
                 return
@@ -141,14 +147,10 @@ class BroadcastMod(loader.Module):
             await message.edit("Сообщение установлено как дефолтное для рассылки")
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
-    async def delete_message(self, message):
+    async def delete_message(self, message, message_id):
         """Удаление сообщения из списка для рассылки во всех чатах."""
-        args = message.text.split(" ", 2)
-        if len(args) < 3:  # Проверяем, указан ли ID сообщения
-            await message.edit("Укажите ID сообщения после команды")
-            return
         try:
-            message_id = int(args[2])
+            message_id = int(message_id)
         except ValueError:
             await message.edit("Неверный формат ID сообщения")
             return
@@ -170,14 +172,10 @@ class BroadcastMod(loader.Module):
             )
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
-    async def set_interval(self, message):
+    async def set_interval(self, message, minutes):
         """Установка интервала рассылки."""
-        args = message.text.split()
-        if len(args) < 2:  # Проверяем наличие значения интервала
-            await message.edit("Используйте: .broadcast setint <minutes>")
-            return
         try:
-            minutes = int(args[1])  # Пытаемся преобразовать аргумент в число
+            minutes = int(minutes)  # Пытаемся преобразовать аргумент в число
         except ValueError:
             await message.edit(
                 "Неверный формат аргумента. Введите число минут от 1 до 59."
@@ -190,27 +188,17 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await message.edit(f"Будет отправлять каждые {minutes} минут")
 
-    async def set_code(self, message):
+    async def set_code(self, message, phrase):
         """Установка кодовой фразы для добавления/удаления чата."""
-        args = message.text.split(" ", 1)  # Разбиваем строку на две части
-        if len(args) < 2:  # Проверяем наличие новой кодовой фразы
-            await message.edit(
-                f"Фраза для добавления чата: <code>{self.broadcast_config['code']}</code>"
-            )
-            return
-        new_code = args[1].strip()  # Извлекаем новую кодовую фразу
+        new_code = phrase.strip()  # Извлекаем новую кодовую фразу
         self.broadcast_config["code"] = new_code
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await message.edit(f"Установлена фраза: <code>{new_code}</code>")
 
-    async def set_main(self, message):
+    async def set_main(self, message, chat_id):
         """Установка главного чата."""
-        args = message.text.split(" ", 1)  # Разбиваем строку на две части
-        if len(args) < 2:  # Проверяем наличие ID главного чата
-            await message.edit("Укажите ID главного чата")
-            return
         try:
-            main_chat_id = int(args[1])  # Извлекаем ID чата из второй части
+            main_chat_id = int(chat_id)  # Извлекаем ID чата из второй части
         except ValueError:
             await message.edit("Неверный формат ID чата")
             return
