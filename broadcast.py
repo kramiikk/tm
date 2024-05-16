@@ -1,6 +1,7 @@
 import asyncio
 import random
 from typing import Optional
+from contextlib import suppress
 from telethon.tl.types import Message
 from .. import loader, utils
 
@@ -200,6 +201,76 @@ class BroadcastMod(loader.Module):
             )
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
+    @loader.unrestricted
+    async def listmsgscmd(self, message: Message):
+        """Выводит список сообщений для рассылки в указанном чате."""
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(
+                message,
+                "Неверное количество аргументов. Используйте: .listmsgs <chat_id>",
+            )
+            return
+        try:
+            chat_id = int(args)
+        except ValueError:
+            await utils.answer(message, "Неверный формат ID чата")
+            return
+        if chat_id in self.broadcast_config["messages"]:
+            message_list = []
+            for message_id in self.broadcast_config["messages"][chat_id]:
+                try:
+                    msg = await self.client.get_messages(
+                        self.broadcast_config["main_chat"], ids=message_id
+                    )
+                    if msg:
+                        message_list.append(
+                            f"<code>{message_id}</code> - {msg.text[:50]}..."
+                        )
+                    else:
+                        message_list.append(
+                            f"<code>{message_id}</code> - (Сообщение не найдено)"
+                        )
+                except Exception:
+                    message_list.append(
+                        f"<code>{message_id}</code> - (Ошибка получения сообщения)"
+                    )
+            await utils.answer(
+                message,
+                (
+                    "\n".join(message_list)
+                    if message_list
+                    else f"Нет сообщений для чата {chat_id}"
+                ),
+            )
+        else:
+            await utils.answer(
+                message,
+                f"Чат {chat_id} не найден в списке рассылки или не имеет сообщений",
+            )
+
+    @loader.unrestricted
+    async def clearmsgscmd(self, message: Message):
+        """Очищает список сообщений для рассылки в указанном чате."""
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(
+                message,
+                "Неверное количество аргументов. Используйте: .clearmsgs <chat_id>",
+            )
+            return
+        try:
+            chat_id = int(args)
+        except ValueError:
+            await utils.answer(message, "Неверный формат ID чата")
+            return
+        if chat_id in self.broadcast_config["messages"]:
+            del self.broadcast_config["messages"][chat_id]
+            self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+            await utils.answer(message, f"Список сообщений для чата {chat_id} очищен.")
+        else:
+            await utils.answer(message, f"Чат {chat_id} не найден в списке рассылки.")
+
     async def watcher(self, message: Message):
         """Обрабатывает входящие сообщения."""
         if not isinstance(message, Message) or self.me.id not in self.allowed_ids:
@@ -269,19 +340,19 @@ class BroadcastMod(loader.Module):
                 )
 
     def get_message_id(self, chat_id: int) -> Optional[int]:
-        """Возвращает ID сообщения для рассылки в указанный чат."""
-        if chat_id in self.broadcast_config["messages"]:
-            return random.choice(self.broadcast_config["messages"][chat_id])
-        elif self.broadcast_config.get("message"):
+        """Возвращает ID сообщения для рассылки в указанный чат.
+        Приоритет отдается дефолтному сообщению, если оно установлено.
+        """
+        if self.broadcast_config.get("message"):
             return self.broadcast_config["message"]
+        elif chat_id in self.broadcast_config["messages"]:
+            return random.choice(self.broadcast_config["messages"][chat_id])
         else:
             return None
 
     def remove_invalid_message_id(self, chat_id: int, message_id: int):
         """Удаляет ID несуществующего сообщения из списка."""
-        if (
-            chat_id in self.broadcast_config["messages"]
-            and message_id in self.broadcast_config["messages"][chat_id]
-        ):
-            self.broadcast_config["messages"][chat_id].remove(message_id)
-            self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+        if chat_id in self.broadcast_config["messages"]:
+            with suppress(ValueError):
+                self.broadcast_config["messages"][chat_id].remove(message_id)
+                self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
