@@ -3,9 +3,11 @@ import random
 from typing import Optional
 from telethon.tl.types import Message
 from contextlib import suppress
+from .. import loader, utils
 
 
-class BroadcastMod:
+@loader.tds
+class BroadcastMod(loader.Module):
     """Модуль для рассылки сообщений в чаты"""
 
     strings = {"name": "Broadcast"}
@@ -43,6 +45,7 @@ class BroadcastMod:
         except ValueError:
             self.allowed_ids = []
 
+    @loader.unrestricted
     async def addchatcmd(self, message: Message):
         """Добавляет чат в список рассылки.
 
@@ -51,24 +54,26 @@ class BroadcastMod:
         Args:
             message: Сообщение с командой.
         """
-        args = message.text.split()
-        if len(args) != 2:
-            await message.edit(
-                "Неверное количество аргументов. Используйте: .addchatcmd <chat_id>"
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(
+                message,
+                "Неверное количество аргументов. Используйте: .addchatcmd <chat_id>",
             )
             return
         try:
-            chat_id = int(args[1])
+            chat_id = int(args)
         except ValueError:
-            await message.edit("Неверный формат ID чата")
+            await utils.answer(message, "Неверный формат ID чата")
             return
         if chat_id in self.broadcast_config["chats"]:
-            await message.edit("Чат уже в списке рассылки")
+            await utils.answer(message, "Чат уже в списке рассылки")
         else:
             self.broadcast_config["chats"].append(chat_id)
-            await message.edit("Чат добавлен в список рассылки")
+            await utils.answer(message, "Чат добавлен в список рассылки")
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
+    @loader.unrestricted
     async def remchatcmd(self, message: Message):
         """Удаляет чат из списка рассылки.
 
@@ -77,24 +82,26 @@ class BroadcastMod:
         Args:
             message: Сообщение с командой.
         """
-        args = message.text.split()
-        if len(args) != 2:
-            await message.edit(
-                "Неверное количество аргументов. Используйте: .remchatcmd <chat_id>"
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(
+                message,
+                "Неверное количество аргументов. Используйте: .remchatcmd <chat_id>",
             )
             return
         try:
-            chat_id = int(args[1])
+            chat_id = int(args)
         except ValueError:
-            await message.edit("Неверный формат ID чата")
+            await utils.answer(message, "Неверный формат ID чата")
             return
         if chat_id in self.broadcast_config["chats"]:
             self.broadcast_config["chats"].remove(chat_id)
-            await message.edit("Чат удален из списка рассылки")
+            await utils.answer(message, "Чат удален из списка рассылки")
         else:
-            await message.edit("Чата нет в списке рассылки")
+            await utils.answer(message, "Чата нет в списке рассылки")
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
+    @loader.unrestricted
     async def listchatscmd(self, message: Message):
         """Выводит список чатов для рассылки.
 
@@ -110,8 +117,11 @@ class BroadcastMod:
                 chat_list.append(f"<code>{chat_id}</code> - {chat.title}")
             except Exception:
                 chat_list.append(f"<code>{chat_id}</code>")
-        await message.edit("\n".join(chat_list) if chat_list else "Список чатов пуст")
+        await utils.answer(
+            message, "\n".join(chat_list) if chat_list else "Список чатов пуст"
+        )
 
+    @loader.unrestricted
     async def setmsgcmd(self, message: Message):
         """Устанавливает сообщение для рассылки.
 
@@ -120,37 +130,33 @@ class BroadcastMod:
         Args:
             message: Сообщение с командой.
         """
-        args = message.text.split()
+        args = utils.get_args_raw(message)
         reply_msg = await message.get_reply_message()
         if not reply_msg:
-            await message.edit(
-                "Ответьте на сообщение, которое хотите добавить для рассылки."
+            await utils.answer(
+                message, "Ответьте на сообщение, которое хотите добавить для рассылки."
             )
             return
         message_id = reply_msg.id
 
-        if len(args) == 2:  # Если указан ID чата
+        if args:  # Если указан ID чата
             try:
-                chat_id = int(args[1])
+                chat_id = int(args)
             except ValueError:
-                await message.edit("Неверный формат ID чата")
+                await utils.answer(message, "Неверный формат ID чата")
                 return
             self.broadcast_config["messages"].setdefault(chat_id, []).append(message_id)
-            await message.edit(
-                f"Сообщение добавлено в список для рассылки в чат {chat_id}"
+            await utils.answer(
+                message, f"Сообщение добавлено в список для рассылки в чат {chat_id}"
             )
-        elif len(args) == 1:  # Дефолтное сообщение для всех чатов
+        else:  # Дефолтное сообщение для всех чатов
             self.broadcast_config["message"] = message_id
-            await message.edit(
-                "Сообщение установлено как дефолтное для рассылки во все чаты."
+            await utils.answer(
+                message, "Сообщение установлено как дефолтное для рассылки во все чаты."
             )
-        else:
-            await message.edit(
-                "Неверное количество аргументов. Используйте: .setmsgcmd [chat_id]"
-            )
-            return
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
+    @loader.unrestricted
     async def delmsgcmd(self, message: Message):
         """Удаляет сообщение из списка для рассылки.
 
@@ -161,7 +167,9 @@ class BroadcastMod:
         """
         reply_msg = await message.get_reply_message()
         if not reply_msg:
-            await message.edit("Ответьте на сообщение, которое хотите удалить.")
+            await utils.answer(
+                message, "Ответьте на сообщение, которое хотите удалить."
+            )
             return
         message_id = reply_msg.id
         removed_chats = []
@@ -179,15 +187,17 @@ class BroadcastMod:
             removed_chats.append("Default")
         if removed_chats:
             removed_chats_str = ", ".join(map(str, removed_chats))
-            await message.edit(
-                f"Сообщение с ID {message_id} удалено из списка для чатов: {removed_chats_str}"
+            await utils.answer(
+                message,
+                f"Сообщение с ID {message_id} удалено из списка для чатов: {removed_chats_str}",
             )
         else:
-            await message.edit(
-                f"Сообщение с ID {message_id} не найдено в списке рассылки"
+            await utils.answer(
+                message, f"Сообщение с ID {message_id} не найдено в списке рассылки"
             )
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
+    @loader.unrestricted
     async def setintcmd(self, message: Message):
         """Устанавливает интервал рассылки (в минутах).
 
@@ -196,26 +206,28 @@ class BroadcastMod:
         Args:
             message: Сообщение с командой.
         """
-        args = message.text.split()
-        if len(args) != 2:
-            await message.edit(
-                "Неверное количество аргументов. Используйте: .setintcmd <minutes>"
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(
+                message,
+                "Неверное количество аргументов. Используйте: .setintcmd <minutes>",
             )
             return
         try:
-            minutes = int(args[1])
+            minutes = int(args)
         except ValueError:
-            await message.edit(
-                "Неверный формат аргумента. Введите число минут от 1 до 59."
+            await utils.answer(
+                message, "Неверный формат аргумента. Введите число минут от 1 до 59."
             )
             return
         if minutes < 1 or minutes > 59:
-            await message.edit("Введите число минут от 1 до 59.")
+            await utils.answer(message, "Введите число минут от 1 до 59.")
             return
         self.broadcast_config["interval"] = minutes
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        await message.edit(f"Интервал рассылки установлен на {minutes} минут.")
+        await utils.answer(message, f"Интервал рассылки установлен на {minutes} минут.")
 
+    @loader.unrestricted
     async def setcodecmd(self, message: Message):
         """Устанавливает кодовую фразу для добавления/удаления чата.
 
@@ -224,17 +236,21 @@ class BroadcastMod:
         Args:
             message: Сообщение с командой.
         """
-        args = message.text.split()
-        if len(args) < 2:
-            await message.edit(
-                "Неверное количество аргументов. Используйте: .setcodecmd <phrase>"
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(
+                message,
+                "Неверное количество аргументов. Используйте: .setcodecmd <phrase>",
             )
             return
-        new_code = " ".join(args[1:])  # Извлекаем новую кодовую фразу
+        new_code = args  # Извлекаем новую кодовую фразу
         self.broadcast_config["code"] = new_code
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        await message.edit(f"Кодовая фраза установлена: <code>{new_code}</code>")
+        await utils.answer(
+            message, f"Кодовая фраза установлена: <code>{new_code}</code>"
+        )
 
+    @loader.unrestricted
     async def setmaincmd(self, message: Message):
         """Устанавливает главный чат, из которого будут браться сообщения для рассылки.
 
@@ -243,20 +259,23 @@ class BroadcastMod:
         Args:
             message: Сообщение с командой.
         """
-        args = message.text.split()
-        if len(args) != 2:
-            await message.edit(
-                "Неверное количество аргументов. Используйте: .setmaincmd <chat_id>"
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(
+                message,
+                "Неверное количество аргументов. Используйте: .setmaincmd <chat_id>",
             )
             return
         try:
-            main_chat_id = int(args[1])
+            main_chat_id = int(args)
         except ValueError:
-            await message.edit("Неверный формат ID чата")
+            await utils.answer(message, "Неверный формат ID чата")
             return
         self.broadcast_config["main_chat"] = main_chat_id
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        await message.edit(f"Главный чат установлен: <code>{main_chat_id}</code>")
+        await utils.answer(
+            message, f"Главный чат установлен: <code>{main_chat_id}</code>"
+        )
 
     async def watcher(self, message: Message):
         """Обрабатывает входящие сообщения.
