@@ -121,8 +121,8 @@ class BroadcastMod(loader.Module):
             )
             return
         minutes = args[2]
-        if not minutes.isdigit() or not 0 < int(minutes) < 60:
-            await message.edit("Введите числовое значение в интервале 1 - 59")
+        if not minutes.isdigit() or not 1 <= int(minutes) <= 59:
+            await message.edit("Введите числовое значение в интервале от 1 до 59")
             return
         self.broadcast_config["interval"] = int(minutes)
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
@@ -165,23 +165,28 @@ class BroadcastMod(loader.Module):
 
     async def set_code(self, message):
         """Установка кодовой фразы для добавления чата"""
-        args = message.text.split(" ", 2)
-        if len(args) < 3:
+        args = message.text.split(" ", 1)  # Разбиваем строку на две части
+        if len(args) < 2:  # Если нет аргументов после команды
             await message.edit(
                 f"Фраза для добавления чата: <code>{self.broadcast_config['code']}</code>"
             )
             return
-        self.broadcast_config["code"] = args[2]
+        new_code = args[1].strip()  # Извлекаем новую кодовую фразу
+        self.broadcast_config["code"] = new_code
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        await message.edit(f"Установлена фраза: <code>{args[2]}</code>")
+        await message.edit(f"Установлена фраза: <code>{new_code}</code>")
 
     async def set_main(self, message):
         """Установка главного чата"""
-        args = message.text.split(" ", 2)
-        if len(args) < 3:
+        args = message.text.split(" ", 1)  # Разбиваем строку на две части
+        if len(args) < 2:  # Если нет аргументов после команды
             await message.edit("Укажите ID главного чата")
             return
-        main_chat_id = int(args[2])
+        try:
+            main_chat_id = int(args[1])  # Извлекаем ID чата из второй части
+        except ValueError:
+            await message.edit("Неверный формат ID чата")
+            return
         self.broadcast_config["main_chat"] = main_chat_id
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await message.edit(f"🤙🏾 Главный: <code>{main_chat_id}</code>")
