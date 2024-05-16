@@ -114,17 +114,22 @@ class BroadcastMod(loader.Module):
 
     async def set_interval(self, message):
         """Установка интервала рассылки"""
-        args = message.text.split(" ", 2)
-        if len(args) < 3:
+        args = message.text.split()[
+            1:
+        ]  # Разбиваем строку на список аргументов, исключая команду
+        if (
+            len(args) != 2
+        ):  # Проверяем, что есть ровно два аргумента: "setint" и значение интервала
+            await message.edit("Используйте: .broadcast setint <минуты>")
+            return
+        try:
+            minutes = int(args[1])  # Пытаемся преобразовать второй аргумент в число
+        except ValueError:
             await message.edit(
-                f"Отправляет каждые {self.broadcast_config['interval']} минут"
+                "Неверный формат аргумента. Введите число минут от 1 до 59."
             )
             return
-        minutes = args[2]
-        if not minutes.isdigit() or not 1 <= int(minutes) <= 59:
-            await message.edit("Введите числовое значение в интервале от 1 до 59")
-            return
-        self.broadcast_config["interval"] = int(minutes)
+        self.broadcast_config["interval"] = minutes
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await message.edit(f"Будет отправлять каждые {minutes} минут")
 
