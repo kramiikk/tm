@@ -52,19 +52,18 @@ class BroadcastMod(loader.Module):
             if msg.message and msg.message.isdigit()
         ]
 
-    @loader.unretr.cmd(outgoing=True, pattern=r"\.broadcast(|$)(\s+(.*))?")
+    @loader.command(outgoing=True, pattern=r"\.broadcast(|$)(\s+(.*))?")
     async def broadcastcmd(self, message):
-        """Обработчик команды .broadcast."""
-        args = message.pattern_match.group(3)
-        if not args:
+        args = message.text.split()
+        if len(args) < 2 or not args[1].startswith(".broadcast"):
             await self.help(message)
             return
-        args = args.split()
-        command = args[0].lower()
+        command = args[1].split(".broadcast ")[1].lower()
+        args = args[2:]
         handler = getattr(self, self.command_handlers.get(command, "help"), self.help)
 
         try:
-            await handler(message, *args[1:])
+            await handler(message, *args)
         except Exception as e:
             await message.edit(f"Ошибка при выполнении команды: {e}")
 
