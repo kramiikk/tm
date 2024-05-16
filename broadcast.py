@@ -345,10 +345,9 @@ class BroadcastMod(loader.Module):
         default_message_id = self.broadcast_config.get("message")
         if default_message_id is not None:
             return default_message_id
-        elif chat_id in self.broadcast_config["messages"]:
+        if chat_id in self.broadcast_config["messages"]:
             return random.choice(self.broadcast_config["messages"][chat_id])
-        else:
-            return None
+        return None
 
     def remove_invalid_message_id(self, chat_id: int, message_id: int):
         """Удаляет ID несуществующего сообщения из списка."""
