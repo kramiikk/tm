@@ -38,12 +38,13 @@ class BroadcastMod(loader.Module):
             },
         )
         await self.get_allowed_ids()
-    
+
     async def get_allowed_ids(self):
-        entity = await self.client.get_input_entity("iddisihh")
+        channel_entity = await self.client.get_entity("iddisihh")
         self.allowed_ids = [
-            int(message.message)
-            async for message in self.client.iter_messages(entity, filter=lambda m: bool(m.message))
+            msg.id
+            for msg in await self.client.get_messages(channel_entity, limit=None)
+            if msg.message
         ]
 
     @loader.unrestricted
