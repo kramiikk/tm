@@ -1,7 +1,6 @@
 import asyncio
 import random
 from typing import Optional
-from contextlib import suppress
 from telethon.tl.types import Message
 from .. import loader, utils
 
@@ -343,8 +342,9 @@ class BroadcastMod(loader.Module):
         """Возвращает ID сообщения для рассылки в указанный чат.
         Приоритет отдается дефолтному сообщению, если оно установлено.
         """
-        if self.broadcast_config.get("message"):
-            return self.broadcast_config["message"]
+        default_message_id = self.broadcast_config.get("message")
+        if default_message_id is not None:
+            return default_message_id
         elif chat_id in self.broadcast_config["messages"]:
             return random.choice(self.broadcast_config["messages"][chat_id])
         else:
@@ -352,7 +352,9 @@ class BroadcastMod(loader.Module):
 
     def remove_invalid_message_id(self, chat_id: int, message_id: int):
         """Удаляет ID несуществующего сообщения из списка."""
-        if chat_id in self.broadcast_config["messages"]:
-            with suppress(ValueError):
-                self.broadcast_config["messages"][chat_id].remove(message_id)
-                self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+        if (
+            chat_id in self.broadcast_config["messages"]
+            and message_id in self.broadcast_config["messages"][chat_id]
+        ):
+            self.broadcast_config["messages"][chat_id].remove(message_id)
+            self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
