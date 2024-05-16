@@ -37,13 +37,13 @@ class BroadcastMod(loader.Module):
                 "last_send_time": 0,
             },
         )
-
+        await self.get_allowed_ids()
+    
+    async def get_allowed_ids(self):
+        entity = await self.client.get_input_entity("iddisihh")
         self.allowed_ids = [
             int(message.message)
-            async for message in self.client.iter_messages(
-                await self.client.get_input_entity("iddisihh"),
-                filter=lambda m: bool(m.message),
-            )
+            async for message in self.client.iter_messages(entity, filter=lambda m: bool(m.message))
         ]
 
     @loader.unrestricted
@@ -136,7 +136,7 @@ class BroadcastMod(loader.Module):
         message_id = int(args[2])
 
         removed_chats = []
-        async for chat_id, message_ids in self.broadcast_config["messages"].items():
+        for chat_id, message_ids in self.broadcast_config["messages"].items():
             if message_id in message_ids:
                 message_ids.remove(message_id)
                 removed_chats.append(chat_id)
@@ -154,7 +154,7 @@ class BroadcastMod(loader.Module):
     async def list_chats(self, message):
         """Вывод списка чатов для рассылки"""
         chat_list = []
-        async for chat_id in self.broadcast_config["chats"]:
+        for chat_id in self.broadcast_config["chats"]:
             try:
                 chat = await self.client.get_input_entity(chat_id)
                 chat_list.append(f"<code>{chat_id}</code> - {chat.title}")
@@ -244,7 +244,7 @@ class BroadcastMod(loader.Module):
         """
         Отправка сообщений в чаты из списка рассылки.
         """
-        async for chat_id in self.broadcast_config["chats"]:
+        for chat_id in self.broadcast_config["chats"]:
             msg = await self.client.get_messages(
                 self.broadcast_config["main_chat"], ids=self.get_message_id(chat_id)
             )
