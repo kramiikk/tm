@@ -127,6 +127,10 @@ class BroadcastMod(loader.Module):
             return
         message_id = reply_msg.id
 
+        # Устанавливаем главный чат как чат, из которого взято сообщение
+
+        self.broadcast_config["main_chat"] = reply_msg.chat_id
+
         if args:  # Если указан ID чата
             try:
                 chat_id = int(args)
@@ -227,30 +231,6 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await utils.answer(
             message, f"Кодовая фраза установлена: <code>{new_code}</code>"
-        )
-
-    @loader.unrestricted
-    async def setmaincmd(self, message: Message):
-        """Устанавливает главный чат, из которого будут браться сообщения.
-
-        Используйте: .setmain <chat_id>
-        """
-        args = utils.get_args_raw(message)
-        if not args:
-            await utils.answer(
-                message,
-                "Неверное количество аргументов. Используйте: .setmain <chat_id>",
-            )
-            return
-        try:
-            main_chat_id = int(args)
-        except ValueError:
-            await utils.answer(message, "Неверный формат ID чата")
-            return
-        self.broadcast_config["main_chat"] = main_chat_id
-        self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        await utils.answer(
-            message, f"Главный чат установлен: <code>{main_chat_id}</code>"
         )
 
     async def watcher(self, message: Message):
