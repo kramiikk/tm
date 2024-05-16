@@ -241,7 +241,7 @@ class BroadcastMod(loader.Module):
         try:
             await self.send_messages_to_chats()
         except Exception as e:
-            await self.client.send_message("me", f"Ошибка при отправке сообщения: {e}")
+            await self.client.send_message("me", f"Ошибка: {e}")
         self.broadcast_config["last_send_time"] = message.date.timestamp()
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
@@ -254,15 +254,19 @@ class BroadcastMod(loader.Module):
             msg = await self.client.get_messages(
                 self.broadcast_config["main_chat"], ids=msg_id
             )
-
             if msg is None:
                 self.remove_invalid_message_id(chat_id, msg_id)
                 continue
-            if msg.media:
-                await self.client.send_file(chat_id, msg.media, caption=msg.text)
-            else:
-                await self.client.send_message(chat_id, msg.text)
-            await asyncio.sleep(5)
+            try:
+                if msg.media:
+                    await self.client.send_file(chat_id, msg.media, caption=msg.text)
+                else:
+                    await self.client.send_message(chat_id, msg.text)
+                await asyncio.sleep(5)
+            except Exception as e:
+                await self.client.send_message(
+                    "me", f"Ошибка при отправке сообщения в чат {chat_id}: {e}"
+                )
 
     def get_message_id(self, chat_id: int) -> Optional[int]:
         """Возвращает ID сообщения для рассылки в указанный чат."""
