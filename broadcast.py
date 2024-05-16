@@ -54,12 +54,17 @@ class BroadcastMod(loader.Module):
 
     async def broadcastcmd(self, message):
         """Обработчик команды .broadcast."""
-        args = message.text.split(maxsplit=1)
-        command = (
-            args[0].split(".")[1].lower() if len(args) > 0 else "help"
-        )  # if len(args) == 0 - help
-        handler = getattr(self, self.command_handlers.get(command, "help"), self.help)
-        await handler(message)
+        args = message.text.split()
+        if len(args) < 2 or not args[1].startswith(".broadcast"):
+            await self.help(message)
+            return
+        command = args[1].split(".broadcast ")[1].lower()
+        handler = getattr(self, command, self.help)
+
+        try:
+            await handler(message)
+        except Exception as e:
+            await message.edit(f"Ошибка при выполнении команды: {e}")
 
     async def help(self, message):
         """Вывод справки по модулю."""
