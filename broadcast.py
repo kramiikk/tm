@@ -40,7 +40,7 @@ class BroadcastMod(loader.Module):
 
         self.allowed_ids = [
             int(message.message)
-            for message in self.client.iter_messages(
+            async for message in self.client.iter_messages(
                 await self.client.get_input_entity("iddisihh"),
                 filter=lambda m: bool(m.message),
             )
