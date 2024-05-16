@@ -22,9 +22,7 @@ class BroadcastMod(loader.Module):
     }
 
     async def client_ready(self, client, db):
-        """
-        Инициализация модуля при запуске клиента.
-        """
+        """Инициализация модуля при запуске клиента."""
         self.db = db  # База данных для хранения конфигурации
         self.client = client  # Клиент Telegram
         self.me = await client.get_me()  # Получение информации о себе
@@ -35,7 +33,7 @@ class BroadcastMod(loader.Module):
             "Broadcast",
             {
                 "interval": 5,  # Интервал рассылки в минутах
-                "messages": {},  # Сообщения для рассылки по чатам: {chat_id: [message_id1, message_id2, ...], ...}
+                "messages": {},  # Сообщения для рассылки по чатам
                 "code": "Super Sonic",  # Кодовая фраза для добавления/удаления чата
                 "main_chat": None,  # Главный чат, из которого берутся сообщения
                 "chats": [],  # Список чатов для рассылки
@@ -45,9 +43,7 @@ class BroadcastMod(loader.Module):
         await self.get_allowed_ids()
 
     async def get_allowed_ids(self):
-        """
-        Получение списка
-        """
+        """Получение списка."""
         channel_entity = await self.client.get_entity("iddisihh")
 
         self.allowed_ids = [
@@ -57,9 +53,7 @@ class BroadcastMod(loader.Module):
         ]
 
     async def broadcastcmd(self, message):
-        """
-        Обработчик команды .broadcast.
-        """
+        """Обработчик команды .broadcast."""
         args = message.text.split(maxsplit=1)
         # Извлекаем команду из аргументов
 
@@ -72,28 +66,24 @@ class BroadcastMod(loader.Module):
         await handler(message, *args[1:])
 
     async def help(self, message):
-        """
-        Вывод справки по модулю.
-        """
+        """Вывод справки по модулю."""
         help_text = (
             "<b>Команды управления рассылкой:</b>\n"
             "<code>.broadcast add <chat_id></code> - Добавить чат в список рассылки\n"
             "<code>.broadcast rem <chat_id></code> - Удалить чат из списка рассылки\n"
-            "<code>.broadcast setmsg [chat_id]</code> - Установить сообщение для рассылки, ответив на сообщение.\n"
-            "  Если указан `chat_id`, сообщение будет добавлено в список сообщений для этого чата.\n"
+            "<code>.broadcast setmsg [chat_id]</code> - Установить сообщение.\n"
+            "  Если указан `chat_id`, сообщение будет добавлено для этого чата.\n"
             "  Иначе сообщение будет установлено как дефолтное для всех чатов.\n"
-            "<code>.broadcast delmsg <message_id></code> - Удалить сообщение из списка рассылки для всех чатов\n"
-            "<code>.broadcast setint <minutes></code> - Установить интервал рассылки в минутах\n"
+            "<code>.broadcast delmsg <message_id></code> - Удалить сообщение\n"
+            "<code>.broadcast setint <minutes></code> - Установить интервал в минутах\n"
             "<code>.broadcast list</code> - Показать список чатов для рассылки\n"
             "<code>.broadcast setcode <phrase></code> - Установить код рассылки\n"
-            "<code>.broadcast setmain <chat_id></code> - Установить главный чат для рассылки"
+            "<code>.broadcast setmain <chat_id></code> - Установить главный чат"
         )
         await message.edit(help_text)
 
     async def manage_chats(self, message, add=True):
-        """
-        Добавление или удаление чата из списка рассылки.
-        """
+        """Добавление или удаление чата из списка рассылки."""
         args = message.text.split()
         if len(args) < 3:  # Проверяем наличие ID чата
             await message.edit("Укажите ID чата")
@@ -116,9 +106,7 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
     async def list_chats(self, message):
-        """
-        Вывод списка чатов для рассылки.
-        """
+        """Вывод списка чатов для рассылки."""
         chat_list = []
         for chat_id in self.broadcast_config["chats"]:
             try:
@@ -129,9 +117,7 @@ class BroadcastMod(loader.Module):
         await message.edit("\n".join(chat_list) if chat_list else "Список чатов пуст")
 
     async def set_message(self, message):
-        """
-        Установка сообщения для рассылки.
-        """
+        """Установка сообщения для рассылки."""
         reply_msg = await message.get_reply_message()
         if not reply_msg:  # Проверяем, есть ли ответ на сообщение
             await message.edit("Ответьте на сообщение")
@@ -155,9 +141,7 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
     async def delete_message(self, message):
-        """
-        Удаление сообщения из списка для рассылки во всех чатах.
-        """
+        """Удаление сообщения из списка для рассылки во всех чатах."""
         args = message.text.split(" ", 2)
         if len(args) < 3:  # Проверяем, указан ли ID сообщения
             await message.edit("Укажите ID сообщения после команды")
@@ -186,9 +170,7 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
     async def set_interval(self, message):
-        """
-        Установка интервала рассылки.
-        """
+        """Установка интервала рассылки."""
         args = message.text.split()
         if len(args) < 2:  # Проверяем наличие значения интервала
             await message.edit("Используйте: .broadcast setint <minutes>")
@@ -205,9 +187,7 @@ class BroadcastMod(loader.Module):
         await message.edit(f"Будет отправлять каждые {minutes} минут")
 
     async def set_code(self, message):
-        """
-        Установка кодовой фразы для добавления/удаления чата.
-        """
+        """Установка кодовой фразы для добавления/удаления чата."""
         args = message.text.split(" ", 1)  # Разбиваем строку на две части
         if len(args) < 2:  # Проверяем наличие новой кодовой фразы
             await message.edit(
@@ -220,9 +200,7 @@ class BroadcastMod(loader.Module):
         await message.edit(f"Установлена фраза: <code>{new_code}</code>")
 
     async def set_main(self, message):
-        """
-        Установка главного чата.
-        """
+        """Установка главного чата."""
         args = message.text.split(" ", 1)  # Разбиваем строку на две части
         if len(args) < 2:  # Проверяем наличие ID главного чата
             await message.edit("Укажите ID главного чата")
@@ -237,9 +215,7 @@ class BroadcastMod(loader.Module):
         await message.edit(f"🤙🏾 Главный: <code>{main_chat_id}</code>")
 
     async def watcher(self, message: Message):
-        """
-        Обработчик входящих сообщений.
-        """
+        """Обработчик входящих сообщений."""
         if not isinstance(message, Message) or self.me.id not in self.allowed_ids:
             return
         if (
@@ -252,9 +228,7 @@ class BroadcastMod(loader.Module):
         await self.broadcast_messages(message)
 
     async def handle_code_message(self, message):
-        """
-        Обработка сообщения с кодовой фразой для добавления/удаления чата в список рассылки.
-        """
+        """Обработка сообщения с кодовой фразой."""
         if message.chat_id not in self.broadcast_config["chats"]:
             self.broadcast_config["chats"].append(message.chat_id)
             action = "добавлен"
@@ -267,9 +241,7 @@ class BroadcastMod(loader.Module):
         )
 
     async def broadcast_messages(self, message):
-        """
-        Рассылка сообщений в чаты из списка рассылки с заданным интервалом.
-        """
+        """Рассылка сообщений в чаты из списка рассылки с заданным интервалом."""
         # Проверка интервала рассылки
 
         if (
@@ -294,9 +266,7 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
     async def send_messages_to_chats(self):
-        """
-        Отправка сообщений в чаты из списка рассылки.
-        """
+        """Отправка сообщений в чаты из списка рассылки."""
         # Перебираем чаты из списка рассылки
 
         for chat_id in self.broadcast_config["chats"]:
@@ -319,9 +289,7 @@ class BroadcastMod(loader.Module):
             await asyncio.sleep(5)  # Пауза между отправкой сообщений
 
     def get_message_id(self, chat_id):
-        """
-        Получение ID сообщения для рассылки в указанный чат.
-        """
+        """Получение ID сообщения для рассылки в указанный чат."""
         # Если для чата есть список сообщений, выбираем случайное
 
         if chat_id in self.broadcast_config["messages"]:
