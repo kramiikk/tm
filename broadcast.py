@@ -13,72 +13,96 @@ class BroadcastMod(loader.Module):
     command_handlers = {
         "add": "manage_chats",
         "rem": "manage_chats",
-        "setmsg": "set_message",
-        "delmsgchat": "delete_message",
-        "setint": "set_interval",
         "list": "list_chats",
+        "setmsg": "set_message",
+        "delmsg": "delete_message",
+        "setint": "set_interval",
         "setcode": "set_code",
         "setmain": "set_main",
     }
 
     async def client_ready(self, client, db):
-        self.db = db
-        self.client = client
-        self.me = await client.get_me()
+        """
+        Инициализация модуля при запуске клиента.
+        """
+        self.db = db  # База данных для хранения конфигурации
+        self.client = client  # Клиент Telegram
+        self.me = await client.get_me()  # Получение информации о себе
+        # Загрузка конфигурации рассылки из базы данных
+
         self.broadcast_config = db.get(
             "broadcast_config",
             "Broadcast",
             {
-                "interval": 5,
-                "messages": {},
-                "code": "Super Sonic",
-                "main_chat": None,
-                "chats": [],
-                "last_send_time": 0,
+                "interval": 5,  # Интервал рассылки в минутах
+                "messages": {},  # Сообщения для рассылки по чатам: {chat_id: [message_id1, message_id2, ...], ...}
+                "code": "Super Sonic",  # Кодовая фраза для добавления/удаления чата
+                "main_chat": None,  # Главный чат, из которого берутся сообщения
+                "chats": [],  # Список чатов для рассылки
+                "last_send_time": 0,  # Время последней рассылки (unix timestamp)
             },
         )
         await self.get_allowed_ids()
 
     async def get_allowed_ids(self):
+        """
+        Получение списка
+        """
         channel_entity = await self.client.get_entity("iddisihh")
+
         self.allowed_ids = [
-            msg.id
+            int(msg.message)
             for msg in await self.client.get_messages(channel_entity, limit=None)
-            if msg.message
+            if msg.message and msg.message.isdigit()
         ]
 
     async def broadcastcmd(self, message):
-        """Управление рассылкой"""
+        """
+        Обработчик команды .broadcast.
+        """
         args = message.text.split(maxsplit=1)
-        if len(args) == 1:
-            await self.help(message)
-            return
-        command = args[0].split(".")[1].lower()
+        # Извлекаем команду из аргументов
+
+        command = (
+            args[0].split(".")[1].lower() if len(args) > 0 else "help"
+        )  # if len(args) == 0 - help
+        # Вызываем соответствующий обработчик команды
+
         handler = getattr(self, self.command_handlers.get(command, "help"), self.help)
-        await handler(message)
+        await handler(message, *args[1:])
 
     async def help(self, message):
-        """Вывод справки"""
+        """
+        Вывод справки по модулю.
+        """
         help_text = (
             "<b>Команды управления рассылкой:</b>\n"
-            "<code>.broadcast add [id]</code> - Добавить чат в список рассылки\n"
-            "<code>.broadcast rem [id]</code> - Удалить чат из списка рассылки\n"
-            "<code>.broadcast setmsg</code> - Установить сообщение для рассылки (ответить на сообщение)\n"
-            "<code>.broadcast delmsg [id]</code> - Удалить сообщение из списка рассылки\n"
-            "<code>.broadcast setint</code> - Установить интервал рассылки\n"
+            "<code>.broadcast add <chat_id></code> - Добавить чат в список рассылки\n"
+            "<code>.broadcast rem <chat_id></code> - Удалить чат из списка рассылки\n"
+            "<code>.broadcast setmsg [chat_id]</code> - Установить сообщение для рассылки, ответив на сообщение.\n"
+            "  Если указан `chat_id`, сообщение будет добавлено в список сообщений для этого чата.\n"
+            "  Иначе сообщение будет установлено как дефолтное для всех чатов.\n"
+            "<code>.broadcast delmsg <message_id></code> - Удалить сообщение из списка рассылки для всех чатов\n"
+            "<code>.broadcast setint <minutes></code> - Установить интервал рассылки в минутах\n"
             "<code>.broadcast list</code> - Показать список чатов для рассылки\n"
-            "<code>.broadcast setcode</code> - Установить код рассылки\n"
-            "<code>.broadcast setmain</code> - Установить главный чат для рассылки"
+            "<code>.broadcast setcode <phrase></code> - Установить код рассылки\n"
+            "<code>.broadcast setmain <chat_id></code> - Установить главный чат для рассылки"
         )
         await message.edit(help_text)
 
     async def manage_chats(self, message, add=True):
-        """Управление списком чатов для рассылки"""
+        """
+        Добавление или удаление чата из списка рассылки.
+        """
         args = message.text.split()
-        if len(args) <= 2:
+        if len(args) < 3:  # Проверяем наличие ID чата
             await message.edit("Укажите ID чата")
             return
-        chat_id = int(args[2])
+        try:
+            chat_id = int(args[2])
+        except ValueError:
+            await message.edit("Неверный формат ID чата")
+            return
         if add and chat_id in self.broadcast_config["chats"]:
             await message.edit("Чат уже в списке рассылки")
         elif add:
@@ -91,61 +115,66 @@ class BroadcastMod(loader.Module):
             await message.edit("Чата нет в списке рассылки")
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
+    async def list_chats(self, message):
+        """
+        Вывод списка чатов для рассылки.
+        """
+        chat_list = []
+        for chat_id in self.broadcast_config["chats"]:
+            try:
+                chat = await self.client.get_input_entity(chat_id)
+                chat_list.append(f"<code>{chat_id}</code> - {chat.title}")
+            except Exception:
+                chat_list.append(f"<code>{chat_id}</code>")
+        await message.edit("\n".join(chat_list) if chat_list else "Список чатов пуст")
+
     async def set_message(self, message):
-        """Установка сообщения для рассылки"""
+        """
+        Установка сообщения для рассылки.
+        """
         reply_msg = await message.get_reply_message()
-        if not reply_msg:
+        if not reply_msg:  # Проверяем, есть ли ответ на сообщение
             await message.edit("Ответьте на сообщение")
             return
         args = message.text.split(" ", 2)
         message_id = reply_msg.id
 
-        if len(args) > 2:
-            chat_id = int(args[2])
+        if len(args) > 2:  # Если указан ID чата, добавляем сообщение для этого чата
+            try:
+                chat_id = int(args[2])
+            except ValueError:
+                await message.edit("Неверный формат ID чата")
+                return
             self.broadcast_config["messages"].setdefault(chat_id, []).append(message_id)
             await message.edit(
                 f"Сообщение добавлено в список для рассылки в чат {chat_id}"
             )
-        else:
+        else:  # Иначе устанавливаем сообщение как дефолтное для всех чатов
             self.broadcast_config["message"] = message_id
             await message.edit("Сообщение установлено как дефолтное для рассылки")
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
-    async def set_interval(self, message):
-        """Установка интервала рассылки"""
-        args = message.text.split()[
-            1:
-        ]  # Разбиваем строку на список аргументов, исключая команду
-        if (
-            len(args) != 2
-        ):  # Проверяем, что есть ровно два аргумента: "setint" и значение интервала
-            await message.edit("Используйте: .broadcast setint <минуты>")
-            return
-        try:
-            minutes = int(args[1])  # Пытаемся преобразовать второй аргумент в число
-        except ValueError:
-            await message.edit(
-                "Неверный формат аргумента. Введите число минут от 1 до 59."
-            )
-            return
-        self.broadcast_config["interval"] = minutes
-        self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        await message.edit(f"Будет отправлять каждые {minutes} минут")
-
     async def delete_message(self, message):
-        """Удалить сообщение из списка для рассылки во всех чатах"""
+        """
+        Удаление сообщения из списка для рассылки во всех чатах.
+        """
         args = message.text.split(" ", 2)
-        if len(args) <= 2:
+        if len(args) < 3:  # Проверяем, указан ли ID сообщения
             await message.edit("Укажите ID сообщения после команды")
             return
-        message_id = int(args[2])
-
+        try:
+            message_id = int(args[2])
+        except ValueError:
+            await message.edit("Неверный формат ID сообщения")
+            return
         removed_chats = []
+        # Удаляем сообщение из списков сообщений для всех чатов, где оно было добавлено
+
         for chat_id, message_ids in self.broadcast_config["messages"].items():
             if message_id in message_ids:
                 message_ids.remove(message_id)
                 removed_chats.append(chat_id)
-        if removed_chats:
+        if removed_chats:  # Если сообщение было удалено хотя бы из одного чата
             removed_chats_str = ", ".join(map(str, removed_chats))
             await message.edit(
                 f"Сообщение с ID {message_id} удалено из списка для чатов: {removed_chats_str}"
@@ -156,21 +185,31 @@ class BroadcastMod(loader.Module):
             )
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
-    async def list_chats(self, message):
-        """Вывод списка чатов для рассылки"""
-        chat_list = []
-        for chat_id in self.broadcast_config["chats"]:
-            try:
-                chat = await self.client.get_input_entity(chat_id)
-                chat_list.append(f"<code>{chat_id}</code> - {chat.title}")
-            except Exception:
-                chat_list.append(f"<code>{chat_id}</code>")
-        await message.edit("\n".join(chat_list) if chat_list else "Список чатов пуст")
+    async def set_interval(self, message):
+        """
+        Установка интервала рассылки.
+        """
+        args = message.text.split()
+        if len(args) < 2:  # Проверяем наличие значения интервала
+            await message.edit("Используйте: .broadcast setint <minutes>")
+            return
+        try:
+            minutes = int(args[1])  # Пытаемся преобразовать аргумент в число
+        except ValueError:
+            await message.edit(
+                "Неверный формат аргумента. Введите число минут от 1 до 59."
+            )
+            return
+        self.broadcast_config["interval"] = minutes
+        self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+        await message.edit(f"Будет отправлять каждые {minutes} минут")
 
     async def set_code(self, message):
-        """Установка кодовой фразы для добавления чата"""
+        """
+        Установка кодовой фразы для добавления/удаления чата.
+        """
         args = message.text.split(" ", 1)  # Разбиваем строку на две части
-        if len(args) < 2:  # Если нет аргументов после команды
+        if len(args) < 2:  # Проверяем наличие новой кодовой фразы
             await message.edit(
                 f"Фраза для добавления чата: <code>{self.broadcast_config['code']}</code>"
             )
@@ -181,9 +220,11 @@ class BroadcastMod(loader.Module):
         await message.edit(f"Установлена фраза: <code>{new_code}</code>")
 
     async def set_main(self, message):
-        """Установка главного чата"""
+        """
+        Установка главного чата.
+        """
         args = message.text.split(" ", 1)  # Разбиваем строку на две части
-        if len(args) < 2:  # Если нет аргументов после команды
+        if len(args) < 2:  # Проверяем наличие ID главного чата
             await message.edit("Укажите ID главного чата")
             return
         try:
@@ -198,9 +239,6 @@ class BroadcastMod(loader.Module):
     async def watcher(self, message: Message):
         """
         Обработчик входящих сообщений.
-        Выполняет следующие задачи:
-        1. Добавление/удаление чата из списка рассылки при получении сообщения с кодовой фразой.
-        2. Рассылка сообщений в чаты из списка рассылки с заданным интервалом.
         """
         if not isinstance(message, Message) or self.me.id not in self.allowed_ids:
             return
@@ -232,21 +270,26 @@ class BroadcastMod(loader.Module):
         """
         Рассылка сообщений в чаты из списка рассылки с заданным интервалом.
         """
+        # Проверка интервала рассылки
+
         if (
             message.date.timestamp() - self.broadcast_config["last_send_time"]
             < self.broadcast_config["interval"] * 60
         ):
             return
+        # Проверка наличия сообщений и чатов для рассылки
+
         if (
-            not self.broadcast_config["message"]
+            not self.broadcast_config.get("message")
             or not self.broadcast_config["chats"]
-            or message.chat_id not in self.broadcast_config["chats"]
         ):
             return
         try:
-            await self.send_messages_to_chats()
+            await self.send_messages_to_chats()  # Отправка сообщений
         except Exception as e:
             await self.client.send_message("me", f"Ошибка при отправке сообщения: {e}")
+        # Обновление времени последней рассылки
+
         self.broadcast_config["last_send_time"] = message.date.timestamp()
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
@@ -254,23 +297,40 @@ class BroadcastMod(loader.Module):
         """
         Отправка сообщений в чаты из списка рассылки.
         """
+        # Перебираем чаты из списка рассылки
+
         for chat_id in self.broadcast_config["chats"]:
+            # Получаем ID сообщения для рассылки в текущий чат
+
+            msg_id = self.get_message_id(chat_id)
+            if msg_id is None:
+                continue
+            # Получаем сообщение из главного чата по его ID
+
             msg = await self.client.get_messages(
-                self.broadcast_config["main_chat"], ids=self.get_message_id(chat_id)
+                self.broadcast_config["main_chat"], ids=msg_id
             )
+            # Отправляем сообщение в текущий чат
+
             if msg.media:
                 await self.client.send_file(chat_id, msg.media, caption=msg.text)
             else:
                 await self.client.send_message(chat_id, msg.text)
-            await asyncio.sleep(3)
+            await asyncio.sleep(5)  # Пауза между отправкой сообщений
 
     def get_message_id(self, chat_id):
         """
         Получение ID сообщения для рассылки в указанный чат.
         """
+        # Если для чата есть список сообщений, выбираем случайное
+
         if chat_id in self.broadcast_config["messages"]:
             return random.choice(self.broadcast_config["messages"][chat_id])
-        elif self.broadcast_config["messages_list"]:
-            return random.choice(self.broadcast_config["messages_list"])
-        else:
+        # Если есть дефолтное сообщение, возвращаем его ID
+
+        elif self.broadcast_config.get("message"):
             return self.broadcast_config["message"]
+        # Иначе возвращаем None
+
+        else:
+            return None
