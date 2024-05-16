@@ -49,16 +49,13 @@ class BroadcastMod(loader.Module):
     async def addchatcmd(self, message: Message):
         """Добавляет чат в список рассылки.
 
-        Используйте: .addchatcmd <chat_id>
-
-        Args:
-            message: Сообщение с командой.
+        Используйте: .addchat <chat_id>
         """
         args = utils.get_args_raw(message)
         if not args:
             await utils.answer(
                 message,
-                "Неверное количество аргументов. Используйте: .addchatcmd <chat_id>",
+                "Неверное количество аргументов. Используйте: .addchat <chat_id>",
             )
             return
         try:
@@ -77,16 +74,13 @@ class BroadcastMod(loader.Module):
     async def remchatcmd(self, message: Message):
         """Удаляет чат из списка рассылки.
 
-        Используйте: .remchatcmd <chat_id>
-
-        Args:
-            message: Сообщение с командой.
+        Используйте: .remchat <chat_id>
         """
         args = utils.get_args_raw(message)
         if not args:
             await utils.answer(
                 message,
-                "Неверное количество аргументов. Используйте: .remchatcmd <chat_id>",
+                "Неверное количество аргументов. Используйте: .remchat <chat_id>",
             )
             return
         try:
@@ -105,10 +99,7 @@ class BroadcastMod(loader.Module):
     async def listchatscmd(self, message: Message):
         """Выводит список чатов для рассылки.
 
-        Используйте: .listchatscmd
-
-        Args:
-            message: Сообщение с командой.
+        Используйте: .listchats
         """
         chat_list = []
         for chat_id in self.broadcast_config["chats"]:
@@ -125,10 +116,7 @@ class BroadcastMod(loader.Module):
     async def setmsgcmd(self, message: Message):
         """Устанавливает сообщение для рассылки.
 
-        Используйте: .setmsgcmd [chat_id] (в ответ на сообщение)
-
-        Args:
-            message: Сообщение с командой.
+        Используйте: .setmsg [chat_id] (в ответ на сообщение)
         """
         args = utils.get_args_raw(message)
         reply_msg = await message.get_reply_message()
@@ -160,10 +148,7 @@ class BroadcastMod(loader.Module):
     async def delmsgcmd(self, message: Message):
         """Удаляет сообщение из списка для рассылки.
 
-        Используйте: .delmsgcmd (в ответ на сообщение)
-
-        Args:
-            message: Сообщение с командой.
+        Используйте: .delmsg (в ответ на сообщение)
         """
         reply_msg = await message.get_reply_message()
         if not reply_msg:
@@ -189,7 +174,7 @@ class BroadcastMod(loader.Module):
             removed_chats_str = ", ".join(map(str, removed_chats))
             await utils.answer(
                 message,
-                f"Сообщение с ID {message_id} удалено из списка для чатов: {removed_chats_str}",
+                f"Сообщение с ID {message_id} удалено из списка: {removed_chats_str}",
             )
         else:
             await utils.answer(
@@ -201,16 +186,13 @@ class BroadcastMod(loader.Module):
     async def setintcmd(self, message: Message):
         """Устанавливает интервал рассылки (в минутах).
 
-        Используйте: .setintcmd <minutes>
-
-        Args:
-            message: Сообщение с командой.
+        Используйте: .setint <minutes>
         """
         args = utils.get_args_raw(message)
         if not args:
             await utils.answer(
                 message,
-                "Неверное количество аргументов. Используйте: .setintcmd <minutes>",
+                "Неверное количество аргументов. Используйте: .setint <minutes>",
             )
             return
         try:
@@ -231,16 +213,13 @@ class BroadcastMod(loader.Module):
     async def setcodecmd(self, message: Message):
         """Устанавливает кодовую фразу для добавления/удаления чата.
 
-        Используйте: .setcodecmd <phrase>
-
-        Args:
-            message: Сообщение с командой.
+        Используйте: .setcode <phrase>
         """
         args = utils.get_args_raw(message)
         if not args:
             await utils.answer(
                 message,
-                "Неверное количество аргументов. Используйте: .setcodecmd <phrase>",
+                "Неверное количество аргументов. Используйте: .setcode <phrase>",
             )
             return
         new_code = args  # Извлекаем новую кодовую фразу
@@ -252,18 +231,15 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def setmaincmd(self, message: Message):
-        """Устанавливает главный чат, из которого будут браться сообщения для рассылки.
+        """Устанавливает главный чат, из которого будут браться сообщения.
 
-        Используйте: .setmaincmd <chat_id>
-
-        Args:
-            message: Сообщение с командой.
+        Используйте: .setmain <chat_id>
         """
         args = utils.get_args_raw(message)
         if not args:
             await utils.answer(
                 message,
-                "Неверное количество аргументов. Используйте: .setmaincmd <chat_id>",
+                "Неверное количество аргументов. Используйте: .setmain <chat_id>",
             )
             return
         try:
@@ -278,11 +254,7 @@ class BroadcastMod(loader.Module):
         )
 
     async def watcher(self, message: Message):
-        """Обрабатывает входящие сообщения.
-
-        Args:
-            message: Входящее сообщение.
-        """
+        """Обрабатывает входящие сообщения."""
         if not isinstance(message, Message) or self.me.id not in self.allowed_ids:
             return
         if (
@@ -295,11 +267,7 @@ class BroadcastMod(loader.Module):
         await self.broadcast_messages(message)
 
     async def handle_code_message(self, message: Message):
-        """Обрабатывает сообщение с кодовой фразой.
-
-        Args:
-            message: Сообщение с кодовой фразой.
-        """
+        """Обрабатывает сообщение с кодовой фразой."""
         if message.chat_id not in self.broadcast_config["chats"]:
             self.broadcast_config["chats"].append(message.chat_id)
             action = "добавлен"
@@ -312,11 +280,7 @@ class BroadcastMod(loader.Module):
         )
 
     async def broadcast_messages(self, message: Message):
-        """Рассылает сообщения в чаты из списка рассылки с заданным интервалом.
-
-        Args:
-            message: Сообщение, которое запускает проверку интервала рассылки.
-        """
+        """Рассылает сообщения с заданным интервалом."""
         if (
             message.date.timestamp() - self.broadcast_config["last_send_time"]
             < self.broadcast_config["interval"] * 60
@@ -354,14 +318,7 @@ class BroadcastMod(loader.Module):
             await asyncio.sleep(5)
 
     def get_message_id(self, chat_id: int) -> Optional[int]:
-        """Возвращает ID сообщения для рассылки в указанный чат.
-
-        Args:
-            chat_id: ID чата.
-
-        Returns:
-            ID сообщения для рассылки или None, если сообщение не найдено.
-        """
+        """Возвращает ID сообщения для рассылки в указанный чат."""
         if chat_id in self.broadcast_config["messages"]:
             return random.choice(self.broadcast_config["messages"][chat_id])
         elif self.broadcast_config.get("message"):
@@ -370,12 +327,7 @@ class BroadcastMod(loader.Module):
             return None
 
     def remove_invalid_message_id(self, chat_id: int, message_id: int):
-        """Удаляет ID несуществующего сообщения из списка.
-
-        Args:
-            chat_id: ID чата.
-            message_id: ID сообщения для удаления.
-        """
+        """Удаляет ID несуществующего сообщения из списка."""
         if chat_id in self.broadcast_config["messages"]:
             with suppress(ValueError):
                 self.broadcast_config["messages"][chat_id].remove(message_id)
