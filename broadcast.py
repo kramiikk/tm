@@ -261,10 +261,10 @@ class BroadcastMod(loader.Module):
 
     async def broadcast_messages(self, message: Message):
         """Рассылает сообщения с заданным интервалом."""
-        if (
+        elapsed_time = (
             message.date.timestamp() - self.broadcast_config["last_send_time"]
-            < self.broadcast_config["interval"] * 60
-        ):
+        )
+        if elapsed_time < self.broadcast_config["interval"] * 60:
             return
         if (
             not self.broadcast_config.get("message")
