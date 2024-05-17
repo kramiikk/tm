@@ -59,11 +59,12 @@ class BroadcastMod(loader.Module):
         if chat_id in self.broadcast_config["chats"]:
             self.broadcast_config["chats"].remove(chat_id)
             self.broadcast_config["messages"].pop(chat_id, None)
-            await utils.answer(message, f"Чат {chat_id} удален из рассылки.")
+            action = "удален"
         else:
             self.broadcast_config["chats"].append(chat_id)
-            await utils.answer(message, f"Чат {chat_id} добавлен в рассылку.")
+            action = "добавлен"
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+        await utils.answer(message, f"Чат {chat_id} {action} из рассылки.")
 
     @loader.unrestricted
     async def delmsgcmd(self, message: Message):
@@ -170,28 +171,20 @@ class BroadcastMod(loader.Module):
     async def listchatscmd(self, message: Message):
         """Показать список чатов и сообщений, добавленных для рассылки."""
         chat_list = []
+        all_message_ids = set(self.broadcast_config["default_message_ids"])
 
-        all_message_ids = set()
         for chat_id, message_ids in self.broadcast_config["messages"].items():
             all_message_ids.update(message_ids)
-        all_message_ids.update(self.broadcast_config["default_message_ids"])
-
-        messages = await self.client.get_messages(
-            self.broadcast_config["main_chat"], ids=list(all_message_ids)
-        )
-        messages_dict = {msg.id: msg for msg in messages}
-
-        for chat_id in self.broadcast_config["chats"]:
             try:
                 chat = await self.client.get_entity(chat_id)
                 chat_title = chat.title if getattr(chat, "title", None) else "—"
             except Exception as e:
                 chat_list.append(f"Ошибка получения информации о чате {chat_id}: {e}")
                 continue
-            message_ids = self.broadcast_config["messages"].get(chat_id, [])
             message_previews = []
             for message_id in message_ids:
-                if msg := messages_dict.get(message_id):
+                msg = messages_dict.get(message_id)
+                if msg:
                     message_previews.append(
                         f"<code>{message_id}</code> - {msg.text[:50]}..."
                     )
@@ -207,9 +200,17 @@ class BroadcastMod(loader.Module):
                 chat_list.append(
                     f"<code>{chat_id}</code> ({chat_title})\n(Нет сообщений)"
                 )
+        # Получаем все сообщения один раз
+
+        messages = await self.client.get_messages(
+            self.broadcast_config["main_chat"], ids=list(all_message_ids)
+        )
+        messages_dict = {msg.id: msg for msg in messages}
+
         default_message_previews = []
         for message_id in self.broadcast_config["default_message_ids"]:
-            if msg := messages_dict.get(message_id):
+            msg = messages_dict.get(message_id)
+            if msg:
                 default_message_previews.append(
                     f"<code>{message_id}</code> - {msg.text[:50]}..."
                 )
@@ -235,18 +236,16 @@ class BroadcastMod(loader.Module):
             and message.sender_id == self.me.id
         ):
             await self.handle_code_message(message)
-        # Выбор типа рассылки: в один чат или по всем
+        # Рассылка в чат из списка
 
-        if message.chat_id not in self.broadcast_config["chats"]:
-            # Если чат не в списке, делаем рассылку по всем чатам с вероятностью 1/30
+        if message.chat_id in self.broadcast_config["chats"]:
+            if random.randint(1, 30) == 13:
+                await self.broadcast_to_single_chat(message)
+            return
+        # Рассылка по всем чатам
 
-            if random.randint(1, 30) == 1:
-                await self.broadcast_to_all_chats(message)
-            return  # Завершаем функцию, если чат не в списке
-        # Если чат в списке, делаем рассылку в него с вероятностью 1/30
-
-        if random.randint(1, 30) == 13:
-            await self.broadcast_to_single_chat(message)
+        if random.randint(1, 100) == 1:
+            await self.broadcast_to_all_chats(message)
 
     async def handle_code_message(self, message: Message):
         """Добавляет/удаляет чат из списка рассылки."""
@@ -257,13 +256,12 @@ class BroadcastMod(loader.Module):
             chat_title = chat.title if getattr(chat, "title", None) else "—"
         except Exception as e:
             chat_title = f"(Ошибка получения названия) {e}"
-        action = (
-            "добавлен" if chat_id not in self.broadcast_config["chats"] else "удален"
-        )
-        if action == "удален":
+        if chat_id in self.broadcast_config["chats"]:
             self.broadcast_config["chats"].remove(chat_id)
+            action = "удален"
         else:
             self.broadcast_config["chats"].append(chat_id)
+            action = "добавлен"
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await self.client.send_message(
             "me", f"Чат <code>{chat_id}</code> ({chat_title}) {action}."
@@ -276,7 +274,7 @@ class BroadcastMod(loader.Module):
         # Проверка, находится ли чат в списке для рассылки
 
         if chat_id in self.broadcast_config["chats"]:
-            await self.send_message_to_chat(chat_id, message)
+            await self._send_message(chat_id, message)
 
     async def broadcast_to_all_chats(self, message: Message):
         """Периодическая рассылка по всем чатам."""
@@ -286,17 +284,30 @@ class BroadcastMod(loader.Module):
         interval = self.broadcast_config["interval"] * 60
         if elapsed_time < interval:
             return
-        if not len(self.broadcast_config["chats"]):
+        if not self.broadcast_config["chats"]:
             return
-        try:
-            for chat_id in self.broadcast_config["chats"]:
-                await self.send_messages_to_chat(chat_id)
-        except Exception as e:
-            await self.client.send_message("me", f"Ошибка при рассылке: {e}")
+        # Проверяем наличие дефолтных сообщений
+
+        if self.broadcast_config["default_message_ids"]:
+            # Выбираем случайное сообщение из дефолтных сообщений
+
+            msg_id = random.choice(self.broadcast_config["default_message_ids"])
+            msg = await self.client.get_messages(
+                self.broadcast_config["main_chat"], ids=msg_id
+            )
+            if not msg:
+                self.broadcast_config["default_message_ids"].remove(msg_id)
+                self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+                return
+            try:
+                for chat_id in self.broadcast_config["chats"]:
+                    await self._send_message(chat_id, msg)
+            except Exception as e:
+                await self.client.send_message("me", f"Ошибка при рассылке: {e}")
         self.broadcast_config["last_send_time"] = message.date.timestamp()
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
-    async def send_message_to_chat(self, chat_id: int, message: Message):
+    async def _send_message(self, chat_id: int, message: Message):
         """Отправка сообщения в указанный чат."""
         try:
             if message.media:
@@ -310,35 +321,3 @@ class BroadcastMod(loader.Module):
             await self.client.send_message(
                 "me", f"Ошибка при отправке в чат {chat_id}: {e}"
             )
-
-    async def send_messages_to_chat(self, chat_id: int):
-        """Отправка сообщений в указанный чат."""
-        msg_id = self._get_message_id(chat_id)
-        if msg_id is None:
-            return
-        msg = await self.client.get_messages(
-            self.broadcast_config["main_chat"], ids=msg_id
-        )
-        if msg is None:
-            self.remove_invalid_message_id(chat_id, msg_id)
-            return
-        await self.send_message_to_chat(chat_id, msg)
-
-    def _get_message_id(self, chat_id: int) -> Optional[int]:
-        """Выбор ID сообщения для указанного чата."""
-        if message_ids := self.broadcast_config["messages"].get(chat_id):
-            return random.choice(message_ids)
-        elif self.broadcast_config["default_message_ids"]:
-            return random.choice(self.broadcast_config["default_message_ids"])
-        else:
-            return None
-
-    def remove_invalid_message_id(self, chat_id: int, message_id: int):
-        """Удаление неверного ID сообщения из списка для чата."""
-        message_ids = self.broadcast_config["messages"].get(chat_id, [])
-        if message_id in message_ids:
-            message_ids.remove(message_id)
-            self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        if message_id in self.broadcast_config["default_message_ids"]:
-            self.broadcast_config["default_message_ids"].remove(message_id)
-            self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
