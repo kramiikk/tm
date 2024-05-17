@@ -140,8 +140,8 @@ class BroadcastMod(loader.Module):
                 chat = await self.client.get_entity(chat_id)
                 chat_title = chat.title if getattr(chat, "title", None) else "—"
             except Exception as e:
-                chat_title = "—"
-                await utils.answer(message, f"Ошибка получения чата {chat_id}: {e}")
+                chat_list.append(f"Ошибка получения информации о чате {chat_id}: {e}")
+                continue  # Переходим к следующему чату
             # Формируем список сообщений для чата
 
             message_ids = self.broadcast_config["messages"].get(chat_id, [])
@@ -244,7 +244,7 @@ class BroadcastMod(loader.Module):
             removed_chats_str = ", ".join(map(str, removed_chats))
             await utils.answer(
                 message,
-                f"Сообщение {message_id} удалено из {'чатов' if 'default' not in removed_chats else 'дефолтных сообщений'}: {removed_chats_str}",
+                f"{message_id} удалено из {'чатов' if 'default' not in removed_chats else 'сообщений'}: {removed_chats_str}",
             )
         else:
             await utils.answer(message, f"Сообщение {message_id} не найдено.")
