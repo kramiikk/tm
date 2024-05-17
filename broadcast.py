@@ -91,7 +91,7 @@ class BroadcastMod(loader.Module):
             chats_str = ", ".join(map(str, removed_chats))
             await utils.answer(
                 message,
-                f"Удалено из {'чатов' if 'default' not in removed_chats else 'сообщений'}: {chats_str}",
+                f"Удален для чатов: {chats_str}",
             )
         else:
             await utils.answer(message, f"Сообщение {message_id} не найдено.")
@@ -115,7 +115,7 @@ class BroadcastMod(loader.Module):
         if not args:
             await utils.answer(
                 message,
-                f"Текущий интервал рассылки по всем чатам: {self.broadcast_config['interval']} минут.",
+                f"Текущий интервал: {self.broadcast_config['interval']} минут.",
             )
             return
         try:
@@ -256,7 +256,7 @@ class BroadcastMod(loader.Module):
             chat = await self.client.get_entity(chat_id)
             chat_title = chat.title if getattr(chat, "title", None) else "—"
         except Exception as e:
-            chat_title = "(Ошибка получения названия)"
+            chat_title = f"(Ошибка получения названия) {e}"
         action = (
             "добавлен" if chat_id not in self.broadcast_config["chats"] else "удален"
         )
