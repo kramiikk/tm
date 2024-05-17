@@ -250,25 +250,6 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, f"Сообщение {message_id} не найдено.")
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
-    @loader.unrestricted
-    async def clearmsgscmd(self, message: Message):
-        """Очистить список сообщений для чата."""
-        args = utils.get_args_raw(message)
-        if not args:
-            await utils.answer(message, "Используйте: .clearmsgs <chat_id>")
-            return
-        try:
-            chat_id = int(args)
-        except ValueError:
-            await utils.answer(message, "Неверный ID чата.")
-            return
-        removed_messages = self.broadcast_config["messages"].pop(chat_id, None)
-        if removed_messages is not None:
-            self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-            await utils.answer(message, f"Список сообщений для чата {chat_id} очищен.")
-        else:
-            await utils.answer(message, f"Чат {chat_id} не найден.")
-
     async def watcher(self, message: Message):
         """Обработчик входящих сообщений."""
 
