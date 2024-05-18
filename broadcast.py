@@ -212,12 +212,12 @@ class BroadcastMod(loader.Module):
                 continue
             message_previews = []
             for message_id in message_ids:
-                async for message in self.client.iter_messages(
+                async for mess in self.client.iter_messages(
                     self.broadcast_config["main_chat"], ids=[message_id]
                 ):
                     message_preview = (
-                        f"<code>{message_id}</code> - {message.text[:50]}..."
-                        if message
+                        f"<code>{message_id}</code> - {mess.text[:50]}..."
+                        if mess
                         else f"<code>{message_id}</code> - (—)"
                     )
                     message_previews.append(message_preview)
@@ -229,12 +229,12 @@ class BroadcastMod(loader.Module):
             chat_list.append(chat_info)
         default_message_previews = []
         for message_id in self.broadcast_config["default_message_ids"]:
-            async for message in self.client.iter_messages(
+            async for mess in self.client.iter_messages(
                 self.broadcast_config["main_chat"], ids=[message_id]
             ):
                 message_preview = (
-                    f"<code>{message_id}</code> - {message.text[:50]}..."
-                    if message
+                    f"<code>{message_id}</code> - {mess.text[:50]}..."
+                    if mess
                     else f"<code>{message_id}</code> - (—)"
                 )
                 default_message_previews.append(message_preview)
@@ -243,8 +243,6 @@ class BroadcastMod(loader.Module):
                 f"**Дефолтные сообщения:**\n{' '.join(default_message_previews)}"
             )
         message_text = "\n\n".join(chat_list) if chat_list else "Список пуст."
-
-        # Send a new message instead of editing the previous one
 
         await utils.answer(message, message_text)
 
@@ -378,7 +376,7 @@ class BroadcastMod(loader.Module):
                 return  # Сообщение успешно отправлено
             except Exception as e:
                 self.logger.error(
-                    f"Ошибка при отправке {chat_id} (попытка {attempt+1}/{retries}): {e}"
+                    f"Ошибка {chat_id} (попытка {attempt+1}/{retries}): {e}"
                 )
                 await asyncio.sleep(5)  # Пауза перед следующей попыткой
         # Если все попытки отправки неудачны, уведомляем пользователя
