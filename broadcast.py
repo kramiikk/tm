@@ -261,7 +261,17 @@ class BroadcastMod(loader.Module):
 
         if message.chat_id in self.broadcast_config["chats"]:
             if random.random() < 0.01:
-                await self.broadcast_to_specific_chat(message.chat_id)
+                last_send_time = self.broadcast_config["last_send_time"].get(
+                    message.chat_id, 0
+                )
+                elapsed_time = message.date.timestamp() - last_send_time
+                interval = self.broadcast_config["interval"] * 60
+                if elapsed_time >= interval:
+                    await self.broadcast_to_specific_chat(message.chat_id)
+                    self.broadcast_config["last_send_time"][
+                        message.chat_id
+                    ] = message.date.timestamp()
+                    self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
             return
         # Рассылка по всем чатам
 
@@ -299,12 +309,6 @@ class BroadcastMod(loader.Module):
 
     async def broadcast_to_all_chats(self, message: Message):
         """Периодическая рассылка по всем чатам."""
-        elapsed_time = (
-            message.date.timestamp() - self.broadcast_config["last_send_time"]
-        )
-        interval = self.broadcast_config["interval"] * 60
-        if elapsed_time < interval:
-            return
         if (
             self.broadcast_config["default_message_ids"]
             or self.broadcast_config["messages"]
@@ -328,7 +332,7 @@ class BroadcastMod(loader.Module):
             except Exception as e:
                 await self.client.send_message("me", f"Ошибка при рассылке: {e}")
                 self.logger.error(f"Ошибка при рассылке по всем чатам: {e}")
-        self.broadcast_config["last_send_time"] = message.date.timestamp()
+        self.broadcast_config["last_send_time"]["all_chats"] = message.date.timestamp()
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
     async def _broadcast_messages_for_chat(self, chat_id: int, messages_dict: dict):
