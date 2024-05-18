@@ -203,7 +203,9 @@ class BroadcastMod(loader.Module):
         """Показать список чатов и сообщений, добавленных для рассылки."""
         chat_list = []
 
-        for chat_id, message_ids in self.broadcast_config["messages"].items():
+        for chat_id in self.broadcast_config[
+            "chats"
+        ]:  # Итерируемся по всем чатам в списке
             try:
                 chat = await self.client.get_entity(chat_id)
                 chat_title = chat.title if hasattr(chat, "title") else "—"
@@ -211,6 +213,9 @@ class BroadcastMod(loader.Module):
                 self.logger.error(f"Ошибка получения информации о чате {chat_id}: {e}")
                 continue
             message_previews = []
+            message_ids = self.broadcast_config["messages"].get(
+                chat_id, []
+            )  # Получаем список сообщений для чата
             for message_id in message_ids:
                 async for mess in self.client.iter_messages(
                     self.broadcast_config["main_chat"], ids=[message_id]
@@ -221,6 +226,8 @@ class BroadcastMod(loader.Module):
                         else f"<code>{message_id}</code> - (—)"
                     )
                     message_previews.append(message_preview)
+            # Добавляем информацию о чате, даже если нет сообщений
+
             chat_info = (
                 f"<code>{chat_id}</code> ({chat_title})\n{' '.join(message_previews)}"
                 if message_previews
