@@ -59,7 +59,7 @@ class BroadcastMod(loader.Module):
         """
         args = utils.get_args_raw(message)
         if not args:
-            await utils.answer(message, "Используйте: .chat <ID чата>")
+            await utils.answer(message, "Используйте: .chat ID чата")
             return
         try:
             chat_id = int(args)
@@ -122,7 +122,7 @@ class BroadcastMod(loader.Module):
         """
         args = utils.get_args_raw(message)
         if not args:
-            await utils.answer(message, "Используйте: .setcode <кодовое слово>")
+            await utils.answer(message, "Используйте: .setcode кодовое слово")
             return
         self.broadcast_config["code"] = args
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
@@ -203,7 +203,7 @@ class BroadcastMod(loader.Module):
         """Показать список чатов и сообщений, добавленных для рассылки."""
         chat_list = []
 
-        async for chat_id, message_ids in self.broadcast_config["messages"].items():
+        for chat_id, message_ids in self.broadcast_config["messages"].items():
             try:
                 chat = await self.client.get_entity(chat_id)
                 chat_title = chat.title if hasattr(chat, "title") else "—"
@@ -211,15 +211,16 @@ class BroadcastMod(loader.Module):
                 self.logger.error(f"Ошибка получения информации о чате {chat_id}: {e}")
                 continue
             message_previews = []
-            async for message_id in self.client.iter_messages(
-                self.broadcast_config["main_chat"], ids=message_ids
-            ):
-                message_preview = (
-                    f"<code>{message_id}</code> - {message.text[:50]}..."
-                    if message
-                    else f"<code>{message_id}</code> - (—)"
-                )
-                message_previews.append(message_preview)
+            for message_id in message_ids:
+                async for message in self.client.iter_messages(
+                    self.broadcast_config["main_chat"], ids=[message_id]
+                ):
+                    message_preview = (
+                        f"<code>{message_id}</code> - {message.text[:50]}..."
+                        if message
+                        else f"<code>{message_id}</code> - (—)"
+                    )
+                    message_previews.append(message_preview)
             chat_info = (
                 f"<code>{chat_id}</code> ({chat_title})\n{' '.join(message_previews)}"
                 if message_previews
@@ -227,16 +228,16 @@ class BroadcastMod(loader.Module):
             )
             chat_list.append(chat_info)
         default_message_previews = []
-        async for message_id in self.client.iter_messages(
-            self.broadcast_config["main_chat"],
-            ids=self.broadcast_config["default_message_ids"],
-        ):
-            message_preview = (
-                f"<code>{message_id}</code> - {message.text[:50]}..."
-                if message
-                else f"<code>{message_id}</code> - (—)"
-            )
-            default_message_previews.append(message_preview)
+        for message_id in self.broadcast_config["default_message_ids"]:
+            async for message in self.client.iter_messages(
+                self.broadcast_config["main_chat"], ids=[message_id]
+            ):
+                message_preview = (
+                    f"<code>{message_id}</code> - {message.text[:50]}..."
+                    if message
+                    else f"<code>{message_id}</code> - (—)"
+                )
+                default_message_previews.append(message_preview)
         if default_message_previews:
             chat_list.append(
                 f"**Дефолтные сообщения:**\n{' '.join(default_message_previews)}"
