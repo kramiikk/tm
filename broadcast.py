@@ -242,9 +242,11 @@ class BroadcastMod(loader.Module):
             chat_list.append(
                 f"**Дефолтные сообщения:**\n{' '.join(default_message_previews)}"
             )
-        await utils.answer(
-            message, "\n\n".join(chat_list) if chat_list else "Список пуст."
-        )
+        message_text = "\n\n".join(chat_list) if chat_list else "Список пуст."
+
+        # Send a new message instead of editing the previous one
+
+        await utils.answer(message, message_text)
 
     async def watcher(self, message: Message):
         """Обработчик входящих сообщений."""
@@ -347,10 +349,7 @@ class BroadcastMod(loader.Module):
                 self.broadcast_config["default_message_ids"].remove(msg_id)
 
     async def get_broadcast_messages(self, chat_id: Optional[int] = None) -> dict:
-        """
-        Получает все необходимые сообщения для рассылки.
-        Возвращает словарь, где ключи - идентификаторы сообщений, а значения - объекты сообщений.
-        """
+        """Получает все необходимые сообщения для рассылки."""
         all_message_ids = set(self.broadcast_config["default_message_ids"])
         if chat_id is not None:
             all_message_ids.update(self.broadcast_config["messages"].get(chat_id, []))
@@ -379,12 +378,12 @@ class BroadcastMod(loader.Module):
                 return  # Сообщение успешно отправлено
             except Exception as e:
                 self.logger.error(
-                    f"Ошибка при отправке в чат {chat_id} (попытка {attempt+1}/{retries}): {e}"
+                    f"Ошибка при отправке {chat_id} (попытка {attempt+1}/{retries}): {e}"
                 )
                 await asyncio.sleep(5)  # Пауза перед следующей попыткой
         # Если все попытки отправки неудачны, уведомляем пользователя
 
         await self.client.send_message(
             "me",
-            f"Не удалось отправить сообщение в чат {chat_id} после {retries} попыток.",
+            f"Не удалось отправить в чат {chat_id} после {retries} попыток.",
         )
