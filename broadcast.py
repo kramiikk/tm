@@ -257,8 +257,6 @@ class BroadcastMod(loader.Module):
         """Обработчик входящих сообщений."""
         if self.me.id not in self.allowed_ids:
             return
-        # Обработка кода активации
-
         if (
             self.broadcast_config["code"] in message.text
             and message.sender_id == self.me.id
@@ -267,7 +265,7 @@ class BroadcastMod(loader.Module):
         # Рассылка в чат из списка
 
         if message.chat_id in self.broadcast_config["chats"]:
-            if random.random() < 0.03:
+            if random.random() < 0.3:
                 last_send_time = self.broadcast_config["last_send_time"].get(
                     message.chat_id, 0
                 )
@@ -282,7 +280,7 @@ class BroadcastMod(loader.Module):
             return
         # Рассылка по всем чатам
 
-        if random.random() < 0.01:
+        if random.random() < 0.03:
             await self.broadcast_to_all_chats(message)
 
     async def handle_code_message(self, message: Message):
