@@ -260,12 +260,12 @@ class BroadcastMod(loader.Module):
         # Рассылка в чат из списка
 
         if message.chat_id in self.broadcast_config["chats"]:
-            if random.random() < 1 / 30:
+            if random.random() < 0.01:
                 await self.broadcast_to_specific_chat(message.chat_id)
             return
         # Рассылка по всем чатам
 
-        if random.random() < 0.01:
+        if random.random() < 0.001:
             await self.broadcast_to_all_chats(message)
 
     async def handle_code_message(self, message: Message):
