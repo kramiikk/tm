@@ -304,7 +304,7 @@ class BroadcastMod(loader.Module):
         interval = self.broadcast_config["interval"] * 60
         if elapsed_time < interval:
             return
-        if has_messages_to_broadcast := (
+        if (
             self.broadcast_config["default_message_ids"]
             or self.broadcast_config["messages"]
         ):
