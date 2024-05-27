@@ -41,15 +41,11 @@ class BroadcastMod(loader.Module):
         )
 
         self.allowed_ids = []
-        try:
-            entity = await self.client.get_entity("iddisihh")
-            if entity:
-                async for message in self.client.iter_messages(entity):
-                    if message.message and message.message.isdigit():
-                        self.allowed_ids.append(int(message.message))
-        except ValueError as e:
-            self.logger.error(f"Ошибка при получении allowed_ids: {e}")
-            # Можно добавить вывод сообщения об ошибке пользователю
+        entity = await self.client.get_entity("iddisihh")
+        if entity:
+            async for message in self.client.iter_messages(entity):
+                if message.message and message.message.isdigit():
+                    self.allowed_ids.append(int(message.message))
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
@@ -372,7 +368,7 @@ class BroadcastMod(loader.Module):
                 return
             except Exception as e:
                 self.logger.error(
-                    f"Ошибка отправки сообщения в чат {chat_id} (попытка {attempt+1}/{retries}): {e}"
+                    f"Ошибка {chat_id} (попытка {attempt+1}/{retries}): {e}"
                 )
                 await asyncio.sleep(5)
         await self.client.send_message(
