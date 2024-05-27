@@ -28,7 +28,7 @@ class BroadcastMod(loader.Module):
             "Broadcast",
             {
                 "interval": 5,  # Интервал рассылки в минутах
-                "code_chats": {},  # {"code": {"chats": [chat_id1, chat_id2, ...], "main_chat": chat_id, "message_id": message_id}}
+                "code_chats": {},  # {"code": {"chats": "main_chat", "message_id"}}
                 "last_time": {},  # {"code": timestamp}
             },
         )
