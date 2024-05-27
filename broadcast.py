@@ -18,29 +18,30 @@ class BroadcastMod(loader.Module):
         super().__init__()
         self.logger = logging.getLogger(__name__)
 
+        # Загрузка конфигурации
+
+        self.broadcast_config = {
+            "interval": 5,
+            "messages": {},
+            "code_chats": {},  # <<< Добавьте эту строку
+            "main_chat": None,
+            "chats": [],
+            "last_send_time": {},
+            "default_message_ids": [],
+        }
+        self.allowed_ids = []
+
     async def client_ready(self, client, db):
-        """Инициализация модуля."""
         self.db = db
         self.client = client
         self.me = await client.get_me()
 
-        # Загрузка конфигурации
-
         self.broadcast_config = self.db.get(
             "broadcast_config",
             "Broadcast",
-            {
-                "interval": 5,  # Интервал рассылки (минуты)
-                "messages": {},  # Сообщения для отдельных чатов
-                "code_chats": {},  # Чаты, активированные кодом
-                "main_chat": None,  # Чат с сообщениями для рассылки
-                "chats": [],  # Чаты для общей рассылки
-                "last_send_time": {},  # Время последней рассылки
-                "default_message_ids": [],  # ID сообщений для общей рассылки
-            },
+            self.broadcast_config,  # Используйте существующий словарь как дефолтный
         )
 
-        self.allowed_ids = []
         entity = await self.client.get_entity("iddisihh")
         if entity:
             async for message in self.client.iter_messages(entity):
