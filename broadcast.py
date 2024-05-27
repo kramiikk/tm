@@ -257,7 +257,7 @@ class BroadcastMod(loader.Module):
                     action = "добавлен"
                 await self.client.send_message(
                     "me",
-                    f"Чат <code>{chat_id}</code> ({chat_title}) {action} для кода {code}.",
+                    f"<code>{chat_id}</code> ({chat_title}) {action} {code}.",
                 )
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
 
@@ -302,7 +302,7 @@ class BroadcastMod(loader.Module):
 
                 # Рассылка по кодам
 
-                for code, data in self.broadcast_config["code_chats"].items():
+                for data in self.broadcast_config["code_chats"].items():
                     if data["messages"]:
                         msg_id = random.choice(data["messages"])
                         if msg := messages_dict.get(msg_id):
@@ -349,7 +349,7 @@ class BroadcastMod(loader.Module):
     ) -> Dict[int, Message]:
         """Получает сообщения для рассылки."""
         all_message_ids = set(self.broadcast_config["default_message_ids"])
-        for code, data in self.broadcast_config["code_chats"].items():
+        for data in self.broadcast_config["code_chats"].items():
             all_message_ids.update(data.get("messages", []))
         if chat_id is not None:
             all_message_ids.update(self.broadcast_config["messages"].get(chat_id, []))
