@@ -265,7 +265,7 @@ class BroadcastMod(loader.Module):
         # Рассылка в чат из списка
 
         if message.chat_id in self.broadcast_config["chats"]:
-            if random.random() < 0.3:
+            if random.random() < 0.03:
                 last_send_time = self.broadcast_config["last_send_time"].get(
                     message.chat_id, 0
                 )
