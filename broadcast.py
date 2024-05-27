@@ -159,16 +159,23 @@ class BroadcastMod(loader.Module):
         if self.me.id not in self.allowed_ids:
             return
         for code, data in self.broadcast_config["code_chats"].items():
-            if code in message.text and message.chat_id not in data["chats"]:
-                chat_id = message.chat_id
+            chat_id = message.chat_id
+            if code in message.text:
                 try:
                     chat = await self.client.get_entity(chat_id)
                     chat_title = chat.title if hasattr(chat, "title") else "—"
                 except Exception as e:
                     chat_title = f"(Ошибка) {e}"
-                if chat_id not in self.broadcast_config["code_chats"][code]["chats"]:
-                    self.broadcast_config["code_chats"][code]["chats"].append(chat_id)
-                    txt = "добавлен для"
+                txt = ""
+                if message.chat_id not in data["chats"]:
+                    if (
+                        chat_id
+                        not in self.broadcast_config["code_chats"][code]["chats"]
+                    ):
+                        self.broadcast_config["code_chats"][code]["chats"].append(
+                            chat_id
+                        )
+                        txt = "добавлен для"
                 else:
                     self.broadcast_config["code_chats"][code]["chats"].remove(chat_id)
                     txt = "удален для"
@@ -176,7 +183,7 @@ class BroadcastMod(loader.Module):
                     "me", f"<code>{chat_id}</code> ({chat_title}) {txt} '{code}'."
                 )
                 self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        if random.random() < 0.01:
+        if random.random() < 0.1:
             await self.broadcast_to_chats(message)
 
     async def broadcast_to_chats(self, message: Message):
