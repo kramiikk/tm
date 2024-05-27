@@ -280,7 +280,7 @@ class BroadcastMod(loader.Module):
             return
         # Рассылка по всем чатам
 
-        if random.random() < 0.03:
+        if random.random() < 0.003:
             await self.broadcast_to_all_chats(message)
 
     async def handle_code_message(self, message: Message):
