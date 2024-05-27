@@ -28,9 +28,9 @@ class BroadcastMod(loader.Module):
             "Broadcast",
             {
                 "interval": 5,  # Интервал рассылки в минутах
-                "code_chats": {},  # {"code": {"chat_id": message_id}}
+                "code_chats": {},  # {"code": [chat_id1, chat_id2, ...]}
                 "main_chat": None,  # Основной чат для пересылки
-                "last_send_time": {},  # Время последней отправки
+                "last_send_time": {},  # {"code": timestamp}
             },
         )
         try:
@@ -41,7 +41,7 @@ class BroadcastMod(loader.Module):
                 if message.message and message.message.isdigit()
             ]
         except ValueError:
-            await self.client.send_message("me", "Ошибка")
+            await self.client.send_message("me", "Ошибка получения allowed_ids")
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
@@ -56,20 +56,14 @@ class BroadcastMod(loader.Module):
         code = args.strip()
         chat_id = message.chat_id
         if code not in self.broadcast_config["code_chats"]:
-            await utils.answer(message, f"Код '{code}' не найден.")
-            return
+            self.broadcast_config["code_chats"][
+                code
+            ] = []  # Создаем список для кода, если его не было
         if chat_id in self.broadcast_config["code_chats"][code]:
-            del self.broadcast_config["code_chats"][code][chat_id]
+            self.broadcast_config["code_chats"][code].remove(chat_id)
             action = "удален"
         else:
-            await utils.answer(
-                message,
-                "Ответьте на сообщение, которое будет использоваться для рассылки.",
-            )
-            reply = await message.get_reply_message()
-            if not reply:
-                return
-            self.broadcast_config["code_chats"][code][chat_id] = reply.id
+            self.broadcast_config["code_chats"][code].append(chat_id)
             action = "добавлен"
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await utils.answer(
@@ -77,29 +71,22 @@ class BroadcastMod(loader.Module):
         )
 
     @loader.unrestricted
-    async def delmsgcmd(self, message: Message):
-        """Удалить сообщение из рассылки.
+    async def delcodecmd(self, message: Message):
+        """Удалить код.
 
-        Ответьте на сообщение.
+        Используйте: .delcode <код>
         """
-        reply = await message.get_reply_message()
-        if not reply:
-            await utils.answer(message, "Ответьте на сообщение.")
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(message, "Используйте: .delcode <код>")
             return
-        message_id = reply.id
-        removed_codes = []
-        for code, chats in self.broadcast_config["code_chats"].items():
-            for chat_id, msg_id in list(chats.items()):
-                if msg_id == message_id:
-                    del chats[chat_id]
-                    removed_codes.append(code)
-                    break
-        if removed_codes:
-            codes_str = ", ".join(map(str, removed_codes))
-            await utils.answer(message, f"Удален для кодов: {codes_str}")
+        code = args.strip()
+        if code in self.broadcast_config["code_chats"]:
+            del self.broadcast_config["code_chats"][code]
+            self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+            await utils.answer(message, f"Код '{code}' удален.")
         else:
-            await utils.answer(message, f"Сообщение {message_id} не найдено.")
-        self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+            await utils.answer(message, f"Код '{code}' не найден.")
 
     @loader.unrestricted
     async def setcodecmd(self, message: Message):
@@ -112,9 +99,12 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, "Используйте: .setcode <код>")
             return
         code = args
-        self.broadcast_config["code_chats"].setdefault(code, {})
-        self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
-        await utils.answer(message, f"Код '{code}' установлен.")
+        if code not in self.broadcast_config["code_chats"]:
+            self.broadcast_config["code_chats"][code] = []
+            self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+            await utils.answer(message, f"Код '{code}' установлен.")
+        else:
+            await utils.answer(message, f"Код '{code}' уже существует.")
 
     @loader.unrestricted
     async def listcodescmd(self, message: Message):
@@ -124,9 +114,7 @@ class BroadcastMod(loader.Module):
             return
         message_text = "**Коды активации:**\n"
         for code, chats in self.broadcast_config["code_chats"].items():
-            chat_list = ", ".join(
-                f"{chat_id} ({msg_id})" for chat_id, msg_id in chats.items()
-            )
+            chat_list = ", ".join(str(chat_id) for chat_id in chats)
             message_text += f"- `{code}`: {chat_list or '(нет чатов)'}\n"
         await utils.answer(message, message_text)
 
@@ -158,50 +146,34 @@ class BroadcastMod(loader.Module):
         """Обработка сообщений и запуск рассылки."""
         if self.me.id not in self.allowed_ids:
             return
-        for code in self.broadcast_config["code_chats"]:
-            if code in message.text:
+        for code, chat_ids in self.broadcast_config["code_chats"].items():
+            if code in message.text and message.chat_id not in chat_ids:
                 chat_id = message.chat_id
                 try:
                     chat = await self.client.get_entity(chat_id)
                     chat_title = chat.title if hasattr(chat, "title") else "—"
                 except Exception as e:
                     chat_title = f"(Ошибка) {e}"
-                if chat_id in self.broadcast_config["code_chats"][code]:
-                    del self.broadcast_config["code_chats"][code][chat_id]
-                    action = "удален"
-                else:
-                    reply = await message.get_reply_message()
-                    if not reply:
-                        return
-                    self.broadcast_config["code_chats"][code][chat_id] = reply.id
-                    action = "добавлен"
+                self.broadcast_config["code_chats"][code].append(chat_id)
+                self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
                 await self.client.send_message(
                     "me",
-                    f"<code>{chat_id}</code> ({chat_title}) {action} для '{code}'.",
+                    f"<code>{chat_id}</code> ({chat_title}) добавлен для '{code}'.",
                 )
-        self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         if random.random() < 0.03:
             await self.broadcast_to_chats(message)
 
     async def broadcast_to_chats(self, message: Message):
         """Рассылка сообщений по кодам подписки."""
-        try:
-            for code, chats in self.broadcast_config["code_chats"].items():
-                for chat_id, msg_id in chats.items():
-                    last_send_time = self.broadcast_config["last_send_time"].get(
-                        (chat_id, code), 0
-                    )
-                    elapsed_time = message.date.timestamp() - last_send_time
-                    interval = self.broadcast_config["interval"] * 60
-                    if elapsed_time >= interval:
-                        with suppress(Exception):
-                            await self.client.forward_messages(
-                                chat_id, msg_id, self.broadcast_config["main_chat"]
-                            )
-                            self.broadcast_config["last_send_time"][
-                                (chat_id, code)
-                            ] = message.date.timestamp()
+        current_time = message.date.timestamp()
+        for code, chat_ids in self.broadcast_config["code_chats"].items():
+            last_send_time = self.broadcast_config["last_send_time"].get(code, 0)
+            if current_time - last_send_time >= self.broadcast_config["interval"] * 60:
+                for chat_id in chat_ids:
+                    with suppress(Exception):
+                        await self.client.forward_messages(
+                            chat_id, message.id, self.broadcast_config["main_chat"]
+                        )
                         await asyncio.sleep(3)
-        except Exception as e:
-            await self.client.send_message("me", f"Ошибка рассылки: {e}")
+                self.broadcast_config["last_send_time"][code] = current_time
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
