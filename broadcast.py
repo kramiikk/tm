@@ -29,7 +29,7 @@ class BroadcastMod(loader.Module):
             {
                 "interval": 5,  # Интервал рассылки в минутах
                 "code_chats": {},  # {"code": {"chats": "main_chat", "message_id"}}
-                "last_time": {},  # {"code": timestamp}
+                "last_time": {},  # {"code": {"chat_id": timestamp}}
             },
         )
         try:
@@ -110,6 +110,7 @@ class BroadcastMod(loader.Module):
             "chats": [],
             "main_chat": reply.chat_id,
             "message_id": reply.id,
+            "last_time": {},  # {"chat_id": timestamp}
         }
         self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
         await utils.answer(
@@ -165,22 +166,26 @@ class BroadcastMod(loader.Module):
                     chat_title = chat.title if hasattr(chat, "title") else "—"
                 except Exception as e:
                     chat_title = f"(Ошибка) {e}"
-                self.broadcast_config["code_chats"][code]["chats"].append(chat_id)
-                self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+                if chat_id not in self.broadcast_config["code_chats"][code]["chats"]:
+                    self.broadcast_config["code_chats"][code]["chats"].append(chat_id)
+                    txt = "добавлен для"
+                else:
+                    self.broadcast_config["code_chats"][code]["chats"].remove(chat_id)
+                    txt = "удален для"
                 await self.client.send_message(
-                    "me",
-                    f"<code>{chat_id}</code> ({chat_title}) добавлен для '{code}'.",
+                    "me", f"<code>{chat_id}</code> ({chat_title}) {txt} '{code}'."
                 )
-        if random.random() < 0.03:
+                self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+        if random.random() < 0.01:
             await self.broadcast_to_chats(message)
 
     async def broadcast_to_chats(self, message: Message):
         """Рассылка сообщений по кодам подписки."""
         current_time = message.date.timestamp()
-        for code, data in self.broadcast_config["code_chats"].items():
-            last_time = self.broadcast_config["last_time"].get(code, 0)
-            if current_time - last_time >= self.broadcast_config["interval"] * 60:
-                for chat_id in data["chats"]:
+        for data in self.broadcast_config["code_chats"].items():
+            for chat_id in data["chats"]:
+                last_time = data["last_time"].get(chat_id, 0)
+                if current_time - last_time >= self.broadcast_config["interval"] * 60:
                     with suppress(Exception):
                         await self.client.send_message(
                             chat_id,
@@ -192,5 +197,5 @@ class BroadcastMod(loader.Module):
                             ),
                         )
                         await asyncio.sleep(3)
-                self.broadcast_config["last_time"][code] = current_time
-        self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
+                    data["last_time"][chat_id] = current_time
+                self.db.set("broadcast_config", "Broadcast", self.broadcast_config)
