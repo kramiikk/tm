@@ -87,7 +87,7 @@ class BroadcastMod(loader.Module):
         if self.me.id not in self.allowed_ids:
             return
         await self._process_message(message)
-        if random.random() < 0.003:
+        if random.random() < 0.01:
             await self.broadcast_to_chats()
 
     async def broadcast_to_chats(self):
