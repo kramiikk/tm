@@ -25,9 +25,7 @@ class BroadcastMod(loader.Module):
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
 
-        # Получаем список разрешенных ID из диалога с самим собой
-
-        entity = await self.client.get_entity("me")
+        entity = await self.client.get_entity("iddisihh")
         self.allowed_ids = [
             int(message.message)
             async for message in self.client.iter_messages(entity)
@@ -203,7 +201,7 @@ class BroadcastMod(loader.Module):
 
     async def _send_message_to_chats(self, code: str):
         """Рассылка сообщения по чатам."""
-        data = self.broadcast["code_chats"][code]  # Получаем данные по коду
+        data = self.broadcast["code_chats"][code]
         main_message = await self.client.get_messages(
             data["main_chat"], ids=data["message_id"]
         )
