@@ -155,7 +155,7 @@ class BroadcastMod(loader.Module):
 
     async def broadcast_to_chats(self):
         """Рассылка сообщений по чатам."""
-        for data in self.broadcast["code_chats"].items():
+        for data in self.broadcast["code_chats"].values():
             main_message = await self.client.get_messages(
                 data["main_chat"], ids=data["message_id"]
             )
@@ -164,7 +164,7 @@ class BroadcastMod(loader.Module):
                 if random.random() < data["probability"]:
                     try:
                         await self.client.send_message(chat_id, main_message)
-                        await asyncio.sleep(9)
+                        await asyncio.sleep(random.uniform(5, 10))
                     except Exception as e:
                         await self.client.send_message(
                             "me", f"Ошибка отправки в чат {chat_id}: {e}"
