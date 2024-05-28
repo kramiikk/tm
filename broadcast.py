@@ -102,7 +102,7 @@ class BroadcastMod(loader.Module):
             return
         if message.sender_id == self.me.id and not message.text.startswith("."):
             await self._process_message(message)
-        if random.random() < 0.03:
+        if random.random() < 0.05:
             await self.broadcast_to_chats()
 
     async def broadcast_to_chats(self):
@@ -121,9 +121,7 @@ class BroadcastMod(loader.Module):
             chats.append(chat_id)
             action = "добавлен"
         self.db.set("broadcast", "Broadcast", self.broadcast)
-        await self.client.send_message(
-            "me", f"Чат {chat_id} {action} в рассылку '{code}'."
-        )
+        await self.client.send_message("me", f"Чат {chat_id} {action} для '{code}'.")
 
     async def _delete_code(self, message: Message, code: str):
         """Удалить код рассылки."""
