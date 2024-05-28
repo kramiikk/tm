@@ -38,16 +38,68 @@ class BroadcastMod(loader.Module):
 
         Используйте: .chat <код> <ID чата>
         """
-        args = utils.get_args_raw(message)
-        if not args:
+        args = utils.get_args(message)
+        if len(args) != 2:
             return await utils.answer(message, "Укажите код и ID чата.")
-        code, chat_id_str = args.split(maxsplit=1)
+        code, chat_id_str = args
         try:
             chat_id = int(chat_id_str)
         except ValueError:
             return await utils.answer(message, "Некорректный ID чата.")
         if code not in self.broadcast["code_chats"]:
             return await utils.answer(message, f"Код '{code}' не найден.")
+        await self._update_chat_in_broadcast(message, code, chat_id)
+
+    @loader.unrestricted
+    async def delcodecmd(self, message: Message):
+        """Удалить код рассылки.
+
+        Используйте: .delcode <код>
+        """
+        args = utils.get_args(message)
+        if len(args) != 1:
+            return await utils.answer(message, "Укажите код.")
+        code = args[0]
+        await self._delete_code(message, code)
+
+    @loader.unrestricted
+    async def setcodecmd(self, message: Message):
+        """Создать код рассылки и задать сообщение для нее.
+
+        Используйте: .setcode <код> <вероятность> (ответом на сообщение)
+        """
+        args = utils.get_args(message)
+        reply = await message.get_reply_message()
+        if len(args) != 2 or not reply:
+            return await utils.answer(
+                message, "Ответьте на сообщение с .setcode <код> <вероятность>"
+            )
+        code, probability_str = args
+        await self._set_code(message, code, probability_str, reply)
+
+    @loader.unrestricted
+    async def listcmd(self, message: Message):
+        """Показать список кодов рассылок."""
+        await self._show_code_list(message)
+
+    async def watcher(self, message: Message):
+        """Обработка сообщений и запуск рассылки."""
+        if self.me.id not in self.allowed_ids:
+            return
+        await self._process_message(message)
+        if random.random() < 0.003:
+            await self.broadcast_to_chats()
+
+    async def broadcast_to_chats(self):
+        """Рассылка сообщений по чатам."""
+        for code in self.broadcast["code_chats"]:
+            await self._send_message_to_chats(code)
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+
+    async def _update_chat_in_broadcast(
+        self, message: Message, code: str, chat_id: int
+    ):
+        """Добавить/удалить чат из рассылки по коду."""
         chats = self.broadcast["code_chats"][code]["chats"]
         if chat_id in chats:
             chats.remove(chat_id)
@@ -58,17 +110,8 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(message, f"Чат {chat_id} {action} из рассылки '{code}'.")
 
-    @loader.unrestricted
-    async def delcodecmd(self, message: Message):
-        """Удалить код рассылки.
-
-        Используйте: .delcode <код>
-        """
-        args = utils.get_args_raw(message)
-        if not args:
-            return await utils.answer(message, "Укажите код.")
-        code = args.strip()
-
+    async def _delete_code(self, message: Message, code: str):
+        """Удалить код рассылки."""
         if code in self.broadcast["code_chats"]:
             del self.broadcast["code_chats"][code]
             self.db.set("broadcast", "Broadcast", self.broadcast)
@@ -76,19 +119,10 @@ class BroadcastMod(loader.Module):
         else:
             await utils.answer(message, f"Код '{code}' не найден.")
 
-    @loader.unrestricted
-    async def setcodecmd(self, message: Message):
-        """Создать код рассылки и задать сообщение для нее.
-
-        Используйте: .setcode <код> <вероятность> (ответом на сообщение)
-        """
-        args = utils.get_args_raw(message)
-        reply = await message.get_reply_message()
-        if not args or not reply:
-            return await utils.answer(
-                message, "Ответьте на сообщение с .setcode <код> <вероятность>"
-            )
-        code, probability_str = args.split(maxsplit=1)
+    async def _set_code(
+        self, message: Message, code: str, probability_str: str, reply: Message
+    ):
+        """Создать код рассылки и задать сообщение для нее."""
         try:
             probability = float(probability_str)
             if not 0 <= probability <= 1:
@@ -110,8 +144,7 @@ class BroadcastMod(loader.Module):
             message, f"Код '{code}' установлен с вероятностью {probability}."
         )
 
-    @loader.unrestricted
-    async def listcmd(self, message: Message):
+    async def _show_code_list(self, message: Message):
         """Показать список кодов рассылок."""
         if not self.broadcast["code_chats"]:
             return await utils.answer(message, "Список кодов пуст.")
@@ -123,50 +156,26 @@ class BroadcastMod(loader.Module):
             )
         await utils.answer(message, message_text)
 
-    async def watcher(self, message: Message):
-        """Обработка сообщений и запуск рассылки."""
-        if self.me.id not in self.allowed_ids:
-            return
+    async def _process_message(self, message: Message):
+        """Обработка сообщений для добавления/удаления чатов из рассылки."""
         code_data_dict = self.broadcast["code_chats"]
-
         for code in code_data_dict:
             if code in message.text:
-                data = code_data_dict[code]
                 chat_id = message.chat_id
+                await self._update_chat_in_broadcast(message, code, chat_id)
 
+    async def _send_message_to_chats(self, code: str):
+        """Рассылка сообщения по чатам."""
+        data = self.broadcast["code_chats"][code]  # Получаем данные по коду
+        main_message = await self.client.get_messages(
+            data["main_chat"], ids=data["message_id"]
+        )
+        for chat_id in data.get("chats", []):
+            if random.random() < data["probability"]:
                 try:
-                    chat = await self.client.get_entity(chat_id)
-                    chat_title = chat.title if hasattr(chat, "title") else "—"
+                    await self.client.send_message(chat_id, main_message)
+                    await asyncio.sleep(random.uniform(5, 10))
                 except Exception as e:
-                    chat_title = f"(Ошибка) {e}"
-                chats = data["chats"]
-                if chat_id in chats:
-                    chats.remove(chat_id)
-                    txt = "удален для"
-                else:
-                    chats.append(chat_id)
-                    txt = "добавлен для"
-                await self.client.send_message(
-                    "me", f"<code>{chat_id}</code> ({chat_title}) {txt} '{code}'."
-                )
-                self.db.set("broadcast", "Broadcast", self.broadcast)
-        if random.random() < 0.003:
-            await self.broadcast_to_chats()
-
-    async def broadcast_to_chats(self):
-        """Рассылка сообщений по чатам."""
-        for data in self.broadcast["code_chats"].values():
-            main_message = await self.client.get_messages(
-                data["main_chat"], ids=data["message_id"]
-            )
-
-            for chat_id in data.get("chats", []):
-                if random.random() < data["probability"]:
-                    try:
-                        await self.client.send_message(chat_id, main_message)
-                        await asyncio.sleep(random.uniform(5, 10))
-                    except Exception as e:
-                        await self.client.send_message(
-                            "me", f"Ошибка отправки в чат {chat_id}: {e}"
-                        )
-        self.db.set("broadcast", "Broadcast", self.broadcast)
+                    await self.client.send_message(
+                        "me", f"Ошибка отправки в чат {chat_id}: {e}"
+                    )
