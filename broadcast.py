@@ -25,7 +25,9 @@ class BroadcastMod(loader.Module):
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
 
-        entity = await self.client.get_entity("iddisihh")
+        # Получаем список разрешенных ID из диалога с самим собой
+
+        entity = await self.client.get_entity("me")
         self.allowed_ids = [
             int(message.message)
             async for message in self.client.iter_messages(entity)
@@ -78,6 +80,20 @@ class BroadcastMod(loader.Module):
         await self._set_code(message, code, probability_str, reply)
 
     @loader.unrestricted
+    async def setprobcmd(self, message: Message):
+        """Изменить вероятность отправки для кода рассылки.
+
+        Используйте: .setprob <код> <новая_вероятность>
+        """
+        args = utils.get_args(message)
+        if len(args) != 2:
+            return await utils.answer(
+                message, "Используйте: .setprob <код> <новая_вероятность>"
+            )
+        code, new_probability_str = args
+        await self._set_probability(message, code, new_probability_str)
+
+    @loader.unrestricted
     async def listcmd(self, message: Message):
         """Показать список кодов рассылок."""
         await self._show_code_list(message)
@@ -87,7 +103,7 @@ class BroadcastMod(loader.Module):
         if self.me.id not in self.allowed_ids:
             return
         await self._process_message(message)
-        if random.random() < 0.01:
+        if random.random() < 0.03:
             await self.broadcast_to_chats()
 
     async def broadcast_to_chats(self):
@@ -106,7 +122,9 @@ class BroadcastMod(loader.Module):
             chats.append(chat_id)
             action = "добавлен"
         self.db.set("broadcast", "Broadcast", self.broadcast)
-        await self.client.send_message("me", f"Чат {chat_id} {action} : '{code}'.")
+        await self.client.send_message(
+            "me", f"Чат {chat_id} {action} в рассылку '{code}'."
+        )
 
     async def _delete_code(self, message: Message, code: str):
         """Удалить код рассылки."""
@@ -140,6 +158,27 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
             message, f"Код '{code}' установлен с вероятностью {probability}."
+        )
+
+    async def _set_probability(
+        self, message: Message, code: str, new_probability_str: str
+    ):
+        """Изменить вероятность отправки для кода рассылки."""
+        try:
+            new_probability = float(new_probability_str)
+            if not 0 <= new_probability <= 1:
+                raise ValueError
+        except ValueError:
+            return await utils.answer(
+                message, "Вероятность должна быть числом от 0 до 1."
+            )
+        if code not in self.broadcast["code_chats"]:
+            return await utils.answer(message, f"Код '{code}' не найден.")
+        self.broadcast["code_chats"][code]["probability"] = new_probability
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        await utils.answer(
+            message,
+            f"Вероятность для кода '{code}' изменена на {new_probability}.",
         )
 
     async def _show_code_list(self, message: Message):
