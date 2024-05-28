@@ -48,7 +48,7 @@ class BroadcastMod(loader.Module):
             return await utils.answer(message, "Некорректный ID чата.")
         if code not in self.broadcast["code_chats"]:
             return await utils.answer(message, f"Код '{code}' не найден.")
-        await self._update_chat_in_broadcast(message, code, chat_id)
+        await self._update_chat_in_broadcast(code, chat_id)
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
@@ -96,9 +96,7 @@ class BroadcastMod(loader.Module):
             await self._send_message_to_chats(code)
         self.db.set("broadcast", "Broadcast", self.broadcast)
 
-    async def _update_chat_in_broadcast(
-        self, message: Message, code: str, chat_id: int
-    ):
+    async def _update_chat_in_broadcast(self, code: str, chat_id: int):
         """Добавить/удалить чат из рассылки по коду."""
         chats = self.broadcast["code_chats"][code]["chats"]
         if chat_id in chats:
@@ -108,7 +106,7 @@ class BroadcastMod(loader.Module):
             chats.append(chat_id)
             action = "добавлен"
         self.db.set("broadcast", "Broadcast", self.broadcast)
-        await utils.answer(message, f"Чат {chat_id} {action} из рассылки '{code}'.")
+        await self.client.send_message("me", f"Чат {chat_id} {action} : '{code}'.")
 
     async def _delete_code(self, message: Message, code: str):
         """Удалить код рассылки."""
@@ -162,7 +160,7 @@ class BroadcastMod(loader.Module):
         for code in code_data_dict:
             if code in message.text:
                 chat_id = message.chat_id
-                await self._update_chat_in_broadcast(message, code, chat_id)
+                await self._update_chat_in_broadcast(code, chat_id)
 
     async def _send_message_to_chats(self, code: str):
         """Рассылка сообщения по чатам."""
