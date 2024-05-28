@@ -167,7 +167,7 @@ class BroadcastMod(loader.Module):
                 )
                 self.db.set("broadcast", "Broadcast", self.broadcast)
         if random.random() < 0.1:
-            await self.broadcast_to_chats(message)
+            await self.broadcast_to_chats()
 
     async def broadcast_to_chats(self):
         """Рассылка сообщений по кодам подписки."""
