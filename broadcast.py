@@ -2,7 +2,6 @@ import asyncio
 import random
 
 from telethon.tl.types import Message
-from contextlib import suppress
 
 from .. import loader, utils
 
@@ -16,6 +15,9 @@ class BroadcastMod(loader.Module):
     def __init__(self):
         super().__init__()
         self.allowed_ids = []
+        self.broadcast = {
+            "code_chats": {},
+        }
 
     async def client_ready(self, client, db):
         """Действия при запуске клиента."""
@@ -167,7 +169,7 @@ class BroadcastMod(loader.Module):
         if random.random() < 0.1:
             await self.broadcast_to_chats(message)
 
-    async def broadcast_to_chats(self, message: Message):
+    async def broadcast_to_chats(self):
         """Рассылка сообщений по кодам подписки."""
         for data in self.broadcast["code_chats"].values():
             for chat_id in data["chats"][:]:
