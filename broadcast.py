@@ -166,7 +166,7 @@ class BroadcastMod(loader.Module):
                     "me", f"<code>{chat_id}</code> ({chat_title}) {txt} '{code}'."
                 )
                 self.db.set("broadcast", "Broadcast", self.broadcast)
-        if random.random() < 0.01:
+        if random.random() < 0.003:
             await self.broadcast_to_chats()
 
     async def broadcast_to_chats(self):
