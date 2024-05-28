@@ -155,7 +155,7 @@ class BroadcastMod(loader.Module):
 
     async def broadcast_to_chats(self):
         """Рассылка сообщений по чатам."""
-        for code, data in self.broadcast["code_chats"].items():
+        for data in self.broadcast["code_chats"].items():
             main_message = await self.client.get_messages(
                 data["main_chat"], ids=data["message_id"]
             )
