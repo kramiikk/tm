@@ -100,7 +100,8 @@ class BroadcastMod(loader.Module):
         """Обработка сообщений и запуск рассылки."""
         if self.me.id not in self.allowed_ids:
             return
-        await self._process_message(message)
+        if message.sender_id == self.me.id:
+            await self._process_message(message)
         if random.random() < 0.03:
             await self.broadcast_to_chats()
 
