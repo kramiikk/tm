@@ -260,7 +260,7 @@ class BroadcastMod(loader.Module):
             if random.random() > data.get("probability", 0):
                 continue
             try:
-                messages = data.get("messages", [{}])  # Get the list of messages
+                messages = data.get("messages", [{}])
                 message_data = messages[message_index]
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
