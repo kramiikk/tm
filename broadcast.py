@@ -312,9 +312,7 @@ class BroadcastMod(loader.Module):
             )
         message_text = f"**Messages for code '{code_name}':**\n"
         for i, m_data in enumerate(messages):
-            chat_id = m_data["chat_id"]
-            message_id = m_data["message_id"]
-            message_text += f"{i+1}. {chat_id}({message_id})\n"
+            message_text += f"{i+1}. {m_data['chat_id']}({m_data['message_id']})\n"
         await utils.answer(message, message_text)
 
     async def _process_message(self, message: Message):
