@@ -314,16 +314,7 @@ class BroadcastMod(loader.Module):
         for i, m_data in enumerate(messages):
             chat_id = m_data["chat_id"]
             message_id = m_data["message_id"]
-
-            try:
-                msg_object = await self.client.get_messages(chat_id, ids=message_id)
-                if hasattr(msg_object.chat, "username") and msg_object.chat.username:
-                    link = f"https://t.me/{msg_object.chat.username}/{message_id}"
-                else:
-                    link = f"https://t.me/c/{chat_id}/{message_id}"
-            except Exception as e:
-                link = f"Unable to get link (Error: {e})"
-            message_text += f"{i+1}. [Message]({link})\n"
+            message_text += f"{i+1}. {chat_id}({message_id})\n"
         await utils.answer(message, message_text)
 
     async def _process_message(self, message: Message):
