@@ -311,7 +311,18 @@ class BroadcastMod(loader.Module):
             )
         message_text = f"**Messages for code '{code_name}':**\n"
         for i, m_data in enumerate(messages):
-            message_text += f"{i+1}. [Message](https://t.me/{m_data['chat_id']}/{m_data['message_id']})\n"
+            chat_id = m_data["chat_id"]
+            message_id = m_data["message_id"]
+
+            if chat_id < 0:
+                try:
+                    channel_entity = await self.client.get_entity(chat_id)
+                    link = f"https://t.me/{channel_entity.username}/{message_id}"
+                except Exception as e:
+                    link = f"Unable to get link (Error: {e})"
+            else:
+                link = f"https://t.me/c/{chat_id}/{message_id}"
+            message_text += f"{i+1}. [Message]({link})\n"
         await utils.answer(message, message_text)
 
     async def _process_message(self, message: Message):
