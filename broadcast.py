@@ -315,14 +315,14 @@ class BroadcastMod(loader.Module):
             chat_id = m_data["chat_id"]
             message_id = m_data["message_id"]
 
-            if chat_id < 0:
-                try:
-                    channel_entity = await self.client.get_entity(chat_id)
-                    link = f"https://t.me/{channel_entity.username}/{message_id}"
-                except Exception as e:
-                    link = f"Unable to get link (Error: {e})"
-            else:
-                link = f"https://t.me/c/{chat_id}/{message_id}"
+            try:
+                msg_object = await self.client.get_messages(chat_id, ids=message_id)
+                if hasattr(msg_object.chat, "username") and msg_object.chat.username:
+                    link = f"https://t.me/{msg_object.chat.username}/{message_id}"
+                else:
+                    link = f"https://t.me/c/{chat_id}/{message_id}"
+            except Exception as e:
+                link = f"Unable to get link (Error: {e})"
             message_text += f"{i+1}. [Message]({link})\n"
         await utils.answer(message, message_text)
 
