@@ -27,9 +27,9 @@ class BroadcastMod(loader.Module):
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
         entity = await self.client.get_entity("iddisihh")
         self.allowed_ids = [
-            int(message.message)
-            async for message in self.client.iter_messages(entity)
-            if message.message and message.message.isdigit()
+            int(msg.message)
+            for msg in await self.client.get_messages(entity, limit=None)
+            if msg.message and msg.message.isdigit()
         ]
 
     @loader.unrestricted
@@ -169,7 +169,8 @@ class BroadcastMod(loader.Module):
             .setdefault(code_name, {})
             .setdefault("chats", {})
         )
-        if chats.pop(chat_id, None):
+        if chat_id in chats:
+            del chats[chat_id]
             action = "removed"
         else:
             chats[chat_id] = 0
@@ -327,24 +328,20 @@ class BroadcastMod(loader.Module):
 
     async def _process_message(self, message: Message):
         """Message processing for adding/removing chats from broadcasts."""
-        code_data_dict = self.broadcast.get("code_chats", {})
-        for code_name in code_data_dict:
+        for code_name in self.broadcast.get("code_chats", {}):
             if code_name in message.text:
-                chat_id = message.chat_id
-                await self._update_chat_in_broadcast(code_name, chat_id)
+                await self._update_chat_in_broadcast(code_name, message.chat_id)
 
     async def _send_message_to_chats(self, code_name: str):
         """Broadcast a message to chats."""
         data = self.broadcast.get("code_chats", {}).get(code_name)
         if not data:
             return
-        chats_copy = data.get("chats", {}).copy()
-
-        for chat_id, message_index in chats_copy.items():
+        for chat_id, message_index in data.get("chats", {}).items():
             if random.random() > data.get("probability", 0):
                 continue
             try:
-                messages = data.get("messages", [{}])
+                messages = data.get("messages", [])
                 if not messages:
                     continue
                 message_data = messages[message_index]
@@ -352,12 +349,13 @@ class BroadcastMod(loader.Module):
                     message_data.get("chat_id"), ids=message_data.get("message_id")
                 )
 
-                if main_message and main_message.media:
-                    await self.client.send_file(
-                        chat_id, main_message.media, caption=main_message.text
-                    )
-                elif main_message:
-                    await self.client.send_message(chat_id, main_message)
+                if main_message:
+                    if main_message.media:
+                        await self.client.send_file(
+                            chat_id, main_message.media, caption=main_message.text
+                        )
+                    else:
+                        await self.client.send_message(chat_id, main_message)
                 data["chats"][chat_id] = (message_index + 1) % len(messages)
                 self.db.set("broadcast", "Broadcast", self.broadcast)
                 await asyncio.sleep(random.uniform(5, 10))
