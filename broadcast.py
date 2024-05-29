@@ -19,31 +19,18 @@ class BroadcastMod(loader.Module):
         self.broadcast: Dict = {}
 
     async def client_ready(self, client, db):
-        """
-        Module initialization when the client starts.
-
-        :param client: Telethon client
-        :param db: Module database
-        """
+        """Module initialization when the client starts."""
         self.db = db
         self.client = client
         self.me = await client.get_me()
 
-        # Loading broadcast data from the database
-
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
-
-        try:
-            entity = await self.client.get_entity("iddisihh")
-            self.allowed_ids = [
-                int(message.message)
-                async for message in self.client.iter_messages(entity)
-                if message.message and message.message.isdigit()
-            ]
-        except ValueError as e:
-            # Handle the exception appropriately, e.g., log it
-
-            print(f"Error getting allowed IDs: {e}")
+        entity = await self.client.get_entity("iddisihh")
+        self.allowed_ids = [
+            int(message.message)
+            async for message in self.client.iter_messages(entity)
+            if message.message and message.message.isdigit()
+        ]
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
@@ -51,8 +38,6 @@ class BroadcastMod(loader.Module):
         Add/remove a chat from the broadcast list.
 
         Usage: .chat <code_name> <chat_id>
-
-        :param message: Telegram message
         """
         args = utils.get_args(message)
         if len(args) != 2:
@@ -72,8 +57,6 @@ class BroadcastMod(loader.Module):
         Delete a broadcast code.
 
         Usage: .delcode <code_name>
-
-        :param message: Telegram message
         """
         args = utils.get_args(message)
         if len(args) != 1:
@@ -87,8 +70,6 @@ class BroadcastMod(loader.Module):
         Create a broadcast code and set a message for it.
 
         Usage: .setcode <code_name> <probability> (reply to a message)
-
-        :param message: Telegram message
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
@@ -105,8 +86,6 @@ class BroadcastMod(loader.Module):
         Add a message to the broadcast code.
 
         Usage: .addmsg <code_name> (reply to a message)
-
-        :param message: Telegram message
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
@@ -123,8 +102,6 @@ class BroadcastMod(loader.Module):
         Change the sending probability for the broadcast code.
 
         Usage: .setprob <code_name> <new_probability>
-
-        :param message: Telegram message
         """
         args = utils.get_args(message)
         if len(args) != 2:
@@ -168,12 +145,7 @@ class BroadcastMod(loader.Module):
             await self._send_message_to_chats(code_name)
 
     async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
-        """
-        Add/remove a chat from the broadcast list by code name.
-
-        :param code_name: Broadcast code name
-        :param chat_id: Chat ID
-        """
+        """Add/remove a chat from the broadcast list by code name."""
         chats = (
             self.broadcast.setdefault("code_chats", {})
             .setdefault(code_name, {})
@@ -190,12 +162,7 @@ class BroadcastMod(loader.Module):
         )
 
     async def _delete_code(self, message: Message, code_name: str):
-        """
-        Delete a broadcast code.
-
-        :param message: Telegram message
-        :param code_name: Broadcast code name
-        """
+        """Delete a broadcast code."""
         if code_name in self.broadcast.get("code_chats", {}):
             del self.broadcast["code_chats"][code_name]
             self.db.set("broadcast", "Broadcast", self.broadcast)
@@ -206,14 +173,7 @@ class BroadcastMod(loader.Module):
     async def _set_code(
         self, message: Message, code_name: str, probability_str: str, reply: Message
     ):
-        """
-        Create a broadcast code and set a message for it.
-
-        :param message: Telegram message
-        :param code_name: Broadcast code name
-        :param probability_str: String with the probability of sending
-        :param reply: Reply message that will be used for broadcasting
-        """
+        """Create a broadcast code and set a message for it."""
         try:
             probability = float(probability_str)
             if not 0 <= probability <= 1:
@@ -242,13 +202,7 @@ class BroadcastMod(loader.Module):
     async def _add_message_to_code(
         self, message: Message, code_name: str, reply: Message
     ):
-        """
-        Add a message to the broadcast code.
-
-        :param message: Telegram message
-        :param code_name: Broadcast code name
-        :param reply: Reply message to be added to the broadcast
-        """
+        """Add a message to the broadcast code."""
         if code_name not in self.broadcast.get("code_chats", {}):
             return await utils.answer(message, f"Code '{code_name}' not found.")
         self.broadcast.setdefault("code_chats", {}).setdefault(
@@ -265,13 +219,7 @@ class BroadcastMod(loader.Module):
     async def _set_probability(
         self, message: Message, code_name: str, new_probability_str: str
     ):
-        """
-        Change the sending probability for the broadcast code.
-
-        :param message: Telegram message
-        :param code_name: Broadcast code name
-        :param new_probability_str: String with the new probability of sending
-        """
+        """Change the sending probability for the broadcast code."""
         try:
             new_probability = float(new_probability_str)
             if not 0 <= new_probability <= 1:
@@ -292,11 +240,7 @@ class BroadcastMod(loader.Module):
         )
 
     async def _show_code_list(self, message: Message):
-        """
-        Show a list of broadcast codes.
-
-        :param message: Telegram message
-        """
+        """Show a list of broadcast codes."""
         if not self.broadcast.get("code_chats", {}):
             return await utils.answer(message, "The code list is empty.")
         message_text = "**Broadcast Codes:**\n"
@@ -308,11 +252,7 @@ class BroadcastMod(loader.Module):
         await utils.answer(message, message_text)
 
     async def _process_message(self, message: Message):
-        """
-        Message processing for adding/removing chats from broadcasts.
-
-        :param message: Telegram message
-        """
+        """Message processing for adding/removing chats from broadcasts."""
         code_data_dict = self.broadcast.get("code_chats", {})
         for code_name in code_data_dict:
             if code_name in message.text:
@@ -320,11 +260,7 @@ class BroadcastMod(loader.Module):
                 await self._update_chat_in_broadcast(code_name, chat_id)
 
     async def _send_message_to_chats(self, code_name: str):
-        """
-        Broadcast a message to chats.
-
-        :param code_name: Broadcast code name
-        """
+        """Broadcast a message to chats."""
         data = self.broadcast.get("code_chats", {}).get(code_name)
         if not data:
             return
@@ -332,20 +268,19 @@ class BroadcastMod(loader.Module):
             if random.random() > data.get("probability", 0):
                 continue
             try:
-                message_data = data.get("messages", [{}])[message_index]
+                messages = data.get("messages", [{}])  # Get the list of messages
+                message_data = messages[message_index]
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
                 )
 
                 if main_message and main_message.media:
                     await self.client.send_file(
-                        chat_id, main_message.media, caption=main_message.message
+                        chat_id, main_message.media, caption=main_message.text
                     )
                 elif main_message:
                     await self.client.send_message(chat_id, main_message)
-                data["chats"][chat_id] = (message_index + 1) % len(
-                    data.get("messages", [])
-                )
+                data["chats"][chat_id] = (message_index + 1) % len(messages)
                 self.db.set("broadcast", "Broadcast", self.broadcast)
                 await asyncio.sleep(random.uniform(5, 10))
             except Exception as e:
