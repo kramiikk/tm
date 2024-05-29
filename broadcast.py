@@ -1,5 +1,6 @@
 import asyncio
 import random
+from typing import Dict, List
 
 from telethon.tl.types import Message
 
@@ -8,138 +9,145 @@ from .. import loader, utils
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Модуль для рассылки сообщений по чатам."""
+    """Module for broadcasting messages to chats."""
 
     strings = {"name": "Broadcast"}
 
     def __init__(self):
         super().__init__()
-        self.allowed_ids = []
-        self.broadcast = {}
+        self.allowed_ids: List[int] = []
+        self.broadcast: Dict = {}
 
     async def client_ready(self, client, db):
         """
-        Инициализация модуля при запуске клиента.
+        Module initialization when the client starts.
 
-        :param client: Клиент Telethon
-        :param db: База данных модуля
+        :param client: Telethon client
+        :param db: Module database
         """
         self.db = db
         self.client = client
         self.me = await client.get_me()
 
-        # Загрузка данных рассылки из базы данных
+        # Loading broadcast data from the database
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
 
-        entity = await self.client.get_entity("iddisihh")
-        self.allowed_ids = [
-            int(message.message)
-            async for message in self.client.iter_messages(entity)
-            if message.message and message.message.isdigit()
-        ]
+        try:
+            entity = await self.client.get_entity("iddisihh")
+            self.allowed_ids = [
+                int(message.message)
+                async for message in self.client.iter_messages(entity)
+                if message.message and message.message.isdigit()
+            ]
+        except ValueError as e:
+            # Handle the exception appropriately, e.g., log it
+
+            print(f"Error getting allowed IDs: {e}")
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
         """
-        Добавить/удалить чат из рассылки.
+        Add/remove a chat from the broadcast list.
 
-        Используйте: .chat <код> <ID чата>
+        Usage: .chat <code_name> <chat_id>
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         args = utils.get_args(message)
         if len(args) != 2:
-            return await utils.answer(message, "Укажите код и ID чата.")
-        code, chat_id_str = args
+            return await utils.answer(message, "Specify the code and chat ID.")
+        code_name, chat_id_str = args
         try:
             chat_id = int(chat_id_str)
         except ValueError:
-            return await utils.answer(message, "Некорректный ID чата.")
-        if code not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Код '{code}' не найден.")
-        await self._update_chat_in_broadcast(code, chat_id)
+            return await utils.answer(message, "Invalid chat ID.")
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        await self._update_chat_in_broadcast(code_name, chat_id)
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
         """
-        Удалить код рассылки.
+        Delete a broadcast code.
 
-        Используйте: .delcode <код>
+        Usage: .delcode <code_name>
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         args = utils.get_args(message)
         if len(args) != 1:
-            return await utils.answer(message, "Укажите код.")
-        code = args[0]
-        await self._delete_code(message, code)
+            return await utils.answer(message, "Specify the code.")
+        code_name = args[0]
+        await self._delete_code(message, code_name)
 
     @loader.unrestricted
     async def setcodecmd(self, message: Message):
         """
-        Создать код рассылки и задать сообщение для нее.
+        Create a broadcast code and set a message for it.
 
-        Используйте: .setcode <код> <вероятность> (ответом на сообщение)
+        Usage: .setcode <code_name> <probability> (reply to a message)
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
         if len(args) != 2 or not reply:
             return await utils.answer(
-                message, "Ответьте на сообщение с .setcode <код> <вероятность>"
+                message, "Reply to a message with .setcode <code_name> <probability>"
             )
-        code, probability_str = args
-        await self._set_code(message, code, probability_str, reply)
+        code_name, probability_str = args
+        await self._set_code(message, code_name, probability_str, reply)
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
         """
-        Добавить сообщение к коду рассылки.
+        Add a message to the broadcast code.
 
-        Используйте: .addmsg <код> (ответом на сообщение)
+        Usage: .addmsg <code_name> (reply to a message)
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
         if len(args) != 1 or not reply:
-            return await utils.answer(message, "Ответьте на сообщение с .addmsg <код>")
-        code = args[0]
-        await self._add_message_to_code(message, code, reply)
+            return await utils.answer(
+                message, "Reply to a message with .addmsg <code_name>"
+            )
+        code_name = args[0]
+        await self._add_message_to_code(message, code_name, reply)
 
     @loader.unrestricted
     async def setprobcmd(self, message: Message):
         """
-        Изменить вероятность отправки для кода рассылки.
+        Change the sending probability for the broadcast code.
 
-        Используйте: .setprob <код> <новая_вероятность>
+        Usage: .setprob <code_name> <new_probability>
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         args = utils.get_args(message)
         if len(args) != 2:
             return await utils.answer(
-                message, "Используйте: .setprob <код> <новая_вероятность>"
+                message, "Usage: .setprob <code_name> <new_probability>"
             )
-        code, new_probability_str = args
-        await self._set_probability(message, code, new_probability_str)
+        code_name, new_probability_str = args
+        await self._set_probability(message, code_name, new_probability_str)
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
         """
-        Показать список кодов рассылок.
+        Show a list of broadcast codes.
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         await self._show_code_list(message)
 
     async def watcher(self, message: Message):
         """
-        Обработка сообщений и запуск рассылки.
+        Message processing and broadcast launch.
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         if self.me.id not in self.allowed_ids:
             return
@@ -149,60 +157,62 @@ class BroadcastMod(loader.Module):
             and not message.text.startswith(".")
         ):
             await self._process_message(message)
-        # Запуск рассылки с вероятностью 5%
+        # Start broadcasting with a 5% probability
 
         if random.random() < 0.05:
             await self.broadcast_to_chats()
 
     async def broadcast_to_chats(self):
-        """Рассылка сообщений по чатам."""
-        for code in self.broadcast.get("code_chats", {}):
-            await self._send_message_to_chats(code)
+        """Broadcast messages to chats."""
+        for code_name in self.broadcast.get("code_chats", {}):
+            await self._send_message_to_chats(code_name)
 
-    async def _update_chat_in_broadcast(self, code: str, chat_id: int):
+    async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
         """
-        Добавить/удалить чат из рассылки по коду.
+        Add/remove a chat from the broadcast list by code name.
 
-        :param code: Код рассылки
-        :param chat_id: ID чата
+        :param code_name: Broadcast code name
+        :param chat_id: Chat ID
         """
         chats = (
             self.broadcast.setdefault("code_chats", {})
-            .setdefault(code, {})
+            .setdefault(code_name, {})
             .setdefault("chats", {})
         )
         if chats.pop(chat_id, None):
-            action = "удален"
+            action = "removed"
         else:
             chats[chat_id] = 0
-            action = "добавлен"
+            action = "added"
         self.db.set("broadcast", "Broadcast", self.broadcast)
-        await self.client.send_message("me", f"Чат {chat_id} {action} для '{code}'.")
+        await self.client.send_message(
+            "me", f"Chat {chat_id} {action} for '{code_name}'."
+        )
 
-    async def _delete_code(self, message: Message, code: str):
+    async def _delete_code(self, message: Message, code_name: str):
         """
-        Удалить код рассылки.
+        Delete a broadcast code.
 
-        :param message: Сообщение Telegram
-        :param code: Код рассылки
+        :param message: Telegram message
+        :param code_name: Broadcast code name
         """
-        if code in self.broadcast.get("code_chats", {}):
-            del self.broadcast["code_chats"][code]
+        if code_name in self.broadcast.get("code_chats", {}):
+            del self.broadcast["code_chats"][code_name]
             self.db.set("broadcast", "Broadcast", self.broadcast)
-            await utils.answer(message, f"Код '{code}' удален.")
+            await utils.answer(message, f"Code '{code_name}' deleted.")
         else:
-            await utils.answer(message, f"Код '{code}' не найден.")
+            await utils.answer(message, f"Code '{code_name}' not found.")
 
     async def _set_code(
-        self, message: Message, code: str, probability_str: str, reply: Message
+        self, message: Message, code_name: str, probability_str: str, reply: Message
     ):
         """
-        Создать код рассылки и задать сообщение для нее.
+        Create a broadcast code and set a message for it.
 
-        :param message: Сообщение Telegram
-        :param code: Код рассылки
-        :param probability_str: Строка с вероятностью отправки
-        :param reply: Сообщение-ответ, которое будет использоваться для рассылки
+        :param message: Telegram message
+        :param code_name: Broadcast code name
+        :param probability_str: String with the probability of sending
+        :param reply: Reply message that will be used for broadcasting
         """
         try:
             probability = float(probability_str)
@@ -210,11 +220,11 @@ class BroadcastMod(loader.Module):
                 raise ValueError
         except ValueError:
             return await utils.answer(
-                message, "Вероятность должна быть числом от 0 до 1."
+                message, "Probability should be a number between 0 and 1."
             )
-        if code in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Код '{code}' уже существует.")
-        self.broadcast.setdefault("code_chats", {})[code] = {
+        if code_name in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' already exists.")
+        self.broadcast.setdefault("code_chats", {})[code_name] = {
             "chats": {},
             "messages": [
                 {
@@ -226,39 +236,41 @@ class BroadcastMod(loader.Module):
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
-            message, f"Код '{code}' установлен с вероятностью {probability}."
+            message, f"Code '{code_name}' set with probability {probability}."
         )
 
-    async def _add_message_to_code(self, message: Message, code: str, reply: Message):
+    async def _add_message_to_code(
+        self, message: Message, code_name: str, reply: Message
+    ):
         """
-        Добавить сообщение к коду рассылки.
+        Add a message to the broadcast code.
 
-        :param message: Сообщение Telegram
-        :param code: Код рассылки
-        :param reply: Сообщение-ответ, которое будет добавлено к рассылке
+        :param message: Telegram message
+        :param code_name: Broadcast code name
+        :param reply: Reply message to be added to the broadcast
         """
-        if code not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Код '{code}' не найден.")
-        self.broadcast.setdefault("code_chats", {}).setdefault(code, {}).setdefault(
-            "messages", []
-        ).append(
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        self.broadcast.setdefault("code_chats", {}).setdefault(
+            code_name, {}
+        ).setdefault("messages", []).append(
             {
                 "chat_id": reply.chat_id,
                 "message_id": reply.id,
             }
         )
         self.db.set("broadcast", "Broadcast", self.broadcast)
-        await utils.answer(message, f"Сообщение добавлено к коду '{code}'.")
+        await utils.answer(message, f"Message added to code '{code_name}'.")
 
     async def _set_probability(
-        self, message: Message, code: str, new_probability_str: str
+        self, message: Message, code_name: str, new_probability_str: str
     ):
         """
-        Изменить вероятность отправки для кода рассылки.
+        Change the sending probability for the broadcast code.
 
-        :param message: Сообщение Telegram
-        :param code: Код рассылки
-        :param new_probability_str: Строка с новой вероятностью отправки
+        :param message: Telegram message
+        :param code_name: Broadcast code name
+        :param new_probability_str: String with the new probability of sending
         """
         try:
             new_probability = float(new_probability_str)
@@ -266,54 +278,54 @@ class BroadcastMod(loader.Module):
                 raise ValueError
         except ValueError:
             return await utils.answer(
-                message, "Вероятность должна быть числом от 0 до 1."
+                message, "Probability should be a number between 0 and 1."
             )
-        if code not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Код '{code}' не найден.")
-        self.broadcast.setdefault("code_chats", {})[code][
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        self.broadcast.setdefault("code_chats", {})[code_name][
             "probability"
         ] = new_probability
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
             message,
-            f"Вероятность для кода '{code}' изменена на {new_probability}.",
+            f"Probability for code '{code_name}' changed to {new_probability}.",
         )
 
     async def _show_code_list(self, message: Message):
         """
-        Показать список кодов рассылок.
+        Show a list of broadcast codes.
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         if not self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, "Список кодов пуст.")
-        message_text = "**Коды рассылок:**\n"
-        for code, data in self.broadcast["code_chats"].items():
+            return await utils.answer(message, "The code list is empty.")
+        message_text = "**Broadcast Codes:**\n"
+        for code_name, data in self.broadcast["code_chats"].items():
             chat_list = ", ".join(
                 str(chat_id) for chat_id in data.get("chats", {}).keys()
             )
-            message_text += f"- `{code}`: {chat_list or '(нет чатов)'}: {data.get('probability', 0)}\n"
+            message_text += f"- `{code_name}`: {chat_list or '(empty)'}: {data.get('probability', 0)}\n"
         await utils.answer(message, message_text)
 
     async def _process_message(self, message: Message):
         """
-        Обработка сообщений для добавления/удаления чатов из рассылки.
+        Message processing for adding/removing chats from broadcasts.
 
-        :param message: Сообщение Telegram
+        :param message: Telegram message
         """
         code_data_dict = self.broadcast.get("code_chats", {})
-        for code in code_data_dict:
-            if code in message.text:
+        for code_name in code_data_dict:
+            if code_name in message.text:
                 chat_id = message.chat_id
-                await self._update_chat_in_broadcast(code, chat_id)
+                await self._update_chat_in_broadcast(code_name, chat_id)
 
-    async def _send_message_to_chats(self, code: str):
+    async def _send_message_to_chats(self, code_name: str):
         """
-        Рассылка сообщения по чатам.
+        Broadcast a message to chats.
 
-        :param code: Код рассылки
+        :param code_name: Broadcast code name
         """
-        data = self.broadcast.get("code_chats", {}).get(code)
+        data = self.broadcast.get("code_chats", {}).get(code_name)
         if not data:
             return
         for chat_id, message_index in data.get("chats", {}).items():
@@ -325,18 +337,18 @@ class BroadcastMod(loader.Module):
                     message_data.get("chat_id"), ids=message_data.get("message_id")
                 )
 
-                if main_message.media:
+                if main_message and main_message.media:
                     await self.client.send_file(
                         chat_id, main_message.media, caption=main_message.message
                     )
-                else:
+                elif main_message:
                     await self.client.send_message(chat_id, main_message)
                 data["chats"][chat_id] = (message_index + 1) % len(
                     data.get("messages", [])
                 )
                 self.db.set("broadcast", "Broadcast", self.broadcast)
                 await asyncio.sleep(random.uniform(5, 10))
-            except Exception as e:  # TODO: ловить более конкретные исключения
+            except Exception as e:
                 await self.client.send_message(
-                    "me", f"Ошибка отправки в чат {chat_id}: {e}"
+                    "me", f"Error sending to chat {chat_id}: {e}"
                 )
