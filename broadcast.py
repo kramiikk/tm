@@ -113,19 +113,11 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
-        """
-        Show a list of broadcast codes.
-
-        :param message: Telegram message
-        """
+        """Show a list of broadcast codes."""
         await self._show_code_list(message)
 
     async def watcher(self, message: Message):
-        """
-        Message processing and broadcast launch.
-
-        :param message: Telegram message
-        """
+        """Message processing and broadcast launch."""
         if self.me.id not in self.allowed_ids:
             return
         if (
@@ -134,9 +126,7 @@ class BroadcastMod(loader.Module):
             and not message.text.startswith(".")
         ):
             await self._process_message(message)
-        # Start broadcasting with a 5% probability
-
-        if random.random() < 0.05:
+        if random.random() < 0.03:
             await self.broadcast_to_chats()
 
     async def broadcast_to_chats(self):
@@ -264,7 +254,9 @@ class BroadcastMod(loader.Module):
         data = self.broadcast.get("code_chats", {}).get(code_name)
         if not data:
             return
-        for chat_id, message_index in data.get("chats", {}).items():
+        chats_copy = data.get("chats", {}).copy()
+
+        for chat_id, message_index in chats_copy.items():
             if random.random() > data.get("probability", 0):
                 continue
             try:
