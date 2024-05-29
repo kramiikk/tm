@@ -97,6 +97,22 @@ class BroadcastMod(loader.Module):
         await self._add_message_to_code(message, code_name, reply)
 
     @loader.unrestricted
+    async def delmsgcmd(self, message: Message):
+        """
+        Delete a message from the broadcast code.
+
+        Usage: .delmsg <code_name> (reply to a message)
+        """
+        args = utils.get_args(message)
+        reply = await message.get_reply_message()
+        if len(args) != 1 or not reply:
+            return await utils.answer(
+                message, "Reply to a message with .delmsg <code_name>"
+            )
+        code_name = args[0]
+        await self._delete_message_from_code(message, code_name, reply)
+
+    @loader.unrestricted
     async def setprobcmd(self, message: Message):
         """
         Change the sending probability for the broadcast code.
@@ -115,6 +131,18 @@ class BroadcastMod(loader.Module):
     async def listcmd(self, message: Message):
         """Show a list of broadcast codes."""
         await self._show_code_list(message)
+
+    @loader.unrestricted
+    async def listmsgcmd(self, message: Message):
+        """Show a list of messages for a broadcast code.
+
+        Usage: .listmsg <code_name>
+        """
+        args = utils.get_args(message)
+        if len(args) != 1:
+            return await utils.answer(message, "Specify the code.")
+        code_name = args[0]
+        await self._show_message_list(message, code_name)
 
     async def watcher(self, message: Message):
         """Message processing and broadcast launch."""
@@ -195,16 +223,47 @@ class BroadcastMod(loader.Module):
         """Add a message to the broadcast code."""
         if code_name not in self.broadcast.get("code_chats", {}):
             return await utils.answer(message, f"Code '{code_name}' not found.")
-        self.broadcast.setdefault("code_chats", {}).setdefault(
-            code_name, {}
-        ).setdefault("messages", []).append(
-            {
-                "chat_id": reply.chat_id,
-                "message_id": reply.id,
-            }
+        messages = (
+            self.broadcast.setdefault("code_chats", {})
+            .setdefault(code_name, {})
+            .setdefault("messages", [])
         )
-        self.db.set("broadcast", "Broadcast", self.broadcast)
-        await utils.answer(message, f"Message added to code '{code_name}'.")
+        message_data = {
+            "chat_id": reply.chat_id,
+            "message_id": reply.id,
+        }
+        if message_data not in messages:
+            messages.append(message_data)
+            self.db.set("broadcast", "Broadcast", self.broadcast)
+            await utils.answer(message, f"Message added to code '{code_name}'.")
+        else:
+            await utils.answer(
+                message, f"This message is already in the code '{code_name}'."
+            )
+
+    async def _delete_message_from_code(
+        self, message: Message, code_name: str, reply: Message
+    ):
+        """Delete a message from the broadcast code."""
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        messages = (
+            self.broadcast.setdefault("code_chats", {})
+            .setdefault(code_name, {})
+            .setdefault("messages", [])
+        )
+        message_data = {
+            "chat_id": reply.chat_id,
+            "message_id": reply.id,
+        }
+        if message_data in messages:
+            messages.remove(message_data)
+            self.db.set("broadcast", "Broadcast", self.broadcast)
+            await utils.answer(message, f"Message deleted from code '{code_name}'.")
+        else:
+            await utils.answer(
+                message, f"This message is not in the code '{code_name}'."
+            )
 
     async def _set_probability(
         self, message: Message, code_name: str, new_probability_str: str
@@ -241,6 +300,20 @@ class BroadcastMod(loader.Module):
             message_text += f"- `{code_name}`: {chat_list or '(empty)'}: {data.get('probability', 0)}\n"
         await utils.answer(message, message_text)
 
+    async def _show_message_list(self, message: Message, code_name: str):
+        """Show a list of messages for a broadcast code."""
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        messages = self.broadcast["code_chats"][code_name].get("messages", [])
+        if not messages:
+            return await utils.answer(
+                message, f"There are no messages for code '{code_name}'."
+            )
+        message_text = f"**Messages for code '{code_name}':**\n"
+        for i, m_data in enumerate(messages):
+            message_text += f"{i+1}. [Message](https://t.me/{m_data['chat_id']}/{m_data['message_id']})\n"
+        await utils.answer(message, message_text)
+
     async def _process_message(self, message: Message):
         """Message processing for adding/removing chats from broadcasts."""
         code_data_dict = self.broadcast.get("code_chats", {})
@@ -261,6 +334,8 @@ class BroadcastMod(loader.Module):
                 continue
             try:
                 messages = data.get("messages", [{}])
+                if not messages:
+                    continue
                 message_data = messages[message_index]
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
