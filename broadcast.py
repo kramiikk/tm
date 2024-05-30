@@ -321,16 +321,17 @@ class BroadcastMod(loader.Module):
         data = self.broadcast.get("code_chats", {}).get(code_name)
         if not data:
             return
-        for chat_id, message_index in data.get("chats", {}).items():
+        chat_ids = list(data.get("chats", {}).keys())
+        random.shuffle(chat_ids)
+
+        for chat_id in chat_ids:
             if random.random() > data.get("prob", 0):
                 continue
             try:
                 messages = data.get("messages", [])
                 if not messages:
                     continue
-                message_index = message_index % len(messages)
-                message_data = messages[message_index]
-                chat_id = int(chat_id)
+                message_data = messages[data["chats"][chat_id]]
 
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
@@ -339,15 +340,16 @@ class BroadcastMod(loader.Module):
                 if main_message:
                     if main_message.media:
                         await self.client.send_file(
-                            chat_id, main_message.media, caption=main_message.text
+                            int(chat_id), main_message.media, caption=main_message.text
                         )
                     else:
-                        await self.client.send_message(chat_id, main_message)
-                    data["chats"][chat_id] = (message_index + 1) % len(messages)
+                        await self.client.send_message(int(chat_id), main_message)
+                    data["chats"][int(chat_id)] = (data["chats"][chat_id] + 1) % len(
+                        messages
+                    )
                     self.db.set("broadcast", "Broadcast", self.broadcast)
-                await asyncio.sleep(random.uniform(5, 10))
+                await asyncio.sleep(random.uniform(10, 20))
             except ValueError:
-
                 await self.client.send_message("me", f"Invalid chat ID: {chat_id}")
             except Exception as e:
                 await self.client.send_message(
