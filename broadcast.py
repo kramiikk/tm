@@ -121,7 +121,7 @@ class BroadcastMod(loader.Module):
         """
         args = utils.get_args(message)
         if len(args) != 2:
-            return await utils.answer(message, "Usage: .setprob <code_name> <new_prob>")
+            return await utils.answer(message, "Usage: .setprob <code_name> <prob>")
         code_name, new_prob_str = args
         await self._set_prob(message, code_name, new_prob_str)
 
@@ -287,7 +287,6 @@ class BroadcastMod(loader.Module):
             return await utils.answer(message, "The code list is empty.")
         text = "**Broadcast Codes:**\n"
         for code_name, data in self.broadcast["code_chats"].items():
-            # Change 'list' to a different variable name
 
             chat_list = ", ".join(
                 str(chat_id) for chat_id in data.get("chats", {}).keys()
