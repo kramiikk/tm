@@ -69,16 +69,16 @@ class BroadcastMod(loader.Module):
         """
         Create a broadcast code and set a message for it.
 
-        Usage: .setcode <code_name> <probability> (reply to a message)
+        Usage: .setcode <code_name> <prob> (reply to a message)
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
         if len(args) != 2 or not reply:
             return await utils.answer(
-                message, "Reply to a message with .setcode <code_name> <probability>"
+                message, "Reply to a message with .setcode <code_name> <prob>"
             )
-        code_name, probability_str = args
-        await self._set_code(message, code_name, probability_str, reply)
+        code_name, prob_str = args
+        await self._set_code(message, code_name, prob_str, reply)
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
@@ -115,17 +115,15 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def setprobcmd(self, message: Message):
         """
-        Change the sending probability for the broadcast code.
+        Change the sending prob for the broadcast code.
 
-        Usage: .setprob <code_name> <new_probability>
+        Usage: .setprob <code_name> <new_prob>
         """
         args = utils.get_args(message)
         if len(args) != 2:
-            return await utils.answer(
-                message, "Usage: .setprob <code_name> <new_probability>"
-            )
-        code_name, new_probability_str = args
-        await self._set_probability(message, code_name, new_probability_str)
+            return await utils.answer(message, "Usage: .setprob <code_name> <new_prob>")
+        code_name, new_prob_str = args
+        await self._set_prob(message, code_name, new_prob_str)
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
@@ -190,16 +188,16 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, f"Code '{code_name}' not found.")
 
     async def _set_code(
-        self, message: Message, code_name: str, probability_str: str, reply: Message
+        self, message: Message, code_name: str, prob_str: str, reply: Message
     ):
         """Create a broadcast code and set a message for it."""
         try:
-            probability = float(probability_str)
-            if not 0 <= probability <= 1:
+            prob = float(prob_str)
+            if not 0 <= prob <= 1:
                 raise ValueError
         except ValueError:
             return await utils.answer(
-                message, "Probability should be a number between 0 and 1."
+                message, "prob should be a number between 0 and 1."
             )
         if code_name in self.broadcast.get("code_chats", {}):
             return await utils.answer(message, f"Code '{code_name}' already exists.")
@@ -211,12 +209,10 @@ class BroadcastMod(loader.Module):
                     "message_id": reply.id,
                 }
             ],
-            "probability": probability,
+            "prob": prob,
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
-        await utils.answer(
-            message, f"Code '{code_name}' set with probability {probability}."
-        )
+        await utils.answer(message, f"Code '{code_name}' set with prob {prob}.")
 
     async def _add_message_to_code(
         self, message: Message, code_name: str, reply: Message
@@ -266,40 +262,40 @@ class BroadcastMod(loader.Module):
                 message, f"This message is not in the code '{code_name}'."
             )
 
-    async def _set_probability(
-        self, message: Message, code_name: str, new_probability_str: str
-    ):
-        """Change the sending probability for the broadcast code."""
+    async def _set_prob(self, message: Message, code_name: str, new_prob_str: str):
+        """Change the sending prob for the broadcast code."""
         try:
-            new_probability = float(new_probability_str)
-            if not 0 <= new_probability <= 1:
+            new_prob = float(new_prob_str)
+            if not 0 <= new_prob <= 1:
                 raise ValueError
         except ValueError:
             return await utils.answer(
-                message, "Probability should be a number between 0 and 1."
+                message, "prob should be a number between 0 and 1."
             )
         if code_name not in self.broadcast.get("code_chats", {}):
             return await utils.answer(message, f"Code '{code_name}' not found.")
-        self.broadcast.setdefault("code_chats", {})[code_name][
-            "probability"
-        ] = new_probability
+        self.broadcast.setdefault("code_chats", {})[code_name]["prob"] = new_prob
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
             message,
-            f"Probability for code '{code_name}' changed to {new_probability}.",
+            f"prob for code '{code_name}' changed to {new_prob}.",
         )
 
     async def _show_code_list(self, message: Message):
         """Show a list of broadcast codes."""
         if not self.broadcast.get("code_chats", {}):
             return await utils.answer(message, "The code list is empty.")
-        message_text = "**Broadcast Codes:**\n"
+        text = "**Broadcast Codes:**\n"
         for code_name, data in self.broadcast["code_chats"].items():
-            list = ", ".join(str(chat_id) for chat_id in data.get("chats", {}).keys())
-            message_text += (
-                f"- `{code_name}`: {list or '(empty)'}: {data.get('probability', 0)}\n"
+            # Change 'list' to a different variable name
+
+            chat_list = ", ".join(
+                str(chat_id) for chat_id in data.get("chats", {}).keys()
             )
-        await utils.answer(message, message_text)
+            text += (
+                f"- `{code_name}`: {chat_list or '(empty)'}: {data.get('prob', 0)}\n"
+            )
+        await utils.answer(message, text)
 
     async def _show_message_list(self, message: Message, code_name: str):
         """Show a list of messages for a broadcast code."""
@@ -327,7 +323,7 @@ class BroadcastMod(loader.Module):
         if not data:
             return
         for chat_id, message_index in data.get("chats", {}).items():
-            if random.random() > data.get("probability", 0):
+            if random.random() > data.get("prob", 0):
                 continue
             try:
                 messages = data.get("messages", [])
