@@ -167,7 +167,7 @@ class BroadcastMod(loader.Module):
         chats = (
             self.broadcast.setdefault("code_chats", {})
             .setdefault(code_name, {})
-            .setdefault("chats", {})
+            .get("chats", {})
         )
         if chat_id in chats:
             del chats[chat_id]
@@ -227,7 +227,7 @@ class BroadcastMod(loader.Module):
         messages = (
             self.broadcast.setdefault("code_chats", {})
             .setdefault(code_name, {})
-            .setdefault("messages", [])
+            .get("messages", [])
         )
         message_data = {
             "chat_id": reply.chat_id,
@@ -251,7 +251,7 @@ class BroadcastMod(loader.Module):
         messages = (
             self.broadcast.setdefault("code_chats", {})
             .setdefault(code_name, {})
-            .setdefault("messages", [])
+            .get("messages", [])
         )
         message_data = {
             "chat_id": reply.chat_id,
@@ -295,10 +295,10 @@ class BroadcastMod(loader.Module):
             return await utils.answer(message, "The code list is empty.")
         message_text = "**Broadcast Codes:**\n"
         for code_name, data in self.broadcast["code_chats"].items():
-            chat_list = ", ".join(
-                str(chat_id) for chat_id in data.get("chats", {}).keys()
+            list = ", ".join(str(chat_id) for chat_id in data.get("chats", {}).keys())
+            message_text += (
+                f"- `{code_name}`: {list or '(empty)'}: {data.get('probability', 0)}\n"
             )
-            message_text += f"- `{code_name}`: {chat_list or '(empty)'}: {data.get('probability', 0)}\n"
         await utils.answer(message, message_text)
 
     async def _show_message_list(self, message: Message, code_name: str):
@@ -333,7 +333,10 @@ class BroadcastMod(loader.Module):
                 messages = data.get("messages", [])
                 if not messages:
                     continue
+                message_index = message_index % len(messages)
                 message_data = messages[message_index]
+                chat_id = int(chat_id)
+
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
                 )
@@ -348,6 +351,9 @@ class BroadcastMod(loader.Module):
                     data["chats"][chat_id] = (message_index + 1) % len(messages)
                     self.db.set("broadcast", "Broadcast", self.broadcast)
                 await asyncio.sleep(random.uniform(5, 10))
+            except ValueError:
+
+                await self.client.send_message("me", f"Invalid chat ID: {chat_id}")
             except Exception as e:
                 await self.client.send_message(
                     "me", f"Error sending to chat {chat_id}: {e}"
