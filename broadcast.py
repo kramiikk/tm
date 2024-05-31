@@ -344,9 +344,8 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(int(chat_id), main_message)
-                data["chats"][chat_id] = (
-                    (current_index + 1) if current_index < len(messages) - 1 else 1
-                )
-                self.db.set("broadcast", "Broadcast", self.broadcast)
-
+                    data["chats"][chat_id] = (
+                        (current_index + 1) if current_index < len(messages) - 1 else 1
+                    )
+                    self.db.set("broadcast", "Broadcast", self.broadcast)
                 await asyncio.sleep(random.uniform(10, 20))
