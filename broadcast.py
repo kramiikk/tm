@@ -153,7 +153,7 @@ class BroadcastMod(loader.Module):
             and not message.text.startswith(".")
         ):
             await self._process_message(message)
-        if random.random() < 0.03:
+        if random.random() < 0.07:
             await self.broadcast_to_chats()
 
     async def broadcast_to_chats(self):
