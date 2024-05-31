@@ -1,6 +1,7 @@
 import asyncio
 import random
 from typing import Dict, List
+from contextlib import suppress
 
 from telethon.tl.types import Message
 
@@ -327,11 +328,12 @@ class BroadcastMod(loader.Module):
         for chat_id in chat_ids:
             if random.random() > data.get("prob", 0):
                 continue
-            try:
+            with suppress(Exception):
                 messages = data.get("messages", [])
                 if not messages:
                     continue
-                message_data = messages[data["chats"][chat_id]]
+                current_index = data["chats"].get(chat_id, 0)
+                message_data = messages[current_index]
 
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
@@ -344,14 +346,6 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(int(chat_id), main_message)
-                    data["chats"][int(chat_id)] = (data["chats"][chat_id] + 1) % len(
-                        messages
-                    )
+                    data["chats"][chat_id] = (current_index + 1) % len(messages)
                     self.db.set("broadcast", "Broadcast", self.broadcast)
                 await asyncio.sleep(random.uniform(10, 20))
-            except ValueError:
-                await self.client.send_message("me", f"Invalid chat ID: {chat_id}")
-            except Exception as e:
-                await self.client.send_message(
-                    "me", f"Error sending to chat {chat_id}: {e}"
-                )
