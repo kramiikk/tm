@@ -334,11 +334,9 @@ class BroadcastMod(loader.Module):
                     continue
                 current_index = data["chats"].get(chat_id, 0)
                 message_data = messages[current_index]
-
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
                 )
-
                 if main_message:
                     if main_message.media:
                         await self.client.send_file(
@@ -346,6 +344,9 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(int(chat_id), main_message)
-                    data["chats"][chat_id] = (current_index + 1) % len(messages)
-                    self.db.set("broadcast", "Broadcast", self.broadcast)
+                data["chats"][chat_id] = (
+                    (current_index + 1) if current_index < len(messages) - 1 else 1
+                )
+                self.db.set("broadcast", "Broadcast", self.broadcast)
+
                 await asyncio.sleep(random.uniform(10, 20))
