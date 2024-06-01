@@ -18,6 +18,7 @@ class BroadcastMod(loader.Module):
         super().__init__()
         self.allowed_ids: List[int] = []
         self.broadcast: Dict = {}
+        self.broadcasting = False
 
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
@@ -153,8 +154,10 @@ class BroadcastMod(loader.Module):
             and not message.text.startswith(".")
         ):
             await self._process_message(message)
-        if random.random() < 0.07:
+        if random.random() < 0.07 and not self.broadcasting:
+            self.broadcasting = True
             await self.broadcast_to_chats()
+            self.broadcasting = False
 
     async def broadcast_to_chats(self):
         """Broadcast messages to chats."""
