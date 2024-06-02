@@ -216,7 +216,6 @@ class BroadcastMod(loader.Module):
             del chats[chat_id]
             action = "removed"
         else:
-            chats[chat_id] = 0
             action = "added"
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await self.client.send_message(
