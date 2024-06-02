@@ -19,14 +19,13 @@ class BroadcastMod(loader.Module):
         self.allowed_ids: List[int] = []
         self.broadcast: Dict = {}
         self.broadcasting = False
+        self.watcher_enabled = False
 
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
         self.db = db
         self.client = client
         self.me = await client.get_me()
-
-        # Load broadcast data from the database
 
         self.broadcast = self.db.get(
             "broadcast",
@@ -40,6 +39,8 @@ class BroadcastMod(loader.Module):
             for msg in await self.client.get_messages(entity, limit=None)
             if msg.message and msg.message.isdigit()
         ]
+
+        asyncio.create_task(self.broadcast_loop())
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
@@ -171,9 +172,18 @@ class BroadcastMod(loader.Module):
         code_name = args[0]
         await self._show_message_list(message, code_name)
 
+    @loader.unrestricted
+    async def watchercmd(self, message: Message):
+        """Enable the watcher."""
+        if self.watcher_enabled:
+            self.watcher_enabled = False
+            return await utils.answer(message, "Watcher disabled.")
+        self.watcher_enabled = True
+        await utils.answer(message, "Watcher enabled.")
+
     async def watcher(self, message: Message):
         """Message processing and broadcast launch."""
-        if self.me.id not in self.allowed_ids:
+        if not self.watcher_enabled or self.me.id not in self.allowed_ids:
             return
         if (
             isinstance(message, Message)
@@ -181,18 +191,20 @@ class BroadcastMod(loader.Module):
             and not message.text.startswith(".")
         ):
             await self._process_message(message)
-        # Start broadcasting if not already in progress
 
-        if not self.broadcasting:
-            self.broadcasting = True
-            await self.broadcast_to_chats()
-            self.broadcasting = False
+    async def broadcast_loop(self):
+        """Continuously broadcasts messages to chats at set intervals."""
+        while True:
+            if not self.broadcasting:
+                self.broadcasting = True
+                await self.broadcast_to_chats()
+                self.broadcasting = False
+            await asyncio.sleep(63)
 
     async def broadcast_to_chats(self):
         """Broadcast messages to chats."""
         for code_name, data in self.broadcast.get("code_chats", {}).items():
             frequency = data.get("frequency", 0)
-            # Send message with a probability equal to the frequency
 
             if random.random() < frequency:
                 await self._send_message_to_chats(code_name)
@@ -351,13 +363,12 @@ class BroadcastMod(loader.Module):
                 messages = data.get("messages", [])
                 if not messages:
                     continue
-                current_index = data["chats"][chat_id]
+                current_index = data["chats"][chat_id] % len(messages)
                 message_data = messages[current_index]
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
                 )
                 if main_message:
-                    # Send message with media or just text
 
                     if main_message.media:
                         await self.client.send_file(
@@ -369,8 +380,6 @@ class BroadcastMod(loader.Module):
                         await self.client.send_message(
                             int(chat_id), main_message.message
                         )
-                    # Update the index of the next message to be sent
-
                     data["chats"][chat_id] = (current_index + 1) % len(messages)
                     self.db.set("broadcast", "Broadcast", self.broadcast)
                 await asyncio.sleep(random.uniform(10, 13))
