@@ -193,21 +193,17 @@ class BroadcastMod(loader.Module):
             await self._process_message(message)
 
     async def broadcast_loop(self):
-        """Continuously broadcasts messages to chats at set intervals."""
+        """Постоянно рассылает сообщения в чаты с заданными интервалами."""
         while True:
             if not self.broadcasting:
                 self.broadcasting = True
-                await self.broadcast_to_chats()
+                for code_name, data in self.broadcast.get("code_chats", {}).items():
+                    frequency = data.get("frequency", 0)
+
+                    if random.random() < frequency:
+                        await self._send_message_to_chats(code_name)
                 self.broadcasting = False
             await asyncio.sleep(63)
-
-    async def broadcast_to_chats(self):
-        """Broadcast messages to chats."""
-        for code_name, data in self.broadcast.get("code_chats", {}).items():
-            frequency = data.get("frequency", 0)
-
-            if random.random() < frequency:
-                await self._send_message_to_chats(code_name)
 
     async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
         """Add/remove a chat from the broadcast list by code name."""
