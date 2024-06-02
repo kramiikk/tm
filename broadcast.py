@@ -98,6 +98,29 @@ class BroadcastMod(loader.Module):
         await self._set_code(message, code_name, reply, frequency)
 
     @loader.unrestricted
+    async def setfreqcmd(self, message: Message):
+        """
+        Set the frequency for a broadcast code.
+
+        .setfreq <code_name> <frequency>
+        """
+        args = utils.get_args(message)
+        if len(args) != 2:
+            return await utils.answer(
+                message, "Specify the code and the new frequency."
+            )
+        code_name, frequency_str = args
+        try:
+            frequency = float(frequency_str)
+            if not 0 <= frequency <= 1:
+                raise ValueError
+        except ValueError:
+            return await utils.answer(
+                message, "Frequency must be a number between 0 and 1."
+            )
+        await self._set_frequency(message, code_name, frequency)
+
+    @loader.unrestricted
     async def addmsgcmd(self, message: Message):
         """
         Add a message to the broadcast code.
@@ -223,6 +246,18 @@ class BroadcastMod(loader.Module):
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(message, f"Code '{code_name}' set.")
+
+    async def _set_frequency(
+        self, message: Message, code_name: str, frequency: float
+    ):
+        """Set the frequency for a broadcast code."""
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        self.broadcast["code_chats"][code_name]["frequency"] = frequency
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        await utils.answer(
+            message, f"Frequency for code '{code_name}' set to {frequency:.2f}."
+        )
 
     async def _add_message_to_code(
         self, message: Message, code_name: str, reply: Message
