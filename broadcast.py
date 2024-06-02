@@ -353,7 +353,7 @@ class BroadcastMod(loader.Module):
                 messages = data.get("messages", [])
                 if not messages:
                     continue
-                current_index = data["chats"].get(chat_id, 0)
+                current_index = data["chats"][chat_id]
                 message_data = messages[current_index]
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
@@ -375,4 +375,4 @@ class BroadcastMod(loader.Module):
                         messages
                     )
                     self.db.set("broadcast", "Broadcast", self.broadcast)
-                await asyncio.sleep(random.uniform(10, 20))
+                await asyncio.sleep(random.uniform(10, 13))
