@@ -27,6 +27,7 @@ class BroadcastMod(loader.Module):
         self.me = await client.get_me()
 
         # Load broadcast data from the database
+
         self.broadcast = self.db.get(
             "broadcast",
             "Broadcast",
@@ -180,8 +181,8 @@ class BroadcastMod(loader.Module):
             and not message.text.startswith(".")
         ):
             await self._process_message(message)
-
         # Start broadcasting if not already in progress
+
         if not self.broadcasting:
             self.broadcasting = True
             await self.broadcast_to_chats()
@@ -192,6 +193,7 @@ class BroadcastMod(loader.Module):
         for code_name, data in self.broadcast.get("code_chats", {}).items():
             frequency = data.get("frequency", 0)
             # Send message with a probability equal to the frequency
+
             if random.random() < frequency:
                 await self._send_message_to_chats(code_name)
 
@@ -231,9 +233,7 @@ class BroadcastMod(loader.Module):
     ):
         """Create a broadcast code and set a message for it."""
         if code_name in self.broadcast.get("code_chats", {}):
-            return await utils.answer(
-                message, f"Code '{code_name}' already exists."
-            )
+            return await utils.answer(message, f"Code '{code_name}' already exists.")
         self.broadcast.setdefault("code_chats", {})[code_name] = {
             "chats": {},
             "messages": [
@@ -247,9 +247,7 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(message, f"Code '{code_name}' set.")
 
-    async def _set_frequency(
-        self, message: Message, code_name: str, frequency: float
-    ):
+    async def _set_frequency(self, message: Message, code_name: str, frequency: float):
         """Set the frequency for a broadcast code."""
         if code_name not in self.broadcast.get("code_chats", {}):
             return await utils.answer(message, f"Code '{code_name}' not found.")
@@ -360,6 +358,7 @@ class BroadcastMod(loader.Module):
                 )
                 if main_message:
                     # Send message with media or just text
+
                     if main_message.media:
                         await self.client.send_file(
                             int(chat_id),
@@ -371,8 +370,7 @@ class BroadcastMod(loader.Module):
                             int(chat_id), main_message.message
                         )
                     # Update the index of the next message to be sent
-                    data["chats"][chat_id] = (current_index + 1) % len(
-                        messages
-                    )
+
+                    data["chats"][chat_id] = (current_index + 1) % len(messages)
                     self.db.set("broadcast", "Broadcast", self.broadcast)
                 await asyncio.sleep(random.uniform(10, 13))
