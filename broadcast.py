@@ -45,7 +45,7 @@ class BroadcastMod(loader.Module):
         """
         Add/remove a chat from the broadcast list.
 
-        Usage: .chat <code_name> <chat_id>
+        .chat <code_name> <chat_id>
         """
         args = utils.get_args(message)
         if len(args) != 2:
@@ -64,7 +64,7 @@ class BroadcastMod(loader.Module):
         """
         Delete a broadcast code.
 
-        Usage: .delcode <code_name>
+        .delcode <code_name>
         """
         args = utils.get_args(message)
         if len(args) != 1:
@@ -77,8 +77,7 @@ class BroadcastMod(loader.Module):
         """
         Create a broadcast code, set a message for it and set frequency.
 
-        Usage: .setcode <code_name> <frequency> (reply to a message)
-        Example: .setcode my_code 0.1 (reply to a message) - will send message with 10% chance
+        .setcode my_code 0.01 (reply to a message)
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
@@ -103,7 +102,7 @@ class BroadcastMod(loader.Module):
         """
         Add a message to the broadcast code.
 
-        Usage: .addmsg <code_name> (reply to a message)
+        .addmsg <code_name> (reply to a message)
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
@@ -119,7 +118,7 @@ class BroadcastMod(loader.Module):
         """
         Delete a message from the broadcast code.
 
-        Usage: .delmsg <code_name> (reply to a message)
+        .delmsg <code_name> (reply to a message)
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
@@ -140,7 +139,7 @@ class BroadcastMod(loader.Module):
         """
         Show a list of messages for a broadcast code.
 
-        Usage: .listmsg <code_name>
+        .listmsg <code_name>
         """
         args = utils.get_args(message)
         if len(args) != 1:
@@ -283,7 +282,7 @@ class BroadcastMod(loader.Module):
                 str(chat_id) for chat_id in data.get("chats", {}).keys()
             )
             frequency = data.get("frequency", 0)
-            text += f"- `{code_name}`: {chat_list or '(empty)'}, frequency: {frequency:.2f}\n"
+            text += f"- `{code_name}`: {chat_list or '(empty)'} - {frequency:.2f}\n"
         await utils.answer(message, text)
 
     async def _show_message_list(self, message: Message, code_name: str):
