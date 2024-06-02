@@ -19,7 +19,7 @@ class BroadcastMod(loader.Module):
         self.allowed_ids: List[int] = []
         self.broadcast: Dict = {}
         self.broadcasting = False
-        self.watcher_enabled = False
+        self.wat = False
 
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
@@ -173,17 +173,17 @@ class BroadcastMod(loader.Module):
         await self._show_message_list(message, code_name)
 
     @loader.unrestricted
-    async def watchercmd(self, message: Message):
-        """Enable the watcher."""
-        if self.watcher_enabled:
-            self.watcher_enabled = False
-            return await utils.answer(message, "Watcher disabled.")
-        self.watcher_enabled = True
-        await utils.answer(message, "Watcher enabled.")
+    async def watcmd(self, message: Message):
+        """Enable the wat."""
+        if self.wat:
+            self.wat = False
+            return await utils.answer(message, "Wat disabled.")
+        self.wat = True
+        await utils.answer(message, "Wat enabled.")
 
     async def watcher(self, message: Message):
         """Message processing and broadcast launch."""
-        if not self.watcher_enabled or self.me.id not in self.allowed_ids:
+        if not self.wat or self.me.id not in self.allowed_ids:
             return
         if (
             isinstance(message, Message)
