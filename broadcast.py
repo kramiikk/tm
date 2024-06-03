@@ -6,7 +6,6 @@ from contextlib import suppress
 from itertools import cycle
 
 from telethon.tl.types import Message
-from telethon.errors.rpcerrorlist import FloodWaitError
 
 from .. import loader, utils
 
@@ -21,7 +20,6 @@ class BroadcastMod(loader.Module):
         super().__init__()
         self.allowed_ids: List[int] = []
         self.broadcast: Dict = {}
-        self.broadcasting = False
 
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
@@ -44,6 +42,45 @@ class BroadcastMod(loader.Module):
 
         asyncio.create_task(self.broadcast_loop())
 
+    async def _broadcast_handler(self, message: Message, args: List[str]):
+        """Handles commands related to broadcast codes (chat_id, frequency)."""
+        if len(args) != 2:
+            return await utils.answer(message, "Specify the code and command.")
+        code_name, arg2 = args
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        if args[0] == "chat_id":
+            try:
+                chat_id = int(arg2)
+            except ValueError:
+                return await utils.answer(message, "Invalid chat ID.")
+            await self._update_chat_in_broadcast(code_name, chat_id)
+        elif args[0] == "frequency":
+            try:
+                frequency = float(arg2)
+                if not 0 <= frequency <= 1:
+                    raise ValueError
+            except ValueError:
+                return await utils.answer(
+                    message, "Frequency must be a number between 0 and 1."
+                )
+            await self._set_frequency(message, code_name, frequency)
+
+    async def _message_handler(self, message: Message, args: List[str]):
+        """Handles commands related to messages in a broadcast code (addmsg, delmsg)."""
+        reply = await message.get_reply_message()
+        if len(args) != 1 or not reply:
+            return await utils.answer(
+                message, "Reply to a message with .<command> <code_name>"
+            )
+        code_name = args[0]
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        if args[0] == "addmsg":
+            await self._add_message_to_code(message, code_name, reply)
+        elif args[0] == "delmsg":
+            await self._delete_message_from_code(message, code_name, reply)
+
     @loader.unrestricted
     async def chatcmd(self, message: Message):
         """
@@ -51,17 +88,7 @@ class BroadcastMod(loader.Module):
 
         .chat <code_name> <chat_id>
         """
-        args = utils.get_args(message)
-        if len(args) != 2:
-            return await utils.answer(message, "Specify the code and chat ID.")
-        code_name, chat_id_str = args
-        try:
-            chat_id = int(chat_id_str)
-        except ValueError:
-            return await utils.answer(message, "Invalid chat ID.")
-        if code_name not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' not found.")
-        await self._update_chat_in_broadcast(code_name, chat_id)
+        await self._broadcast_handler(message, utils.get_args(message))
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
@@ -81,7 +108,7 @@ class BroadcastMod(loader.Module):
         """
         Create a broadcast code, set a message for it and set frequency.
 
-        .setcode my_code 0.01 (reply to a message)
+        .setcode <code_name> <frequency> (reply to a message)
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
@@ -108,21 +135,7 @@ class BroadcastMod(loader.Module):
 
         .setfreq <code_name> <frequency>
         """
-        args = utils.get_args(message)
-        if len(args) != 2:
-            return await utils.answer(
-                message, "Specify the code and the new frequency."
-            )
-        code_name, frequency_str = args
-        try:
-            frequency = float(frequency_str)
-            if not 0 <= frequency <= 1:
-                raise ValueError
-        except ValueError:
-            return await utils.answer(
-                message, "Frequency must be a number between 0 and 1."
-            )
-        await self._set_frequency(message, code_name, frequency)
+        await self._broadcast_handler(message, utils.get_args(message))
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
@@ -131,14 +144,7 @@ class BroadcastMod(loader.Module):
 
         .addmsg <code_name> (reply to a message)
         """
-        args = utils.get_args(message)
-        reply = await message.get_reply_message()
-        if len(args) != 1 or not reply:
-            return await utils.answer(
-                message, "Reply to a message with .addmsg <code_name>"
-            )
-        code_name = args[0]
-        await self._add_message_to_code(message, code_name, reply)
+        await self._message_handler(message, utils.get_args(message))
 
     @loader.unrestricted
     async def delmsgcmd(self, message: Message):
@@ -147,14 +153,7 @@ class BroadcastMod(loader.Module):
 
         .delmsg <code_name> (reply to a message)
         """
-        args = utils.get_args(message)
-        reply = await message.get_reply_message()
-        if len(args) != 1 or not reply:
-            return await utils.answer(
-                message, "Reply to a message with .delmsg <code_name>"
-            )
-        code_name = args[0]
-        await self._delete_message_from_code(message, code_name, reply)
+        await self._message_handler(message, utils.get_args(message))
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
@@ -189,23 +188,18 @@ class BroadcastMod(loader.Module):
     async def broadcast_loop(self):
         """Main broadcast loop."""
         while True:
+            start_time = datetime.datetime.now()
             try:
-                self.broadcasting = True
                 tasks = [
                     self._send_messages_for_code(code_name)
                     for code_name in self.broadcast.get("code_chats", {})
                 ]
                 await asyncio.gather(*tasks)
-            except Exception:
-                pass
             finally:
-
-                now = datetime.datetime.now()
-                next_broadcast = now + datetime.timedelta(minutes=3)
-                if next_broadcast < now:
-                    next_broadcast += datetime.timedelta(minutes=3)
-                sleep_seconds = (next_broadcast - now).total_seconds()
-                await asyncio.sleep(sleep_seconds)
+                end_time = datetime.datetime.now()
+                execution_time = (end_time - start_time).total_seconds()
+                sleep_duration = max(0, 180 - execution_time)
+                await asyncio.sleep(sleep_duration)
 
     async def _send_messages_for_code(self, code_name: str):
         """Send messages for a specific code concurrently with random delays."""
@@ -216,14 +210,16 @@ class BroadcastMod(loader.Module):
         random.shuffle(chat_ids)
         frequency = data.get("frequency", 0)
 
-        for chat_id in chat_ids:
-            if random.random() > frequency:
-                continue
-            try:
-                await asyncio.sleep(random.uniform(5, 10))
-                await self._send_message_to_chat(code_name, chat_id, data)
-            except FloodWaitError as e:
-                await asyncio.sleep(e.seconds + 180)
+        async def send_message(chat_id):
+            """Sends a message without flood control."""
+            await self._send_message_to_chat(code_name, chat_id, data)
+
+        tasks = [
+            send_message(chat_id)
+            for chat_id in chat_ids
+            if random.random() <= frequency
+        ]
+        await asyncio.gather(*tasks)
 
     async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
         """Send a message to a specific chat."""
@@ -235,12 +231,15 @@ class BroadcastMod(loader.Module):
                 message_data.get("chat_id"), ids=message_data.get("message_id")
             )
             if main_message:
-                if main_message.media:
-                    await self.client.send_file(
-                        chat_id, main_message.media, caption=main_message.text
-                    )
-                else:
-                    await self.client.send_message(chat_id, main_message.text)
+                try:
+                    if main_message.media:
+                        await self.client.send_file(
+                            chat_id, main_message.media, caption=main_message.text
+                        )
+                    else:
+                        await self.client.send_message(chat_id, main_message.text)
+                except Exception as e:
+                    print(f"Error sending message: {e}")
             await asyncio.sleep(random.uniform(3, 5))
 
     async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
@@ -307,8 +306,6 @@ class BroadcastMod(loader.Module):
         self, message: Message, code_name: str, reply: Message
     ):
         """Add a message to the broadcast code."""
-        if code_name not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' not found.")
         messages = (
             self.broadcast.setdefault("code_chats", {})
             .setdefault(code_name, {})
@@ -331,8 +328,6 @@ class BroadcastMod(loader.Module):
         self, message: Message, code_name: str, reply: Message
     ):
         """Delete a message from the broadcast code."""
-        if code_name not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' not found.")
         messages = (
             self.broadcast.setdefault("code_chats", {})
             .setdefault(code_name, {})
