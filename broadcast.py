@@ -53,7 +53,6 @@ class BroadcastMod(loader.Module):
         if len(args) != 1:
             return await utils.answer(message, "Specify the code.")
         code_name = args[0]
-        """Add/remove a chat from the broadcast list by code name."""
         chats = (
             self.broadcast.setdefault("code_chats", {})
             .setdefault(code_name, {})
