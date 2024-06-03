@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Dict, List
+from typing import Dict
 from contextlib import suppress
 from itertools import cycle
 
@@ -14,15 +14,10 @@ class BroadcastMod(loader.Module):
 
     strings = {"name": "Broadcast"}
 
-    def __init__(self):
-        super().__init__()
-        self.allowed_ids: List[int] = []
-        self.broadcast: Dict = {}
-        self.wat = False
-
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
         self.db = db
+        self.wat = False
         self.client = client
         self.me = await client.get_me()
 
@@ -34,6 +29,8 @@ class BroadcastMod(loader.Module):
             for msg in await self.client.get_messages(entity, limit=None)
             if msg.message and msg.message.isdigit()
         ]
+
+        # Start the broadcast loop in a separate task to prevent blocking
 
         asyncio.create_task(self.broadcast_loop())
 
@@ -189,11 +186,11 @@ class BroadcastMod(loader.Module):
                 min_minutes, max_minutes = code_data.get("interval", (10, 13))
                 chat_ids = list(code_data.get("chats", {}).keys())
                 random.shuffle(chat_ids)
-                tasks = [
-                    self._send_message_to_chat(code_name, chat_id, code_data)
-                    for chat_id in chat_ids
-                ]
-                await asyncio.gather(*tasks)
+
+                for chat_id in chat_ids:
+                    asyncio.create_task(
+                        self._send_message_to_chat(code_name, chat_id, code_data)
+                    )
                 interval = random.uniform(min_minutes * 60, max_minutes * 60)
                 await asyncio.sleep(interval)
 
