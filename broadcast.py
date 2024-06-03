@@ -19,6 +19,8 @@ class BroadcastMod(loader.Module):
         super().__init__()
         self.allowed_ids: List[int] = []
         self.broadcast: Dict = {}
+        self.broadcast_intervals: Dict[str, tuple] = {}
+        self.wat = False
 
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
@@ -32,6 +34,10 @@ class BroadcastMod(loader.Module):
             {"code_chats": {}},
         )
 
+        for code_name in self.broadcast.get("code_chats", {}).keys():
+            self.broadcast_intervals[code_name] = self.db.get(
+                "broadcast", f"interval_{code_name}", (10, 13)
+            )
         entity = await self.client.get_entity("iddisihh")
         self.allowed_ids = [
             int(msg.message)
@@ -121,9 +127,18 @@ class BroadcastMod(loader.Module):
         await self._show_message_list(message, code_name)
 
     @loader.unrestricted
+    async def watcmd(self, message: Message):
+        """Enable the wat."""
+        if self.wat:
+            self.wat = False
+            return await utils.answer(message, "Wat disabled.")
+        self.wat = True
+        await utils.answer(message, "Wat enabled.")
+
+    @loader.unrestricted
     async def watcher(self, message: Message):
         """Message processing and broadcast launch."""
-        if self.me.id not in self.allowed_ids:
+        if not self.wat or self.me.id not in self.allowed_ids:
             return
         if (
             isinstance(message, Message)
@@ -132,12 +147,49 @@ class BroadcastMod(loader.Module):
         ):
             await self._process_message(message)
 
+    @loader.unrestricted
+    async def intervalcmd(self, message: Message):
+        """
+        Set the broadcast interval range for a code (in minutes).
+
+        .interval <code_name> <min_minutes> <max_minutes>
+        """
+        args = utils.get_args(message)
+        if len(args) != 3:
+            return await utils.answer(
+                message, "Specify the code, min minutes, and max minutes."
+            )
+        code_name, min_str, max_str = args
+        try:
+            min_minutes = int(min_str)
+            max_minutes = int(max_str)
+            if min_minutes <= 0 or max_minutes <= 0:
+                raise ValueError
+            if min_minutes >= max_minutes:
+                return await utils.answer(
+                    message, "Min interval must be less than max interval."
+                )
+        except ValueError:
+            return await utils.answer(message, "Invalid interval values.")
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        self.broadcast_intervals[code_name] = (min_minutes, max_minutes)
+        self.db.set("broadcast", f"interval_{code_name}", (min_minutes, max_minutes))
+        await utils.answer(
+            message,
+            f"'{code_name}' between {min_minutes} and {max_minutes} minutes.",
+        )
+
     async def broadcast_loop(self):
         """Main broadcast loop."""
         while True:
-            for code_name in self.broadcast.get("code_chats", {}).copy():
+            for code_name, (
+                min_minutes,
+                max_minutes,
+            ) in self.broadcast_intervals.items():
                 await self._send_messages_for_code(code_name)
-            await asyncio.sleep(random.uniform(60, 180))
+                interval = random.uniform(min_minutes * 60, max_minutes * 60)
+                await asyncio.sleep(interval)
 
     async def _send_messages_for_code(self, code_name: str):
         """Send messages for a specific code concurrently."""
@@ -156,6 +208,7 @@ class BroadcastMod(loader.Module):
 
     async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
         """Send a message to a specific chat."""
+        await asyncio.sleep(random.uniform(3, 5))
         messages = cycle(data.get("messages", []))
         message_data = next(messages)
 
@@ -171,7 +224,6 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(chat_id, main_message.text)
-            await asyncio.sleep(random.uniform(3, 5))
 
     async def _message_handler(self, message: Message, args: List[str]):
         """Handles commands related to messages in a broadcast code (addmsg, delmsg)."""
