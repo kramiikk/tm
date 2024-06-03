@@ -206,7 +206,7 @@ class BroadcastMod(loader.Module):
                             await self._send_message_to_chats(code_name)
             finally:
                 self.broadcasting = False
-            await asyncio.sleep(63)
+            await asyncio.sleep(13)
 
     async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
         """Add/remove a chat from the broadcast list by code name."""
@@ -377,7 +377,7 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(
-                            int(chat_id), main_message.message
+                            int(chat_id), main_message.text
                         )
                     data["chats"][chat_id] = (current_index + 1) % len(messages)
                     self.db.set("broadcast", "Broadcast", self.broadcast)
