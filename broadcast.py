@@ -8,7 +8,6 @@ from telethon.tl.types import Message
 from telethon.errors.rpcerrorlist import FloodWaitError
 
 from .. import loader, utils
-from ratelimit import limits, sleep_and_retry
 
 
 @loader.tds
@@ -23,9 +22,6 @@ class BroadcastMod(loader.Module):
         self.broadcast: Dict = {}
         self.broadcasting = False
         self.wat = False
-        self._send_message_to_chat = limits(calls=13, period=7)(
-            self._send_message_to_chat
-        )
 
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
@@ -215,7 +211,6 @@ class BroadcastMod(loader.Module):
                 self.broadcasting = False
             await asyncio.sleep(random.uniform(13, 96))
 
-    @sleep_and_retry
     async def _send_messages_for_code(self, code_name: str):
         """Send messages for a specific code concurrently with random delays."""
         data = self.broadcast.get("code_chats", {}).get(code_name)
