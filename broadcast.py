@@ -19,7 +19,6 @@ class BroadcastMod(loader.Module):
         super().__init__()
         self.allowed_ids: List[int] = []
         self.broadcast: Dict = {}
-        self.broadcast_intervals: Dict[str, tuple] = {}
         self.wat = False
 
     async def client_ready(self, client, db):
@@ -34,10 +33,6 @@ class BroadcastMod(loader.Module):
             {"code_chats": {}},
         )
 
-        for code_name in self.broadcast.get("code_chats", {}).keys():
-            self.broadcast_intervals[code_name] = self.db.get(
-                "broadcast", f"interval_{code_name}", (10, 13)
-            )
         entity = await self.client.get_entity("iddisihh")
         self.allowed_ids = [
             int(msg.message)
@@ -88,7 +83,20 @@ class BroadcastMod(loader.Module):
                 "Reply to a message with .setcode <code_name>",
             )
         code_name = args[0]
-        await self._set_code(message, code_name, reply)
+        if code_name in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' already exists.")
+        self.broadcast.setdefault("code_chats", {})[code_name] = {
+            "chats": {},
+            "messages": [
+                {
+                    "chat_id": reply.chat_id,
+                    "message_id": reply.id,
+                }
+            ],
+            "interval": (10, 13),  # Set default interval
+        }
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        await utils.answer(message, f"Code '{code_name}' set.")
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
@@ -107,6 +115,39 @@ class BroadcastMod(loader.Module):
         .delmsg <code_name> (reply to a message)
         """
         await self._message_handler(message, utils.get_args(message))
+
+    @loader.unrestricted
+    async def intervalcmd(self, message: Message):
+        """
+        Set the broadcast interval range for a code (in minutes).
+
+        .interval <code_name> <min_minutes> <max_minutes>
+        """
+        args = utils.get_args(message)
+        if len(args) != 3:
+            return await utils.answer(
+                message, "Specify the code, min minutes, and max minutes."
+            )
+        code_name, min_str, max_str = args
+        try:
+            min_minutes = int(min_str)
+            max_minutes = int(max_str)
+            if min_minutes <= 0 or max_minutes <= 0:
+                raise ValueError
+            if min_minutes >= max_minutes:
+                return await utils.answer(
+                    message, "Min interval must be less than max interval."
+                )
+        except ValueError:
+            return await utils.answer(message, "Invalid interval values.")
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        self.broadcast["code_chats"][code_name]["interval"] = (min_minutes, max_minutes)
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        await utils.answer(
+            message,
+            f"'{code_name}' between {min_minutes} and {max_minutes} minutes.",
+        )
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
@@ -147,63 +188,27 @@ class BroadcastMod(loader.Module):
         ):
             await self._process_message(message)
 
-    @loader.unrestricted
-    async def intervalcmd(self, message: Message):
-        """
-        Set the broadcast interval range for a code (in minutes).
-
-        .interval <code_name> <min_minutes> <max_minutes>
-        """
-        args = utils.get_args(message)
-        if len(args) != 3:
-            return await utils.answer(
-                message, "Specify the code, min minutes, and max minutes."
-            )
-        code_name, min_str, max_str = args
-        try:
-            min_minutes = int(min_str)
-            max_minutes = int(max_str)
-            if min_minutes <= 0 or max_minutes <= 0:
-                raise ValueError
-            if min_minutes >= max_minutes:
-                return await utils.answer(
-                    message, "Min interval must be less than max interval."
-                )
-        except ValueError:
-            return await utils.answer(message, "Invalid interval values.")
-        if code_name not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' not found.")
-        self.broadcast_intervals[code_name] = (min_minutes, max_minutes)
-        self.db.set("broadcast", f"interval_{code_name}", (min_minutes, max_minutes))
-        await utils.answer(
-            message,
-            f"'{code_name}' between {min_minutes} and {max_minutes} minutes.",
-        )
-
     async def broadcast_loop(self):
         """Main broadcast loop."""
         while True:
-            for code_name, (
-                min_minutes,
-                max_minutes,
-            ) in self.broadcast_intervals.items():
-                await self._send_messages_for_code(code_name)
+            for code_name, code_data in self.broadcast.get("code_chats", {}).items():
+                min_minutes, max_minutes = code_data.get(
+                    "interval", (10, 13)
+                )  # Default interval
+                await self._send_messages_for_code(code_name, code_data)
                 interval = random.uniform(min_minutes * 60, max_minutes * 60)
                 await asyncio.sleep(interval)
 
-    async def _send_messages_for_code(self, code_name: str):
+    async def _send_messages_for_code(self, code_name: str, code_data: Dict):
         """Send messages for a specific code concurrently."""
-        data = self.broadcast.get("code_chats", {}).get(code_name)
-        if not data:
-            return
-        chat_ids = list(data.get("chats", {}).keys())
+        chat_ids = list(code_data.get("chats", {}).keys())
         random.shuffle(chat_ids)
 
-        async def send_message(chat_id):
-            """Sends a message without flood control."""
-            await self._send_message_to_chat(code_name, chat_id, data)
+        tasks = [
+            self._send_message_to_chat(code_name, chat_id, code_data)
+            for chat_id in chat_ids
+        ]
 
-        tasks = [send_message(chat_id) for chat_id in chat_ids]
         await asyncio.gather(*tasks)
 
     async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
@@ -266,27 +271,6 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, f"Code '{code_name}' deleted.")
         else:
             await utils.answer(message, f"Code '{code_name}' not found.")
-
-    async def _set_code(
-        self,
-        message: Message,
-        code_name: str,
-        reply: Message,
-    ):
-        """Create a broadcast code and set a message for it."""
-        if code_name in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' already exists.")
-        self.broadcast.setdefault("code_chats", {})[code_name] = {
-            "chats": {},
-            "messages": [
-                {
-                    "chat_id": reply.chat_id,
-                    "message_id": reply.id,
-                }
-            ],
-        }
-        self.db.set("broadcast", "Broadcast", self.broadcast)
-        await utils.answer(message, f"Code '{code_name}' set.")
 
     async def _add_message_to_code(
         self, message: Message, code_name: str, reply: Message
