@@ -1,5 +1,6 @@
 import asyncio
 import random
+import datetime
 from typing import Dict, List
 from contextlib import suppress
 from itertools import cycle
@@ -21,7 +22,6 @@ class BroadcastMod(loader.Module):
         self.allowed_ids: List[int] = []
         self.broadcast: Dict = {}
         self.broadcasting = False
-        self.wat = False
 
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
@@ -175,17 +175,9 @@ class BroadcastMod(loader.Module):
         await self._show_message_list(message, code_name)
 
     @loader.unrestricted
-    async def watcmd(self, message: Message):
-        """Enable the wat."""
-        if self.wat:
-            self.wat = False
-            return await utils.answer(message, "Wat disabled.")
-        self.wat = True
-        await utils.answer(message, "Wat enabled.")
-
     async def watcher(self, message: Message):
         """Message processing and broadcast launch."""
-        if not self.wat or self.me.id not in self.allowed_ids:
+        if self.me.id not in self.allowed_ids:
             return
         if (
             isinstance(message, Message)
@@ -197,9 +189,6 @@ class BroadcastMod(loader.Module):
     async def broadcast_loop(self):
         """Main broadcast loop."""
         while True:
-            if self.broadcasting:
-                await asyncio.sleep(96)
-                continue
             try:
                 self.broadcasting = True
                 tasks = [
@@ -207,9 +196,16 @@ class BroadcastMod(loader.Module):
                     for code_name in self.broadcast.get("code_chats", {})
                 ]
                 await asyncio.gather(*tasks)
+            except Exception:
+                pass
             finally:
-                self.broadcasting = False
-            await asyncio.sleep(random.uniform(13, 96))
+
+                now = datetime.datetime.now()
+                next_broadcast = now + datetime.timedelta(minutes=3)
+                if next_broadcast < now:
+                    next_broadcast += datetime.timedelta(minutes=3)
+                sleep_seconds = (next_broadcast - now).total_seconds()
+                await asyncio.sleep(sleep_seconds)
 
     async def _send_messages_for_code(self, code_name: str):
         """Send messages for a specific code concurrently with random delays."""
@@ -221,8 +217,10 @@ class BroadcastMod(loader.Module):
         frequency = data.get("frequency", 0)
 
         for chat_id in chat_ids:
+            if random.random() > frequency:
+                continue
             try:
-                await asyncio.sleep(random.uniform(5, 10) / (frequency or 1))
+                await asyncio.sleep(random.uniform(5, 10))
                 await self._send_message_to_chat(code_name, chat_id, data)
             except FloodWaitError as e:
                 await asyncio.sleep(e.seconds + 180)
