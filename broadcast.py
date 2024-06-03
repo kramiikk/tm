@@ -197,6 +197,8 @@ class BroadcastMod(loader.Module):
         while True:
             if not self.broadcasting:
                 self.broadcasting = True
+                # Iterate through all codes and their data
+
                 for code_name, data in self.broadcast.get("code_chats", {}).items():
                     frequency = data.get("frequency", 0)
 
@@ -216,6 +218,7 @@ class BroadcastMod(loader.Module):
             del chats[chat_id]
             action = "removed"
         else:
+            chats[chat_id] = 0
             action = "added"
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await self.client.send_message(
@@ -358,13 +361,13 @@ class BroadcastMod(loader.Module):
                 messages = data.get("messages", [])
                 if not messages:
                     continue
-                current_index = data["chats"][chat_id] % len(messages)
+                current_index = data["chats"][chat_id]
+
                 message_data = messages[current_index]
                 main_message = await self.client.get_messages(
                     message_data.get("chat_id"), ids=message_data.get("message_id")
                 )
                 if main_message:
-
                     if main_message.media:
                         await self.client.send_file(
                             int(chat_id),
