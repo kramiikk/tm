@@ -2,10 +2,13 @@ import asyncio
 import random
 from typing import Dict, List
 from contextlib import suppress
+from itertools import cycle
 
 from telethon.tl.types import Message
+from telethon.errors.rpcerrorlist import FloodWaitError
 
 from .. import loader, utils
+from ratelimit import limits, sleep_and_retry
 
 
 @loader.tds
@@ -20,6 +23,9 @@ class BroadcastMod(loader.Module):
         self.broadcast: Dict = {}
         self.broadcasting = False
         self.wat = False
+        self._send_message_to_chat = limits(calls=13, period=7)(
+            self._send_message_to_chat
+        )
 
     async def client_ready(self, client, db):
         """Module initialization when the client starts."""
@@ -193,19 +199,53 @@ class BroadcastMod(loader.Module):
             await self._process_message(message)
 
     async def broadcast_loop(self):
-        """Постоянно рассылает сообщения в чаты с заданными интервалами."""
+        """Main broadcast loop."""
         while True:
             try:
                 if not self.broadcasting:
                     self.broadcasting = True
-
-                    for code_name, data in self.broadcast.get("code_chats", {}).items():
-                        frequency = data.get("frequency", 0)
-
-                        if random.random() < frequency:
-                            await self._send_message_to_chats(code_name)
+                    tasks = [
+                        self._send_messages_for_code(code_name)
+                        for code_name in self.broadcast.get("code_chats", {})
+                    ]
+                    await asyncio.gather(*tasks)
             finally:
                 self.broadcasting = False
+            await asyncio.sleep(random.uniform(1, 13))
+
+    @sleep_and_retry
+    async def _send_messages_for_code(self, code_name: str):
+        """Send messages for a specific code concurrently with random delays."""
+        data = self.broadcast.get("code_chats", {}).get(code_name)
+        if not data:
+            return
+        chat_ids = list(data.get("chats", {}).keys())
+        random.shuffle(chat_ids)
+        frequency = data.get("frequency", 0)
+
+        for chat_id in chat_ids:
+            try:
+                await self._send_message_to_chat(code_name, chat_id, data)
+                await asyncio.sleep(random.uniform(1, 3) / frequency)
+            except FloodWaitError as e:
+                await asyncio.sleep(e.seconds + 720)
+
+    async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
+        """Send a message to a specific chat."""
+        messages = cycle(data.get("messages", []))
+        message_data = next(messages)
+
+        with suppress(Exception):
+            main_message = await self.client.get_messages(
+                message_data.get("chat_id"), ids=message_data.get("message_id")
+            )
+            if main_message:
+                if main_message.media:
+                    await self.client.send_file(
+                        chat_id, main_message.media, caption=main_message.text
+                    )
+                else:
+                    await self.client.send_message(chat_id, main_message.text)
             await asyncio.sleep(random.uniform(1, 3))
 
     async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
@@ -348,35 +388,3 @@ class BroadcastMod(loader.Module):
         for code_name in self.broadcast.get("code_chats", {}):
             if code_name in message.text:
                 await self._update_chat_in_broadcast(code_name, message.chat_id)
-
-    async def _send_message_to_chats(self, code_name: str):
-        """Broadcast a message to chats."""
-        data = self.broadcast.get("code_chats", {}).get(code_name)
-        if not data:
-            return
-        chat_ids = list(data.get("chats", {}).keys())
-        random.shuffle(chat_ids)
-
-        for chat_id in chat_ids:
-            with suppress(Exception):
-                messages = data.get("messages", [])
-                if not messages:
-                    continue
-                current_index = data["chats"][chat_id]
-
-                message_data = messages[current_index]
-                main_message = await self.client.get_messages(
-                    message_data.get("chat_id"), ids=message_data.get("message_id")
-                )
-                if main_message:
-                    if main_message.media:
-                        await self.client.send_file(
-                            int(chat_id),
-                            main_message.media,
-                            caption=main_message.text,
-                        )
-                    else:
-                        await self.client.send_message(int(chat_id), main_message.text)
-                    data["chats"][chat_id] = (current_index + 1) % len(messages)
-                    self.db.set("broadcast", "Broadcast", self.broadcast)
-                await asyncio.sleep(random.uniform(3, 13))
