@@ -30,9 +30,44 @@ class BroadcastMod(loader.Module):
             if msg.message and msg.message.isdigit()
         ]
 
-        # Start the broadcast loop in a separate task to prevent blocking
-
         asyncio.create_task(self.broadcast_loop())
+
+    async def broadcast_loop(self):
+        """Main broadcast loop."""
+        while True:
+            with suppress(Exception):
+                for code_name, code_data in self.broadcast.get(
+                    "code_chats", {}
+                ).items():
+                    min_minutes, max_minutes = code_data.get("interval", (10, 13))
+                    chat_ids = list(code_data.get("chats", {}).keys())
+                    random.shuffle(chat_ids)
+
+                    for chat_id in chat_ids:
+                        asyncio.create_task(
+                            self._send_message_to_chat(code_name, chat_id, code_data)
+                        )
+                    interval = random.uniform(min_minutes * 60, max_minutes * 60)
+                    await asyncio.sleep(interval)
+
+    async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
+        """Send a message to a specific chat."""
+        await asyncio.sleep(random.uniform(3, 5))
+        messages = cycle(data.get("messages", []))
+        message_data = next(messages)
+
+        with suppress(Exception):
+            main_message = await self.client.get_messages(
+                message_data.get("chat_id"), ids=message_data.get("message_id")
+            )
+            if main_message:
+                with suppress(Exception):
+                    if main_message.media:
+                        await self.client.send_file(
+                            chat_id, main_message.media, caption=main_message.text
+                        )
+                    else:
+                        await self.client.send_message(chat_id, main_message.text)
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
@@ -178,40 +213,6 @@ class BroadcastMod(loader.Module):
             for code_name in self.broadcast.get("code_chats", {}):
                 if code_name in message.text:
                     await self._update_chat_in_broadcast(code_name, message.chat_id)
-
-    async def broadcast_loop(self):
-        """Main broadcast loop."""
-        while True:
-            for code_name, code_data in self.broadcast.get("code_chats", {}).items():
-                min_minutes, max_minutes = code_data.get("interval", (10, 13))
-                chat_ids = list(code_data.get("chats", {}).keys())
-                random.shuffle(chat_ids)
-
-                for chat_id in chat_ids:
-                    asyncio.create_task(
-                        self._send_message_to_chat(code_name, chat_id, code_data)
-                    )
-                interval = random.uniform(min_minutes * 60, max_minutes * 60)
-                await asyncio.sleep(interval)
-
-    async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
-        """Send a message to a specific chat."""
-        await asyncio.sleep(random.uniform(3, 5))
-        messages = cycle(data.get("messages", []))
-        message_data = next(messages)
-
-        with suppress(Exception):
-            main_message = await self.client.get_messages(
-                message_data.get("chat_id"), ids=message_data.get("message_id")
-            )
-            if main_message:
-                with suppress(Exception):
-                    if main_message.media:
-                        await self.client.send_file(
-                            chat_id, main_message.media, caption=main_message.text
-                        )
-                    else:
-                        await self.client.send_message(chat_id, main_message.text)
 
     async def _message_handler(self, message: Message, command: str):
         """Handles commands related to messages in a broadcast code (addmsg, delmsg)."""
