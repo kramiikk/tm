@@ -1,6 +1,5 @@
 import asyncio
 import random
-import datetime
 from typing import Dict, List
 from contextlib import suppress
 from itertools import cycle
@@ -47,9 +46,13 @@ class BroadcastMod(loader.Module):
         """
         Add/remove a chat from the broadcast list.
 
-        .chat <code_name> <chat_id>
+        .chat <code_name>
         """
-        await self._broadcast_handler(message, utils.get_args(message))
+        args = utils.get_args(message)
+        if len(args) != 1:
+            return await utils.answer(message, "Specify the code.")
+        code_name = args[0]
+        await self._update_chat_in_broadcast(code_name, message.chat_id)
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
@@ -67,36 +70,19 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def setcodecmd(self, message: Message):
         """
-        Create a broadcast code, set a message for it and set frequency.
+        Create a broadcast code and set a message for it.
 
-        .setcode <code_name> <frequency> (reply to a message)
+        .setcode <code_name> (reply to a message)
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
-        if len(args) != 2 or not reply:
+        if len(args) != 1 or not reply:
             return await utils.answer(
                 message,
-                "Reply to a message with .setcode <code_name> <frequency>",
+                "Reply to a message with .setcode <code_name>",
             )
-        code_name, frequency_str = args
-        try:
-            frequency = float(frequency_str)
-            if not 0 <= frequency <= 1:
-                raise ValueError
-        except ValueError:
-            return await utils.answer(
-                message, "Frequency must be a number between 0 and 1."
-            )
-        await self._set_code(message, code_name, reply, frequency)
-
-    @loader.unrestricted
-    async def setfreqcmd(self, message: Message):
-        """
-        Set the frequency for a broadcast code.
-
-        .setfreq <code_name> <frequency>
-        """
-        await self._broadcast_handler(message, utils.get_args(message))
+        code_name = args[0]
+        await self._set_code(message, code_name, reply)
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
@@ -149,76 +135,23 @@ class BroadcastMod(loader.Module):
     async def broadcast_loop(self):
         """Main broadcast loop."""
         while True:
-            start_time = datetime.datetime.now()
-            try:
-                tasks = [
-                    self._send_messages_for_code(code_name)
-                    for code_name in self.broadcast.get("code_chats", {})
-                ]
-                await asyncio.gather(*tasks)
-            finally:
-                end_time = datetime.datetime.now()
-                execution_time = (end_time - start_time).total_seconds()
-                sleep_duration = max(0, 180 - execution_time)
-                await asyncio.sleep(sleep_duration)
-
-    async def _broadcast_handler(self, message: Message, args: List[str]):
-        """Handles commands related to broadcast codes (chat_id, frequency)."""
-        if len(args) != 2:
-            return await utils.answer(message, "Specify the code and command.")
-        code_name, arg2 = args
-        if code_name not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' not found.")
-        if args[0] == "chat_id":
-            try:
-                chat_id = int(arg2)
-            except ValueError:
-                return await utils.answer(message, "Invalid chat ID.")
-            await self._update_chat_in_broadcast(code_name, chat_id)
-        elif args[0] == "frequency":
-            try:
-                frequency = float(arg2)
-                if not 0 <= frequency <= 1:
-                    raise ValueError
-            except ValueError:
-                return await utils.answer(
-                    message, "Frequency must be a number between 0 and 1."
-                )
-            await self._set_frequency(message, code_name, frequency)
-
-    async def _message_handler(self, message: Message, args: List[str]):
-        """Handles commands related to messages in a broadcast code (addmsg, delmsg)."""
-        reply = await message.get_reply_message()
-        if len(args) != 1 or not reply:
-            return await utils.answer(
-                message, "Reply to a message with .<command> <code_name>"
-            )
-        code_name = args[0]
-        if code_name not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' not found.")
-        if args[0] == "addmsg":
-            await self._add_message_to_code(message, code_name, reply)
-        elif args[0] == "delmsg":
-            await self._delete_message_from_code(message, code_name, reply)
+            for code_name in self.broadcast.get("code_chats", {}).copy():
+                await self._send_messages_for_code(code_name)
+            await asyncio.sleep(random.uniform(60, 180))
 
     async def _send_messages_for_code(self, code_name: str):
-        """Send messages for a specific code concurrently with random delays."""
+        """Send messages for a specific code concurrently."""
         data = self.broadcast.get("code_chats", {}).get(code_name)
         if not data:
             return
         chat_ids = list(data.get("chats", {}).keys())
         random.shuffle(chat_ids)
-        frequency = data.get("frequency", 0)
 
         async def send_message(chat_id):
             """Sends a message without flood control."""
             await self._send_message_to_chat(code_name, chat_id, data)
 
-        tasks = [
-            send_message(chat_id)
-            for chat_id in chat_ids
-            if random.random() <= frequency
-        ]
+        tasks = [send_message(chat_id) for chat_id in chat_ids]
         await asyncio.gather(*tasks)
 
     async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
@@ -239,6 +172,21 @@ class BroadcastMod(loader.Module):
                     else:
                         await self.client.send_message(chat_id, main_message.text)
             await asyncio.sleep(random.uniform(3, 5))
+
+    async def _message_handler(self, message: Message, args: List[str]):
+        """Handles commands related to messages in a broadcast code (addmsg, delmsg)."""
+        reply = await message.get_reply_message()
+        if len(args) != 1 or not reply:
+            return await utils.answer(
+                message, "Reply to a message with .<command> <code_name>"
+            )
+        code_name = args[0]
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        if args[0] == "addmsg":
+            await self._add_message_to_code(message, code_name, reply)
+        elif args[0] == "delmsg":
+            await self._delete_message_from_code(message, code_name, reply)
 
     async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
         """Add/remove a chat from the broadcast list by code name."""
@@ -272,7 +220,6 @@ class BroadcastMod(loader.Module):
         message: Message,
         code_name: str,
         reply: Message,
-        frequency: float,
     ):
         """Create a broadcast code and set a message for it."""
         if code_name in self.broadcast.get("code_chats", {}):
@@ -285,20 +232,9 @@ class BroadcastMod(loader.Module):
                     "message_id": reply.id,
                 }
             ],
-            "frequency": frequency,
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(message, f"Code '{code_name}' set.")
-
-    async def _set_frequency(self, message: Message, code_name: str, frequency: float):
-        """Set the frequency for a broadcast code."""
-        if code_name not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' not found.")
-        self.broadcast["code_chats"][code_name]["frequency"] = frequency
-        self.db.set("broadcast", "Broadcast", self.broadcast)
-        await utils.answer(
-            message, f"Frequency for code '{code_name}' set to {frequency:.2f}."
-        )
 
     async def _add_message_to_code(
         self, message: Message, code_name: str, reply: Message
@@ -353,8 +289,7 @@ class BroadcastMod(loader.Module):
             chat_list = ", ".join(
                 str(chat_id) for chat_id in data.get("chats", {}).keys()
             )
-            frequency = data.get("frequency", 0)
-            text += f"- `{code_name}`: {chat_list or '(empty)'} - {frequency:.2f}\n"
+            text += f"- `{code_name}`: {chat_list or '(empty)'}\n"
         await utils.answer(message, text)
 
     async def _show_message_list(self, message: Message, code_name: str):
