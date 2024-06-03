@@ -53,7 +53,22 @@ class BroadcastMod(loader.Module):
         if len(args) != 1:
             return await utils.answer(message, "Specify the code.")
         code_name = args[0]
-        await self._update_chat_in_broadcast(code_name, message.chat_id)
+        """Add/remove a chat from the broadcast list by code name."""
+        chats = (
+            self.broadcast.setdefault("code_chats", {})
+            .setdefault(code_name, {})
+            .get("chats", {})
+        )
+        if message.chat_id in chats:
+            del chats[message.chat_id]
+            action = "removed"
+        else:
+            chats[message.chat_id] = 0
+            action = "added"
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        await self.client.send_message(
+            "me", f"Chat {message.chat_id} {action} for '{code_name}'."
+        )
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
@@ -66,7 +81,12 @@ class BroadcastMod(loader.Module):
         if len(args) != 1:
             return await utils.answer(message, "Specify the code.")
         code_name = args[0]
-        await self._delete_code(message, code_name)
+        if code_name in self.broadcast.get("code_chats", {}):
+            del self.broadcast["code_chats"][code_name]
+            self.db.set("broadcast", "Broadcast", self.broadcast)
+            await utils.answer(message, f"Code '{code_name}' deleted.")
+        else:
+            await utils.answer(message, f"Code '{code_name}' not found.")
 
     @loader.unrestricted
     async def setcodecmd(self, message: Message):
@@ -93,7 +113,7 @@ class BroadcastMod(loader.Module):
                     "message_id": reply.id,
                 }
             ],
-            "interval": (10, 13),  # Set default interval
+            "interval": (10, 13),
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(message, f"Code '{code_name}' set.")
@@ -152,7 +172,15 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def listcmd(self, message: Message):
         """Show a list of broadcast codes."""
-        await self._show_code_list(message)
+        if not self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, "The code list is empty.")
+        text = "**Broadcast Codes:**\n"
+        for code_name, data in self.broadcast["code_chats"].items():
+            chat_list = ", ".join(
+                str(chat_id) for chat_id in data.get("chats", {}).keys()
+            )
+            text += f"- `{code_name}`: {chat_list or '(empty)'}\n"
+        await utils.answer(message, text)
 
     @loader.unrestricted
     async def listmsgcmd(self, message: Message):
@@ -165,7 +193,17 @@ class BroadcastMod(loader.Module):
         if len(args) != 1:
             return await utils.answer(message, "Specify the code.")
         code_name = args[0]
-        await self._show_message_list(message, code_name)
+        if code_name not in self.broadcast.get("code_chats", {}):
+            return await utils.answer(message, f"Code '{code_name}' not found.")
+        messages = self.broadcast["code_chats"][code_name].get("messages", [])
+        if not messages:
+            return await utils.answer(
+                message, f"There are no messages for code '{code_name}'."
+            )
+        message_text = f"**Messages for code '{code_name}':**\n"
+        for i, m_data in enumerate(messages):
+            message_text += f"{i+1}. {m_data['chat_id']}({m_data['message_id']})\n"
+        await utils.answer(message, message_text)
 
     @loader.unrestricted
     async def watcmd(self, message: Message):
@@ -186,30 +224,24 @@ class BroadcastMod(loader.Module):
             and message.sender_id == self.me.id
             and not message.text.startswith(".")
         ):
-            await self._process_message(message)
+            for code_name in self.broadcast.get("code_chats", {}):
+                if code_name in message.text:
+                    await self._update_chat_in_broadcast(code_name, message.chat_id)
 
     async def broadcast_loop(self):
         """Main broadcast loop."""
         while True:
             for code_name, code_data in self.broadcast.get("code_chats", {}).items():
-                min_minutes, max_minutes = code_data.get(
-                    "interval", (10, 13)
-                )  # Default interval
-                await self._send_messages_for_code(code_name, code_data)
+                min_minutes, max_minutes = code_data.get("interval", (10, 13))
+                chat_ids = list(code_data.get("chats", {}).keys())
+                random.shuffle(chat_ids)
+                tasks = [
+                    self._send_message_to_chat(code_name, chat_id, code_data)
+                    for chat_id in chat_ids
+                ]
+                await asyncio.gather(*tasks)
                 interval = random.uniform(min_minutes * 60, max_minutes * 60)
                 await asyncio.sleep(interval)
-
-    async def _send_messages_for_code(self, code_name: str, code_data: Dict):
-        """Send messages for a specific code concurrently."""
-        chat_ids = list(code_data.get("chats", {}).keys())
-        random.shuffle(chat_ids)
-
-        tasks = [
-            self._send_message_to_chat(code_name, chat_id, code_data)
-            for chat_id in chat_ids
-        ]
-
-        await asyncio.gather(*tasks)
 
     async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
         """Send a message to a specific chat."""
@@ -244,33 +276,6 @@ class BroadcastMod(loader.Module):
             await self._add_message_to_code(message, code_name, reply)
         elif args[0] == "delmsg":
             await self._delete_message_from_code(message, code_name, reply)
-
-    async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
-        """Add/remove a chat from the broadcast list by code name."""
-        chats = (
-            self.broadcast.setdefault("code_chats", {})
-            .setdefault(code_name, {})
-            .get("chats", {})
-        )
-        if chat_id in chats:
-            del chats[chat_id]
-            action = "removed"
-        else:
-            chats[chat_id] = 0
-            action = "added"
-        self.db.set("broadcast", "Broadcast", self.broadcast)
-        await self.client.send_message(
-            "me", f"Chat {chat_id} {action} for '{code_name}'."
-        )
-
-    async def _delete_code(self, message: Message, code_name: str):
-        """Delete a broadcast code."""
-        if code_name in self.broadcast.get("code_chats", {}):
-            del self.broadcast["code_chats"][code_name]
-            self.db.set("broadcast", "Broadcast", self.broadcast)
-            await utils.answer(message, f"Code '{code_name}' deleted.")
-        else:
-            await utils.answer(message, f"Code '{code_name}' not found.")
 
     async def _add_message_to_code(
         self, message: Message, code_name: str, reply: Message
@@ -315,35 +320,3 @@ class BroadcastMod(loader.Module):
             await utils.answer(
                 message, f"This message is not in the code '{code_name}'."
             )
-
-    async def _show_code_list(self, message: Message):
-        """Show a list of broadcast codes."""
-        if not self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, "The code list is empty.")
-        text = "**Broadcast Codes:**\n"
-        for code_name, data in self.broadcast["code_chats"].items():
-            chat_list = ", ".join(
-                str(chat_id) for chat_id in data.get("chats", {}).keys()
-            )
-            text += f"- `{code_name}`: {chat_list or '(empty)'}\n"
-        await utils.answer(message, text)
-
-    async def _show_message_list(self, message: Message, code_name: str):
-        """Show a list of messages for a broadcast code."""
-        if code_name not in self.broadcast.get("code_chats", {}):
-            return await utils.answer(message, f"Code '{code_name}' not found.")
-        messages = self.broadcast["code_chats"][code_name].get("messages", [])
-        if not messages:
-            return await utils.answer(
-                message, f"There are no messages for code '{code_name}'."
-            )
-        message_text = f"**Messages for code '{code_name}':**\n"
-        for i, m_data in enumerate(messages):
-            message_text += f"{i+1}. {m_data['chat_id']}({m_data['message_id']})\n"
-        await utils.answer(message, message_text)
-
-    async def _process_message(self, message: Message):
-        """Message processing for adding/removing chats from broadcasts."""
-        for code_name in self.broadcast.get("code_chats", {}):
-            if code_name in message.text:
-                await self._update_chat_in_broadcast(code_name, message.chat_id)
