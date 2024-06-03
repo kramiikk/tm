@@ -201,17 +201,19 @@ class BroadcastMod(loader.Module):
     async def broadcast_loop(self):
         """Main broadcast loop."""
         while True:
+            if self.broadcasting:
+                await asyncio.sleep(96)
+                continue
             try:
-                if not self.broadcasting:
-                    self.broadcasting = True
-                    tasks = [
-                        self._send_messages_for_code(code_name)
-                        for code_name in self.broadcast.get("code_chats", {})
-                    ]
-                    await asyncio.gather(*tasks)
+                self.broadcasting = True
+                tasks = [
+                    self._send_messages_for_code(code_name)
+                    for code_name in self.broadcast.get("code_chats", {})
+                ]
+                await asyncio.gather(*tasks)
             finally:
                 self.broadcasting = False
-            await asyncio.sleep(random.uniform(1, 13))
+            await asyncio.sleep(random.uniform(13, 96))
 
     @sleep_and_retry
     async def _send_messages_for_code(self, code_name: str):
@@ -225,10 +227,10 @@ class BroadcastMod(loader.Module):
 
         for chat_id in chat_ids:
             try:
+                await asyncio.sleep(random.uniform(5, 10) / (frequency or 1))
                 await self._send_message_to_chat(code_name, chat_id, data)
-                await asyncio.sleep(random.uniform(1, 3) / frequency)
             except FloodWaitError as e:
-                await asyncio.sleep(e.seconds + 720)
+                await asyncio.sleep(e.seconds + 180)
 
     async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
         """Send a message to a specific chat."""
@@ -246,7 +248,7 @@ class BroadcastMod(loader.Module):
                     )
                 else:
                     await self.client.send_message(chat_id, main_message.text)
-            await asyncio.sleep(random.uniform(1, 3))
+            await asyncio.sleep(random.uniform(3, 5))
 
     async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
         """Add/remove a chat from the broadcast list by code name."""
