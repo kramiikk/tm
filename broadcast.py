@@ -7,7 +7,6 @@ from itertools import cycle
 from telethon.tl.types import Message
 from .. import loader, utils
 
-
 @loader.tds
 class BroadcastMod(loader.Module):
     """Module for broadcasting messages to chats."""
@@ -45,16 +44,19 @@ class BroadcastMod(loader.Module):
 
                     for chat_id in chat_ids:
                         asyncio.create_task(
-                            self._send_message_to_chat(code_name, chat_id, code_data)
+                            self._send_message_to_chat(chat_id, code_data)
                         )
                     interval = random.uniform(min_minutes * 60, max_minutes * 60)
                     await asyncio.sleep(interval)
 
-    async def _send_message_to_chat(self, code_name: str, chat_id: int, data: Dict):
+    async def _send_message_to_chat(self, chat_id: int, data: Dict):
         """Send a message to a specific chat."""
         await asyncio.sleep(random.uniform(3, 5))
         messages = cycle(data.get("messages", []))
-        message_data = next(messages)
+        try:
+            message_data = next(messages)
+        except StopIteration:
+            return
 
         with suppress(Exception):
             main_message = await self.client.get_messages(
