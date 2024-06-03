@@ -7,6 +7,7 @@ from itertools import cycle
 from telethon.tl.types import Message
 from .. import loader, utils
 
+
 @loader.tds
 class BroadcastMod(loader.Module):
     """Module for broadcasting messages to chats."""
@@ -22,7 +23,9 @@ class BroadcastMod(loader.Module):
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
 
-        entity = await self.client.get_entity("iddisihh")
+        entity = await self.client.get_entity(
+            "iddisihh"
+        )  # Replace with your actual entity
         self.allowed_ids = [
             int(msg.message)
             for msg in await self.client.get_messages(entity, limit=None)
@@ -57,7 +60,6 @@ class BroadcastMod(loader.Module):
             message_data = next(messages)
         except StopIteration:
             return
-
         with suppress(Exception):
             main_message = await self.client.get_messages(
                 message_data.get("chat_id"), ids=message_data.get("message_id")
@@ -87,7 +89,7 @@ class BroadcastMod(loader.Module):
         if action == "removed":
             del chats[message.chat_id]
         else:
-            chats[message.chat_id] = 0
+            chats[message.chat_id] = 0  # Placeholder value
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await self.client.send_message(
             "me", f"Chat {message.chat_id} {action} for '{code_name}'."
@@ -266,7 +268,7 @@ class BroadcastMod(loader.Module):
         """Update chat in the broadcast."""
         chats = self.broadcast["code_chats"][code_name].get("chats", {})
         if chat_id not in chats:
-            chats[chat_id] = 0
+            chats[chat_id] = 0  # Placeholder value
             self.db.set("broadcast", "Broadcast", self.broadcast)
             await self.client.send_message(
                 "me", f"Chat {chat_id} added to '{code_name}' for broadcasting."
