@@ -48,7 +48,7 @@ class BroadcastMod(loader.Module):
         if action == "removed":
             del chats[message.chat_id]
         else:
-            chats[message.chat_id] = 0  # Placeholder value
+            chats[message.chat_id] = 0
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await self.client.send_message(
             "me", f"Chat {message.chat_id} {action} for '{code_name}'."
