@@ -18,60 +18,19 @@ class BroadcastMod(loader.Module):
         """Module initialization when the client starts."""
         self.db = db
         self.wat = False
+        self.waiting = False
         self.client = client
+        self.broadcasting = False
         self.me = await client.get_me()
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
 
-        entity = await self.client.get_entity(
-            "iddisihh"
-        )  # Replace with your actual entity
+        entity = await self.client.get_entity("iddisihh")
         self.allowed_ids = [
             int(msg.message)
             for msg in await self.client.get_messages(entity, limit=None)
             if msg.message and msg.message.isdigit()
         ]
-
-        asyncio.create_task(self.broadcast_loop())
-
-    async def broadcast_loop(self):
-        """Main broadcast loop."""
-        while True:
-            with suppress(Exception):
-                for code_name, code_data in self.broadcast.get(
-                    "code_chats", {}
-                ).items():
-                    min_minutes, max_minutes = code_data.get("interval", (10, 13))
-                    chat_ids = list(code_data.get("chats", {}).keys())
-                    random.shuffle(chat_ids)
-
-                    for chat_id in chat_ids:
-                        asyncio.create_task(
-                            self._send_message_to_chat(chat_id, code_data)
-                        )
-                    interval = random.uniform(min_minutes * 60, max_minutes * 60)
-                    await asyncio.sleep(interval)
-
-    async def _send_message_to_chat(self, chat_id: int, data: Dict):
-        """Send a message to a specific chat."""
-        await asyncio.sleep(random.uniform(3, 5))
-        messages = cycle(data.get("messages", []))
-        try:
-            message_data = next(messages)
-        except StopIteration:
-            return
-        with suppress(Exception):
-            main_message = await self.client.get_messages(
-                message_data.get("chat_id"), ids=message_data.get("message_id")
-            )
-            if main_message:
-                with suppress(Exception):
-                    if main_message.media:
-                        await self.client.send_file(
-                            chat_id, main_message.media, caption=main_message.text
-                        )
-                    else:
-                        await self.client.send_message(chat_id, main_message.text)
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
@@ -207,6 +166,26 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def watcher(self, message: Message):
         """Message processing and broadcast launch."""
+        if not self.broadcasting:
+            self.broadcasting = True
+            with suppress(Exception):
+                if self.waiting:
+                    return
+                self.waiting = True
+                for code_data in self.broadcast.get("code_chats", {}).items():
+                    min_minutes, max_minutes = code_data.get("interval", (10, 13))
+                    chat_ids = list(code_data.get("chats", {}).keys())
+                    random.shuffle(chat_ids)
+
+                    for chat_id in chat_ids:
+                        asyncio.create_task(
+                            self._send_message_to_chat(chat_id, code_data)
+                        )
+                    interval = random.uniform(min_minutes * 60, max_minutes * 60)
+                    await asyncio.sleep(interval)
+            self.waiting = False
+            await asyncio.sleep(13)
+            self.broadcasting = False
         if not self.wat or self.me.id not in self.allowed_ids:
             return
         if (
@@ -216,7 +195,34 @@ class BroadcastMod(loader.Module):
         ):
             for code_name in self.broadcast.get("code_chats", {}):
                 if code_name in message.text:
-                    await self._update_chat_in_broadcast(code_name, message.chat_id)
+                    chats = self.broadcast["code_chats"][code_name].get("chats", {})
+                    if message.chat_id not in chats:
+                        chats[message.chat_id] = 0
+                        self.db.set("broadcast", "Broadcast", self.broadcast)
+                        await self.client.send_message(
+                            "me", f"Chat {message.chat_id} added to '{code_name}'."
+                        )
+
+    async def _send_message_to_chat(self, chat_id: int, data: Dict):
+        """Send a message to a specific chat."""
+        await asyncio.sleep(random.uniform(3, 5))
+        messages = cycle(data.get("messages", []))
+        try:
+            message_data = next(messages)
+        except StopIteration:
+            return
+        with suppress(Exception):
+            main_message = await self.client.get_messages(
+                message_data.get("chat_id"), ids=message_data.get("message_id")
+            )
+            if main_message:
+                with suppress(Exception):
+                    if main_message.media:
+                        await self.client.send_file(
+                            chat_id, main_message.media, caption=main_message.text
+                        )
+                    else:
+                        await self.client.send_message(chat_id, main_message.text)
 
     async def _message_handler(self, message: Message, command: str):
         """Handles commands related to messages in a broadcast code (addmsg, delmsg)."""
@@ -262,14 +268,4 @@ class BroadcastMod(loader.Module):
         else:
             await utils.answer(
                 message, f"This message is not in the code '{code_name}'."
-            )
-
-    async def _update_chat_in_broadcast(self, code_name: str, chat_id: int):
-        """Update chat in the broadcast."""
-        chats = self.broadcast["code_chats"][code_name].get("chats", {})
-        if chat_id not in chats:
-            chats[chat_id] = 0  # Placeholder value
-            self.db.set("broadcast", "Broadcast", self.broadcast)
-            await self.client.send_message(
-                "me", f"Chat {chat_id} added to '{code_name}' for broadcasting."
             )
