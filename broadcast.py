@@ -28,6 +28,7 @@ class BroadcastMod(loader.Module):
             for msg in await self.client.get_messages(entity, limit=None)
             if msg.message and msg.message.isdigit()
         ]
+        await self._broadcast_loop()
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
@@ -173,7 +174,7 @@ class BroadcastMod(loader.Module):
 
     async def _send_messages_for_code(self, code_name: str, messages: List[Dict]):
         """Send."""
-        for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
+        for chat_id in list(self.broadcast["code_chats"][code_name]["chats"].keys()):
             with suppress(Exception):
                 message_data = random.choice(messages)
                 main_message = await self.client.get_messages(
