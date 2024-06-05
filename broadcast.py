@@ -32,9 +32,7 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
-        """
-        Add/remove a chat from the broadcast list using .chat <code_name>
-        """
+        """Add/remove a chat from the broadcast list using .chat <code_name>"""
         if not self.wat:
             args = utils.get_args(message)
             if len(args) != 1:
@@ -128,7 +126,7 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
             message,
-            f"Interval for '{code_name}' set to between {min_minutes} and {max_minutes} minutes.",
+            f"'{code_name}' set to {min_minutes} and {max_minutes} minutes.",
         )
 
     @loader.unrestricted
@@ -266,24 +264,22 @@ class BroadcastMod(loader.Module):
         )
 
     async def watcher(self, message: Message):
-        """Automatically adds or removes chats from broadcast lists based on sent messages."""
-        if self.wat and not message.text.startswith("."):
-            for code_name in self.broadcast["code_chats"]:
-                if code_name in message.text:
-                    if (
+        """Automatically adds or removes chats."""
+        if not self.wat or message.text.startswith("."):
+            return
+        for code_name in self.broadcast["code_chats"]:
+            if code_name in message.text:
+                if message.chat_id in self.broadcast["code_chats"][code_name]["chats"]:
+                    del self.broadcast["code_chats"][code_name]["chats"][
                         message.chat_id
-                        in self.broadcast["code_chats"][code_name]["chats"]
-                    ):
-                        del self.broadcast["code_chats"][code_name]["chats"][
-                            message.chat_id
-                        ]
-                        action = "removed from"
-                    else:
-                        self.broadcast["code_chats"][code_name]["chats"][
-                            message.chat_id
-                        ] = 0
-                        action = "added to"
-                    self.db.set("broadcast", "Broadcast", self.broadcast)
-                    await self.client.send_message(
-                        "me", f"Chat {message.chat_id} {action} '{code_name}'."
-                    )
+                    ]
+                    action = "removed from"
+                else:
+                    self.broadcast["code_chats"][code_name]["chats"][
+                        message.chat_id
+                    ] = 0
+                    action = "added to"
+                self.db.set("broadcast", "Broadcast", self.broadcast)
+                await self.client.send_message(
+                    "me", f"Chat {message.chat_id} {action} '{code_name}'."
+                )
