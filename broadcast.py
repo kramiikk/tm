@@ -238,10 +238,10 @@ class BroadcastMod(loader.Module):
             return
         self.broadcasting = True
         for code_name in list(self.broadcast["code_chats"].keys()):
-            data = self.broadcast["code_chats"][code_name]
-            min_minutes, max_minutes = data.get("interval", (9, 13))
-            await asyncio.sleep(random.uniform(min_minutes * 60, max_minutes * 60))
             try:
+                data = self.broadcast["code_chats"][code_name]
+                mins, maxs = data.get("interval", (9, 13))
+                await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
                 await self._send_messages(code_name, data["messages"])
             except Exception:
                 continue
@@ -250,12 +250,10 @@ class BroadcastMod(loader.Module):
     async def _send_messages(self, code_name: str, messages: List[Dict]):
         """Send messages."""
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
-            await asyncio.sleep(random.uniform(3, 9))
             message_data = random.choice(messages)
             main_message = await self.client.get_messages(
                 message_data["chat_id"], ids=message_data["message_id"]
             )
-
             if main_message is None:
                 continue
             if main_message.media:
@@ -264,3 +262,4 @@ class BroadcastMod(loader.Module):
                 )
             else:
                 await self.client.send_message(chat_id, main_message.text)
+            await asyncio.sleep(random.uniform(3, 9))
