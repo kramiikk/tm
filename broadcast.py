@@ -257,14 +257,12 @@ class BroadcastMod(loader.Module):
             return
         for code_name in list(self.broadcast["code_chats"].keys()):
             if code_name in message.text:
-                chats = self.broadcast["code_chats"][code_name]["chats"][
-                    message.chat_id
-                ]
+                chats = self.broadcast["code_chats"][code_name]["chats"]
                 if message.chat_id in chats:
-                    del chats
+                    del chats[message.chat_id]
                     action = "removed from"
                 else:
-                    chats = 0
+                    chats[message.chat_id] = 0
                     action = "added to"
                 self.db.set("broadcast", "Broadcast", self.broadcast)
                 await self.client.send_message(
