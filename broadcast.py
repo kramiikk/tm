@@ -2,7 +2,6 @@ import asyncio
 import random
 from typing import Dict, List
 from contextlib import suppress
-from itertools import cycle
 
 from telethon.tl.types import Message
 from .. import loader, utils
@@ -19,8 +18,8 @@ class BroadcastMod(loader.Module):
         self.db = db
         self.client = client
         self.me = await client.get_me()
-        self.wat = False  # Watcher status
-        self.broadcasting = False  # Broadcasting status
+        self.wat = False
+        self.broadcasting = False
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
 
@@ -35,7 +34,6 @@ class BroadcastMod(loader.Module):
     async def chatcmd(self, message: Message):
         """
         Add/remove a chat from the broadcast list using .chat <code_name>
-        This command is now used when 'wat' is disabled.
         """
         if not self.wat:
             args = utils.get_args(message)
@@ -47,7 +45,7 @@ class BroadcastMod(loader.Module):
                 self.broadcast["code_chats"][code_name] = {
                     "chats": {},
                     "messages": [],
-                    "interval": (10, 13),  # Default interval
+                    "interval": (10, 13),
                 }
             chats = self.broadcast["code_chats"][code_name]["chats"]
             action = "removed" if message.chat_id in chats else "added"
@@ -60,10 +58,7 @@ class BroadcastMod(loader.Module):
                 message, f"Chat {message.chat_id} {action} for '{code_name}'."
             )
         else:
-            await utils.answer(
-                message,
-                "Watcher mode is enabled. Chats are added automatically when you send a message containing the code.",
-            )
+            await utils.answer(message, "Watcher mode is enabled.")
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
@@ -198,25 +193,23 @@ class BroadcastMod(loader.Module):
                 await asyncio.sleep(interval)
 
     async def _send_messages_for_code(self, code_name: str, messages: List[Dict]):
-        """Sends messages for a specific broadcast code."""
+        """Send."""
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
-            try:
+            with suppress(Exception):
                 message_data = random.choice(messages)
                 main_message = await self.client.get_messages(
                     message_data["chat_id"], ids=message_data["message_id"]
                 )
-                if main_message:
-                    if main_message.media:
-                        await self.client.send_file(
-                            chat_id,
-                            main_message.media,
-                            caption=main_message.text,
-                        )
-                    else:
-                        await self.client.send_message(chat_id, main_message.text)
-                await asyncio.sleep(random.uniform(2, 5))  # Delay between messages
-            except Exception as e:
-                print(f"Error sending message: {e}")
+
+                if main_message is None:
+                    continue
+                if main_message.media:
+                    await self.client.send_file(
+                        chat_id, main_message.media, caption=main_message.text
+                    )
+                else:
+                    await self.client.send_message(chat_id, main_message.text)
+                await asyncio.sleep(random.uniform(3, 9))
 
     async def _message_handler(self, message: Message, command: str):
         """Handles commands related to messages in a broadcast code (addmsg, delmsg)."""
@@ -273,18 +266,24 @@ class BroadcastMod(loader.Module):
         )
 
     async def watcher(self, message: Message):
-        """Automatically add chats to broadcast lists based on sent messages."""
+        """Automatically adds or removes chats from broadcast lists based on sent messages."""
         if self.wat and not message.text.startswith("."):
             for code_name in self.broadcast["code_chats"]:
-                if (
-                    code_name in message.text
-                    and message.chat_id
-                    not in self.broadcast["code_chats"][code_name]["chats"]
-                ):
-                    self.broadcast["code_chats"][code_name]["chats"][
+                if code_name in message.text:
+                    if (
                         message.chat_id
-                    ] = 0
-                    self.db.set("broadcast", "Broadcast", self.broadcast)
+                        in self.broadcast["code_chats"][code_name]["chats"]
+                    ):
+                        del self.broadcast["code_chats"][code_name]["chats"][
+                            message.chat_id
+                        ]
+                        action = "removed from"
+                    else:
+                        self.broadcast["code_chats"][code_name]["chats"][
+                            message.chat_id
+                        ] = 0
+                        action = "added to"
+                    await self._update_broadcast_data()
                     await self.client.send_message(
-                        "me", f"Chat {message.chat_id} added to '{code_name}'."
+                        "me", f"Chat {message.chat_id} {action} '{code_name}'."
                     )
