@@ -283,7 +283,7 @@ class BroadcastMod(loader.Module):
                             message.chat_id
                         ] = 0
                         action = "added to"
-                    await self._update_broadcast_data()
+                    self.db.set("broadcast", "Broadcast", self.broadcast)
                     await self.client.send_message(
                         "me", f"Chat {message.chat_id} {action} '{code_name}'."
                     )
