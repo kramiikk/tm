@@ -1,7 +1,6 @@
 import asyncio
 import random
 from typing import Dict, List
-#from contextlib import suppress
 
 from telethon.tl.types import Message
 from .. import loader, utils
@@ -42,7 +41,7 @@ class BroadcastMod(loader.Module):
             self.broadcast["code_chats"][code_name] = {
                 "chats": [],
                 "messages": [],
-                "interval": (10, 13),
+                "interval": (9, 13),
             }
         chats = self.broadcast["code_chats"][code_name]["chats"]
         if message.chat_id in chats:
@@ -83,7 +82,7 @@ class BroadcastMod(loader.Module):
         self.broadcast["code_chats"][code_name] = {
             "chats": [],
             "messages": [{"chat_id": reply.chat_id, "message_id": reply.id}],
-            "interval": (10, 13),
+            "interval": (9, 13),
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(message, f"Code '{code_name}' set.")
@@ -234,22 +233,24 @@ class BroadcastMod(loader.Module):
 
     async def _broadcast_loop(self):
         """Main loop for sending broadcast messages."""
-        await asyncio.sleep(13)
+        await asyncio.sleep(3)
         if self.broadcasting:
             return
         self.broadcasting = True
         for code_name in list(self.broadcast["code_chats"].keys()):
             data = self.broadcast["code_chats"][code_name]
-            min_minutes, max_minutes = data.get("interval", (10, 13))
-            await self._send_messages(code_name, data["messages"])
-            interval = random.uniform(min_minutes * 60, max_minutes * 60)
-            await asyncio.sleep(interval)
+            min_minutes, max_minutes = data.get("interval", (9, 13))
+            await asyncio.sleep(random.uniform(min_minutes * 60, max_minutes * 60))
+            try:
+                await self._send_messages(code_name, data["messages"])
+            except Exception:
+                continue
         self.broadcasting = False
 
     async def _send_messages(self, code_name: str, messages: List[Dict]):
         """Send messages."""
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
-            #with suppress(Exception):
+            await asyncio.sleep(random.uniform(3, 9))
             message_data = random.choice(messages)
             main_message = await self.client.get_messages(
                 message_data["chat_id"], ids=message_data["message_id"]
@@ -263,4 +264,3 @@ class BroadcastMod(loader.Module):
                 )
             else:
                 await self.client.send_message(chat_id, main_message.text)
-            await asyncio.sleep(random.uniform(3, 9))
