@@ -1,7 +1,7 @@
 import asyncio
 import random
 from typing import Dict, List
-from contextlib import suppress
+#from contextlib import suppress
 
 from telethon.tl.types import Message
 from .. import loader, utils
@@ -249,18 +249,18 @@ class BroadcastMod(loader.Module):
     async def _send_messages(self, code_name: str, messages: List[Dict]):
         """Send messages."""
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
-            with suppress(Exception):
-                message_data = random.choice(messages)
-                main_message = await self.client.get_messages(
-                    message_data["chat_id"], ids=message_data["message_id"]
-                )
+            #with suppress(Exception):
+            message_data = random.choice(messages)
+            main_message = await self.client.get_messages(
+                message_data["chat_id"], ids=message_data["message_id"]
+            )
 
-                if main_message is None:
-                    continue
-                if main_message.media:
-                    await self.client.send_file(
-                        chat_id, main_message.media, caption=main_message.text
-                    )
-                else:
-                    await self.client.send_message(chat_id, main_message.text)
-                await asyncio.sleep(random.uniform(3, 9))
+            if main_message is None:
+                continue
+            if main_message.media:
+                await self.client.send_file(
+                    chat_id, main_message.media, caption=main_message.text
+                )
+            else:
+                await self.client.send_message(chat_id, main_message.text)
+            await asyncio.sleep(random.uniform(3, 9))
