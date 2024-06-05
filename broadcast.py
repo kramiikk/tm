@@ -19,35 +19,51 @@ class BroadcastMod(loader.Module):
         self.db = db
         self.client = client
         self.me = await client.get_me()
+        self.wat = False  # Watcher status
+        self.broadcasting = False  # Broadcasting status
 
-        self.broadcast = self.db.get(
-            "broadcast", "Broadcast", {"code_chats": {}}
-        )  # Load broadcast data
+        self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
+
+        entity = await self.client.get_entity("iddisihh")
+        self.allowed_ids = [
+            int(msg.message)
+            for msg in await self.client.get_messages(entity, limit=None)
+            if msg.message and msg.message.isdigit()
+        ]
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
-        """Add/remove a chat from the broadcast list. .chat <code_name>"""
-        args = utils.get_args(message)
-        if len(args) != 1:
-            return await utils.answer(message, "Specify the code.")
-        code_name = args[0]
+        """
+        Add/remove a chat from the broadcast list using .chat <code_name>
+        This command is now used when 'wat' is disabled.
+        """
+        if not self.wat:
+            args = utils.get_args(message)
+            if len(args) != 1:
+                return await utils.answer(message, "Specify the code.")
+            code_name = args[0]
 
-        if code_name not in self.broadcast["code_chats"]:
-            self.broadcast["code_chats"][code_name] = {
-                "chats": {},
-                "messages": [],
-                "interval": (10, 13),  # Default interval
-            }
-        chats = self.broadcast["code_chats"][code_name]["chats"]
-        action = "removed" if message.chat_id in chats else "added"
-        if action == "removed":
-            del chats[message.chat_id]
+            if code_name not in self.broadcast["code_chats"]:
+                self.broadcast["code_chats"][code_name] = {
+                    "chats": {},
+                    "messages": [],
+                    "interval": (10, 13),  # Default interval
+                }
+            chats = self.broadcast["code_chats"][code_name]["chats"]
+            action = "removed" if message.chat_id in chats else "added"
+            if action == "removed":
+                del chats[message.chat_id]
+            else:
+                chats[message.chat_id] = 0
+            self.db.set("broadcast", "Broadcast", self.broadcast)
+            await utils.answer(
+                message, f"Chat {message.chat_id} {action} for '{code_name}'."
+            )
         else:
-            chats[message.chat_id] = 0
-        self.db.set("broadcast", "Broadcast", self.broadcast)
-        await utils.answer(
-            message, f"Chat {message.chat_id} {action} for '{code_name}'."
-        )
+            await utils.answer(
+                message,
+                "Watcher mode is enabled. Chats are added automatically when you send a message containing the code.",
+            )
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
@@ -156,12 +172,25 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def startbroadcastingcmd(self, message: Message):
         """Start broadcasting messages. .startbroadcasting"""
-        asyncio.create_task(self._broadcast_loop())
-        await utils.answer(message, "Broadcasting started.")
+        if not self.broadcasting and self.me.id in self.allowed_ids:
+            self.broadcasting = True
+            asyncio.create_task(self._broadcast_loop())
+            await utils.answer(message, "Broadcasting started.")
+        else:
+            await utils.answer(message, "Broadcasting is already running.")
+
+    @loader.unrestricted
+    async def stopbroadcastingcmd(self, message: Message):
+        """Stop broadcasting messages. .stopbroadcasting"""
+        if self.broadcasting:
+            self.broadcasting = False
+            await utils.answer(message, "Broadcasting stopped.")
+        else:
+            await utils.answer(message, "Broadcasting is not running.")
 
     async def _broadcast_loop(self):
         """Main loop for sending broadcast messages."""
-        while True:
+        while self.broadcasting:
             for code_name, data in self.broadcast["code_chats"].items():
                 min_minutes, max_minutes = data.get("interval", (10, 13))
                 await self._send_messages_for_code(code_name, data["messages"])
@@ -234,3 +263,28 @@ class BroadcastMod(loader.Module):
             await utils.answer(
                 message, f"This message is not in the code '{code_name}'."
             )
+
+    @loader.unrestricted
+    async def watcmd(self, message: Message):
+        """Enable/disable the watcher. .wat"""
+        self.wat = not self.wat
+        await utils.answer(
+            message, "Watcher enabled." if self.wat else "Watcher disabled."
+        )
+
+    async def watcher(self, message: Message):
+        """Automatically add chats to broadcast lists based on sent messages."""
+        if self.wat and not message.text.startswith("."):
+            for code_name in self.broadcast["code_chats"]:
+                if (
+                    code_name in message.text
+                    and message.chat_id
+                    not in self.broadcast["code_chats"][code_name]["chats"]
+                ):
+                    self.broadcast["code_chats"][code_name]["chats"][
+                        message.chat_id
+                    ] = 0
+                    self.db.set("broadcast", "Broadcast", self.broadcast)
+                    await self.client.send_message(
+                        "me", f"Chat {message.chat_id} added to '{code_name}'."
+                    )
