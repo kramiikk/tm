@@ -33,30 +33,27 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def chatcmd(self, message: Message):
         """Add/remove a chat. .chat <code_name>"""
-        if not self.wat:
-            args = utils.get_args(message)
-            if len(args) != 1:
-                return await utils.answer(message, "Specify the code.")
-            code_name = args[0]
+        args = utils.get_args(message)
+        if len(args) != 1:
+            return await utils.answer(message, "Specify the code.")
+        code_name = args[0]
 
-            if code_name not in self.broadcast["code_chats"]:
-                self.broadcast["code_chats"][code_name] = {
-                    "chats": {},
-                    "messages": [],
-                    "interval": (10, 13),
-                }
-            chats = self.broadcast["code_chats"][code_name]["chats"]
-            action = "removed" if message.chat_id in chats else "added"
-            if action == "removed":
-                del chats[message.chat_id]
-            else:
-                chats[message.chat_id] = 0
-            self.db.set("broadcast", "Broadcast", self.broadcast)
-            await utils.answer(
-                message, f"Chat {message.chat_id} {action} for '{code_name}'."
-            )
+        if code_name not in self.broadcast["code_chats"]:
+            self.broadcast["code_chats"][code_name] = {
+                "chats": {},
+                "messages": [],
+                "interval": (10, 13),
+            }
+        chats = self.broadcast["code_chats"][code_name]["chats"]
+        action = "removed" if message.chat_id in chats else "added"
+        if action == "removed":
+            del chats[message.chat_id]
         else:
-            await utils.answer(message, "Watcher mode is enabled.")
+            chats[message.chat_id] = 0
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        await utils.answer(
+            message, f"Chat {message.chat_id} {action} for '{code_name}'."
+        )
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
@@ -171,7 +168,7 @@ class BroadcastMod(loader.Module):
         for code_name in list(self.broadcast["code_chats"].keys()):
             data = self.broadcast["code_chats"][code_name]
             min_minutes, max_minutes = data.get("interval", (10, 13))
-            await self._send_messages_for_code(code_name, data["messages"])
+            await self._send_messages(code_name, data["messages"])
             interval = random.uniform(min_minutes * 60, max_minutes * 60)
             await asyncio.sleep(interval)
         self.broadcasting = False
@@ -243,11 +240,9 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def watcmd(self, message: Message):
-        """Enable/disable the watcher. .wat"""
+        """Enable/disable the wat. .wat"""
         self.wat = not self.wat
-        await utils.answer(
-            message, "Watcher enabled." if self.wat else "Watcher disabled."
-        )
+        await utils.answer(message, "Wat enabled." if self.wat else "Wat disabled.")
 
     async def watcher(self, message: Message):
         """Automatically adds or removes chats."""
