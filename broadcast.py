@@ -164,14 +164,17 @@ class BroadcastMod(loader.Module):
 
     async def _broadcast_loop(self):
         """Main loop for sending broadcast messages."""
-        self.broadcasting = False
+        await asyncio.sleep(13)
+        if self.broadcasting:
+            return
+        self.broadcasting = True
         for code_name in list(self.broadcast["code_chats"].keys()):
             data = self.broadcast["code_chats"][code_name]
             min_minutes, max_minutes = data.get("interval", (10, 13))
             await self._send_messages_for_code(code_name, data["messages"])
             interval = random.uniform(min_minutes * 60, max_minutes * 60)
             await asyncio.sleep(interval)
-        self.broadcasting = True
+        self.broadcasting = False
 
     async def _send_messages(self, code_name: str, messages: List[Dict]):
         """Send messages."""
