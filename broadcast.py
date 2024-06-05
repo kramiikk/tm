@@ -28,7 +28,7 @@ class BroadcastMod(loader.Module):
             for msg in await self.client.get_messages(entity, limit=None)
             if msg.message and msg.message.isdigit()
         ]
-        asyncio.create_task(self._broadcast_loop())
+        await self._broadcast_loop()
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
