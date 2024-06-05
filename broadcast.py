@@ -19,7 +19,6 @@ class BroadcastMod(loader.Module):
         self.client = client
         self.me = await client.get_me()
         self.wat = False
-        self.broadcasting = False
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
 
@@ -162,29 +161,11 @@ class BroadcastMod(loader.Module):
             message_text += f"{i+1}. {m_data['chat_id']}({m_data['message_id']})\n"
         await utils.answer(message, message_text)
 
-    @loader.unrestricted
-    async def startbroadcastingcmd(self, message: Message):
-        """Start broadcasting messages. .startbroadcasting"""
-        if not self.broadcasting and self.me.id in self.allowed_ids:
-            self.broadcasting = True
-            asyncio.create_task(self._broadcast_loop())
-            await utils.answer(message, "Broadcasting started.")
-        else:
-            await utils.answer(message, "Broadcasting is already running.")
-
-    @loader.unrestricted
-    async def stopbroadcastingcmd(self, message: Message):
-        """Stop broadcasting messages. .stopbroadcasting"""
-        if self.broadcasting:
-            self.broadcasting = False
-            await utils.answer(message, "Broadcasting stopped.")
-        else:
-            await utils.answer(message, "Broadcasting is not running.")
-
     async def _broadcast_loop(self):
         """Main loop for sending broadcast messages."""
-        while self.broadcasting:
-            for code_name, data in self.broadcast["code_chats"].items():
+        while True:
+            for code_name in list(self.broadcast["code_chats"].keys()):
+                data = self.broadcast["code_chats"][code_name]
                 min_minutes, max_minutes = data.get("interval", (10, 13))
                 await self._send_messages_for_code(code_name, data["messages"])
                 interval = random.uniform(min_minutes * 60, max_minutes * 60)
@@ -267,7 +248,7 @@ class BroadcastMod(loader.Module):
         """Automatically adds or removes chats."""
         if not self.wat or message.text.startswith("."):
             return
-        for code_name in self.broadcast["code_chats"]:
+        for code_name in list(self.broadcast["code_chats"].keys()):
             if code_name in message.text:
                 if message.chat_id in self.broadcast["code_chats"][code_name]["chats"]:
                     del self.broadcast["code_chats"][code_name]["chats"][
