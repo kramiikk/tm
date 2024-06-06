@@ -1,6 +1,5 @@
 import asyncio
 import random
-from itertools import cycle
 from typing import Dict, List
 
 from telethon.tl.types import Message
@@ -19,7 +18,7 @@ class BroadcastMod(loader.Module):
         self.client = client
         self.me = await client.get_me()
         self.broadcasting = False
-        self.message_cycle = None
+        self.last_message = 0
         self.wat = False
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
@@ -63,6 +62,7 @@ class BroadcastMod(loader.Module):
         self.broadcasting = True
 
         async def messages_loop(code_name, data):
+            """hi!"""
             while True:
                 try:
                     mins, maxs = data.get("interval", (9, 13))
@@ -83,10 +83,11 @@ class BroadcastMod(loader.Module):
 
     async def _send_messages(self, code_name: str, messages: List[Dict]):
         """Send messages in order 1, 2, 3..."""
-        if self.message_cycle is None:
-            self.message_cycle = cycle(messages)
-        for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
-            message_data = next(self.message_cycle)
+        num_message = len(messages)
+
+        for i, chat_id in enumerate(self.broadcast["code_chats"][code_name]["chats"]):
+            message_index = (self.last_message + i) % num_message
+            message_data = messages[message_index]
 
             main_message = await self.client.get_messages(
                 message_data["chat_id"], ids=message_data["message_id"]
@@ -99,6 +100,7 @@ class BroadcastMod(loader.Module):
                 )
             else:
                 await self.client.send_message(chat_id, main_message.text)
+            self.last_message = message_index + 1
             await asyncio.sleep(random.uniform(3, 9))
 
     @loader.unrestricted
