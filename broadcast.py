@@ -1,5 +1,6 @@
 import asyncio
 import random
+from itertools import cycle
 from typing import Dict, List
 
 from telethon.tl.types import Message
@@ -18,6 +19,7 @@ class BroadcastMod(loader.Module):
         self.client = client
         self.me = await client.get_me()
         self.broadcasting = False
+        self.message_cycle = None
         self.wat = False
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
@@ -237,20 +239,33 @@ class BroadcastMod(loader.Module):
         if self.broadcasting:
             return
         self.broadcasting = True
-        for code_name in list(self.broadcast["code_chats"].keys()):
-            try:
-                data = self.broadcast["code_chats"][code_name]
-                mins, maxs = data.get("interval", (9, 13))
-                await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
-                await self._send_messages(code_name, data["messages"])
-            except Exception:
-                continue
+
+        async def messages_loop(code_name, data):
+            while True:
+                try:
+                    mins, maxs = data.get("interval", (9, 13))
+                    await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
+                    await self._send_messages(code_name, data["messages"])
+                except Exception:
+                    pass
+
+        tasks = [
+            asyncio.create_task(
+                messages_loop(code_name, self.broadcast["code_chats"][code_name])
+            )
+            for code_name in list(self.broadcast["code_chats"].keys())
+        ]
+
+        await asyncio.gather(*tasks)
         self.broadcasting = False
 
     async def _send_messages(self, code_name: str, messages: List[Dict]):
-        """Send messages."""
+        """Send messages in order 1, 2, 3..."""
+        if self.message_cycle is None:
+            self.message_cycle = cycle(messages)
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
-            message_data = random.choice(messages)
+            message_data = next(self.message_cycle)
+
             main_message = await self.client.get_messages(
                 message_data["chat_id"], ids=message_data["message_id"]
             )
