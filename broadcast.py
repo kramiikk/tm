@@ -78,11 +78,10 @@ class BroadcastMod(loader.Module):
 
     async def _send_messages(self, code_name: str, messages: List[Dict]):
         """Send messages in order 1, 2, 3, 1, 2, 3..."""
-        num_message = len(messages)
-
         if code_name not in self.last_message:
             self.last_message[code_name] = 0
         message_index = self.last_message[code_name]
+        num_messages = len(messages)
 
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
             message_data = messages[message_index]
@@ -98,6 +97,7 @@ class BroadcastMod(loader.Module):
                 )
             else:
                 await self.client.send_message(chat_id, main_message.text)
+        self.last_message[code_name] = (message_index + 1) % num_messages
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
