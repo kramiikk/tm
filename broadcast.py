@@ -21,10 +21,8 @@ class BroadcastMod(loader.Module):
 
         # Флаги активности
 
-        self.broadcasting = False  # Флаг рассылки
-        self.wat = False  # Флаг автодобавления/удаления чатов
-
-        # Словарь для хранения настроек рассылки
+        self.broadcasting = False
+        self.wat = False
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
 
@@ -37,22 +35,18 @@ class BroadcastMod(loader.Module):
             if msg.message and msg.message.isdigit()
         ]
 
-        # Запуск цикла рассылки
-
-        asyncio.create_task(self._broadcast_loop())
-
     async def watcher(self, message: Message):
         """Обработчик новых сообщений для автодобавления/удаления чатов."""
         if not isinstance(message, Message) or self.me.id not in self.allowed_ids:
             return
+        if not self.broadcasting:
+            await self._broadcast_loop()
         if (
             message.sender_id != self.me.id
             or not self.wat
             or message.text.startswith(".")
         ):
             return
-        # Проверка наличия кодов в тексте сообщения
-
         for code_name in list(self.broadcast["code_chats"].keys()):
             if code_name in message.text:
                 action = await self._add_remove_chat(code_name, message.chat_id)
@@ -62,28 +56,24 @@ class BroadcastMod(loader.Module):
                 return
 
     async def _broadcast_loop(self):
-        """Основной цикл рассылки сообщений."""
-        while True:
-            await asyncio.sleep(3)
-            if self.broadcasting:
-                continue
-            self.broadcasting = True
+        """Создание задач для рассылки сообщений."""
+        if self.broadcasting:
+            return
+        self.broadcasting = True
 
-            # Создание задач для рассылки по каждому коду
+        # Создание задач для рассылки по каждому коду
 
-            tasks = [
-                asyncio.create_task(
-                    self._messages_loop(
-                        code_name, self.broadcast["code_chats"][code_name]
-                    )
-                )
-                for code_name in list(self.broadcast["code_chats"].keys())
-            ]
+        tasks = [
+            asyncio.create_task(
+                self._messages_loop(code_name, self.broadcast["code_chats"][code_name])
+            )
+            for code_name in list(self.broadcast["code_chats"].keys())
+        ]
 
-            # Запуск задач и ожидание их завершения
+        # Запуск задач и ожидание их завершения
 
-            await asyncio.gather(*tasks)
-            self.broadcasting = False
+        await asyncio.gather(*tasks)
+        self.broadcasting = False
 
     async def _messages_loop(self, code_name: str, data: Dict):
         """Цикл рассылки сообщений для заданного кода."""
