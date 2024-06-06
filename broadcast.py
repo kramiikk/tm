@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import random
 from typing import Dict, List
 
@@ -64,12 +65,10 @@ class BroadcastMod(loader.Module):
         async def messages_loop(code_name, data):
             """hi!"""
             while True:
-                try:
+                with contextlib.suppress(Exception):
                     mins, maxs = data.get("interval", (9, 13))
                     await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
                     await self._send_messages(code_name, data["messages"])
-                except Exception:
-                    pass
 
         tasks = [
             asyncio.create_task(
