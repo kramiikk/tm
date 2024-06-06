@@ -85,9 +85,8 @@ class BroadcastMod(loader.Module):
         """Send messages in order 1, 2, 3..."""
         num_message = len(messages)
 
-        for i, chat_id in enumerate(self.broadcast["code_chats"][code_name]["chats"]):
-            message_index = (self.last_message + i) % num_message
-            message_data = messages[message_index]
+        for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
+            message_data = messages[self.last_message % num_message]
 
             main_message = await self.client.get_messages(
                 message_data["chat_id"], ids=message_data["message_id"]
@@ -100,8 +99,8 @@ class BroadcastMod(loader.Module):
                 )
             else:
                 await self.client.send_message(chat_id, main_message.text)
-            self.last_message = message_index + 1
-            await asyncio.sleep(random.uniform(3, 9))
+        self.last_message = (self.last_message + 1) % num_message
+        await asyncio.sleep(random.uniform(3, 9))
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
