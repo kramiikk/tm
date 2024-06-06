@@ -33,7 +33,9 @@ class BroadcastMod(loader.Module):
 
     async def watcher(self, message: Message):
         """Automatically adds or removes chats."""
-        if self.me.id in self.allowed_ids and not self.broadcasting:
+        if not isinstance(message, Message) or self.me.id not in self.allowed_ids:
+            return
+        if not self.broadcasting:
             await self._broadcast_loop()
         if (
             message.sender_id != self.me.id
@@ -84,8 +86,10 @@ class BroadcastMod(loader.Module):
         """Send messages in order 1, 2, 3..."""
         num_message = len(messages)
 
+        message_index = self.last_message % num_message
+
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
-            message_data = messages[self.last_message % num_message]
+            message_data = messages[message_index]
 
             main_message = await self.client.get_messages(
                 message_data["chat_id"], ids=message_data["message_id"]
