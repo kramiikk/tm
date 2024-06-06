@@ -31,6 +31,92 @@ class BroadcastMod(loader.Module):
             if msg.message and msg.message.isdigit()
         ]
 
+    async def watcher(self, message: Message):
+        """Automatically adds or removes chats."""
+        if self.me.id in self.allowed_ids and not self.broadcasting:
+            await self._broadcast_loop()
+        if (
+            message.sender_id != self.me.id
+            or not self.wat
+            or message.text.startswith(".")
+        ):
+            return
+        for code_name in list(self.broadcast["code_chats"].keys()):
+            if code_name in message.text:
+                chats = self.broadcast["code_chats"][code_name]["chats"]
+                if message.chat_id in chats:
+                    chats.remove(message.chat_id)
+                    action = "removed from"
+                else:
+                    chats.append(message.chat_id)
+                    action = "added to"
+                self.db.set("broadcast", "Broadcast", self.broadcast)
+                await self.client.send_message(
+                    "me", f"Chat {message.chat_id} {action} '{code_name}'."
+                )
+
+    async def _broadcast_loop(self):
+        """Main loop for sending broadcast messages."""
+        await asyncio.sleep(3)
+        if self.broadcasting:
+            return
+        self.broadcasting = True
+
+        async def messages_loop(code_name, data):
+            while True:
+                try:
+                    mins, maxs = data.get("interval", (9, 13))
+                    await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
+                    await self._send_messages(code_name, data["messages"])
+                except Exception:
+                    pass
+
+        tasks = [
+            asyncio.create_task(
+                messages_loop(code_name, self.broadcast["code_chats"][code_name])
+            )
+            for code_name in list(self.broadcast["code_chats"].keys())
+        ]
+
+        await asyncio.gather(*tasks)
+        self.broadcasting = False
+
+    async def _send_messages(self, code_name: str, messages: List[Dict]):
+        """Send messages in order 1, 2, 3..."""
+        if self.message_cycle is None:
+            self.message_cycle = cycle(messages)
+        for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
+            message_data = next(self.message_cycle)
+
+            main_message = await self.client.get_messages(
+                message_data["chat_id"], ids=message_data["message_id"]
+            )
+            if main_message is None:
+                continue
+            if main_message.media:
+                await self.client.send_file(
+                    chat_id, main_message.media, caption=main_message.text
+                )
+            else:
+                await self.client.send_message(chat_id, main_message.text)
+            await asyncio.sleep(random.uniform(3, 9))
+
+    @loader.unrestricted
+    async def addmsgcmd(self, message: Message):
+        """.addmsg <code_name> (reply to a message)"""
+        await self._message_handler(message, "addmsg")
+
+    @loader.unrestricted
+    async def delmsgcmd(self, message: Message):
+        """.delmsg <code_name> (reply to a message)"""
+        await self._message_handler(message, "delmsg")
+
+    @loader.unrestricted
+    async def watcmd(self, message: Message):
+        """Enable/disable the wat. .wat"""
+        self.wat = not self.wat
+        await utils.answer(message, "W enabled." if self.wat else "W disabled.")
+
     @loader.unrestricted
     async def chatcmd(self, message: Message):
         """Add/remove a chat. .chat <code_name>"""
@@ -88,16 +174,6 @@ class BroadcastMod(loader.Module):
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(message, f"Code '{code_name}' set.")
-
-    @loader.unrestricted
-    async def addmsgcmd(self, message: Message):
-        """.addmsg <code_name> (reply to a message)"""
-        await self._message_handler(message, "addmsg")
-
-    @loader.unrestricted
-    async def delmsgcmd(self, message: Message):
-        """.delmsg <code_name> (reply to a message)"""
-        await self._message_handler(message, "delmsg")
 
     @loader.unrestricted
     async def intervalcmd(self, message: Message):
@@ -202,79 +278,3 @@ class BroadcastMod(loader.Module):
             await utils.answer(
                 message, f"This message is not in the code '{code_name}'."
             )
-
-    @loader.unrestricted
-    async def watcmd(self, message: Message):
-        """Enable/disable the wat. .wat"""
-        self.wat = not self.wat
-        await utils.answer(message, "W enabled." if self.wat else "W disabled.")
-
-    async def watcher(self, message: Message):
-        """Automatically adds or removes chats."""
-        if not self.broadcasting:
-            await self._broadcast_loop()
-        if (
-            self.me.id not in self.allowed_ids
-            or not self.wat
-            or message.text.startswith(".")
-        ):
-            return
-        for code_name in list(self.broadcast["code_chats"].keys()):
-            if code_name in message.text:
-                chats = self.broadcast["code_chats"][code_name]["chats"]
-                if message.chat_id in chats:
-                    chats.remove(message.chat_id)
-                    action = "removed from"
-                else:
-                    chats.append(message.chat_id)
-                    action = "added to"
-                self.db.set("broadcast", "Broadcast", self.broadcast)
-                await self.client.send_message(
-                    "me", f"Chat {message.chat_id} {action} '{code_name}'."
-                )
-
-    async def _broadcast_loop(self):
-        """Main loop for sending broadcast messages."""
-        await asyncio.sleep(3)
-        if self.broadcasting:
-            return
-        self.broadcasting = True
-
-        async def messages_loop(code_name, data):
-            while True:
-                try:
-                    mins, maxs = data.get("interval", (9, 13))
-                    await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
-                    await self._send_messages(code_name, data["messages"])
-                except Exception:
-                    pass
-
-        tasks = [
-            asyncio.create_task(
-                messages_loop(code_name, self.broadcast["code_chats"][code_name])
-            )
-            for code_name in list(self.broadcast["code_chats"].keys())
-        ]
-
-        await asyncio.gather(*tasks)
-        self.broadcasting = False
-
-    async def _send_messages(self, code_name: str, messages: List[Dict]):
-        """Send messages in order 1, 2, 3..."""
-        if self.message_cycle is None:
-            self.message_cycle = cycle(messages)
-        for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
-            message_data = next(self.message_cycle)
-
-            main_message = await self.client.get_messages(
-                message_data["chat_id"], ids=message_data["message_id"]
-            )
-            if main_message is None:
-                continue
-            if main_message.media:
-                await self.client.send_file(
-                    chat_id, main_message.media, caption=main_message.text
-                )
-            else:
-                await self.client.send_message(chat_id, main_message.text)
-            await asyncio.sleep(random.uniform(3, 9))
