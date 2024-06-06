@@ -19,7 +19,7 @@ class BroadcastMod(loader.Module):
         self.client = client
         self.me = await client.get_me()
         self.broadcasting = False
-        self.last_message = 0
+        self.last_message = {}
         self.wat = False
 
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
@@ -45,17 +45,11 @@ class BroadcastMod(loader.Module):
             return
         for code_name in list(self.broadcast["code_chats"].keys()):
             if code_name in message.text:
-                chats = self.broadcast["code_chats"][code_name]["chats"]
-                if message.chat_id in chats:
-                    chats.remove(message.chat_id)
-                    action = "removed from"
-                else:
-                    chats.append(message.chat_id)
-                    action = "added to"
-                self.db.set("broadcast", "Broadcast", self.broadcast)
+                action = await self._add_remove_chat(code_name, message.chat_id)
                 await self.client.send_message(
                     "me", f"Chat {message.chat_id} {action} '{code_name}'."
                 )
+                return
 
     async def _broadcast_loop(self):
         """Main loop for sending broadcast messages."""
@@ -83,10 +77,12 @@ class BroadcastMod(loader.Module):
         self.broadcasting = False
 
     async def _send_messages(self, code_name: str, messages: List[Dict]):
-        """Send messages in order 1, 2, 3..."""
+        """Send messages in order 1, 2, 3, 1, 2, 3..."""
         num_message = len(messages)
 
-        message_index = self.last_message % num_message
+        if code_name not in self.last_message:
+            self.last_message[code_name] = 0
+        message_index = self.last_message[code_name]
 
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
             message_data = messages[message_index]
@@ -102,8 +98,6 @@ class BroadcastMod(loader.Module):
                 )
             else:
                 await self.client.send_message(chat_id, main_message.text)
-        self.last_message = (self.last_message + 1) % num_message
-        await asyncio.sleep(random.uniform(3, 9))
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
@@ -119,7 +113,7 @@ class BroadcastMod(loader.Module):
     async def watcmd(self, message: Message):
         """Enable/disable the wat. .wat"""
         self.wat = not self.wat
-        await utils.answer(message, "W enabled." if self.wat else "W disabled.")
+        await utils.answer(message, "Wenabled." if self.wat else "Wdisabled.")
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
@@ -135,14 +129,7 @@ class BroadcastMod(loader.Module):
                 "messages": [],
                 "interval": (9, 13),
             }
-        chats = self.broadcast["code_chats"][code_name]["chats"]
-        if message.chat_id in chats:
-            chats.remove(message.chat_id)
-            action = "removed from"
-        else:
-            chats.append(message.chat_id)
-            action = "added to"
-        self.db.set("broadcast", "Broadcast", self.broadcast)
+        action = await self._add_remove_chat(code_name, message.chat_id)
         await utils.answer(message, f"Chat {message.chat_id} {action} '{code_name}'.")
 
     @loader.unrestricted
@@ -236,6 +223,18 @@ class BroadcastMod(loader.Module):
         for i, m_data in enumerate(messages):
             message_text += f"{i+1}. {m_data['chat_id']}({m_data['message_id']})\n"
         await utils.answer(message, message_text)
+
+    async def _add_remove_chat(self, code_name: str, chat_id: int):
+        """Adds or removes a chat from the broadcast list."""
+        chats = self.broadcast["code_chats"][code_name]["chats"]
+        if chat_id in chats:
+            chats.remove(chat_id)
+            action = "removed from"
+        else:
+            chats.append(chat_id)
+            action = "added to"
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        return action
 
     async def _message_handler(self, message: Message, command: str):
         """Handles commands related to (addmsg, delmsg)."""
