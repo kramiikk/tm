@@ -115,14 +115,10 @@
 	<script src="https://telegram.org/js/telegram-web-app.js"></script>
 	<script>
 	let tg = window.Telegram.WebApp;
-	let buy = document.getElementById("buy");
 	let order = document.getElementById("order");
 	tg.expand();
-	buy.addEventListener("click", () => {
-		document.getElementById("main").style.display = "none";
-		document.getElementById("form").style.display = "block";
-	});
-	order.addEventListener("click", () => {
+	order.addEventListener("click", (event) => {
+		event.preventDefault();
 		document.getElementById("error").innerText = '';
 		let name = document.getElementById("user").value;
 		let username = document.getElementById("username").value;
@@ -139,13 +135,7 @@
 			username: username,
 		};
 		tg.sendData(JSON.stringify(data));
-		tg.mainButton.setParams({
-			text: 'Send data',
-			color: '#db5d5d'
-		});
-		tg.mainButton.onClick(() => {
-			tg.close();
-		});
+		tg.close();
 	});
 	</script>
 </body>
