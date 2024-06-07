@@ -4,15 +4,15 @@ from aiogram.types import (
     KeyboardButton,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
+    WebAppInfo,
+    InputTextMessageContent,
 )
-from aiogram.types.web_app_info import WebAppInfo
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 import json
 
 bot = Bot("")
-dp = Dispatcher(bot, storage=MemoryStorage())
+dp = Dispatcher(bot)
 
 
 class UserData(StatesGroup):
@@ -41,13 +41,21 @@ async def web_app_button(message: types.Message):
     await message.answer("Great! Open the WebApp:", reply_markup=markup)
 
 
-@dp.message_handler(content_types=["web_app_data"])
-async def process_web_app_data(message: types.Message):
-    data = json.loads(message.web_app_data.data)
-    await message.answer(
-        f"Thanks, {data['name']}! I received your data from the WebApp:\n"
+@dp.inline_handler()
+async def handle_inline_query(query: types.InlineQuery):
+    data = json.loads(query.query)
+    name = data.get("name")
+    username = data.get("username")
+
+    result = types.InlineQueryResultArticle(
+        id="1",
+        title=f"Data from {name}",
+        input_message_content=InputTextMessageContent(
+            message_text=f"Name: {name}\nUsername: {username}"
+        ),
     )
-    await bot.send_message("", f"N: {data['name']} U: {data['username']}")
+    await query.answer(results=[result])
+    await bot.send_message("", f"New:\nName: {name}\nUsername: {username}")
 
 
 @dp.message_handler(text="Leave Feedback")

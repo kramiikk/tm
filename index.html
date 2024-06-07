@@ -130,7 +130,6 @@
         document.getElementById("error").innerText = 'Error in name';
         return;
       }
-
       if(username.length < 4) {
         document.getElementById("error").innerText = 'Error in username';
         return;
@@ -138,11 +137,19 @@
       let data = {
         name: name,
         username: username,
-      }
-      tg.sendData(JSON.stringify(data));
-      tg.close();
+      };
+
+      tg.sendData(JSON.stringify(data)); 
+
+      tg.mainButton.setParams({
+        text: 'Sending data...',
+        color: '#db5d5d' 
+      });
+      tg.mainButton.onClick( () => {
+        tg.close(); 
+      }); 
     });
-	</script>
+</script>
 </body>
 
 </html>
