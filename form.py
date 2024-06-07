@@ -28,10 +28,7 @@ def create_keyboard(buttons):
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
     markup = create_keyboard(["Open WebApp", "Leave Feedback"])
-    await message.answer(
-        "Hi! 👋\n\nI'm a bot that can:\n- Open the WebApp\n- Take your feedback\n",
-        reply_markup=markup,
-    )
+    await message.answer("×͜~", reply_markup=markup)
 
 
 @dp.message_handler(text="Open WebApp")
@@ -47,14 +44,10 @@ async def web_app_button(message: types.Message):
 @dp.message_handler(content_types=["web_app_data"])
 async def process_web_app_data(message: types.Message):
     data = json.loads(message.web_app_data.data)
-    name = data.get("name")
-    username = data.get("username")
-
-    if name and username:
-        await message.answer(f"Thanks, {name}! I received your data from the WebApp:\n")
-        await bot.send_message("", f"N: {name} U: {username}")
-    else:
-        await message.answer("Something went wrong. Please try again.")
+    await message.answer(
+        f"Thanks, {data['name']}! I received your data from the WebApp:\n"
+    )
+    await bot.send_message("", f"N: {data['name']} U: {data['username']}")
 
 
 @dp.message_handler(text="Leave Feedback")
