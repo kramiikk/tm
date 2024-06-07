@@ -5,7 +5,6 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     WebAppInfo,
-    InputTextMessageContent,
 )
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -41,21 +40,17 @@ async def web_app_button(message: types.Message):
     await message.answer("Great! Open the WebApp:", reply_markup=markup)
 
 
-@dp.inline_handler()
-async def handle_inline_query(query: types.InlineQuery):
-    data = json.loads(query.query)
+@dp.message_handler(content_types=types.ContentTypes.WEB_APP_DATA)
+async def handle_web_app(message: types.Message):
+    data = json.loads(message.web_app_data.data)
     name = data.get("name")
     username = data.get("username")
 
-    result = types.InlineQueryResultArticle(
-        id="1",
-        title=f"Data from {name}",
-        input_message_content=InputTextMessageContent(
-            message_text=f"Name: {name}\nUsername: {username}"
-        ),
+    await message.answer(f"Привет, {name}! Твой username: @{username}")
+
+    await bot.send_message(
+        "", text=f"New data:\nName: {name}\nUsername: {username}"
     )
-    await query.answer(results=[result])
-    await bot.send_message("", f"New:\nName: {name}\nUsername: {username}")
 
 
 @dp.message_handler(text="Leave Feedback")
