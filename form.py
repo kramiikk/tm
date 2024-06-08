@@ -1,3 +1,5 @@
+import json
+
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import (
     ReplyKeyboardMarkup,
@@ -5,10 +7,11 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     WebAppInfo,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
 )
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
-import json
 
 bot = Bot("6562832316:AAFoe24u8zC6GQ1_bnv4UsZyVjMDUTrg-Ys")
 dp = Dispatcher(bot)
@@ -46,12 +49,21 @@ async def handle_web_app(message: types.Message):
     name = data.get("name")
     username = data.get("username")
 
-    await message.answer(f"Привет, {name}! Твой username: @{username}")
+    await bot.answer_web_app_query(
+        message.web_app_query_id,
+        result=InlineQueryResultArticle(
+            id="1",
+            title="Data sent successfully!",
+            input_message_content=InputTextMessageContent(
+                message_text="Your data has been sent to the bot!"
+            ),
+        ),
+    )
 
+    await message.answer(f"Hello, {name}! Your username is: @{username}")
     await bot.send_message(
         "5032015812", text=f"New data:\nName: {name}\nUsername: {username}"
     )
-    await bot.answer_web_app_query(message.web_app_query_id)
 
 
 @dp.message_handler(text="Leave Feedback")

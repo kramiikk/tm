@@ -105,53 +105,60 @@
 		<p>"Endi oılashy, biz birge bolsaq ne bolady?"</p>
 		<button id="buy">Next</button>
 	</div>
-	<form id="form">
-		<h1>Contact me</h1>
-		<input type="text" placeholder="Your Name" id="user">
-		<input type="text" placeholder="@username" id="username">
-		<div id="error"></div>
-		<button id="order">Send</button>
-	</form>
-	<script src="https://telegram.org/js/telegram-web-app.js"></script>
-	<script>
-		let tg = window.Telegram.WebApp;
-		let order = document.getElementById("order");
-		let buyButton = document.getElementById("buy");
-		let mainDiv = document.getElementById("main");
-		let form = document.getElementById("form");
-	
-		tg.expand();
-	
-		buyButton.addEventListener("click", () => {
-			mainDiv.style.display = "none";
-			form.style.display = "block";
-		});
+	<form id="form" onsubmit="return false;"> 
+        <h1>Contact me</h1>
+        <input type="text" placeholder="Your Name" id="user">
+        <input type="text" placeholder="@username" id="username">
+        <div id="error"></div>
+        <button id="order">Send</button>
+    </form>
 
-		order.addEventListener("click", (event) => {
-			event.preventDefault();
-			document.getElementById("error").innerText = "";
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        let tg = window.Telegram.WebApp;
+        let order = document.getElementById("order");
+        let buyButton = document.getElementById("buy");
+        let mainDiv = document.getElementById("main");
+        let form = document.getElementById("form");
 
-			let name = document.getElementById("user").value;
-			let username = document.getElementById("username").value;
+        tg.expand();
 
-			if (name.length < 2) {
-				document.getElementById("error").innerText = "Error in name";
-				return;
-			}
+        buyButton.addEventListener("click", () => {
+            mainDiv.style.display = "none";
+            form.style.display = "block";
+        });
 
-			if (username.length < 4) {
-				document.getElementById("error").innerText = "Error in username";
-				return;
-			}
+        order.addEventListener("click", (event) => {
+            event.preventDefault(); 
+            document.getElementById("error").innerText = "";
 
-			let data = {
-				name: name,
-				username: username,
-			};
+            let name = document.getElementById("user").value;
+            let username = document.getElementById("username").value;
 
-			tg.sendData(JSON.stringify(data));
-		});
-	</script>
+            if (name.length < 2) {
+                document.getElementById("error").innerText = "Error in name";
+                return;
+            }
+
+            if (username.length < 4) {
+                document.getElementById("error").innerText = "Error in username";
+                return;
+            }
+
+            let data = {
+                name: name,
+                username: username,
+            };
+
+            tg.sendData(JSON.stringify(data));
+
+            tg.onEvent('webAppQuery', (queryId, data) => {
+                // You might want to display a success message here
+                // For example: 
+                document.getElementById("error").innerText = "Data sent successfully!";
+            });
+        });
+    </script>
 </body>
 
 </html>
