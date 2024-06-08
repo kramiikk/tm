@@ -126,26 +126,30 @@
 			mainDiv.style.display = "none";
 			form.style.display = "block";
 		});
-	
+
 		order.addEventListener("click", (event) => {
 			event.preventDefault();
-			document.getElementById("error").innerText = '';
+			document.getElementById("error").innerText = "";
+
 			let name = document.getElementById("user").value;
 			let username = document.getElementById("username").value;
-			if(name.length < 2) {
-				document.getElementById("error").innerText = 'Error in name';
+
+			if (name.length < 2) {
+				document.getElementById("error").innerText = "Error in name";
 				return;
 			}
-			if(username.length < 4) {
-				document.getElementById("error").innerText = 'Error in username';
+
+			if (username.length < 4) {
+				document.getElementById("error").innerText = "Error in username";
 				return;
 			}
+
 			let data = {
 				name: name,
 				username: username,
 			};
+
 			tg.sendData(JSON.stringify(data));
-			tg.close();
 		});
 	</script>
 </body>

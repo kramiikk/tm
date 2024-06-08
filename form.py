@@ -10,7 +10,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 import json
 
-bot = Bot("")
+bot = Bot("6562832316:AAFoe24u8zC6GQ1_bnv4UsZyVjMDUTrg-Ys")
 dp = Dispatcher(bot)
 
 
@@ -49,8 +49,9 @@ async def handle_web_app(message: types.Message):
     await message.answer(f"Привет, {name}! Твой username: @{username}")
 
     await bot.send_message(
-        "", text=f"New data:\nName: {name}\nUsername: {username}"
+        "5032015812", text=f"New data:\nName: {name}\nUsername: {username}"
     )
+    await bot.answer_web_app_query(message.web_app_query_id)
 
 
 @dp.message_handler(text="Leave Feedback")
@@ -63,7 +64,7 @@ async def ask_for_feedback(message: types.Message):
 async def process_feedback(message: types.Message, state: FSMContext):
     feedback = message.text
     user_mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
-    await bot.send_message("", f"Feedback from {user_mention}:\n{feedback}")
+    await bot.send_message("5032015812", f"Feedback from {user_mention}:\n{feedback}")
     await message.answer("Thank you for your feedback!")
     await state.finish()
 
@@ -71,8 +72,8 @@ async def process_feedback(message: types.Message, state: FSMContext):
 @dp.message_handler(content_types=types.ContentTypes.TEXT)
 async def forward_to_admin(message: types.Message):
     user_mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
-    await bot.send_message("", f"Message from {user_mention}:")
-    await bot.forward_message("", message.chat.id, message.message_id)
+    await bot.send_message("5032015812", f"Message from {user_mention}:")
+    await bot.forward_message("5032015812", message.chat.id, message.message_id)
 
 
 if __name__ == "__main__":
