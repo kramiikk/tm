@@ -2,110 +2,94 @@
 <html lang="en">
 
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Shop</title>
-	<style>
-	@import url('https://fonts.googleapis.com/css2?family=Montserrat:wqht@200;500&display=swap');
-	* {
-		margin: 0;
-		padding: 0;
-		box-sizing: border-box;
-	}
-	
-	body {
-		font-family: 'Montserrat', sans-serif;
-		font-weight: 200;
-		color: var(--tg-theme-text-color);
-		background: var(--tg-theme-bg-color);
-	}
-	
-	#main {
-		width: 100%;
-		padding: 20px;
-		text-align: center;
-	}
-	
-	h1 {
-		margin-top: 30px;
-		margin-bottom: 10px;
-	}
-	
-	img {
-		width: 210px;
-		margin: 50px auto;
-		transform: translateY(-10px);
-	}
-	
-	p {
-		width: 350px;
-		margin: 0 auto;
-	}
-	
-	button {
-		border: 0;
-		border-radius: 5px;
-		margin-top: 50px;
-		height: 60px;
-		width: 200px;
-		font-size: 20px;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 500ms ease;
-		color: var(--tg-theme-button-color);
-		background: var(--tg-theme-button-text-color);
-	}
-	
-	button:hover {
-		background: var(--tg-theme-secondary-bg-color);
-	}
-	
-	#form {
-		display: none;
-		text-align: center;
-	}
-	
-	input {
-		width: 90%;
-		outline: none;
-		margin: 10px 5%;
-		padding: 15px 10px;
-		font-size: 14px;
-		border: 2px solid silver;
-		border-radius: 5px;
-	}
-	
-	input:focus {
-		border-color: #db5d5d;
-	}
-	</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shop</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wqht@200;500&display=swap');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 200;
+            color: var(--tg-theme-text-color);
+            background: var(--tg-theme-bg-color);
+        }
+
+        #main {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+
+        img {
+            width: 210px;
+            margin: 50px auto;
+            transform: translateY(-10px);
+        }
+
+        p {
+            width: 350px;
+            margin: 0 auto;
+        }
+
+        button {
+            border: 0;
+            border-radius: 5px;
+            margin-top: 50px;
+            height: 60px;
+            width: 200px;
+            font-size: 20px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 500ms ease;
+            color: var(--tg-theme-button-color);
+            background: var(--tg-theme-button-text-color);
+        }
+
+        button:hover {
+            background: var(--tg-theme-secondary-bg-color);
+        }
+
+        #form {
+            display: none;
+            text-align: center;
+        }
+
+        input {
+            width: 90%;
+            outline: none;
+            margin: 10px 5%;
+            padding: 15px 10px;
+            font-size: 14px;
+            border: 2px solid silver;
+            border-radius: 5px;
+        }
+
+        input:focus {
+            border-color: #db5d5d;
+        }
+    </style>
 </head>
 
 <body>
-	<div id="main">
-		<h1>Hello!</h1> <img id="cat" src="https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif" onclick="playGif()">
-		<script>
-		let cat = document.getElementById("cat");
-		window.addEventListener("load", () => {
-			cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
-			setTimeout(() => {
-				cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
-			}, 1500);
-		});
-
-		function playGif() {
-			let src = cat.src;
-			if(src.endsWith(".gif")) {
-				cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
-			} else {
-				cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
-			}
-		}
-		</script>
-		<p>"Endi oılashy, biz birge bolsaq ne bolady?"</p>
-		<button id="buy">Next</button>
-	</div>
-	<form id="form" onsubmit="return false;"> 
+    <div id="main">
+        <h1>Hello!</h1>
+        <img id="cat" src="https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif"
+            onclick="playGif()">
+        <p>"Endi oılashy, biz birge bolsaq ne bolady?"</p>
+        <button id="buy">Next</button>
+    </div>
+    <form id="form" onsubmit="return false;">
         <h1>Contact me</h1>
         <input type="text" placeholder="Your Name" id="user">
         <input type="text" placeholder="@username" id="username">
@@ -114,10 +98,32 @@
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        let tg = window.Telegram.WebApp;
+        let cat = document.getElementById("cat");
+        let mainDiv = document.getElementById("main");
         let form = document.getElementById("form");
+        let tg = window.Telegram.WebApp;
 
-        tg.expand();
+        window.addEventListener("load", () => {
+            cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
+            setTimeout(() => {
+                cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
+            }, 1500);
+        });
+
+        function playGif() {
+            let src = cat.src;
+            if (src.endsWith(".gif")) {
+                cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
+            } else {
+                cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
+            }
+        }
+
+        document.getElementById("buy").addEventListener("click", function () {
+            mainDiv.style.display = "none";
+            form.style.display = "block";
+            tg.expand();
+        });
 
         form.addEventListener("submit", (event) => {
             event.preventDefault();
@@ -141,13 +147,13 @@
                 username: username,
             };
 
-            tg.MainButton.setText("Send Data"); 
-            tg.MainButton.show(); 
+            tg.MainButton.setText("Send Data");
+            tg.MainButton.show();
 
             tg.MainButton.onClick(() => {
                 tg.sendData(JSON.stringify(data));
-                document.getElementById("error").innerText = "Data sent successfully!"; 
-                tg.close(); // Close the WebApp after sending data
+                document.getElementById("error").innerText = "Data sent successfully!";
+                tg.close();
             });
         });
     </script>
