@@ -146,16 +146,16 @@
                 name: name,
                 username: username,
             };
-
             tg.ready().then(() => {
-                tg.MainButton.setText("Send Data");
-                tg.MainButton.show();
-
-                tg.MainButton.onClick(() => {
+                tg.MainButton.onClick(() => { 
+                    tg.MainButton.setText("Sending Data...");
                     tg.sendData(JSON.stringify(data));
                     document.getElementById("error").innerText = "Data sent successfully!";
                     tg.close();
                 });
+
+                tg.MainButton.setText("Send Data"); 
+                tg.MainButton.show(); 
             });
         });
     </script>
