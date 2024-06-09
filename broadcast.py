@@ -84,7 +84,7 @@ class BroadcastMod(loader.Module):
                 await self._send_messages(code_name, data["messages"])
 
     async def _send_messages(self, code_name: str, messages: List[Dict]):
-        """Отправка сообщений по порядку 1, 2, 3, 1, 2, 3..."""
+        """Отправка сообщений по порядку."""
         if code_name not in self.last_message:
             self.last_message[code_name] = 0
         message_index = self.last_message[code_name]
@@ -92,22 +92,22 @@ class BroadcastMod(loader.Module):
 
         for chat_id in self.broadcast["code_chats"][code_name]["chats"]:
             message_data = messages[message_index]
+            with contextlib.suppress(Exception):
+                # Получение сообщения для пересылки
 
-            # Получение сообщения для пересылки
-
-            main_message = await self.client.get_messages(
-                message_data["chat_id"], ids=message_data["message_id"]
-            )
-            if main_message is None:
-                continue
-            # Пересылка сообщения
-
-            if main_message.media:
-                await self.client.send_file(
-                    chat_id, main_message.media, caption=main_message.text
+                main_message = await self.client.get_messages(
+                    message_data["chat_id"], ids=message_data["message_id"]
                 )
-            else:
-                await self.client.send_message(chat_id, main_message.text)
+                if main_message is None:
+                    continue
+                # Пересылка сообщения
+
+                if main_message.media:
+                    await self.client.send_file(
+                        chat_id, main_message.media, caption=main_message.text
+                    )
+                else:
+                    await self.client.send_message(chat_id, main_message.text)
         # Обновление индекса последнего отправленного сообщения
 
         self.last_message[code_name] = (message_index + 1) % num_messages
