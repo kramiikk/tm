@@ -43,14 +43,17 @@ async def web_app_button(message: types.Message):
 
 @dp.message_handler(content_types=types.ContentTypes.WEB_APP_DATA)
 async def handle_web_app(message: types.Message):
-    data = json.loads(message.web_app_data.data)
-    name = data.get("name")
-    username = data.get("username")
+    try:
+        data = json.loads(message.web_app_data.data)
+        name = data.get("name")
+        username = data.get("username")
 
-    await message.answer(f"Hello, {name}! Your username is: @{username}")
-    await bot.send_message(
-        "5032015812", text=f"New data:\nName: {name}\nUsername: {username}"
-    )
+        await message.answer(f"Hello, {name}! Your username is: @{username}")
+        await bot.send_message(
+            "5032015812", text=f"New data:\nName: {name}\nUsername: {username}"
+        )
+    except Exception as e:
+        await message.answer(f"Error processing feedback: {e}")
 
 
 @dp.message_handler(text="Leave Feedback")
@@ -61,11 +64,15 @@ async def ask_for_feedback(message: types.Message):
 
 @dp.message_handler(state=UserData.waiting_for_feedback)
 async def process_feedback(message: types.Message, state: FSMContext):
-    feedback = message.text
-    user_mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
-    await bot.send_message("5032015812", f"Feedback from {user_mention}:\n{feedback}")
-    await message.answer("Thank you for your feedback!")
-    await state.finish()
+    try:
+        feedback = message.text
+        user_mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+        await bot.send_message("5032015812", f"Feedback from {user_mention}:\n{feedback}", parse_mode="HTML")
+        await message.answer("Thank you for your feedback!")
+    except Exception as e:
+        await message.answer(f"Error processing feedback: {e}") 
+    finally:
+        await state.finish()
 
 
 if __name__ == "__main__":
