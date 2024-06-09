@@ -7,8 +7,6 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     WebAppInfo,
-    InlineQueryResultArticle,
-    InputTextMessageContent,
 )
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -48,17 +46,6 @@ async def handle_web_app(message: types.Message):
     data = json.loads(message.web_app_data.data)
     name = data.get("name")
     username = data.get("username")
-
-    await bot.answer_web_app_query(
-        message.web_app_query_id,
-        result=InlineQueryResultArticle(
-            id="1",
-            title="Data sent successfully!",
-            input_message_content=InputTextMessageContent(
-                message_text="Your data has been sent to the bot!"
-            ),
-        ),
-    )
 
     await message.answer(f"Hello, {name}! Your username is: @{username}")
     await bot.send_message(
