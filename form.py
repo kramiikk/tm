@@ -11,25 +11,21 @@ from aiogram.types import (
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-bot = Bot("6562832316:AAFoe24u8zC6GQ1_bnv4UsZyVjMDUTrg-Ys")
+bot = Bot("6562832316:AAFoe24u8zC6GQ1_bnv4UsZyVjMDUTrg-Ys") 
 dp = Dispatcher(bot)
-
 
 class UserData(StatesGroup):
     waiting_for_feedback = State()
-
 
 def create_keyboard(buttons):
     return ReplyKeyboardMarkup(resize_keyboard=True).add(
         *[KeyboardButton(button) for button in buttons]
     )
 
-
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
     markup = create_keyboard(["Open WebApp", "Leave Feedback"])
     await message.answer("×͜~", reply_markup=markup)
-
 
 @dp.message_handler(text="Open WebApp")
 async def web_app_button(message: types.Message):
@@ -40,27 +36,26 @@ async def web_app_button(message: types.Message):
     )
     await message.answer("Great! Open the WebApp:", reply_markup=markup)
 
-
+# Handle WebApp data 
 @dp.message_handler(content_types=types.ContentTypes.WEB_APP_DATA)
 async def handle_web_app(message: types.Message):
     try:
-        data = json.loads(message.web_app_data.data)
+        data = json.loads(message.web_app_data.data) 
         name = data.get("name")
         username = data.get("username")
 
         await message.answer(f"Hello, {name}! Your username is: @{username}")
         await bot.send_message(
-            "5032015812", text=f"New data:\nName: {name}\nUsername: {username}"
+            "5032015812", text=f"New data:\nName: {name}\nUsername: {username}" 
         )
     except Exception as e:
-        await message.answer(f"Error processing feedback: {e}")
+        await message.answer(f"Error processing data: {e}")
 
-
+# Handle feedback (separate handler)
 @dp.message_handler(text="Leave Feedback")
 async def ask_for_feedback(message: types.Message):
     await message.answer("Please write your feedback:")
     await UserData.waiting_for_feedback.set()
-
 
 @dp.message_handler(state=UserData.waiting_for_feedback)
 async def process_feedback(message: types.Message, state: FSMContext):
@@ -72,8 +67,7 @@ async def process_feedback(message: types.Message, state: FSMContext):
     except Exception as e:
         await message.answer(f"Error processing feedback: {e}") 
     finally:
-        await state.finish()
-
+        await state.finish() 
 
 if __name__ == "__main__":
     executor.start_polling(dp)

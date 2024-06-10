@@ -119,10 +119,9 @@
             }
         }
 
-        document.getElementById("buy").addEventListener("click", function () {
+        document.getElementById("buy").addEventListener("click", function() {
             mainDiv.style.display = "none";
             form.style.display = "block";
-            tg.expand();
         });
 
         form.addEventListener("submit", (event) => {
@@ -146,16 +145,20 @@
                 name: name,
                 username: username,
             };
-            tg.ready().then(() => {
-                tg.MainButton.onClick(() => { 
-                    tg.MainButton.setText("Sending Data...");
-                    tg.sendData(JSON.stringify(data));
-                    document.getElementById("error").innerText = "Data sent successfully!";
-                    tg.close();
-                });
 
-                tg.MainButton.setText("Send Data"); 
-                tg.MainButton.show(); 
+            tg.ready().then(() => {
+                tg.MainButton.setText("Sending Data...");
+                tg.MainButton.show();
+
+                tg.sendData(JSON.stringify(data))
+                    .then(() => {
+                        tg.close();
+                    })
+                    .catch(error => {
+                        console.error("Error sending data:", error);
+                        document.getElementById("error").innerText = "Error sending data. Please try again.";
+                        tg.MainButton.setText("Try Again");
+                    });
             });
         });
     </script>
