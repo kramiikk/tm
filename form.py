@@ -2,7 +2,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.web_app_info import WebAppInfo
 import json
 
-bot = Bot("")
+bot = Bot("TOKEN")
 dp = Dispatcher(bot)
 
 
@@ -17,7 +17,7 @@ async def start(message: types.Message):
 async def web_app(message: types.Message):
     res = json.loads(message.web_app_data.data)
     await message.answer(f'Thank you, {res["name"]} !')
-    await bot.send_message("", f'Name: {res["name"]}. Username: {res["username"]}.')
+    await bot.send_message("5032015812", f'Name: {res["name"]}. Username: {res["username"]}.')
 
 @dp.message_handler(content_types=types.ContentTypes.ANY)
 async def forward_to_admin(message: types.Message):
