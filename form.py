@@ -2,7 +2,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.web_app_info import WebAppInfo
 import json
 
-bot = Bot("NOKEN")
+bot = Bot("6562832316:AAFoe24u8zC6GQ1_bnv4UsZyVjMDUTrg-Ys")
 dp = Dispatcher(bot)
 
 
@@ -45,6 +45,12 @@ async def forward_to_admin(message: types.Message):
     )
     await bot.forward_message("5032015812", message.chat.id, message.message_id)
     await message.answer("Thank you for your feedback!")
+
+
+@dp.message_handler(user_id="5032015812", content_types=types.ContentTypes.ANY)
+async def send_reply_to_user(message: types.Message):
+    user_id = message.reply_to_message.forward_from.id
+    await bot.send_message(user_id, f"Admin reply: {message.text}")
 
 
 executor.start_polling(dp)
