@@ -224,15 +224,14 @@ class BroadcastMod(loader.Module):
         code_name, min_str, max_str = args
 
         try:
-            min_minutes, max_minutes = int(min_str), int(max_str)
+            min_minutes = float(min_str) * 60
+            max_minutes = float(max_str) * 60
             if min_minutes < 0 or max_minutes <= 0 or min_minutes >= max_minutes:
                 raise ValueError
         except ValueError:
             return await utils.answer(message, "Неверные значения интервала.")
         if code_name not in self.broadcast["code_chats"]:
             return await utils.answer(message, f"Код рассылки '{code_name}' не найден.")
-        # Установка интервала
-
         self.broadcast["code_chats"][code_name]["interval"] = (
             min_minutes,
             max_minutes,
@@ -240,7 +239,7 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
             message,
-            f"'{code_name}' установлен на {min_minutes}-{max_minutes} минут.",
+            f"'{code_name}' установлен на {min_str}-{max_str} минут.",
         )
 
     @loader.unrestricted
