@@ -68,7 +68,7 @@ async def ask_for_feedback(message: types.Message):
 async def process_feedback(message: types.Message, state: FSMContext):
     feedback = message.text
     user_mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
-    await bot.send_message("5032015812", f"Feedback from {user_mention}:\n{feedback}")
+    await bot.send_message("5032015812", f"Feedback from {user_mention}:\n{feedback}", parse_mode="HTML")
     await message.answer("Thank you for your feedback!")
     await state.finish()
 
@@ -76,7 +76,7 @@ async def process_feedback(message: types.Message, state: FSMContext):
 @dp.message_handler(content_types=types.ContentTypes.TEXT)
 async def forward_to_admin(message: types.Message):
     user_mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
-    await bot.send_message("5032015812", f"Message from {user_mention}:")
+    await bot.send_message("5032015812", f"Message from {user_mention}:", parse_mode="HTML")
     await bot.forward_message("5032015812", message.chat.id, message.message_id)
 
 
