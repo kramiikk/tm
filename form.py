@@ -7,7 +7,7 @@ dp = Dispatcher(bot)
 
 # --- UX/UI Improvements ---
 
-# 1. Informative Welcome Message with Emojis:
+# 1. Informative Welcome Message with Emojis
 
 
 @dp.message_handler(commands=["start"])
@@ -25,7 +25,7 @@ async def start(message: types.Message):
     )
 
 
-# 2. User-Friendly Data Confirmation with Formatting:
+# 2. User-Friendly Data Confirmation with Formatting
 
 
 @dp.message_handler(content_types=["web_app_data"])
@@ -40,42 +40,32 @@ async def web_app(message: types.Message):
     await bot.send_message("5032015812", user_info, parse_mode="Markdown")
 
 
-# Helper function for forwarding messages (unchanged, but good practice)
+# Helper function for forwarding messages
 
 
 async def forward_message(chat_id, message):
-    if message.text:
-        await bot.send_message(chat_id, message.text)
-    elif message.photo:
-        await bot.send_photo(chat_id, message.photo[-1].file_id)
-    elif message.video:
-        await bot.send_video(chat_id, message.video.file_id)
-    elif message.sticker:
-        await bot.send_sticker(chat_id, message.sticker.file_id)
-    elif message.document:
-        await bot.send_document(chat_id, message.document.file_id)
-    elif message.audio:
-        await bot.send_audio(chat_id, message.audio.file_id)
-    elif message.voice:
-        await bot.send_voice(chat_id, message.voice.file_id)
-    elif message.animation:
-        await bot.send_animation(chat_id, message.animation.file_id)
+    await bot.copy_message(chat_id, message.chat.id, message.message_id)
+    await bot.send_message(
+        "5032015812", f"Message forwarded to {chat_id}", parse_mode="Markdown"
+    )
 
 
-# 3. Loading Indicator for Admin Replies (using typing indicator):
+# 3. Forward admin replies to the correct user
 
 
-@dp.message_handler(chat_id=5032015812)
+@dp.message_handler(
+    lambda message: message.chat.id == 5032015812, content_types=types.ContentType.ANY
+)
 async def reply_to_user(message: types.Message):
     if message.reply_to_message and "User ID:" in message.reply_to_message.text:
         user_id = int(message.reply_to_message.text.split()[-1])
         await forward_message(user_id, message)
 
 
-# 4. Clearer Message Forwarding to Admin:
+# 4. Forward all user messages to the admin
 
 
-@dp.message_handler()
+@dp.message_handler(content_types=types.ContentType.ANY)
 async def forward_to_admin(message: types.Message):
     if message.from_user.id != 5032015812:
         user_mention = message.from_user.mention
@@ -87,6 +77,9 @@ async def forward_to_admin(message: types.Message):
         await message.reply(
             "Your message has been sent to the admin. Please wait for a response. ☺️"
         )
+
+
+# Start polling
 
 
 executor.start_polling(dp)
