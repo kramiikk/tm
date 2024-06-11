@@ -19,18 +19,19 @@ async def web_app(message: types.Message):
     await message.answer(f'Thank you, {res["name"]} !')
     await bot.send_message("5032015812", f'Name: {res["name"]}. Username: {res["username"]}.')
 
-@dp.message_handler()
-async def forward_to_admin(message: types.Message):
-    await message.forward(5032015812)
-    user_mention = message.from_user.mention
-    user_id = message.from_user.id
-    await bot.send_message(5032015812, f"Message from: {user_mention} (ID: {user_id})")
-
 @dp.message_handler(chat_id=5032015812)
 async def reply_to_user(message: types.Message):
     if message.reply_to_message:
         reply_text = message.reply_to_message.text
         user_id = int(reply_text.split("ID: ")[-1])
         await message.forward(user_id)
+
+@dp.message_handler()
+async def forward_to_admin(message: types.Message):
+    if message.from_user.id != 5032015812:
+        await message.forward(5032015812)
+        user_mention = message.from_user.mention
+        user_id = message.from_user.id
+        await bot.send_message(5032015812, f"Message from: {user_mention} (ID: {user_id})")
 
 executor.start_polling(dp)
