@@ -2,7 +2,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.web_app_info import WebAppInfo
 import json
 
-bot = Bot("7382087237:AAH-xbjhxTTKNkLbDEn4lp4WxvdhbkfAdfc")
+bot = Bot("TOKEN")
 dp = Dispatcher(bot)
 
 # --- UX/UI Improvements ---
