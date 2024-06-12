@@ -44,16 +44,6 @@ async def web_app(message: types.Message):
     await bot.send_message("5032015812", user_info, parse_mode="Markdown")
 
 
-# Helper function for forwarding messages
-
-
-async def forward_message(chat_id, message):
-    await bot.copy_message(chat_id, message.chat.id, message.message_id)
-    await bot.send_message(
-        "5032015812", f"Message forwarded to {chat_id}", parse_mode="Markdown"
-    )
-
-
 # 3. Forward admin replies to the correct user
 
 
@@ -63,7 +53,7 @@ async def forward_message(chat_id, message):
 async def reply_to_user(message: types.Message):
     if message.reply_to_message and "User ID:" in message.reply_to_message.text:
         user_id = int(message.reply_to_message.text.split()[-1])
-        await forward_message(user_id, message)
+        await bot.copy_message(user_id, message.chat.id, message.message_id)
 
 
 # 4. Forward all user messages to the admin
@@ -77,7 +67,7 @@ async def forward_to_admin(message: types.Message):
         await bot.send_message(
             5032015812, f"Message from: {user_mention} User ID: {user_id}"
         )
-        await forward_message(5032015812, message)
+        await bot.copy_message(5032015812, message.chat.id, message.message_id)
         await message.reply(
             "Your message has been sent to the admin. Please wait for a response. ☺️"
         )
