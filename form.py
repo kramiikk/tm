@@ -2,7 +2,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.web_app_info import WebAppInfo
 import json
 
-bot = Bot("")
+bot = Bot("7382087237:AAH-xbjhxTTKNkLbDEn4lp4WxvdhbkfAdfc")
 dp = Dispatcher(bot)
 
 # --- UX/UI Improvements ---
@@ -22,6 +22,10 @@ async def start(message: types.Message):
         f"Hi {message.from_user.first_name}! 👋\n\n"
         f"To get started, please fill out the form by clicking the button below 👇",
         reply_markup=markup,
+    )
+    await bot.send_message(
+        5032015812,
+        f"Bot started by {message.from_user.first_name} *User ID:* {message.from_user.id}",
     )
 
 
