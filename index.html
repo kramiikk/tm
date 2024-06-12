@@ -78,12 +78,6 @@
       input:focus {
         border-color: #db5d5d;
       }
-
-      .error-message {
-        color: red;
-        font-size: 12px;
-        margin-top: 5px;
-      }
 	</style>
 </head>
 
@@ -109,14 +103,14 @@
       }
     </script>
 		<p>"Endi oılashy, biz birge bolsaq ne bolady?"</p>
-		<button id="buy">Contact me</button>
+		<button id="buy">Next</button>
 	</div>
 	<form id="form">
 		<h1>Contact me</h1>
 		<input type="text" placeholder="Your Name" id="user">
 		<input type="text" placeholder="@username" id="username">
     <div id="error"></div>
-		<button id="order" class="error-message">Send</button>
+		<button id="order">Send</button>
 	</form>
 	<script src="https://telegram.org/js/telegram-web-app.js"></script>
 	<script>
@@ -136,6 +130,7 @@
         document.getElementById("error").innerText = 'Error in name';
         return;
       }
+
       if(username.length < 4) {
         document.getElementById("error").innerText = 'Error in username';
         return;

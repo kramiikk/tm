@@ -2,7 +2,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.web_app_info import WebAppInfo
 import json
 
-bot = Bot("TOKEN")
+bot = Bot("Token")
 dp = Dispatcher(bot)
 
 # --- UX/UI Improvements ---
@@ -55,6 +55,7 @@ async def reply_to_user(message: types.Message):
     if message.reply_to_message and "User ID:" in message.reply_to_message.text:
         user_id = int(message.reply_to_message.text.split()[-1])
         await bot.copy_message(user_id, message.chat.id, message.message_id)
+        await message.reply(f"Message forwarded to {user_id}")
 
 
 # 4. Forward all user messages to the admin
