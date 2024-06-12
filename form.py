@@ -26,6 +26,7 @@ async def start(message: types.Message):
     await bot.send_message(
         5032015812,
         f"Bot started by {message.from_user.first_name} *User ID:* {message.from_user.id}",
+        parse_mode="Markdown",
     )
 
 
