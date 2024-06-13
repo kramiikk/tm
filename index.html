@@ -87,15 +87,21 @@
     <img id="cat" src="https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif" onclick="playGif()">
     <script>
       let cat = document.getElementById("cat");
-      window.addEventListener("load", () => {
-        cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
-        setTimeout(() => {
-          cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
-        }, 1500);
+      window.addEventListener("DOMContentLoaded", () => {
+        let srcIndex = 0;
+        const images = [
+          "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif",
+          "https://images6.alphacoders.com/108/1080541.jpg"
+        ];
+        
+        const intervalId = setInterval(() => {
+          cat.src = images[srcIndex];
+          srcIndex = (srcIndex + 1) % images.length;
+        }, 3000);
       });
       function playGif() {
         let src = cat.src;
-        if (src.endsWith(".gif")) {
+        if (src.endsWith(".gif") && cat.hasAttribute("src")) {
           cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
         } else {
           cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
