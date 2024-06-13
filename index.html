@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Shop</title>
+    <title>Stop</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Montserrat:wqht@200;500&display=swap');
       * {
@@ -118,28 +118,38 @@
     <div id="error"></div>
 		<button id="order">Send</button>
 	</form>
-  <form id="hiddenForm">
+  <form id="hiddenForm" style="display: none;">
     <h2>Additional Form</h2>
-    <!-- добавьте необходимые элементы формы -->
+    <input type="text" placeholder="Введите что-нибудь"> 
     <button id="closehidden">Close</button>
   </form>
 	<script src="https://telegram.org/js/telegram-web-app.js"></script>
 	<script>
+    let timeoutId;
     let tg = window.Telegram.WebApp;
     let buy = document.getElementById("buy");
     let order = document.getElementById("order");
     let closehidden = document.getElementById("closehidden");
     tg.expand();
-    buy.addEventListener("click", () => {
+    buy.addEventListener("mousedown", () => {
+      // Запускаем таймер при нажатии на кнопку
+      timeoutId = setTimeout(() => {
+        // Этот код выполнится, если кнопка удерживается более 500 миллисекунд
+        document.getElementById("main").style.display = "none";
+        document.getElementById("hiddenForm").style.display = "block";
+      }, 500); // 500 миллисекунд - время удержания для долгого нажатия
+    });
+    buy.addEventListener("mouseup", () => {
+      // Очищаем таймер при отпускании кнопки
+      clearTimeout(timeoutId);
+    });
+    // Дополнительная обработка для клика (если нужно)
+    buy.addEventListener("click", (event) => {
       if (event.button === 0) {
         // Клик по кнопке - открыть первую форму
         document.getElementById("main").style.display = "none";
         document.getElementById("form").style.display = "block";
-      } else if (event.button === 2) {
-        // Долгое удерживание - открыть вторую форму
-        document.getElementById("main").style.display = "none";
-        document.getElementById("hiddenForm").style.display = "block";
-      }
+      } 
     });
     closehidden.addEventListener("click", () => {
       document.getElementById("hiddenForm").style.display = "none";
