@@ -101,7 +101,7 @@
       });
       function playGif() {
         let src = cat.src;
-        if (src.endsWith(".gif") && cat.hasAttribute("src")) {
+        if (src.endsWith(".gif")) {
           cat.src = "https://images6.alphacoders.com/108/1080541.jpg";
         } else {
           cat.src = "https://media.tenor.com/XHqS1hljeIQAAAAC/cat-walking.gif";
@@ -118,15 +118,32 @@
     <div id="error"></div>
 		<button id="order">Send</button>
 	</form>
+  <form id="hiddenForm">
+    <h2>Additional Form</h2>
+    <!-- добавьте необходимые элементы формы -->
+    <button id="closehidden">Close</button>
+  </form>
 	<script src="https://telegram.org/js/telegram-web-app.js"></script>
 	<script>
     let tg = window.Telegram.WebApp;
     let buy = document.getElementById("buy");
     let order = document.getElementById("order");
+    let closehidden = document.getElementById("closehidden");
     tg.expand();
     buy.addEventListener("click", () => {
-      document.getElementById("main").style.display = "none";
-      document.getElementById("form").style.display = "block";
+      if (event.button === 0) {
+        // Клик по кнопке - открыть первую форму
+        document.getElementById("main").style.display = "none";
+        document.getElementById("form").style.display = "block";
+      } else if (event.button === 2) {
+        // Долгое удерживание - открыть вторую форму
+        document.getElementById("main").style.display = "none";
+        document.getElementById("hiddenForm").style.display = "block";
+      }
+    });
+    closehidden.addEventListener("click", () => {
+      document.getElementById("hiddenForm").style.display = "none";
+      document.getElementById("main").style.display = "block";
     });
     order.addEventListener("click", () => {
       document.getElementById("error").innerText = '';
