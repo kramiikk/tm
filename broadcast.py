@@ -207,6 +207,8 @@ class BroadcastMod(loader.Module):
             "interval": (9, 13),
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
+        self.broadcasting = False
+        asyncio.create_task(self._broadcast_loop())
         await utils.answer(message, f"Код рассылки '{code_name}' создан.")
 
     @loader.unrestricted
