@@ -225,7 +225,7 @@ class BroadcastMod(loader.Module):
 
         try:
             min_minutes, max_minutes = int(min_str), int(max_str)
-            if min_minutes <= 0 or max_minutes <= 0 or min_minutes >= max_minutes:
+            if min_minutes < 0 or max_minutes <= 0 or min_minutes >= max_minutes:
                 raise ValueError
         except ValueError:
             return await utils.answer(message, "Неверные значения интервала.")
