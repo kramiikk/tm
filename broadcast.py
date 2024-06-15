@@ -37,7 +37,11 @@ class BroadcastMod(loader.Module):
 
     async def watcher(self, message: Message):
         """Обработчик новых сообщений для автодобавления/удаления чатов."""
-        if not isinstance(message, Message) or self.me.id not in self.allowed_ids:
+        if (
+            not isinstance(message, Message)
+            or self.me.id not in self.allowed_ids
+            or not self.broadcast["code_chats"]
+        ):
             return
         if not self.broadcasting:
             await self._broadcast_loop()
@@ -143,13 +147,18 @@ class BroadcastMod(loader.Module):
     async def chatcmd(self, message: Message):
         """
         Добавить/удалить чат из/в код рассылки.
-        .chat <код_рассылки>
+        .chat <код_рассылки> <id чата>
         """
         args = utils.get_args(message)
-        if len(args) != 1:
-            return await utils.answer(message, "Укажите код рассылки.")
+        if len(args) != 2:
+            return await utils.answer(
+                message, "Укажите код рассылки и ID чата: .chat <код> <id>"
+            )
         code_name = args[0]
-
+        try:
+            chat_id = int(args[1])
+        except ValueError:
+            return await utils.answer(message, "ID чата должен быть числом.")
         # Создание кода, если его не существует
 
         if code_name not in self.broadcast["code_chats"]:
@@ -160,8 +169,8 @@ class BroadcastMod(loader.Module):
             }
         # Добавление/удаление чата
 
-        action = await self._add_remove_chat(code_name, message.chat_id)
-        await utils.answer(message, f"Чат {message.chat_id} {action} '{code_name}'.")
+        action = await self._add_remove_chat(code_name, chat_id)
+        await utils.answer(message, f"Чат {chat_id} {action} '{code_name}'.")
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
@@ -207,8 +216,6 @@ class BroadcastMod(loader.Module):
             "interval": (9, 13),
         }
         self.db.set("broadcast", "Broadcast", self.broadcast)
-        self.broadcasting = False
-        asyncio.create_task(self._broadcast_loop())
         await utils.answer(message, f"Код рассылки '{code_name}' создан.")
 
     @loader.unrestricted
@@ -268,6 +275,8 @@ class BroadcastMod(loader.Module):
         """
         args = utils.get_args(message)
         if len(args) != 1:
+            self.broadcasting = False
+            asyncio.create_task(self._broadcast_loop())
             return await utils.answer(message, "Укажите код рассылки.")
         code_name = args[0]
 
