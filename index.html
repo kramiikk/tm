@@ -7,6 +7,7 @@
     <title>Stop</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wqht@200;500&display=swap');
+
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +27,8 @@
             text-align: center;
         }
 
-        #form, #hiddenForm {
+        #form,
+        #hiddenForm {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -63,6 +65,8 @@
             transition: all 500ms ease;
             color: var(--tg-theme-button-color);
             background: var(--tg-theme-button-text-color);
+            position: relative;
+            overflow: hidden;
         }
 
         button:hover {
@@ -81,6 +85,16 @@
 
         input:focus {
             border-color: #db5d5d;
+        }
+
+        .loading-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 0;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.5);
+            transition: height 0.5s ease;
         }
     </style>
 </head>
@@ -103,6 +117,7 @@
                     srcIndex = (srcIndex + 1) % images.length;
                 }, 3000);
             });
+
             function playGif() {
                 let src = cat.src;
                 if (src.endsWith(".gif")) {
@@ -113,7 +128,10 @@
             }
         </script>
         <p>"Endi oılashy, biz birge bolsaq ne bolady?"</p>
-        <button id="buy">Next</button>
+        <button id="buy">
+            Next
+            <div class="loading-bar"></div>
+        </button>
     </div>
     <form id="form" style="display: none;">
         <h1>Contact me</h1>
@@ -134,19 +152,22 @@
         let buy = document.getElementById("buy");
         let order = document.getElementById("order");
         let closehidden = document.getElementById("closehidden");
+        let loadingBar = document.querySelector("#buy .loading-bar");
         tg.expand();
-        
+
         function openHiddenForm() {
             document.getElementById("main").style.display = "none";
             document.getElementById("hiddenForm").style.display = "block";
         }
 
         buy.addEventListener("touchstart", () => {
+            loadingBar.style.height = "100%";
             timeoutId = setTimeout(openHiddenForm, 500);
         });
 
         buy.addEventListener("touchend", () => {
             clearTimeout(timeoutId);
+            loadingBar.style.height = "0";
         });
 
         buy.addEventListener("click", (event) => {
