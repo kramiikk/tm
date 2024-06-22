@@ -88,22 +88,18 @@ class BroadcastMod(loader.Module):
                 await self._send_messages(code_name, data["messages"])
 
     async def _send_messages(self, code_name: str, messages: List[Dict]):
-        """Отправка сообщений по порядку."""
+        """Отправка сообщений по порядку с учетом burst_count."""
         if code_name not in self.last_message:
             self.last_message[code_name] = 0
         message_index = self.last_message[code_name]
         num_messages = len(messages)
 
-        # Получаем данные о чатах и количестве сообщений для отправки за раз
-
         data = self.broadcast["code_chats"][code_name]
         chats = data["chats"]
         burst_count = data.get("burst_count", 1)
 
-        for chat_id in chats:
-            await asyncio.sleep(1)
-            iterations = min(burst_count, num_messages)
-            for _ in range(iterations):
+        for _ in range(burst_count):
+            for chat_id in chats:
                 with contextlib.suppress(Exception):
                     message_data = messages[message_index]
                     main_message = await self.client.get_messages(
@@ -117,9 +113,8 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(chat_id, main_message.text)
-                    message_index = (message_index + 1) % num_messages
-        if messages:
-            self.last_message[code_name] = message_index
+            message_index = (message_index + 1) % num_messages
+        self.last_message[code_name] = message_index
 
     # --- Команды модуля ---
 
