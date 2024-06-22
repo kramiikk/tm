@@ -104,8 +104,8 @@ class BroadcastMod(loader.Module):
             await asyncio.sleep(1)
             iterations = min(burst_count, num_messages)
             for _ in range(iterations):
-                message_data = messages[message_index]
                 with contextlib.suppress(Exception):
+                    message_data = messages[message_index]
                     main_message = await self.client.get_messages(
                         message_data["chat_id"], ids=message_data["message_id"]
                     )
@@ -117,8 +117,9 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(chat_id, main_message.text)
-                message_index = (message_index + 1) % num_messages
-        self.last_message[code_name] = message_index
+                    message_index = (message_index + 1) % num_messages
+        if messages:
+            self.last_message[code_name] = message_index
 
     # --- Команды модуля ---
 
