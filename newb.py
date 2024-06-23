@@ -61,11 +61,9 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
         """
-        Добавить сообщение в код рассылки.
-        Если кода не существует, он будет создан.
-
         Используйте команду, ответив на сообщение,
         которое нужно добавить в рассылку.
+        Если кода не существует, он будет создан.
 
         Пример:
         .addmsg <код>
@@ -87,26 +85,61 @@ class BroadcastMod(loader.Module):
         """
         Используйте команду, ответив на сообщение,
         которое нужно удалить из рассылки.
+        Если нужно удалить по аргументам, используйте:
+        .delmsg <код> <индекс сообщения>
 
         Пример:
         .delmsg <код>
         """
         args = utils.get_args(message)
-        reply = await message.get_reply_message()
-        if len(args) != 1:
-            return await utils.answer(message, "Укажите код рассылки.")
-        if not reply:
+        if len(args) not in (1, 2):
             return await utils.answer(
-                message, "Ответьте на сообщение, которое нужно удалить."
+                message,
+                "Укажите код рассылки или код и индекс: .delmsg <код> [индекс]",
             )
         code_name = args[0]
+        if code_name not in self.broadcast["code_chats"]:
+            return await utils.answer(message, f"Код '{code_name}' не найден.")
+        messages = self.broadcast["code_chats"][code_name]["messages"]
 
-        await self._modify_message_list(code_name, reply, "del")
+        if len(args) == 1:
+            reply = await message.get_reply_message()
+            if not reply:
+                return await utils.answer(
+                    message, "Ответьте на сообщение, которое нужно удалить."
+                )
+            message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
+            if message_data in messages:
+                messages.remove(message_data)
+                response = f"Сообщение удалено из '{code_name}'."
+            else:
+                response = f"Этого сообщения нет в коде '{code_name}'."
+        elif len(args) == 2:
+            try:
+                message_index = int(args[1]) - 1
+                if 0 <= message_index < len(messages):
+                    del messages[message_index]
+                    response = (
+                        f"Сообщение {message_index + 1} удалено из кода '{code_name}'."
+                    )
+                else:
+                    response = f"Неверный индекс сообщения для кода '{code_name}'."
+            except ValueError:
+                return await utils.answer(
+                    message, "Индекс сообщения должен быть числом."
+                )
+        if not messages:
+            del self.broadcast["code_chats"][code_name]
+            response += (
+                f"\nКод '{code_name}' удален, так как в нем больше нет сообщений."
+            )
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        await utils.answer(message, response)
 
     @loader.unrestricted
     async def burstcmd(self, message: Message):
         """
-        Установить количество сообщений, отправляемых за раз (burst).
+        Установит количество сообщений, отправляемых за раз (burst).
 
         Пример:
         .burst <код> <количество>
@@ -252,7 +285,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def watcmd(self, message: Message):
         """
-        Включить/отключить добавление чатов.
+        Включит/отключит добавление чатов.
 
         Если режим включен, то при отправке сообщения с кодом в чат,
         этот чат будет автоматически добавлен/удален.
