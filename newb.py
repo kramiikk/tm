@@ -122,7 +122,7 @@ class BroadcastMod(loader.Module):
         которое нужно добавить в рассылку.
 
         Пример:
-        .addmsg <код_рассылки>
+        .addmsg <код>
         """
         await self._message_handler(message, "addmsg")
 
@@ -136,7 +136,7 @@ class BroadcastMod(loader.Module):
         которое нужно удалить из рассылки.
 
         Пример:
-        .delmsg <код_рассылки>
+        .delmsg <код>
         """
         await self._message_handler(message, "delmsg")
 
@@ -146,13 +146,13 @@ class BroadcastMod(loader.Module):
         Установить количество сообщений, отправляемых за раз (burst).
 
         Пример:
-        .burst <код_рассылки> <количество>
+        .burst <код> <количество>
         """
         args = utils.get_args(message)
         if len(args) != 2:
             return await utils.answer(
                 message,
-                "Укажите код рассылки и количество сообщений: .burst <код> <количество>",
+                "Укажите код и количество сообщений: .burst <код> <количество>",
             )
         code_name = args[0]
         try:
@@ -164,12 +164,12 @@ class BroadcastMod(loader.Module):
                 message, "Количество сообщений должно быть положительным числом."
             )
         if code_name not in self.broadcast["code_chats"]:
-            return await utils.answer(message, f"Код рассылки '{code_name}' не найден.")
+            return await utils.answer(message, f"Код '{code_name}' не найден.")
         self.broadcast["code_chats"][code_name]["burst_count"] = burst_count
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
             message,
-            f"Для кода '{code_name}' установлена отправка {burst_count} сообщений за раз.",
+            f"Для '{code_name}' будет отправлено {burst_count} сообщений за раз.",
         )
 
     @loader.unrestricted
@@ -178,7 +178,7 @@ class BroadcastMod(loader.Module):
         Добавить/удалить чат.
 
         Пример:
-        .chat <код_рассылки> <id_чата>
+        .chat <код> <id чата>
         """
         args = utils.get_args(message)
         if len(args) != 2:
@@ -191,7 +191,7 @@ class BroadcastMod(loader.Module):
         except ValueError:
             return await utils.answer(message, "ID чата должен быть числом.")
         if code_name not in self.broadcast["code_chats"]:
-            return await utils.answer(message, f"Код рассылки '{code_name}' не найден.")
+            return await utils.answer(message, f"Код '{code_name}' не найден.")
         action = await self._add_remove_chat(code_name, chat_id)
         await utils.answer(message, f"Чат {chat_id} {action} '{code_name}'.")
 
@@ -201,11 +201,11 @@ class BroadcastMod(loader.Module):
         Удалить код рассылки.
 
         Пример:
-        .delcode <код_рассылки>
+        .delcode <код>
         """
         args = utils.get_args(message)
         if len(args) != 1:
-            return await utils.answer(message, "Укажите код рассылки: .delcode <код>")
+            return await utils.answer(message, "Укажите код: .delcode <код>")
         code_name = args[0]
 
         if code_name in self.broadcast["code_chats"]:
@@ -221,7 +221,7 @@ class BroadcastMod(loader.Module):
         Установить интервал рассылки для кода.
 
         Пример:
-        .interval <код_рассылки> <минимальное_значение> <максимальное_значение>
+        .interval <код> <мин> <макс>
         """
         args = utils.get_args(message)
         if len(args) != 3:
@@ -238,7 +238,7 @@ class BroadcastMod(loader.Module):
         except ValueError:
             return await utils.answer(message, "Неверные значения интервала.")
         if code_name not in self.broadcast["code_chats"]:
-            return await utils.answer(message, f"Код рассылки '{code_name}' не найден.")
+            return await utils.answer(message, f"Код '{code_name}' не найден.")
         self.broadcast["code_chats"][code_name]["interval"] = (
             min_minutes,
             max_minutes,
@@ -246,7 +246,7 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
             message,
-            f"Интервал '{code_name}' установлен на {min_minutes}-{max_minutes} минут.",
+            f"Интервал '{code_name}' {min_minutes}-{max_minutes} минут.",
         )
 
     @loader.unrestricted
@@ -266,11 +266,11 @@ class BroadcastMod(loader.Module):
         """Показать список сообщений для кода рассылки.
 
         Пример:
-        .listmsg <код_рассылки>
+        .listmsg <код>
         """
         args = utils.get_args(message)
         if len(args) != 1:
-            return await utils.answer(message, "Укажите код рассылки: .listmsg <код>")
+            return await utils.answer(message, "Укажите код: .listmsg <код>")
         code_name = args[0]
 
         messages = (
@@ -288,7 +288,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def watcmd(self, message: Message):
         """
-        Включить/отключить автодобавление/удаление чатов.
+        Включить/отключить добавление чатов.
 
         Если режим включен, то при отправке сообщения с кодом рассылки
         в чат, этот чат будет автоматически добавлен/удален из списка
@@ -328,7 +328,7 @@ class BroadcastMod(loader.Module):
             self.db.set("broadcast", "Broadcast", self.broadcast)
             await utils.answer(message, f"Добавлено в код '{code_name}'.")
         else:
-            await utils.answer(message, f"Это сообщение уже есть в '{code_name}'.")
+            await utils.answer(message, f"Cообщение уже есть в '{code_name}'.")
 
     async def _delete_message_from_code(
         self, message: Message, code_name: str, reply: Message = None
@@ -353,7 +353,7 @@ class BroadcastMod(loader.Module):
 
             args = utils.get_args_raw(message)
             if not args:
-                return await utils.answer(message, "Укажите ID сообщения для удаления.")
+                return await utils.answer(message, "Укажите ID для удаления.")
             try:
                 message_id = int(args)
             except ValueError:
@@ -368,7 +368,7 @@ class BroadcastMod(loader.Module):
                     f"Код '{code_name}' удален, так как в нем больше нет сообщений.",
                 )
             else:
-                await utils.answer(message, f"Сообщение удалено из кода '{code_name}'.")
+                await utils.answer(message, f"Сообщение удалено из '{code_name}'.")
             self.db.set("broadcast", "Broadcast", self.broadcast)
         else:
             await utils.answer(message, f"Этого сообщения нет в коде '{code_name}'.")
