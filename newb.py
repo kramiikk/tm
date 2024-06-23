@@ -56,60 +56,6 @@ class BroadcastMod(loader.Module):
                 )
                 return
 
-    async def _broadcast_loop(self):
-        """Создание задач для рассылки сообщений."""
-        if self.broadcasting:
-            return
-        self.broadcasting = True
-
-        # Создание задач для рассылки по каждому коду
-
-        tasks = [
-            asyncio.create_task(
-                self._messages_loop(code_name, self.broadcast["code_chats"][code_name])
-            )
-            for code_name in self.broadcast["code_chats"]
-        ]
-
-        # Запуск задач и ожидание их завершения
-
-        await asyncio.gather(*tasks)
-        self.broadcasting = False
-
-    async def _messages_loop(self, code_name: str, data: Dict):
-        """Цикл рассылки сообщений для заданного кода."""
-        mins, maxs = data.get("interval", (9, 13))
-        await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
-
-        if code_name not in self.last_message:
-            self.last_message[code_name] = 0
-        message_index = self.last_message[code_name]
-
-        messages = data["messages"]
-        num_messages = len(messages)
-
-        chats = data["chats"]
-        burst_count = data.get("burst_count", 1)
-
-        for chat_id in chats:
-            with contextlib.suppress(Exception):
-                for i in range(burst_count):
-                    current_index = (message_index + i) % num_messages
-                    message_data = messages[current_index]
-                    message = await self.client.get_messages(
-                        message_data["chat_id"], ids=message_data["message_id"]
-                    )
-                    if message is None:
-                        continue
-                    if message.media:
-                        await self.client.send_file(
-                            chat_id, message.media, caption=message.text
-                        )
-                    else:
-                        await self.client.send_message(chat_id, message.text)
-        message_index = (message_index + burst_count) % num_messages
-        self.last_message[code_name] = message_index
-
     # --- Команды модуля ---
 
     @loader.unrestricted
@@ -326,6 +272,60 @@ class BroadcastMod(loader.Module):
             action = "добавлен в"
         self.db.set("broadcast", "Broadcast", self.broadcast)
         return action
+
+    async def _broadcast_loop(self):
+        """Создание задач для рассылки сообщений."""
+        if self.broadcasting:
+            return
+        self.broadcasting = True
+
+        # Создание задач для рассылки по каждому коду
+
+        tasks = [
+            asyncio.create_task(
+                self._messages_loop(code_name, self.broadcast["code_chats"][code_name])
+            )
+            for code_name in self.broadcast["code_chats"]
+        ]
+
+        # Запуск задач и ожидание их завершения
+
+        await asyncio.gather(*tasks)
+        self.broadcasting = False
+
+    async def _messages_loop(self, code_name: str, data: Dict):
+        """Цикл рассылки сообщений для заданного кода."""
+        mins, maxs = data.get("interval", (9, 13))
+        await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
+
+        if code_name not in self.last_message:
+            self.last_message[code_name] = 0
+        message_index = self.last_message[code_name]
+
+        messages = data["messages"]
+        num_messages = len(messages)
+
+        chats = data["chats"]
+        burst_count = data.get("burst_count", 1)
+
+        for chat_id in chats:
+            with contextlib.suppress(Exception):
+                for i in range(burst_count):
+                    current_index = (message_index + i) % num_messages
+                    message_data = messages[current_index]
+                    message = await self.client.get_messages(
+                        message_data["chat_id"], ids=message_data["message_id"]
+                    )
+                    if message is None:
+                        continue
+                    if message.media:
+                        await self.client.send_file(
+                            chat_id, message.media, caption=message.text
+                        )
+                    else:
+                        await self.client.send_message(chat_id, message.text)
+        message_index = (message_index + burst_count) % num_messages
+        self.last_message[code_name] = message_index
 
     async def _modify_message_list(
         self, message: Message, code_name: str, reply: Message, action: str
