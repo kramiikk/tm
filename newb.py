@@ -124,21 +124,38 @@ class BroadcastMod(loader.Module):
         Пример:
         .addmsg <код>
         """
-        await self._message_handler(message, "addmsg")
+        args = utils.get_args(message)
+        reply = await message.get_reply_message()
+        if len(args) != 1:
+            return await utils.answer(message, "Укажите код рассылки.")
+        if not reply:
+            return await utils.answer(
+                message, "Ответьте на сообщение, которое нужно добавить."
+            )
+        code_name = args[0]
+
+        await self._modify_message_list(code_name, reply, "add")
 
     @loader.unrestricted
     async def delmsgcmd(self, message: Message):
         """
-        Удалить сообщение из кода рассылки.
-        Если это последнее сообщение в коде, код будет удален.
-
         Используйте команду, ответив на сообщение,
         которое нужно удалить из рассылки.
 
         Пример:
         .delmsg <код>
         """
-        await self._message_handler(message, "delmsg")
+        args = utils.get_args(message)
+        reply = await message.get_reply_message()
+        if len(args) != 1:
+            return await utils.answer(message, "Укажите код рассылки.")
+        if not reply:
+            return await utils.answer(
+                message, "Ответьте на сообщение, которое нужно удалить."
+            )
+        code_name = args[0]
+
+        await self._modify_message_list(code_name, reply, "del")
 
     @loader.unrestricted
     async def burstcmd(self, message: Message):
@@ -263,7 +280,8 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def listmsgcmd(self, message: Message):
-        """Показать список сообщений для кода рассылки.
+        """
+        Показать список сообщений для кода рассылки.
 
         Пример:
         .listmsg <код>
@@ -290,9 +308,8 @@ class BroadcastMod(loader.Module):
         """
         Включить/отключить добавление чатов.
 
-        Если режим включен, то при отправке сообщения с кодом рассылки
-        в чат, этот чат будет автоматически добавлен/удален из списка
-        чатов для данного кода рассылки.
+        Если режим включен, то при отправке сообщения с кодом в чат,
+        этот чат будет автоматически добавлен/удален.
         """
         self.wat = not self.wat
         await utils.answer(message, "Включено." if self.wat else "Отключено.")
@@ -310,84 +327,44 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         return action
 
-    async def _add_message_to_code(
-        self, message: Message, code_name: str, reply: Message
+    async def _modify_message_list(
+        self, message: Message, code_name: str, reply: Message, action: str
     ):
+        """Добавляет или удаляет сообщение из списка сообщений для кода."""
         if code_name not in self.broadcast["code_chats"]:
             # Создание кода, если его не существует
 
-            self.broadcast["code_chats"][code_name] = {
-                "chats": [],
-                "messages": [],
-                "interval": (9, 13),
-            }
-        messages = self.broadcast["code_chats"][code_name]["messages"]
-        message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
-        if message_data not in messages:
-            messages.append(message_data)
-            self.db.set("broadcast", "Broadcast", self.broadcast)
-            await utils.answer(message, f"Добавлено в код '{code_name}'.")
-        else:
-            await utils.answer(message, f"Cообщение уже есть в '{code_name}'.")
-
-    async def _delete_message_from_code(
-        self, message: Message, code_name: str, reply: Message = None
-    ):
-        """
-        Удаляет сообщение из кода рассылки.
-
-        :param message: Сообщение, являющееся командой.
-        :param code_name: Код рассылки.
-        :param reply: Сообщение, на которое ответили командой.
-        """
-        if code_name not in self.broadcast["code_chats"]:
-            return await utils.answer(message, f"Код '{code_name}' не найден.")
-        messages = self.broadcast["code_chats"][code_name]["messages"]
-
-        if reply:
-            # Удаление по реплаю
-
-            message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
-        else:
-            # Удаление по аргументу (ID сообщения)
-
-            args = utils.get_args_raw(message)
-            if not args:
-                return await utils.answer(message, "Укажите ID для удаления.")
-            try:
-                message_id = int(args)
-            except ValueError:
-                return await utils.answer(message, "Неверный ID сообщения.")
-            message_data = {"chat_id": message.chat_id, "message_id": message_id}
-        if message_data in messages:
-            messages.remove(message_data)
-            if not messages:
-                del self.broadcast["code_chats"][code_name]
-                await utils.answer(
-                    message,
-                    f"Код '{code_name}' удален, так как в нем больше нет сообщений.",
-                )
-            else:
-                await utils.answer(message, f"Сообщение удалено из '{code_name}'.")
-            self.db.set("broadcast", "Broadcast", self.broadcast)
-        else:
-            await utils.answer(message, f"Этого сообщения нет в коде '{code_name}'.")
-
-    async def _message_handler(self, message: Message, command: str):
-        args = utils.get_args(message)
-        reply = await message.get_reply_message()
-        if len(args) != 1:
-            return await utils.answer(message, "Укажите код рассылки.")
-        if not reply:
-            return await utils.answer(
-                message, "Ответьте на сообщение, которое нужно добавить/удалить."
-            )
-        code_name = args[0]
-
-        if command == "addmsg":
-            await self._add_message_to_code(message, code_name, reply)
-        elif command == "delmsg":
-            if code_name in self.broadcast["code_chats"]:
-                await self._delete_message_from_code(message, code_name, reply)
+            if action == "add":
+                self.broadcast["code_chats"][code_name] = {
+                    "chats": [],
+                    "messages": [],
+                    "interval": (9, 13),
+                }
             else:
                 return await utils.answer(message, f"Код '{code_name}' не найден.")
+        messages = self.broadcast["code_chats"][code_name]["messages"]
+        message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
+
+        if action == "add":
+            if message_data not in messages:
+                messages.append(message_data)
+                self.db.set("broadcast", "Broadcast", self.broadcast)
+                await utils.answer(message, f"Добавлено в код '{code_name}'.")
+            else:
+                await utils.answer(message, f"Cообщение уже есть в '{code_name}'.")
+        elif action == "del":
+            if message_data in messages:
+                messages.remove(message_data)
+                if messages:
+                    await utils.answer(message, f"Сообщение удалено из '{code_name}'.")
+                else:
+                    del self.broadcast["code_chats"][code_name]
+                    await utils.answer(
+                        message,
+                        f"Код '{code_name}' удален, так как в нем больше нет сообщений.",
+                    )
+                self.db.set("broadcast", "Broadcast", self.broadcast)
+            else:
+                await utils.answer(
+                    message, f"Этого сообщения нет в коде '{code_name}'."
+                )
