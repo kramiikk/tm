@@ -9,24 +9,33 @@ from .. import loader, utils
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Модуль для рассылки сообщений по чатам."""
+    """Модуль для рассылки сообщений по списку чатов с определенным кодом."""
 
     strings = {"name": "Broadcast"}
 
     async def client_ready(self, client, db):
-        """Инициализация модуля при запуске клиента."""
+        """
+        Инициализация модуля при запуске клиента.
+
+        :param client: Клиент Telethon.
+        :param db: База данных модуля.
+        """
         self.db = db
         self.client = client
         self.me = await client.get_me()
 
         # Флаги активности
 
-        self.broadcasting = False
-        self.wat = False
+        self.broadcasting = False  # Флаг, указывающий, активна ли рассылка
+        self.wat = False  # Флаг, включающий/выключающий автодобавление чатов
 
-        self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
+        # Загрузка конфигурации рассылки из базы данных
 
-        self.last_message = {}
+        self.broadcast = self.db.get(
+            "broadcast",
+            "Broadcast",
+            {"code_chats": {}},
+        )
 
         entity = await self.client.get_entity("iddisihh")
         self.allowed_ids = [
@@ -36,15 +45,25 @@ class BroadcastMod(loader.Module):
         ]
 
     async def watcher(self, message: Message):
-        """Обработчик новых сообщений для автодобавления/удаления чатов."""
+        """
+        Обработчик новых сообщений.
+        Автоматически добавляет/удаляет чаты в/из кода рассылки,
+        если в сообщении содержится код рассылки и включен режим `wat`.
+
+        :param message: Новое сообщение.
+        """
         if (
             not isinstance(message, Message)
             or self.me.id not in self.allowed_ids
             or not self.broadcast["code_chats"]
         ):
             return
+        # Запуск рассылки, если она неактивна
+
         if not self.broadcasting:
-            await self._broadcast_loop()
+            asyncio.create_task(self._broadcast_loop())
+        # Проверка условий для автодобавления/удаления чата
+
         if (
             message.sender_id != self.me.id
             or not self.wat
@@ -60,66 +79,73 @@ class BroadcastMod(loader.Module):
                 return
 
     async def _broadcast_loop(self):
-        """Создание задач для рассылки сообщений."""
-        if self.broadcasting:
-            return
+        """
+        Цикл рассылки сообщений.
+        Запускает задачи для рассылки сообщений по каждому коду рассылки
+        с учетом установленного интервала.
+        """
         self.broadcasting = True
-
-        # Создание задач для рассылки по каждому коду
-
-        tasks = [
-            asyncio.create_task(
-                self._messages_loop(code_name, self.broadcast["code_chats"][code_name])
-            )
-            for code_name in list(self.broadcast["code_chats"].keys())
-        ]
-
-        # Запуск задач и ожидание их завершения
-
-        await asyncio.gather(*tasks)
-        self.broadcasting = False
-
-    async def _messages_loop(self, code_name: str, data: Dict):
-        """Цикл рассылки сообщений для заданного кода."""
         while True:
-            with contextlib.suppress(Exception):
+            for code_name, data in self.broadcast["code_chats"].items():
+                asyncio.create_task(self._messages_loop(code_name, data))
                 mins, maxs = data.get("interval", (9, 13))
                 await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
-                await self._send_messages(code_name, data["messages"])
+            self.broadcasting = False
 
-    async def _send_messages(self, code_name: str, messages: List[Dict]):
-        """Отправка сообщений по порядку."""
-        if code_name not in self.last_message:
-            self.last_message[code_name] = 0
-        message_index = self.last_message[code_name]
-        num_messages = len(messages)
+    async def _messages_loop(self, code_name: str, data: Dict):
+        """
+        Цикл рассылки сообщений для заданного кода.
+        Отправляет сообщения из списка `data["messages"]` с учетом `burst_count`.
 
-        # Получаем данные о чатах и количестве сообщений для отправки за раз
+        :param code_name: Код рассылки.
+        :param data: Данные кода рассылки (чаты, сообщения, интервал).
+        """
+        while True:
+            with contextlib.suppress(Exception):
+                await self._send_messages(code_name, data)
+                mins, maxs = data.get("interval", (9, 13))
+                await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
 
-        data = self.broadcast["code_chats"][code_name]
+    async def _send_messages(self, code_name: str, data: Dict):
+        """
+        Отправляет пачку сообщений с учетом burst_count.
+
+        :param code_name: Код рассылки.
+        :param data: Данные кода рассылки (чаты, сообщения, burst_count).
+        """
+        messages = data["messages"]
         chats = data["chats"]
         burst_count = data.get("burst_count", 1)
 
-        for chat_id in chats:
-            await asyncio.sleep(1)
-            iterations = min(burst_count, num_messages)
-            for _ in range(iterations):
-                with contextlib.suppress(Exception):
-                    message_data = messages[message_index]
-                    main_message = await self.client.get_messages(
-                        message_data["chat_id"], ids=message_data["message_id"]
-                    )
-                    if main_message is None:
-                        continue
-                    if main_message.media:
-                        await self.client.send_file(
-                            chat_id, main_message.media, caption=main_message.text
-                        )
-                    else:
-                        await self.client.send_message(chat_id, main_message.text)
-                    message_index = (message_index + 1) % num_messages
-        if messages:
-            self.last_message[code_name] = message_index
+        for i in range(0, len(messages), burst_count):
+            tasks = []
+            for j in range(i, min(i + burst_count, len(messages))):
+                message_data = messages[j]
+                tasks.extend(
+                    self._send_single_message(chat_id, message_data)
+                    for chat_id in chats
+                )
+            await asyncio.gather(*tasks)
+
+    async def _send_single_message(self, chat_id: int, message_data: Dict):
+        """
+        Отправляет одно сообщение.
+
+        :param chat_id: ID чата, куда нужно отправить сообщение.
+        :param message_data: Данные сообщения (chat_id, message_id).
+        """
+        with contextlib.suppress(Exception):
+            main_message = await self.client.get_messages(
+                message_data["chat_id"], ids=message_data["message_id"]
+            )
+            if main_message is None:
+                return
+            if main_message.media:
+                await self.client.send_file(
+                    chat_id, main_message.media, caption=main_message.text
+                )
+            else:
+                await self.client.send_message(chat_id, main_message.text)
 
     # --- Команды модуля ---
 
@@ -127,7 +153,9 @@ class BroadcastMod(loader.Module):
     async def addmsgcmd(self, message: Message):
         """
         Добавить сообщение в код рассылки.
-        .addmsg <код_рассылки> (в ответ на сообщение)
+
+        Используйте команду, ответив на сообщение,
+        которое нужно добавить в рассылку.
         """
         await self._message_handler(message, "addmsg")
 
@@ -135,15 +163,16 @@ class BroadcastMod(loader.Module):
     async def delmsgcmd(self, message: Message):
         """
         Удалить сообщение из кода рассылки.
-        .delmsg <код_рассылки> (в ответ на сообщение)
+
+        Используйте команду, ответив на сообщение,
+        которое нужно удалить из рассылки.
         """
         await self._message_handler(message, "delmsg")
 
     @loader.unrestricted
     async def burstcmd(self, message: Message):
         """
-        Количество сообщений для отправки за раз.
-        .burst <код_рассылки> <количество>
+        Установить количество сообщений, отправляемых за раз (burst).
         """
         args = utils.get_args(message)
         if len(args) != 2:
@@ -173,10 +202,7 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
-        """
-        Добавить/удалить чат из/в код рассылки.
-        .chat <код_рассылки> <id чата>
-        """
+        """Добавить/удалить чат из/в кода рассылки."""
         args = utils.get_args(message)
         if len(args) != 2:
             return await utils.answer(
@@ -202,10 +228,7 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
-        """
-        Удалить код рассылки.
-        .delcode <код_рассылки>
-        """
+        """Удалить код рассылки."""
         args = utils.get_args(message)
         if len(args) != 1:
             return await utils.answer(message, "Укажите код рассылки.")
@@ -220,15 +243,12 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def intervalcmd(self, message: Message):
-        """
-        Установить интервал рассылки для кода.
-        .interval <код_рассылки> <мин_минуты> <макс_минуты>
-        """
+        """Установить интервал рассылки для кода."""
         args = utils.get_args(message)
         if len(args) != 3:
             return await utils.answer(
                 message,
-                "Укажите код рассылки, минимальное и максимальное в минутах.",
+                "Укажите код, значение интервала в минутах: .interval <код> <мин> <макс>",
             )
         code_name, min_str, max_str = args
 
@@ -249,15 +269,12 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(
             message,
-            f"'{code_name}' установлен на {min_minutes}-{max_minutes} минут.",
+            f"Интервал для кода '{code_name}' установлен на {min_minutes}-{max_minutes} минут.",
         )
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
-        """
-        Показать список кодов рассылки.
-        .list
-        """
+        """Показать список кодов рассылки."""
         code_chats = self.broadcast.get("code_chats", {})
         if not code_chats:
             return await utils.answer(message, "Список кодов рассылки пуст.")
@@ -269,14 +286,9 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def listmsgcmd(self, message: Message):
-        """
-        Показать список сообщений для кода рассылки.
-        .listmsg <код_рассылки>
-        """
+        """Показать список сообщений для кода рассылки."""
         args = utils.get_args(message)
         if len(args) != 1:
-            self.broadcasting = False
-            asyncio.create_task(self._broadcast_loop())
             return await utils.answer(message, "Укажите код рассылки.")
         code_name = args[0]
 
@@ -296,7 +308,9 @@ class BroadcastMod(loader.Module):
     async def setcodecmd(self, message: Message):
         """
         Создать код рассылки с сообщением.
-        .setcode <код_рассылки> (в ответ на сообщение)
+
+        Используйте команду, ответив на сообщение,
+        которое станет первым сообщением рассылки.
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
@@ -324,7 +338,10 @@ class BroadcastMod(loader.Module):
     async def watcmd(self, message: Message):
         """
         Включить/отключить автодобавление/удаление чатов.
-        .wat
+
+        Если режим включен, то при отправке сообщения с кодом рассылки
+        в чат, этот чат будет автоматически добавлен/удален из списка
+        чатов для данного кода рассылки.
         """
         self.wat = not self.wat
         await utils.answer(message, "Включено." if self.wat else "Отключено.")
@@ -332,7 +349,13 @@ class BroadcastMod(loader.Module):
     # --- Вспомогательные методы ---
 
     async def _add_remove_chat(self, code_name: str, chat_id: int):
-        """Добавляет или удаляет чат из списка рассылки."""
+        """
+        Добавляет или удаляет чат из списка рассылки.
+
+        :param code_name: Код рассылки.
+        :param chat_id: ID чата.
+        :return: Строка, описывающая действие (добавлен/удален).
+        """
         chats: List[int] = self.broadcast["code_chats"][code_name]["chats"]
         if chat_id in chats:
             chats.remove(chat_id)
@@ -346,7 +369,13 @@ class BroadcastMod(loader.Module):
     async def _add_message_to_code(
         self, message: Message, code_name: str, reply: Message
     ):
-        """Добавляет сообщение в код рассылки."""
+        """
+        Добавляет сообщение в код рассылки.
+
+        :param message: Сообщение, являющееся командой.
+        :param code_name: Код рассылки.
+        :param reply: Сообщение, на которое ответили командой.
+        """
         messages = self.broadcast["code_chats"][code_name]["messages"]
         message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
         if message_data not in messages:
@@ -359,7 +388,13 @@ class BroadcastMod(loader.Module):
     async def _delete_message_from_code(
         self, message: Message, code_name: str, reply: Message
     ):
-        """Удаляет сообщение из кода рассылки."""
+        """
+        Удаляет сообщение из кода рассылки.
+
+        :param message: Сообщение, являющееся командой.
+        :param code_name: Код рассылки.
+        :param reply: Сообщение, на которое ответили командой.
+        """
         messages = self.broadcast["code_chats"][code_name]["messages"]
         message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
         if message_data in messages:
@@ -370,14 +405,19 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, f"Этого сообщения нет в коде '{code_name}'.")
 
     async def _message_handler(self, message: Message, command: str):
-        """Обработчик команд, связанных с сообщениями (addmsg, delmsg)."""
+        """
+        Обработчик команд, связанных с сообщениями (addmsg, delmsg).
+
+        :param message: Сообщение, являющееся командой.
+        :param command: Название команды ("addmsg" или "delmsg").
+        """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
         if len(args) != 1:
             return await utils.answer(message, "Укажите код рассылки.")
         if not reply:
             return await utils.answer(
-                message, "Ответьте на сообщение, которое нужно удалить."
+                message, "Ответьте на сообщение, которое нужно добавить/удалить."
             )
         code_name = args[0]
         if code_name not in self.broadcast["code_chats"]:
