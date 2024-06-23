@@ -175,8 +175,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def chatcmd(self, message: Message):
         """
-        Добавить/удалить чат из/в кода рассылки.
-        Если кода не существует, он будет создан.
+        Добавить/удалить чат.
 
         Пример:
         .chat <код_рассылки> <id_чата>
@@ -192,11 +191,7 @@ class BroadcastMod(loader.Module):
         except ValueError:
             return await utils.answer(message, "ID чата должен быть числом.")
         if code_name not in self.broadcast["code_chats"]:
-            self.broadcast["code_chats"][code_name] = {
-                "chats": [],
-                "messages": [],
-                "interval": (9, 13),
-            }
+            return await utils.answer(message, f"Код рассылки '{code_name}' не найден.")
         action = await self._add_remove_chat(code_name, chat_id)
         await utils.answer(message, f"Чат {chat_id} {action} '{code_name}'.")
 
