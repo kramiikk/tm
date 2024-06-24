@@ -3,6 +3,7 @@ import contextlib
 import random
 from typing import Dict, List
 
+from telethon.errors.rpcerrorlist import FloodWaitError, PeerError
 from telethon.tl.types import Message
 from .. import loader, utils
 
@@ -366,21 +367,33 @@ class BroadcastMod(loader.Module):
         chats = data["chats"]
         burst_count = data.get("burst_count", 1)
 
+        if not messages:
+            return
         for chat_id in chats:
-            with contextlib.suppress(Exception):
-                for i in range(burst_count):
-                    current_index = (message_index + i) % num_messages
-                    message_data = messages[current_index]
-                    message = await self.client.get_messages(
-                        message_data["chat_id"], ids=message_data["message_id"]
-                    )
+            try:
+                message_ids = [
+                    messages[(message_index + i) % num_messages]["message_id"]
+                    for i in range(burst_count)
+                ]
+                messages_to_send = await self.client.get_messages(
+                    message_data["chat_id"], ids=message_ids
+                )
+
+                for i, message in enumerate(messages_to_send):
                     if message is None:
                         continue
+                    current_index = (message_index + i) % num_messages
+                    message_data = messages[current_index]
                     if message.media:
                         await self.client.send_file(
                             chat_id, message.media, caption=message.text
                         )
                     else:
                         await self.client.send_message(chat_id, message.text)
+            except FloodWaitError as e:
+                await asyncio.sleep(e.seconds * 2)
+                await self.client.send_message("me", f"FloodWaitError: {e}")
+            except PeerError as e:
+                await self.client.send_message("me", f"PeerError: {e}")
         message_index = (message_index + burst_count) % num_messages
         self.last_message[code_name] = message_index
