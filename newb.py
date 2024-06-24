@@ -361,7 +361,7 @@ class BroadcastMod(loader.Module):
         self.last_message[code_name] = message_index
 
     async def _modify_message_list(
-        self, message: Message, code_name: str, reply: Message, action: str
+        self, code_name: str, reply: Message, action: str, message: Message
     ):
         """Добавляет или удаляет сообщение из списка сообщений для кода."""
         if code_name not in self.broadcast["code_chats"]:
