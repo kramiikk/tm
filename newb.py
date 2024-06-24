@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 import random
 from typing import Dict, List
 
@@ -62,8 +61,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
         """
-        Используйте команду, ответив на сообщение,
-        которое нужно добавить в рассылку.
+        Ответь на сообщение, которое нужно добавить в рассылку.
         Если кода не существует, он будет создан.
 
         Пример:
@@ -108,10 +106,9 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def delmsgcmd(self, message: Message):
         """
-        Используйте команду, ответив на сообщение,
-        которое нужно удалить из рассылки.
-        Если нужно удалить по аргументам, используйте:
-        .delmsg <код> <индекс сообщения>
+        Ответь на сообщение, которое нужно удалить из рассылки.
+        Если нужно удалить по аргументам, используй:
+        .delmsg <код> <индекс>
 
         Пример:
         .delmsg <код>
@@ -166,7 +163,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def burstcmd(self, message: Message):
         """
-        Установит количество сообщений, отправляемых за раз (burst).
+        Количество сообщений, отправляемых за раз (burst).
 
         Пример:
         .burst <код> <количество>
@@ -221,7 +218,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
         """
-        Удалить код рассылки.
+        Удалить рассылку.
 
         Пример:
         .delcode <код>
@@ -241,7 +238,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def intervalcmd(self, message: Message):
         """
-        Установить интервал рассылки для кода.
+        Интервал рассылки для кода.
 
         Пример:
         .interval <код> <мин> <макс>
@@ -274,7 +271,7 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
-        """Показать список кодов рассылки."""
+        """Список кодов рассылки."""
         code_chats = self.broadcast.get("code_chats", {})
         if not code_chats:
             return await utils.answer(message, "Список кодов рассылки пуст.")
@@ -287,7 +284,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def listmsgcmd(self, message: Message):
         """
-        Показать список сообщений для кода рассылки.
+        Список сообщений для кода рассылки.
 
         Пример:
         .listmsg <код>
@@ -312,7 +309,7 @@ class BroadcastMod(loader.Module):
     @loader.unrestricted
     async def watcmd(self, message: Message):
         """
-        Включит/отключит добавление чатов.
+        Включение/отключение функции добавление чатов.
 
         Если режим включен, то при отправке сообщения с кодом в чат,
         этот чат будет автоматически добавлен/удален.
@@ -387,8 +384,8 @@ class BroadcastMod(loader.Module):
                         await self.client.send_message(chat_id, message_to_send.text)
             except FloodWaitError as e:
                 await asyncio.sleep(e.seconds * 2)
-                await self.client.send_message("me", f"FloodWaitError: {e}")
+                await self.client.send_message("me", f"FloodWait: {e}")
             except PeerError as e:
-                await self.client.send_message("me", f"PeerError: {e}")
+                await self.client.send_message("me", f"Проблема с чатом: {e}")
         message_index = (message_index + burst_count) % num_messages
         self.last_message[code_name] = message_index
