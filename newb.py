@@ -70,6 +70,7 @@ class BroadcastMod(loader.Module):
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
+
         if len(args) != 1:
             return await utils.answer(message, "Укажите код рассылки.")
         if not reply:
@@ -78,7 +79,30 @@ class BroadcastMod(loader.Module):
             )
         code_name = args[0]
 
-        await self._modify_message_list(code_name, reply, "add")
+        # Получаем данные сообщения из ответа
+
+        message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
+
+        # Проверяем, существует ли код
+
+        if code_name not in self.broadcast["code_chats"]:
+            # Создание кода, если его не существует
+
+            self.broadcast["code_chats"][code_name] = {
+                "chats": [],
+                "messages": [],
+                "interval": (9, 13),
+            }
+        # Добавляем сообщение в список сообщений для кода
+
+        messages = self.broadcast["code_chats"][code_name]["messages"]
+
+        if message_data not in messages:
+            messages.append(message_data)
+            self.db.set("broadcast", "Broadcast", self.broadcast)
+            await utils.answer(message, f"Добавлено в код '{code_name}'.")
+        else:
+            await utils.answer(message, f"Cообщение уже есть в '{code_name}'.")
 
     @loader.unrestricted
     async def delmsgcmd(self, message: Message):
@@ -128,6 +152,8 @@ class BroadcastMod(loader.Module):
                 return await utils.answer(
                     message, "Индекс сообщения должен быть числом."
                 )
+        # Удаляем код, если в нем больше нет сообщений
+
         if not messages:
             del self.broadcast["code_chats"][code_name]
             response += (
@@ -314,16 +340,15 @@ class BroadcastMod(loader.Module):
 
         # Создание задач для рассылки по каждому коду
 
-        tasks = [
-            asyncio.create_task(
+        await asyncio.gather(
+            *[
                 self._messages_loop(code_name, self.broadcast["code_chats"][code_name])
-            )
-            for code_name in self.broadcast["code_chats"]
-        ]
+                for code_name in self.broadcast["code_chats"]
+            ]
+        )
 
         # Запуск задач и ожидание их завершения
 
-        await asyncio.gather(*tasks)
         self.broadcasting = False
 
     async def _messages_loop(self, code_name: str, data: Dict):
@@ -359,45 +384,3 @@ class BroadcastMod(loader.Module):
                         await self.client.send_message(chat_id, message.text)
         message_index = (message_index + burst_count) % num_messages
         self.last_message[code_name] = message_index
-
-    async def _modify_message_list(
-        self, code_name: str, reply: Message, action: str, message: Message
-    ):
-        """Добавляет или удаляет сообщение из списка сообщений для кода."""
-        if code_name not in self.broadcast["code_chats"]:
-            # Создание кода, если его не существует
-
-            if action == "add":
-                self.broadcast["code_chats"][code_name] = {
-                    "chats": [],
-                    "messages": [],
-                    "interval": (9, 13),
-                }
-            else:
-                return await utils.answer(message, f"Код '{code_name}' не найден.")
-        messages = self.broadcast["code_chats"][code_name]["messages"]
-        message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
-
-        if action == "add":
-            if message_data not in messages:
-                messages.append(message_data)
-                self.db.set("broadcast", "Broadcast", self.broadcast)
-                await utils.answer(message, f"Добавлено в код '{code_name}'.")
-            else:
-                await utils.answer(message, f"Cообщение уже есть в '{code_name}'.")
-        elif action == "del":
-            if message_data in messages:
-                messages.remove(message_data)
-                if messages:
-                    await utils.answer(message, f"Сообщение удалено из '{code_name}'.")
-                else:
-                    del self.broadcast["code_chats"][code_name]
-                    await utils.answer(
-                        message,
-                        f"Код '{code_name}' удален, так как в нем больше нет сообщений.",
-                    )
-                self.db.set("broadcast", "Broadcast", self.broadcast)
-            else:
-                await utils.answer(
-                    message, f"Этого сообщения нет в коде '{code_name}'."
-                )
