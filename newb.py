@@ -1,8 +1,8 @@
 import asyncio
 import random
+import contextlib
 from typing import Dict, List
 
-from telethon.errors.rpcerrorlist import FloodWaitError, PeerError
 from telethon.tl.types import Message
 from .. import loader, utils
 
@@ -367,7 +367,7 @@ class BroadcastMod(loader.Module):
         if not messages:
             return
         for chat_id in chats:
-            try:
+            with contextlib.suppress(Exception):
                 for i in range(burst_count):
                     current_index = (message_index + i) % num_messages
                     message_data = messages[current_index]
@@ -382,10 +382,5 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(chat_id, message_to_send.text)
-            except FloodWaitError as e:
-                await asyncio.sleep(e.seconds * 2)
-                await self.client.send_message("me", f"FloodWait: {e}")
-            except PeerError as e:
-                await self.client.send_message("me", f"Проблема с чатом: {e}")
         message_index = (message_index + burst_count) % num_messages
         self.last_message[code_name] = message_index
