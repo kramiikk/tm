@@ -371,25 +371,20 @@ class BroadcastMod(loader.Module):
             return
         for chat_id in chats:
             try:
-                message_ids = [
-                    messages[(message_index + i) % num_messages]["message_id"]
-                    for i in range(burst_count)
-                ]
-                messages_to_send = await self.client.get_messages(
-                    message_data["chat_id"], ids=message_ids
-                )
-
-                for i, message in enumerate(messages_to_send):
-                    if message is None:
-                        continue
+                for i in range(burst_count):
                     current_index = (message_index + i) % num_messages
                     message_data = messages[current_index]
-                    if message.media:
+                    message_to_send = await self.client.get_messages(
+                        message_data["chat_id"], ids=message_data["message_id"]
+                    )
+                    if message_to_send is None:
+                        continue
+                    if message_to_send.media:
                         await self.client.send_file(
-                            chat_id, message.media, caption=message.text
+                            chat_id, message_to_send.media, caption=message_to_send.text
                         )
                     else:
-                        await self.client.send_message(chat_id, message.text)
+                        await self.client.send_message(chat_id, message_to_send.text)
             except FloodWaitError as e:
                 await asyncio.sleep(e.seconds * 2)
                 await self.client.send_message("me", f"FloodWaitError: {e}")
