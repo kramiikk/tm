@@ -89,10 +89,10 @@
 
         .loading-bar {
             position: absolute;
-            top: 0; /* Или bottom: 0, если хотите снизу */
+            top: 0; 
             left: 0;
-            height: 100%; /* Или зафиксированная высота, например, 4px */
-            width: 0; /* Начальная ширина 0% */
+            height: 4px;
+            width: 0; 
             background-color: rgba(55, 55, 255, 0.5);
             transition: width 0.5s ease; 
         }
@@ -161,13 +161,11 @@
         }
 
         buy.addEventListener("touchstart", () => {
-            loadingBar.style.height = "100%";
             timeoutId = setTimeout(openHiddenForm, 3000);
         });
 
         buy.addEventListener("touchend", () => {
             clearTimeout(timeoutId);
-            loadingBar.style.height = "0";
         });
 
         buy.addEventListener("click", (event) => {
