@@ -89,12 +89,12 @@
 
         .loading-bar {
             position: absolute;
-            bottom: 0;
+            top: 0; /* Или bottom: 0, если хотите снизу */
             left: 0;
-            height: 0;
-            width: 100%;
+            height: 100%; /* Или зафиксированная высота, например, 4px */
+            width: 0; /* Начальная ширина 0% */
             background-color: rgba(55, 55, 255, 0.5);
-            transition: height 0.5s ease;
+            transition: width 0.5s ease; 
         }
     </style>
 </head>
