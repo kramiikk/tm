@@ -93,7 +93,7 @@
             left: 0;
             height: 0;
             width: 100%;
-            background-color: rgba(255, 255, 255, 0.5);
+            background-color: rgba(0, 113, 255, 0.3);
             transition: height 0.5s ease;
         }
     </style>
@@ -160,16 +160,18 @@
             document.getElementById("hiddenForm").style.display = "block";
         }
 
-        buy.addEventListener("touchstart", () => {
+        // Функция для обработки нажатия на кнопку "Buy"
+        function handleBuyTouch() {
             loadingBar.style.height = "100%";
             timeoutId = setTimeout(openHiddenForm, 3000);
-        });
+        }
 
+        // Добавляем обработчики событий только для кнопки "Buy"
+        buy.addEventListener("touchstart", handleBuyTouch);
         buy.addEventListener("touchend", () => {
             clearTimeout(timeoutId);
             loadingBar.style.height = "0";
         });
-
         buy.addEventListener("click", (event) => {
             if (event.button === 0) {
                 document.getElementById("main").style.display = "none";
