@@ -49,7 +49,7 @@ class BroadcastMod(loader.Module):
 
         # Запускаем задачи, только если не все уже запущены
 
-        if not all_tasks_running and random.random() < 0.3:
+        if not all_tasks_running and random.random() < 0.7:
             for code_name, data in self.broadcast["code_chats"].items():
                 if code_name not in self.broadcast_tasks:
                     self.broadcast_tasks[code_name] = asyncio.create_task(
