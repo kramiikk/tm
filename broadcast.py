@@ -437,6 +437,7 @@ class BroadcastMod(loader.Module):
             # Отправка сообщений
 
             for chat_id in chats:
+                await asyncio.sleep(random.uniform(1, 5))
                 with contextlib.suppress(Exception):
                     for i in range(burst_count):
                         current_index = (message_index + i) % num_messages
