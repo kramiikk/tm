@@ -61,8 +61,7 @@ class Function:
         value = self._func(tg_id)
         current = time.time()
 
-        if value > current:
-            value = current
+        value = min(value, current)
         return value
 
 
