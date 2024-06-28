@@ -301,7 +301,7 @@ class BroadcastMod(loader.Module):
         code_name, min_str, max_str = args
 
         try:
-            min_minutes, max_minutes = int(min_str), int(max_str)
+            min_minutes, max_minutes = float(min_str), float(max_str)
             if min_minutes < 0 or max_minutes <= 0 or min_minutes >= max_minutes:
                 raise ValueError
         except ValueError:

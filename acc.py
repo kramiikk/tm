@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 
 from .. import loader, utils
 
+# Данные для обучения модели предсказания времени создания аккаунта
 data = {
     "5396587273": 1648014800,
     "5336336790": 1646368100,
@@ -33,23 +34,30 @@ data = {
 }
 
 
+# Класс для предсказания времени создания аккаунта на основе ID Telegram
 class Function:
     def __init__(self, order: int = 3):
+        # Устанавливаем порядок полиномиальной функции, используемой для аппроксимации
         self.order = 3
 
+        # Распаковываем данные в отдельные списки для ID Telegram (x) и меток времени (y)
         self.x, self.y = self._unpack_data()
+        # Аппроксимируем полиномиальной функцией данные
         self._func = self._fit_data()
 
+    # Распаковываем данные из словаря в массивы numpy
     def _unpack_data(self) -> Tuple[list, list]:
         x_data = np.array(list(map(int, data.keys())))
         y_data = np.array(list(data.values()))
 
         return (x_data, y_data)
 
+    # Аппроксимируем данные полиномиальной функцией с помощью numpy.polyfit
     def _fit_data(self) -> Callable[[int], int]:
         fitted = np.polyfit(self.x, self.y, self.order)
         return np.poly1d(fitted)
 
+    # Добавляем новую точку данных в обучающие данные
     def add_datapoint(self, pair: tuple):
         pair[0] = str(pair[0])
 
@@ -57,10 +65,12 @@ class Function:
 
         self._func = self._fit_data()
 
+    # Предсказываем время создания аккаунта для заданного ID Telegram
     def func(self, tg_id: int) -> int:
         value = self._func(tg_id)
         current = time.time()
 
+        # Убеждаемся, что предсказанное время не в будущем
         value = min(value, current)
         return value
 
@@ -68,23 +78,25 @@ class Function:
 logger = logging.getLogger(__name__)
 
 
+# Модуль бота Telegram для получения времени создания аккаунта
 @loader.tds
 class AcTimeMod(loader.Module):
-    """Module for get account time"""
+    """Модуль для получения времени создания аккаунта"""
 
     strings = {
-        "name": "Account Time",
-        "info": "Get the account registration date and time!",
-        "error": "Error!",
+        "name": "Время аккаунта",
+        "info": "Получить дату и время регистрации аккаунта!",
+        "error": "Ошибка!",
     }
 
     def __init__(self):
+        # Настраиваем шаблон сообщения ответа
         self.config = loader.ModuleConfig(
             "answer_text",
             (
-                "⏳ This account: {0}\n🕰 A registered: {1}\n\nP.S. The module script is"
-                " trained with the number of requests from different ids, so the data"
-                " can be refined"
+                "⏳ Этот аккаунт: {0}\n🕰 Зарегистрирован: {1}\n\nP.S. Скрипт модуля"
+                " обучен на количестве запросов от разных ID, поэтому данные"
+                " могут быть уточнены"
             ),
             lambda m: self.strings("cfg_answer_text", m),
         )
@@ -94,25 +106,31 @@ class AcTimeMod(loader.Module):
         self.client = client
         self.db = db
 
+    # Форматируем метку времени Unix в удобочитаемую строку даты
     def time_format(self, unix_time: int, fmt="%Y-%m-%d") -> str:
         result = [str(datetime.utcfromtimestamp(unix_time).strftime(fmt))]
 
+        # Вычисляем разницу во времени между текущим моментом и заданной меткой времени
         d = relativedelta(datetime.now(), datetime.utcfromtimestamp(unix_time))
-        result.append(f"{d.years} years, {d.months} months, {d.days} days")
+        result.append(f"{d.years} лет, {d.months} месяцев, {d.days} дней")
 
         return result
 
+    # Обработчик команды для получения времени создания аккаунта
     @loader.unrestricted
     @loader.ratelimit
     async def actimecmd(self, message):
         """
-         - get the account registration date and time [beta]
-        P.S. You can also send a command in response to a message
+         - получить дату и время регистрации аккаунта [beta]
+        P.S. Вы также можете отправить команду в ответ на сообщение
         """
         try:
+            # Создаем экземпляр класса Function для предсказания
             interpolation = Function()
+            # Получаем сообщение в ответ, если оно существует
             reply = await message.get_reply_message()
 
+            # Предсказываем время создания аккаунта на основе ID Telegram
             if reply:
                 date = self.time_format(
                     unix_time=round(interpolation.func(int(reply.sender.id)))
@@ -121,10 +139,12 @@ class AcTimeMod(loader.Module):
                 date = self.time_format(
                     unix_time=round(interpolation.func(int(message.from_id)))
                 )
+            # Отправляем сообщение ответа с предсказанным временем создания аккаунта
             await utils.answer(
                 message, self.config["answer_text"].format(date[0], date[1])
             )
         except Exception as e:
+            # Обрабатываем любые исключения и отправляем сообщение об ошибке
             await utils.answer(message, f'{self.strings["error"]}\n\n{e}')
             if message.out:
                 await asyncio.sleep(5)
