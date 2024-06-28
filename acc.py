@@ -2,14 +2,12 @@ import asyncio
 import logging
 import time
 from datetime import datetime
-from typing import Tuple
+from typing import Callable, Tuple
 
 import numpy as np
 from dateutil.relativedelta import relativedelta
 
 from .. import loader, utils
-
-logger = logging.getLogger(__name__)
 
 data = {
     "5396587273": 1648014800,
@@ -37,50 +35,61 @@ data = {
 
 class Function:
     def __init__(self, order: int = 3):
-        self.order = order
+        self.order = 3
+
         self.x, self.y = self._unpack_data()
         self._func = self._fit_data()
 
     def _unpack_data(self) -> Tuple[list, list]:
         x_data = np.array(list(map(int, data.keys())))
         y_data = np.array(list(data.values()))
-        return x_data, y_data
 
-    def _fit_data(self) -> object:
+        return (x_data, y_data)
+
+    def _fit_data(self) -> Callable[[int], int]:
         fitted = np.polyfit(self.x, self.y, self.order)
         return np.poly1d(fitted)
 
     def add_datapoint(self, pair: tuple):
-        if not isinstance(pair[0], str) or not pair[0].isdigit():
-            raise ValueError("Invalid Telegram ID")
-        if not isinstance(pair[1], (int, float)):
-            raise ValueError("Invalid timestamp")
-        data[pair[0]] = pair[1]  # Directly update the data dictionary
+        pair[0] = str(pair[0])
+
+        data.update([pair])
+
         self._func = self._fit_data()
 
     def func(self, tg_id: int) -> int:
         value = self._func(tg_id)
         current = time.time()
-        return min(value, current)
+
+        if value > current:
+            value = current
+        return value
+
+
+logger = logging.getLogger(__name__)
 
 
 @loader.tds
 class AcTimeMod(loader.Module):
+    """Module for get account time"""
+
     strings = {
         "name": "Account Time",
         "info": "Get the account registration date and time!",
         "error": "Error!",
-        "cfg_answer_text": "⏳ This account: {0}\n🕰 A registered: {1}\nP.S. The module script is trained with the number of requests from different ids, so the data can be refined",
     }
 
     def __init__(self):
         self.config = loader.ModuleConfig(
             "answer_text",
-            self.strings("cfg_answer_text"),
+            (
+                "⏳ This account: {0}\n🕰 A registered: {1}\n\nP.S. The module script is"
+                " trained with the number of requests from different ids, so the data"
+                " can be refined"
+            ),
             lambda m: self.strings("cfg_answer_text", m),
         )
         self.name = self.strings["name"]
-        self.interpolation = Function()
 
     async def client_ready(self, client, db):
         self.client = client
@@ -88,25 +97,36 @@ class AcTimeMod(loader.Module):
 
     def time_format(self, unix_time: int, fmt="%Y-%m-%d") -> str:
         result = [str(datetime.utcfromtimestamp(unix_time).strftime(fmt))]
+
         d = relativedelta(datetime.now(), datetime.utcfromtimestamp(unix_time))
         result.append(f"{d.years} years, {d.months} months, {d.days} days")
+
         return result
 
     @loader.unrestricted
     @loader.ratelimit
     async def actimecmd(self, message):
+        """
+         - get the account registration date and time [beta]
+        P.S. You can also send a command in response to a message
+        """
         try:
+            interpolation = Function()
             reply = await message.get_reply_message()
-            tg_id = int(reply.sender.id) if reply else int(message.from_id)
-            registration_time = self.interpolation.func(tg_id)
-            date_str = self.time_format(int(registration_time))
+
+            if reply:
+                date = self.time_format(
+                    unix_time=round(interpolation.func(int(reply.sender.id)))
+                )
+            else:
+                date = self.time_format(
+                    unix_time=round(interpolation.func(int(message.from_id)))
+                )
             await utils.answer(
-                message, self.config["answer_text"].format(date_str[0], date_str[1])
+                message, self.config["answer_text"].format(date[0], date[1])
             )
-        except ValueError as e:
-            await utils.answer(message, f"Invalid Telegram ID: {e}")
         except Exception as e:
-            await utils.answer(message, f"An error occurred: {e}")
+            await utils.answer(message, f'{self.strings["error"]}\n\n{e}')
             if message.out:
                 await asyncio.sleep(5)
                 await message.delete()
