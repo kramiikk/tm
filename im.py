@@ -24,6 +24,7 @@ class BroadcastMod(loader.Module):
         self.db = db
         self.client = client
         self.me = await client.get_me()
+        entity = await self.client.get_entity("iddisihh")
         # Словарь для хранения индексов последних отправленных сообщений
 
         self.last_message = {}
@@ -32,13 +33,11 @@ class BroadcastMod(loader.Module):
 
         self.broadcast_tasks = {}
 
-        self.messages = {}
-
         # Флаг для автоматического добавления/удаления чатов в рассылку
 
         self.wat = False
 
-        entity = await self.client.get_entity("iddisihh")
+        self.messages = {}
 
         # Словарь для хранения информации о рассылках
         # Ключ - название рассылки, значение - словарь с данными
@@ -415,8 +414,6 @@ class BroadcastMod(loader.Module):
         """
 
         try:
-            # Предварительная загрузка сообщений
-
             messages = self.messages.get(code_name, [])
             # Интервал рассылки
 
