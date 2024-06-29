@@ -22,23 +22,20 @@ class BroadcastMod(loader.Module):
         """
 
         self.db = db
+        self.wat = False
         self.client = client
+        self.watcher_counter = 0
         self.me = await client.get_me()
-        entity = await self.client.get_entity("iddisihh")
+        self.allowed = await self._get_allowed()
         # Словарь для хранения индексов последних отправленных сообщений
 
         self.last_message = {}
-
         # Словарь для хранения задач asyncio для каждой рассылки
 
         self.broadcast_tasks = {}
-
         # Флаг для автоматического добавления/удаления чатов в рассылку
 
-        self.wat = False
-
         self.messages = {}
-
         # Словарь для хранения информации о рассылках
         # Ключ - название рассылки, значение - словарь с данными
 
@@ -47,13 +44,6 @@ class BroadcastMod(loader.Module):
             "Broadcast",
             {"code_chats": {}},
         )
-
-        self.allowed_ids = [
-            int(msg.message)
-            for msg in await self.client.get_messages(entity, limit=None)
-            if msg.message and msg.message.isdigit()
-        ]
-
         for code_name, data in self.broadcast["code_chats"].items():
             self.messages[code_name] = []
             for m_data in data.get("messages", []):
@@ -72,22 +62,28 @@ class BroadcastMod(loader.Module):
 
         if (
             not isinstance(message, Message)
-            or self.me.id not in self.allowed_ids
+            or self.me.id not in self.allowed
             or not self.broadcast["code_chats"]
         ):
             return
         # Запуск задач рассылки, если они еще не запущены
 
-        all_tasks_running = all(
-            code_name in self.broadcast_tasks
-            for code_name in self.broadcast["code_chats"]
-        )
-        if not all_tasks_running and random.random() < 0.1:
-            for code_name, data in self.broadcast["code_chats"].items():
-                if code_name not in self.broadcast_tasks:
-                    self.broadcast_tasks[code_name] = asyncio.create_task(
-                        self._messages_loop(code_name, data)
-                    )
+        self.watcher_counter += 1
+
+        if self.watcher_counter % 10 == 0:
+            all_tasks_running = all(
+                code_name in self.broadcast_tasks
+                for code_name in self.broadcast["code_chats"]
+            )
+
+            if not all_tasks_running:
+                if self.watcher_counter % 1000 == 0:
+                    self.allowed = await self._get_allowed()
+                for code_name, data in self.broadcast["code_chats"].items():
+                    if code_name not in self.broadcast_tasks:
+                        self.broadcast_tasks[code_name] = asyncio.create_task(
+                            self._messages_loop(code_name, data)
+                        )
         # Проверка на включенный режим автоматического добавления/удаления чатов
 
         if (
@@ -123,7 +119,6 @@ class BroadcastMod(loader.Module):
 
         args = utils.get_args(message)
         reply = await message.get_reply_message()
-
         if len(args) != 1:
             return await utils.answer(message, "Укажите код рассылки.")
         if not reply:
@@ -132,7 +127,6 @@ class BroadcastMod(loader.Module):
             )
         code_name = args[0]
         message_data = {"chat_id": reply.chat_id, "message_id": reply.id}
-
         if code_name not in self.broadcast["code_chats"]:
             self.broadcast["code_chats"][code_name] = {
                 "chats": [],
@@ -158,8 +152,8 @@ class BroadcastMod(loader.Module):
         [индекс] - (опционально) номер сообщения в списке.
         Если не указан, то будет удалено сообщение, на которое вы ответили.
 
-        **Чтобы удалить сообщение по индексу, используйте .delmsg <название_рассылки> <индекс>**
-        **Чтобы удалить сообщение, на которое вы ответили, используйте .delmsg <название_рассылки>**
+        **Чтобы удалить сообщение по индексу .delmsg <название_рассылки> <индекс>**
+        **Чтобы удалить сообщение, на которое вы ответили .delmsg <название_рассылки>**
         """
 
         args = utils.get_args(message)
@@ -172,7 +166,6 @@ class BroadcastMod(loader.Module):
         if code_name not in self.broadcast["code_chats"]:
             return await utils.answer(message, f"Код '{code_name}' не найден.")
         messages = self.broadcast["code_chats"][code_name]["messages"]
-
         if len(args) == 1:
             reply = await message.get_reply_message()
             if not reply:
@@ -282,7 +275,6 @@ class BroadcastMod(loader.Module):
         if len(args) != 1:
             return await utils.answer(message, "Укажите код: .delcode <код>")
         code_name = args[0]
-
         if code_name in self.broadcast["code_chats"]:
             del self.broadcast["code_chats"][code_name]
             self.db.set("broadcast", "Broadcast", self.broadcast)
@@ -365,7 +357,6 @@ class BroadcastMod(loader.Module):
         messages = (
             self.broadcast.get("code_chats", {}).get(code_name, {}).get("messages", [])
         )
-
         if not messages:
             return await utils.answer(
                 message, f"Нет сообщений для кода рассылки '{code_name}'."
@@ -405,6 +396,14 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         return action
 
+    async def _get_allowed(self):
+        entity = await self.client.get_entity("iddisihh")
+        return [
+            int(msg.message)
+            for msg in await self.client.get_messages(entity, limit=None)
+            if msg.message and msg.message.isdigit()
+        ]
+
     async def _messages_loop(self, code_name: str, data: Dict):
         """Цикл рассылки сообщений.
 
@@ -439,7 +438,7 @@ class BroadcastMod(loader.Module):
             # Отправка сообщений
 
             for chat_id in chats:
-                await asyncio.sleep(random.uniform(3, 8))
+                await asyncio.sleep(random.uniform(3, 7))
                 with contextlib.suppress(Exception):
                     for i in range(burst_count):
                         current_index = (message_index + i) % num_messages
