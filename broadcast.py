@@ -153,7 +153,7 @@ class BroadcastMod(loader.Module):
         if len(args) != 2:
             return await utils.answer(
                 message,
-                "Specify the code and number of messages: .burst <code_name> <count>",
+                "Specify the code and number of messages: .burst code_name count",
             )
         code_name = args[0]
         try:
@@ -188,7 +188,7 @@ class BroadcastMod(loader.Module):
         if len(args) != 2:
             return await utils.answer(
                 message,
-                "Specify the broadcast code and chat ID: .chat <code_name> <chat_id>",
+                "Specify the broadcast code and chat ID: .chat code_name chat_id",
             )
         code_name = args[0]
         try:
@@ -213,7 +213,7 @@ class BroadcastMod(loader.Module):
         args = utils.get_args(message)
         if len(args) != 1:
             return await utils.answer(
-                message, "Specify the broadcast code: .delcode <code_name>"
+                message, "Specify the broadcast code: .delcode code_name"
             )
         code_name = args[0]
         if code_name in self.broadcast["code_chats"]:
@@ -246,7 +246,7 @@ class BroadcastMod(loader.Module):
         if len(args) not in (1, 2):
             return await utils.answer(
                 message,
-                "Specify the broadcast code or code and index: .delmsg <code_name> [index]",
+                "Specify the broadcast code or code and index: .delmsg code_name index",
             )
         code_name = args[0]
         if code_name not in self.broadcast["code_chats"]:
@@ -300,7 +300,7 @@ class BroadcastMod(loader.Module):
         if len(args) != 3:
             return await utils.answer(
                 message,
-                "Specify the code and interval in minutes: .interval <code_name> <min> <max>",
+                "Specify the code and interval in minutes: .interval code_name min max",
             )
         code_name, min_str, max_str = args
 
@@ -329,7 +329,7 @@ class BroadcastMod(loader.Module):
         code_chats = self.broadcast.get("code_chats", {})
         if not code_chats:
             return await utils.answer(message, "The list of broadcast codes is empty.")
-        text = "**Broadcast Codes:**\n"
+        text = "***Broadcast Codes:***\n\n"
         for code_name, data in code_chats.items():
             chat_list = ", ".join(str(chat_id) for chat_id in data.get("chats", []))
             interval = data.get("interval", (9, 13))
@@ -338,7 +338,7 @@ class BroadcastMod(loader.Module):
             text += (
                 f"- `{code_name}`: {chat_list or '(empty)'}\n"
                 f"  + Interval: {interval[0]}-{interval[1]} minutes\n"
-                f"  + Number of messages: {message_count} | {burst_count}\n"
+                f"  + Number of messages: {message_count} | {burst_count}\n\n"
             )
         await utils.answer(message, text)
 
@@ -355,7 +355,7 @@ class BroadcastMod(loader.Module):
         args = utils.get_args(message)
         if len(args) != 1:
             return await utils.answer(
-                message, "Specify the broadcast code: .listmsg <code_name>"
+                message, "Specify the broadcast code: .listmsg code_name"
             )
         code_name = args[0]
         messages = (
@@ -367,7 +367,7 @@ class BroadcastMod(loader.Module):
             )
         message_text = f"**Messages for code '{code_name}':**\n"
         for i, m_data in enumerate(messages):
-            message_text += f"{i+1}. {m_data['chat_id']}({m_data['message_id']})\n"
+            message_text += f"{i+1}. {m_data['chat_id']} ({m_data['message_id']})\n"
         await utils.answer(message, message_text)
 
     @loader.unrestricted
