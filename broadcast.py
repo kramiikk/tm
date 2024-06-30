@@ -416,11 +416,12 @@ class BroadcastMod(loader.Module):
         for code_name, data in self.broadcast["code_chats"].items():
             self.messages[code_name] = []
             for m_data in data.get("messages", []):
-                message = await self.client.get_messages(
-                    m_data["chat_id"], ids=m_data["message_id"]
-                )
-                if message is not None:
-                    self.messages[code_name].append(message)
+                with contextlib.suppress(Exception):
+                    message = await self.client.get_messages(
+                        m_data["chat_id"], ids=m_data["message_id"]
+                    )
+                    if message is not None:
+                        self.messages[code_name].append(message)
 
     async def _messages_loop(self, code_name: str, data: Dict):
         """Message broadcast loop for a specific broadcast.
