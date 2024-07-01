@@ -1,5 +1,6 @@
-import asyncio
+import json
 import random
+import asyncio
 import contextlib
 from typing import Dict, List
 
@@ -247,6 +248,30 @@ class BroadcastMod(loader.Module):
         await utils.answer(message, response)
 
     @loader.unrestricted
+    async def exportcmd(self, message: Message):
+        """Exports the current broadcast settings to a message."""
+        try:
+            exported_data = json.dumps(self.broadcast)
+            await utils.answer(message, f"{exported_data}")
+        except Exception as e:
+            await utils.answer(message, f"Error exporting settings: {str(e)}")
+
+    @loader.unrestricted
+    async def importcmd(self, message: Message):
+        """Imports broadcast settings from a message reply."""
+        reply = await message.get_reply_message()
+        if not reply:
+            return await utils.answer(message, "Reply to a message with settings.")
+        try:
+            imported_data = json.loads(reply.raw_text)
+            self.broadcast = imported_data
+            self.db.set("broadcast", "Broadcast", self.broadcast)
+            await self._load_messages()  # Reload messages after import
+            await utils.answer(message, "Settings imported successfully.")
+        except Exception as e:
+            await utils.answer(message, f"Error importing settings: {str(e)}")
+
+    @loader.unrestricted
     async def intervalcmd(self, message: Message):
         """Sets the message broadcast interval.
 
@@ -289,7 +314,7 @@ class BroadcastMod(loader.Module):
         code_chats = self.broadcast.get("code_chats", {})
         if not code_chats:
             return await utils.answer(message, "The list of broadcast codes is empty.")
-        text = "*Broadcast Codes:*\n\n"
+        text = "* Broadcast Codes:*\n\n"
         for code_name, data in code_chats.items():
             chat_list = ", ".join(str(chat_id) for chat_id in data.get("chats", []))
             interval = data.get("interval", (9, 13))
