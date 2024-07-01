@@ -314,7 +314,7 @@ class BroadcastMod(loader.Module):
         code_chats = self.broadcast.get("code_chats", {})
         if not code_chats:
             return await utils.answer(message, "The list of broadcast codes is empty.")
-        text = "* Broadcast Codes:*\n\n"
+        text = "**Broadcast Codes:**\n\n"
         for code_name, data in code_chats.items():
             chat_list = ", ".join(str(chat_id) for chat_id in data.get("chats", []))
             interval = data.get("interval", (9, 13))
@@ -325,7 +325,7 @@ class BroadcastMod(loader.Module):
                 f"  + Interval: {interval[0]}-{interval[1]} minutes\n"
                 f"  + Number of messages: {message_count} | {burst_count}\n\n"
             )
-        await utils.answer(message, text)
+        await utils.answer(message, text, parse_mode="Markdown")
 
     @loader.unrestricted
     async def listmsgcmd(self, message: Message):
@@ -349,10 +349,10 @@ class BroadcastMod(loader.Module):
             return await utils.answer(
                 message, f"No messages found for broadcast code '{code_name}'."
             )
-        message_text = f"*Messages for code '{code_name}':*\n"
+        message_text = f"**Messages for code '{code_name}':**\n"
         for i, m_data in enumerate(messages):
             message_text += f"{i+1}. {m_data['chat_id']} ({m_data['message_id']})\n"
-        await utils.answer(message, message_text)
+        await utils.answer(message, message_text, parse_mode="Markdown")
 
     @loader.unrestricted
     async def successcmd(self, message: Message):
