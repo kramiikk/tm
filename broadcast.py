@@ -77,10 +77,8 @@ class BroadcastMod(loader.Module):
     async def addmsgcmd(self, message: Message):
         """Adds a message to the broadcast.
 
-        Usage:
-        ```
         .addmsg <broadcast_name>
-        ```
+
         <broadcast_name> - the name of the broadcast to add the message to.
 
         **You need to reply to this command with the message you want to add.**
@@ -111,10 +109,8 @@ class BroadcastMod(loader.Module):
     async def burstcmd(self, message: Message):
         """Sets the number of messages sent at a time (burst count).
 
-        Usage:
-        ```
         .burst <broadcast_name> <count>
-        ```
+
         <count> - the number of messages to send at a time.
         """
         args = utils.get_args(message)
@@ -145,10 +141,8 @@ class BroadcastMod(loader.Module):
     async def chatcmd(self, message: Message):
         """Adds or removes a chat from the broadcast.
 
-        Usage:
-        ```
         .chat <broadcast_name> <chat_id>
-        ```
+
         <chat_id> - the ID of the chat to add/remove.
         """
         args = utils.get_args(message)
@@ -171,10 +165,7 @@ class BroadcastMod(loader.Module):
     async def delcodecmd(self, message: Message):
         """Deletes a broadcast.
 
-        Usage:
-        ```
         .delcode <broadcast_name>
-        ```
         """
         args = utils.get_args(message)
         if len(args) != 1:
@@ -195,10 +186,8 @@ class BroadcastMod(loader.Module):
     async def delmsgcmd(self, message: Message):
         """Deletes a message from the broadcast.
 
-        Usage:
-        ```
         .delmsg <broadcast_name> [index]
-        ```
+
         [index] - (optional) the number of the message in the list.
         If not specified, the message you replied to will be deleted.
 
@@ -275,12 +264,9 @@ class BroadcastMod(loader.Module):
     async def intervalcmd(self, message: Message):
         """Sets the message broadcast interval.
 
-        Usage:
-        ```
         .interval <broadcast_name> <minimum> <maximum>
-        ```
-        <minimum> - minimum interval time in minutes.
-        <maximum> - maximum interval time in minutes.
+
+        <minimum> <maximum> - minimum and maximum interval time in minutes.
         """
         args = utils.get_args(message)
         if len(args) != 3:
@@ -331,10 +317,7 @@ class BroadcastMod(loader.Module):
     async def listmsgcmd(self, message: Message):
         """Displays a list of messages for a specific broadcast.
 
-        Usage:
-        ```
         .listmsg <broadcast_name>
-        ```
         """
         args = utils.get_args(message)
         if len(args) != 1:
