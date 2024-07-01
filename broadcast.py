@@ -402,6 +402,8 @@ class BroadcastMod(loader.Module):
             sent_count = 0
 
             for chat_id in chats:
+                if code_name not in self.broadcast["code_chats"]:
+                    break
                 await asyncio.sleep(random.uniform(3, 5))
                 with contextlib.suppress(Exception):
                     for i in range(burst_count):
