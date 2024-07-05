@@ -22,7 +22,6 @@ class BroadcastMod(loader.Module):
         self.watcher_counter = 0
         self.me = await client.get_me()
         self.allowed = await self._get_allowed()
-        self.send_success_messages = False
         self.broadcast_tasks = {}
         self.last_message = {}
         self.messages = {}
@@ -255,7 +254,7 @@ class BroadcastMod(loader.Module):
             imported_data = json.loads(reply.raw_text)
             self.broadcast = imported_data
             self.db.set("broadcast", "Broadcast", self.broadcast)
-            await self._load_messages()  # Reload messages after import
+            await self._load_messages()
             await utils.answer(message, "Settings imported successfully.")
         except Exception as e:
             await utils.answer(message, f"Error importing settings: {str(e)}")
@@ -338,19 +337,6 @@ class BroadcastMod(loader.Module):
         await utils.answer(message, message_text, parse_mode="Markdown")
 
     @loader.unrestricted
-    async def successcmd(self, message: Message):
-        """Toggles sending messages about successful sending to the PM."""
-        self.send_success_messages = not self.send_success_messages
-        await utils.answer(
-            message,
-            (
-                "Successful sending messages will be sent to the PM."
-                if self.send_success_messages
-                else "Successful sending messages will not be sent to the PM."
-            ),
-        )
-
-    @loader.unrestricted
     async def watcmd(self, message: Message):
         """Enables/disables automatic adding/removing of chats to/from the broadcast."""
         self.wat = not self.wat
@@ -421,11 +407,6 @@ class BroadcastMod(loader.Module):
 
             message_index = (message_index + len(chats) * burst_count) % num_messages
             self.last_message[code_name] = message_index
-
-            if self.send_success_messages:
-                await self.client.send_message(
-                    "me", f"Broadcast '{code_name}': sent to {len(chats)} chats."
-                )
         finally:
             del self.broadcast_tasks[code_name]
 
@@ -437,7 +418,6 @@ class BroadcastMod(loader.Module):
         chats: List[int],
         burst_count: int,
     ):
-        sent_count = 0
         for chat_id in chats:
             if code_name not in self.broadcast["code_chats"]:
                 break
@@ -454,5 +434,3 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(chat_id, message_to_send.text)
-                    sent_count += 1
-        return sent_count
