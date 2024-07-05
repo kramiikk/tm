@@ -407,33 +407,52 @@ class BroadcastMod(loader.Module):
             random.shuffle(chats)
             burst_count = data.get("burst_count", 1)
 
-            sent_count = 0
+            num_tasks = max(1, len(chats) // 9)
+            chat_chunks = [chats[i::num_tasks] for i in range(num_tasks)]
 
-            for chat_id in chats:
-                if code_name not in self.broadcast["code_chats"]:
-                    break
-                await asyncio.sleep(random.uniform(3, 5))
-                with contextlib.suppress(Exception):
-                    for i in range(burst_count):
-                        current_index = (message_index + i) % num_messages
-                        message_to_send = messages[current_index]
-                        if message_to_send.media:
-                            await self.client.send_file(
-                                chat_id,
-                                message_to_send.media,
-                                caption=message_to_send.text,
-                            )
-                        else:
-                            await self.client.send_message(
-                                chat_id, message_to_send.text
-                            )
-                        sent_count += 1
-            message_index = (message_index + burst_count) % num_messages
+            tasks = []
+            for chunk in chat_chunks:
+                tasks.append(
+                    self._send_to_chats(
+                        code_name, messages, message_index, chunk, burst_count
+                    )
+                )
+            await asyncio.gather(*tasks)
+
+            message_index = (message_index + len(chats) * burst_count) % num_messages
             self.last_message[code_name] = message_index
 
             if self.send_success_messages:
                 await self.client.send_message(
-                    "me", f"Broadcast '{code_name}': sent to {sent_count} chats."
+                    "me", f"Broadcast '{code_name}': sent to {len(chats)} chats."
                 )
         finally:
             del self.broadcast_tasks[code_name]
+
+    async def _send_to_chats(
+        self,
+        code_name: str,
+        messages: List[Message],
+        message_index: int,
+        chats: List[int],
+        burst_count: int,
+    ):
+        sent_count = 0
+        for chat_id in chats:
+            if code_name not in self.broadcast["code_chats"]:
+                break
+            await asyncio.sleep(random.uniform(1, 3))
+            with contextlib.suppress(Exception):
+                for i in range(burst_count):
+                    current_index = (message_index + i) % len(messages)
+                    message_to_send = messages[current_index]
+                    if message_to_send.media:
+                        await self.client.send_file(
+                            chat_id,
+                            message_to_send.media,
+                            caption=message_to_send.text,
+                        )
+                    else:
+                        await self.client.send_message(chat_id, message_to_send.text)
+                    sent_count += 1
+        return sent_count
