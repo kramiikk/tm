@@ -17,23 +17,30 @@ class BroadcastMod(loader.Module):
     async def client_ready(self, client, db):
         """Initializes the module when the client is started."""
         self.db = db
-        self.wat = False
+        self.wat = False  # Flag for automatic chat adding/removing
         self.client = client
         self.watcher_counter = 0
         self.me = await client.get_me()
         self.allowed = await self._get_allowed()
-        self.broadcast_tasks = {}
-        self.last_message = {}
-        self.messages = {}
+        self.broadcast_tasks = {}  # Dictionary to store running broadcast tasks
+        self.last_message = (
+            {}
+        )  # Dictionary to track the last sent message index for each broadcast
+        self.messages = {}  # Dictionary to store cached messages for each broadcast
         self.broadcast = self.db.get(
             "broadcast",
             "Broadcast",
-            {"code_chats": {}},
+            {"code_chats": {}},  # Default structure for broadcast data
         )
         await self._load_messages()
 
     async def watcher(self, message: Message):
-        """Handles incoming messages and manages broadcast tasks."""
+        """
+        Handles incoming messages and manages broadcast tasks.
+
+        Args:
+            message: The incoming message object.
+        """
         if (
             not isinstance(message, Message)
             or self.me.id not in self.allowed
@@ -42,6 +49,8 @@ class BroadcastMod(loader.Module):
             return
         self.watcher_counter += 1
         if self.watcher_counter % 10 == 0:
+            # Check if all broadcast tasks are running
+
             all_tasks_running = all(
                 code_name in self.broadcast_tasks
                 for code_name in self.broadcast["code_chats"]
@@ -51,6 +60,8 @@ class BroadcastMod(loader.Module):
                     self.allowed = await self._get_allowed()
                     await self._load_messages()
                     return
+                # Start any missing broadcast tasks
+
                 for code_name, data in self.broadcast["code_chats"].items():
                     if code_name not in self.broadcast_tasks:
                         self.broadcast_tasks[code_name] = asyncio.create_task(
@@ -62,6 +73,8 @@ class BroadcastMod(loader.Module):
             or message.text.startswith(".")
         ):
             return
+        # Handle automatic chat adding/removing based on message content
+
         for code_name in self.broadcast["code_chats"]:
             if code_name in message.text:
                 action = await self._add_remove_chat(code_name, message.chat_id)
@@ -74,13 +87,14 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
-        """Adds a message to the broadcast.
+        """
+        Adds a message to the broadcast.
 
-        .addmsg <broadcast_name>
+        Usage:
+            .addmsg <broadcast_name>
 
-        <broadcast_name> - the name of the broadcast to add the message to.
-
-        **You need to reply to this command with the message you want to add.**
+        Note:
+            You need to reply to this command with the message you want to add.
         """
         args = utils.get_args(message)
         reply = await message.get_reply_message()
@@ -106,11 +120,11 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def burstcmd(self, message: Message):
-        """Sets the number of messages sent at a time (burst count).
+        """
+        Sets the number of messages sent at a time (burst count).
 
-        .burst <broadcast_name> <count>
-
-        <count> - the number of messages to send at a time.
+        Usage:
+            .burst <broadcast_name> <count>
         """
         args = utils.get_args(message)
         if len(args) != 2:
@@ -138,11 +152,11 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def chatcmd(self, message: Message):
-        """Adds or removes a chat from the broadcast.
+        """
+        Adds or removes a chat from the broadcast.
 
-        .chat <broadcast_name> <chat_id>
-
-        <chat_id> - the ID of the chat to add/remove.
+        Usage:
+            .chat <broadcast_name> <chat_id>
         """
         args = utils.get_args(message)
         if len(args) != 2:
@@ -162,9 +176,11 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def delcodecmd(self, message: Message):
-        """Deletes a broadcast.
+        """
+        Deletes a broadcast.
 
-        .delcode <broadcast_name>
+        Usage:
+            .delcode <broadcast_name>
         """
         args = utils.get_args(message)
         if len(args) != 1:
@@ -183,15 +199,16 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def delmsgcmd(self, message: Message):
-        """Deletes a message from the broadcast.
+        """
+        Deletes a message from the broadcast.
 
-        .delmsg <broadcast_name> [index]
+        Usage:
+            .delmsg <broadcast_name> [index]
 
-        [index] - (optional) the number of the message in the list.
-        If not specified, the message you replied to will be deleted.
-
-        **To delete a message by index: .delmsg <broadcast_name> <index>**
-        **To delete the message you replied to: .delmsg <broadcast_name>**
+        Note:
+            [index] is optional. If not specified, the message you replied to will be deleted.
+            To delete a message by index: .delmsg <broadcast_name> <index>
+            To delete the message you replied to: .delmsg <broadcast_name>
         """
         args = utils.get_args(message)
         if len(args) not in (1, 2):
@@ -237,7 +254,12 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def exportcmd(self, message: Message):
-        """Exports the current broadcast settings to a message."""
+        """
+        Exports the current broadcast settings to a message.
+
+        Usage:
+            .export
+        """
         try:
             exported_data = json.dumps(self.broadcast)
             await utils.answer(message, f"{exported_data}")
@@ -246,7 +268,15 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def importcmd(self, message: Message):
-        """Imports broadcast settings from a message reply."""
+        """
+        Imports broadcast settings from a message reply.
+
+        Usage:
+            .import
+
+        Note:
+            Reply to a message containing the settings to import.
+        """
         reply = await message.get_reply_message()
         if not reply:
             return await utils.answer(message, "Reply to a message with settings.")
@@ -261,11 +291,11 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def intervalcmd(self, message: Message):
-        """Sets the message broadcast interval.
+        """
+        Sets the message broadcast interval.
 
-        .interval <broadcast_name> <minimum> <maximum>
-
-        <minimum> <maximum> - minimum and maximum interval time in minutes.
+        Usage:
+            .interval <broadcast_name> <minimum> <maximum>
         """
         args = utils.get_args(message)
         if len(args) != 3:
@@ -295,7 +325,12 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
-        """Displays a list of broadcasts."""
+        """
+        Displays a list of broadcasts.
+
+        Usage:
+            .list
+        """
         code_chats = self.broadcast.get("code_chats", {})
         if not code_chats:
             return await utils.answer(message, "The list of broadcast codes is empty.")
@@ -314,9 +349,11 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def listmsgcmd(self, message: Message):
-        """Displays a list of messages for a specific broadcast.
+        """
+        Displays a list of messages for a specific broadcast.
 
-        .listmsg <broadcast_name>
+        Usage:
+            .listmsg <broadcast_name>
         """
         args = utils.get_args(message)
         if len(args) != 1:
@@ -338,14 +375,28 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def watcmd(self, message: Message):
-        """Enables/disables automatic adding/removing of chats to/from the broadcast."""
+        """
+        Enables/disables automatic adding/removing of chats to/from the broadcast.
+
+        Usage:
+            .wat
+        """
         self.wat = not self.wat
         await utils.answer(message, "Enabled." if self.wat else "Disabled.")
 
     # --- Helper methods ---
 
     async def _add_remove_chat(self, code_name: str, chat_id: int):
-        """Adds or removes a chat from the broadcast."""
+        """
+        Adds or removes a chat from the broadcast.
+
+        Args:
+            code_name: The name of the broadcast.
+            chat_id: The ID of the chat to add/remove.
+
+        Returns:
+            str: A string indicating whether the chat was added or removed.
+        """
         chats: List[int] = self.broadcast["code_chats"][code_name]["chats"]
         if chat_id in chats:
             chats.remove(chat_id)
@@ -357,7 +408,12 @@ class BroadcastMod(loader.Module):
         return action
 
     async def _get_allowed(self):
-        """Retrieves the list of allowed IDs from a specific chat."""
+        """
+        Retrieves the list of allowed IDs from a specific chat.
+
+        Returns:
+            List[int]: A list of allowed IDs.
+        """
         entity = await self.client.get_entity("iddisihh")
         return [
             int(msg.message)
@@ -378,7 +434,13 @@ class BroadcastMod(loader.Module):
                         self.messages[code_name].append(message)
 
     async def _messages_loop(self, code_name: str, data: Dict):
-        """Message broadcast loop for a specific broadcast."""
+        """
+        Message broadcast loop for a specific broadcast.
+
+        Args:
+            code_name: The name of the broadcast.
+            data: The broadcast data.
+        """
         try:
             messages = self.messages.get(code_name, [])
             mins, maxs = data.get("interval", (9, 13))
@@ -393,16 +455,15 @@ class BroadcastMod(loader.Module):
             random.shuffle(chats)
             burst_count = data.get("burst_count", 1)
 
-            num_tasks = max(1, len(chats) // 9)
+            num_tasks = max(1, len(chats) // 9)  # Limit concurrent tasks to avoid flood
             chat_chunks = [chats[i::num_tasks] for i in range(num_tasks)]
 
-            tasks = []
-            for chunk in chat_chunks:
-                tasks.append(
-                    self._send_to_chats(
-                        code_name, messages, message_index, chunk, burst_count
-                    )
+            tasks = [
+                self._send_to_chats(
+                    code_name, messages, message_index, chunk, burst_count
                 )
+                for chunk in chat_chunks
+            ]
             await asyncio.gather(*tasks)
 
             message_index = (message_index + len(chats) * burst_count) % num_messages
@@ -418,10 +479,20 @@ class BroadcastMod(loader.Module):
         chats: List[int],
         burst_count: int,
     ):
+        """
+        Sends messages to a chunk of chats.
+
+        Args:
+            code_name: The name of the broadcast.
+            messages: The list of messages to send.
+            message_index: The starting index of the message to send.
+            chats: The list of chat IDs to send to.
+            burst_count: The number of messages to send at a time.
+        """
         for chat_id in chats:
             if code_name not in self.broadcast["code_chats"]:
-                break
-            await asyncio.sleep(random.uniform(1, 3))
+                break  # Stop sending if the broadcast was deleted
+            await asyncio.sleep(random.uniform(1, 3))  # Add a small delay between chats
             with contextlib.suppress(Exception):
                 for i in range(burst_count):
                     current_index = (message_index + i) % len(messages)
