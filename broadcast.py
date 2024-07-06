@@ -254,12 +254,7 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def exportcmd(self, message: Message):
-        """
-        Exports the current broadcast settings to a message.
-
-        Usage:
-            .export
-        """
+        """Exports the current broadcast settings to a message."""
         try:
             exported_data = json.dumps(self.broadcast)
             await utils.answer(message, f"{exported_data}")
@@ -325,12 +320,7 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def listcmd(self, message: Message):
-        """
-        Displays a list of broadcasts.
-
-        Usage:
-            .list
-        """
+        """Displays a list of broadcasts."""
         code_chats = self.broadcast.get("code_chats", {})
         if not code_chats:
             return await utils.answer(message, "The list of broadcast codes is empty.")
@@ -375,12 +365,7 @@ class BroadcastMod(loader.Module):
 
     @loader.unrestricted
     async def watcmd(self, message: Message):
-        """
-        Enables/disables automatic adding/removing of chats to/from the broadcast.
-
-        Usage:
-            .wat
-        """
+        """Enables/disables automatic adding/removing of chats to/from the broadcast."""
         self.wat = not self.wat
         await utils.answer(message, "Enabled." if self.wat else "Disabled.")
 
