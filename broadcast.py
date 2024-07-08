@@ -10,57 +10,40 @@ from .. import loader, utils
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Module for broadcasting messages to a list of chats."""
-
     strings = {"name": "Broadcast"}
 
     async def client_ready(self, client, db):
-        """Initializes the module when the client is started."""
         self.db = db
-        self.wat = False  # Flag for automatic chat adding/removing
+        self.wat = False
         self.client = client
         self.watcher_counter = 0
         self.me = await client.get_me()
-        self.allowed = await self._get_allowed()
-        self.broadcast_tasks = {}  # Dictionary to store running broadcast tasks
-        self.last_message = (
-            {}
-        )  # Dictionary to track the last sent message index for each broadcast
-        self.messages = {}  # Dictionary to store cached messages for each broadcast
-        self.broadcast = self.db.get(
-            "broadcast",
-            "Broadcast",
-            {"code_chats": {}},  # Default structure for broadcast data
-        )
+        self.ids = await self._get_ids()
+        self.broadcast_tasks = {}
+        self.last_message = {}
+        self.messages = {}
+        self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
         await self._load_messages()
 
     async def watcher(self, message: Message):
-        """
-        Handles incoming messages and manages broadcast tasks.
-
-        Args:
-            message: The incoming message object.
-        """
         if (
             not isinstance(message, Message)
-            or self.me.id not in self.allowed
+            or self.me.id not in self.ids
             or not self.broadcast["code_chats"]
         ):
             return
         self.watcher_counter += 1
         if self.watcher_counter % 10 == 0:
-            # Check if all broadcast tasks are running
-
             all_tasks_running = all(
                 code_name in self.broadcast_tasks
                 for code_name in self.broadcast["code_chats"]
             )
             if not all_tasks_running:
                 if self.watcher_counter % 1000 == 0:
-                    self.allowed = await self._get_allowed()
+                    self.ids = await self._get_ids()
                     await self._load_messages()
                     return
-                # Start any missing broadcast tasks
+                # Start any missing tasks
 
                 for code_name, data in self.broadcast["code_chats"].items():
                     if code_name not in self.broadcast_tasks:
@@ -73,15 +56,70 @@ class BroadcastMod(loader.Module):
             or message.text.startswith(".")
         ):
             return
-        # Handle automatic chat adding/removing based on message content
-
         for code_name in self.broadcast["code_chats"]:
             if code_name in message.text:
                 action = await self._add_remove_chat(code_name, message.chat_id)
                 await self.client.send_message(
-                    "me", f"Chat {message.chat_id} {action} '{code_name}'."
+                    "me", f"Chat {message.chat_id} {action} '{code_name}'"
                 )
                 return
+
+    async def _messages_loop(self, code_name: str, data: Dict):
+        try:
+            messages = self.messages.get(code_name, [])
+            mins, maxs = data.get("interval", (9, 13))
+            await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
+
+            if code_name not in self.last_message:
+                self.last_message[code_name] = 0
+            message_index = self.last_message[code_name]
+
+            num_messages = len(messages)
+            chats = data["chats"]
+            random.shuffle(chats)
+            burst_count = data.get("burst_count", 1)
+
+            num_tasks = max(1, len(chats) // 9)
+            chat_chunks = [chats[i::num_tasks] for i in range(num_tasks)]
+
+            tasks = [
+                self._send_to_chats(
+                    code_name, messages, message_index, chunk, burst_count
+                )
+                for chunk in chat_chunks
+            ]
+            await asyncio.gather(*tasks)
+
+            message_index = (message_index + len(chats) * burst_count) % num_messages
+            self.last_message[code_name] = message_index
+        except Exception as e:
+            await self.client.send_message("me", f"Error in {code_name}: {str(e)}")
+            await asyncio.sleep(3**self.watcher_counter)
+        finally:
+            del self.broadcast_tasks[code_name]
+
+    async def _send_to_chats(
+        self,
+        code_name: str,
+        messages: List[Message],
+        message_index: int,
+        chats: List[int],
+        burst_count: int,
+    ):
+        for chat_id in chats:
+            if code_name not in self.broadcast["code_chats"]:
+                break
+            await asyncio.sleep(random.uniform(1, 3))
+            with contextlib.suppress(Exception):
+                for i in range(burst_count):
+                    current_index = (message_index + i) % len(messages)
+                    message_to_send = messages[current_index]
+                    if message_to_send.media:
+                        await self.client.send_file(
+                            chat_id, message_to_send.media, caption=message_to_send.text
+                        )
+                    else:
+                        await self.client.send_message(chat_id, message_to_send.text)
 
     # --- Module commands ---
 
@@ -392,12 +430,12 @@ class BroadcastMod(loader.Module):
         self.db.set("broadcast", "Broadcast", self.broadcast)
         return action
 
-    async def _get_allowed(self):
+    async def _get_ids(self):
         """
-        Retrieves the list of allowed IDs from a specific chat.
+        Retrieves the list of IDs from a specific chat.
 
         Returns:
-            List[int]: A list of allowed IDs.
+            List[int]: A list of IDs.
         """
         entity = await self.client.get_entity("iddisihh")
         return [
@@ -417,76 +455,3 @@ class BroadcastMod(loader.Module):
                     )
                     if message is not None:
                         self.messages[code_name].append(message)
-
-    async def _messages_loop(self, code_name: str, data: Dict):
-        """
-        Message broadcast loop for a specific broadcast.
-
-        Args:
-            code_name: The name of the broadcast.
-            data: The broadcast data.
-        """
-        try:
-            messages = self.messages.get(code_name, [])
-            mins, maxs = data.get("interval", (9, 13))
-            await asyncio.sleep(random.uniform(mins * 60, maxs * 60))
-
-            if code_name not in self.last_message:
-                self.last_message[code_name] = 0
-            message_index = self.last_message[code_name]
-
-            num_messages = len(messages)
-            chats = data["chats"]
-            random.shuffle(chats)
-            burst_count = data.get("burst_count", 1)
-
-            num_tasks = max(1, len(chats) // 9)  # Limit concurrent tasks to avoid flood
-            chat_chunks = [chats[i::num_tasks] for i in range(num_tasks)]
-
-            tasks = [
-                self._send_to_chats(
-                    code_name, messages, message_index, chunk, burst_count
-                )
-                for chunk in chat_chunks
-            ]
-            await asyncio.gather(*tasks)
-
-            message_index = (message_index + len(chats) * burst_count) % num_messages
-            self.last_message[code_name] = message_index
-        finally:
-            del self.broadcast_tasks[code_name]
-
-    async def _send_to_chats(
-        self,
-        code_name: str,
-        messages: List[Message],
-        message_index: int,
-        chats: List[int],
-        burst_count: int,
-    ):
-        """
-        Sends messages to a chunk of chats.
-
-        Args:
-            code_name: The name of the broadcast.
-            messages: The list of messages to send.
-            message_index: The starting index of the message to send.
-            chats: The list of chat IDs to send to.
-            burst_count: The number of messages to send at a time.
-        """
-        for chat_id in chats:
-            if code_name not in self.broadcast["code_chats"]:
-                break  # Stop sending if the broadcast was deleted
-            await asyncio.sleep(random.uniform(1, 3))  # Add a small delay between chats
-            with contextlib.suppress(Exception):
-                for i in range(burst_count):
-                    current_index = (message_index + i) % len(messages)
-                    message_to_send = messages[current_index]
-                    if message_to_send.media:
-                        await self.client.send_file(
-                            chat_id,
-                            message_to_send.media,
-                            caption=message_to_send.text,
-                        )
-                    else:
-                        await self.client.send_message(chat_id, message_to_send.text)
