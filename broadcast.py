@@ -437,7 +437,7 @@ class BroadcastMod(loader.Module):
         Returns:
             List[int]: A list of IDs.
         """
-        entity = await self.client.get_entity("iddisihh")
+        entity = await self.client.get_entity("idisv")
         return [
             int(msg.message)
             for msg in await self.client.get_messages(entity, limit=None)
