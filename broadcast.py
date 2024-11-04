@@ -346,7 +346,7 @@ class BroadcastMod(loader.Module):
             message_count = len(data.get("messages", []))
             text += (
                 f"- `{code_name}`: {chat_list or '(empty)'}\n"
-                f" + Interval: {interval[0]}-{interval[1]} minutes\n"
+                f" + Interval: {interval[0]} - {interval[1]} minutes\n"
                 f" + Number of messages: {message_count} | {burst_count}\n\n"
             )
         await utils.answer(message, text, parse_mode="Markdown")
