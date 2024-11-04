@@ -55,7 +55,7 @@ class BroadcastMod(loader.Module):
             return
         self.watcher_counter += 1
 
-        if self.watcher_counter % 10 == 0:
+        if self.watcher_counter % 3 == 0:
             all_tasks_running = all(
                 code_name in self.broadcast_tasks
                 for code_name in self.broadcast["code_chats"]
@@ -318,7 +318,7 @@ class BroadcastMod(loader.Module):
             )
         code_name, min_str, max_str = args
         try:
-            min_minutes, max_minutes = float(min_str), float(max_str)
+            min_minutes, max_minutes = int(min_str), int(max_str)
             if min_minutes < 0 or max_minutes <= 0 or min_minutes >= max_minutes:
                 raise ValueError
         except ValueError:
