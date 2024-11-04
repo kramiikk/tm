@@ -72,11 +72,8 @@ class BroadcastMod(loader.Module):
             return
         for code_name in self.broadcast["code_chats"]:
             if code_name in message.text:
-                action = await self._add_remove_chat(code_name, message.chat_id)
-                await self.client.send_message(
-                    "me", f"Chat {message.chat_id} {action} '{code_name}'"
-                )
-                return
+                await self._add_remove_chat(code_name, message.chat_id)
+                break
 
     async def _messages_loop(self, code_name: str, data: Dict):
         """Цикл для отправки сообщений в чаты."""
@@ -209,12 +206,11 @@ class BroadcastMod(loader.Module):
             return await utils.answer(message, "Chat ID must be a number.")
         if code_name not in self.broadcast["code_chats"]:
             return await utils.answer(message, f"Code '{code_name}' not found.")
-        action = await self._add_remove_chat(code_name, chat_id)
-        await utils.answer(message, f"Chat {chat_id} {action} '{code_name}'.")
+        await self._add_remove_chat(code_name, chat_id)
 
     @loader.command()
     async def delcodecmd(self, message: Message):
-        """Удаляет бродкаст.
+        """Удаляет рассылку.
 
         Usage: .delcode <broadcast_name>
         """
@@ -235,10 +231,10 @@ class BroadcastMod(loader.Module):
 
     @loader.command()
     async def delmsgcmd(self, message: Message):
-        """Удаляет сообщение из бродкаста.
+        """Удаляет сообщение из рассылки.
 
         Usage: .delmsg <broadcast_name> [index]
-        Note: [index] является необязательным. Если не указан, будет удалено сообщение, на которое вы ответили.
+        Note: Если не указан [index], будет удалено сообщение, на которое вы ответили.
         """
         args = utils.get_args(message)
         if len(args) not in (1, 2):
@@ -386,12 +382,15 @@ class BroadcastMod(loader.Module):
         await utils.answer(message, "Enabled." if self.wat else "Disabled.")
 
     async def _add_remove_chat(self, code_name: str, chat_id: int):
-        """Добавляет или удаляет чат из рассылки.
-
-        Args:
-            code_name (str): Название рассылки.
-            chat_id (int): Идентификатор чата.
-        """
+        """Adds or removes a chat from the broadcast."""
         chats: List[int] = self.broadcast["code_chats"][code_name]["chats"]
         if chat_id in chats:
             chats.remove(chat_id)
+            action = "removed from"
+        else:
+            chats.append(chat_id)
+            action = "added to"
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        return await self.client.send_message(
+            "me", f"Chat {chat_id} {action} '{code_name}'"
+        )
