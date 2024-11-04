@@ -23,7 +23,16 @@ class BroadcastMod(loader.Module):
         self.last_message = {}
         self.messages = {}
         self.broadcast = self.db.get("broadcast", "Broadcast", {"code_chats": {}})
-        await self._load_messages()
+
+        for code_name, data in self.broadcast["code_chats"].items():
+            self.messages[code_name] = []
+            for m_data in data.get("messages", []):
+                with contextlib.suppress(Exception):
+                    message = await self.client.get_messages(
+                        m_data["chat_id"], ids=m_data["message_id"]
+                    )
+                    if message is not None:
+                        self.messages[code_name].append(message)
 
     async def watcher(self, message: Message):
         if (
@@ -39,12 +48,6 @@ class BroadcastMod(loader.Module):
                 for code_name in self.broadcast["code_chats"]
             )
             if not all_tasks_running:
-                if self.watcher_counter % 1000 == 0:
-                    self.ids = await self._get_ids()
-                    await self._load_messages()
-                    return
-                # Start any missing tasks
-
                 for code_name, data in self.broadcast["code_chats"].items():
                     if code_name not in self.broadcast_tasks:
                         self.broadcast_tasks[code_name] = asyncio.create_task(
@@ -120,8 +123,6 @@ class BroadcastMod(loader.Module):
                         )
                     else:
                         await self.client.send_message(chat_id, message_to_send.text)
-
-    # --- Module commands ---
 
     @loader.unrestricted
     async def addmsgcmd(self, message: Message):
@@ -317,7 +318,6 @@ class BroadcastMod(loader.Module):
             imported_data = json.loads(reply.raw_text)
             self.broadcast = imported_data
             self.db.set("broadcast", "Broadcast", self.broadcast)
-            await self._load_messages()
             await utils.answer(message, "Settings imported successfully.")
         except Exception as e:
             await utils.answer(message, f"Error importing settings: {str(e)}")
@@ -407,8 +407,6 @@ class BroadcastMod(loader.Module):
         self.wat = not self.wat
         await utils.answer(message, "Enabled." if self.wat else "Disabled.")
 
-    # --- Helper methods ---
-
     async def _add_remove_chat(self, code_name: str, chat_id: int):
         """
         Adds or removes a chat from the broadcast.
@@ -443,15 +441,3 @@ class BroadcastMod(loader.Module):
             for msg in await self.client.get_messages(entity, limit=None)
             if msg.message and msg.message.isdigit()
         ]
-
-    async def _load_messages(self):
-        """Loads cached messages for each broadcast from the database."""
-        for code_name, data in self.broadcast["code_chats"].items():
-            self.messages[code_name] = []
-            for m_data in data.get("messages", []):
-                with contextlib.suppress(Exception):
-                    message = await self.client.get_messages(
-                        m_data["chat_id"], ids=m_data["message_id"]
-                    )
-                    if message is not None:
-                        self.messages[code_name].append(message)
