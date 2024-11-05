@@ -1,6 +1,7 @@
 import json
 import random
 import asyncio
+import time
 from typing import Dict, List
 from telethon.tl.types import Message
 from .. import loader, utils
@@ -9,6 +10,11 @@ from .. import loader, utils
 @loader.tds
 class BroadcastMod(loader.Module):
     strings = {"name": "Broadcast"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.last_error_message = 0
+        self.error_messages = []
 
     async def client_ready(self, client, db):
         """Инициализация модуля."""
@@ -33,17 +39,11 @@ class BroadcastMod(loader.Module):
         for code_name, data in self.broadcast["code_chats"].items():
             self.messages[code_name] = []
             for m_data in data.get("messages", []):
-                try:
-                    message = await self.client.get_messages(
-                        m_data["chat_id"], ids=m_data["message_id"]
-                    )
-                    if message is not None:
-                        self.messages[code_name].append(message)
-                except Exception as e:
-                    await self.client.send_message(
-                        "me", f"Error in init items {code_name}: {str(e)}"
-                    )
-                    await asyncio.sleep(52)
+                message = await self.client.get_messages(
+                    m_data["chat_id"], ids=m_data["message_id"]
+                )
+                if message is not None:
+                    self.messages[code_name].append(message)
 
     async def watcher(self, message: Message):
         """Обработчик входящих сообщений."""
@@ -55,7 +55,7 @@ class BroadcastMod(loader.Module):
             return
         self.watcher_counter += 1
 
-        if self.watcher_counter % 3 == 0:
+        if self.watcher_counter % 5 == 0:
             all_tasks_running = all(
                 code_name in self.broadcast_tasks
                 for code_name in self.broadcast["code_chats"]
@@ -71,33 +71,66 @@ class BroadcastMod(loader.Module):
         if message.sender_id != self.me.id or not self.wat:
             return
         for code_name in self.broadcast["code_chats"]:
-            if code_name in message.text:
+            if message.text.strip().endswith(code_name):
                 await self._add_remove_chat(code_name, message.chat_id)
                 break
 
+    async def _add_remove_chat(self, code_name: str, chat_id: int):
+        """Adds or removes a chat from the broadcast."""
+        chats: List[int] = self.broadcast["code_chats"][code_name]["chats"]
+        if chat_id in chats:
+            chats.remove(chat_id)
+            action = "removed from"
+        else:
+            chats.append(chat_id)
+            action = "added to"
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        return await self.client.send_message(
+            "me", f"Chat {chat_id} {action} '{code_name}' !"
+        )
+
     async def _messages_loop(self, code_name: str, data: Dict):
         """Цикл для отправки сообщений в чаты."""
-        messages = self.messages.get(code_name, [])
-        mins, maxs = data.get("interval", (9, 13))
-        await asyncio.sleep(random.uniform(mins * 51, maxs * 33))
+        try:
+            messages = self.messages.get(code_name, [])
+            mins, maxs = data.get("interval", (9, 13))
+            await asyncio.sleep(random.uniform(mins * 51, maxs * 33))
 
-        if code_name not in self.last_message:
-            self.last_message[code_name] = 0
-        message_index = self.last_message[code_name]
-        num_messages = len(messages)
-        chats = data["chats"]
-        random.shuffle(chats)
-        burst_count = data.get("burst_count", 1)
-        num_tasks = max(1, len(chats) // 9)
-        chat_chunks = [chats[i::num_tasks] for i in range(num_tasks)]
-        tasks = [
-            self._send_to_chats(code_name, messages, message_index, chunk, burst_count)
-            for chunk in chat_chunks
-        ]
-        await asyncio.gather(*tasks)
-        message_index = (message_index + len(chats) * burst_count) % num_messages
-        self.last_message[code_name] = message_index
-        del self.broadcast_tasks[code_name]
+            if code_name not in self.last_message:
+                self.last_message[code_name] = 0
+            message_index = self.last_message[code_name]
+            num_messages = len(messages)
+            chats = data["chats"]
+            random.shuffle(chats)
+            burst_count = data.get("burst_count", 1)
+            num_tasks = max(1, len(chats) // 9)
+
+            tasks = [
+                self._send_to_chats(
+                    code_name, messages, message_index, chunk, burst_count
+                )
+                for chunk in (chats[i::num_tasks] for i in range(num_tasks))
+            ]
+
+            await asyncio.gather(*tasks)
+            message_index = (message_index + len(chats) * burst_count) % num_messages
+            self.last_message[code_name] = message_index
+        except Exception as e:
+            await self._send_error_message(
+                f"Error in _messages_loop {code_name}: {str(e)}"
+            )
+        finally:
+            del self.broadcast_tasks[code_name]
+
+    async def _send_error_message(self, message):
+        RATE_LIMIT_SECONDS = 55  # Send error messages at most once per minute
+        current_time = time.time()
+        if current_time - self.last_error_message > RATE_LIMIT_SECONDS:
+            self.last_error_message = current_time
+            if self.error_messages:
+                await self.client.send_message("me", "\n\n".join(self.error_messages))
+            self.error_messages = []
+        self.error_messages.append(message)
 
     async def _send_to_chats(
         self,
@@ -111,7 +144,7 @@ class BroadcastMod(loader.Module):
         for chat_id in chats:
             if code_name not in self.broadcast["code_chats"]:
                 break
-            await asyncio.sleep(random.uniform(1, 2))
+            await asyncio.sleep(random.uniform(1, 3))
             for i in range(burst_count):
                 current_index = (message_index + i) % len(messages)
                 message_to_send = messages[current_index]
@@ -124,10 +157,9 @@ class BroadcastMod(loader.Module):
                     else:
                         await self.client.send_message(chat_id, message_to_send.text)
                 except Exception as e:
-                    await self.client.send_message(
-                        "me", f"Error sent message {chat_id}: {str(e)} | {code_name}"
+                    await self._send_error_message(
+                        f"Error in _send_to_chats {chat_id} {code_name} : {str(e)}"
                     )
-                    await asyncio.sleep(53)
 
     @loader.command()
     async def addmsgcmd(self, message: Message):
@@ -380,17 +412,3 @@ class BroadcastMod(loader.Module):
         """Включает/выключает автоматическое добавление/удаление чатов из рассылки."""
         self.wat = not self.wat
         await utils.answer(message, "Enabled." if self.wat else "Disabled.")
-
-    async def _add_remove_chat(self, code_name: str, chat_id: int):
-        """Adds or removes a chat from the broadcast."""
-        chats: List[int] = self.broadcast["code_chats"][code_name]["chats"]
-        if chat_id in chats:
-            chats.remove(chat_id)
-            action = "removed from"
-        else:
-            chats.append(chat_id)
-            action = "added to"
-        self.db.set("broadcast", "Broadcast", self.broadcast)
-        return await self.client.send_message(
-            "me", f"Chat {chat_id} {action} '{code_name}'"
-        )
