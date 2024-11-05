@@ -216,7 +216,6 @@ class BroadcastMod(loader.Module):
             error_text = "\n".join(self.error_messages)
             self.error_messages = []
             await self.client.send_message("me", f"Broadcast Errors:\n{error_text}")
-            await self._load_messages()  # Reload messages in case of errors
 
     async def _start_broadcast_loops(self):
         """Starts or restarts broadcast loops for all codes."""
