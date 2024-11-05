@@ -210,8 +210,8 @@ class BroadcastMod(loader.Module):
         self.error_messages.append(message)
         current_time = time.time()
         if (
-            current_time - self.last_error_message > 60
-        ):  # Send errors only once per minute
+            current_time - self.last_error_message > 300 and len(self.error_messages) > 5
+        ):
             self.last_error_message = current_time
             error_text = "\n".join(self.error_messages)
             self.error_messages = []
