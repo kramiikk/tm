@@ -158,21 +158,26 @@ class BroadcastMod(loader.Module):
         self, code_name, messages, message_index, chats, burst_count
     ):
         """Sends a burst of messages to a chunk of chats."""
+        if code_name not in self.broadcast["code_chats"]:
+            return  # Broadcast code deleted, stop sending
+        
+        send_tasks = []
         for chat_id in chats:
-            if code_name not in self.broadcast["code_chats"]:
-                return  # Broadcast code deleted, stop sending
             try:
-                async for _ in range(burst_count):
+                for _ in range(burst_count):
                     message_to_send = messages[message_index % len(messages)]
-                    await self._send_message(message_to_send, chat_id)
+                    send_tasks.append(self._send_message(message_to_send, chat_id))
                     message_index += 1
-                await asyncio.sleep(
-                    random.uniform(1, 3)
-                )  # Small delay between sending to different chats to avoid flood
             except Exception as e:
                 await self._send_error_message(
                     f"Error sending message to {chat_id} in {code_name}: {e}"
                 )
+        
+        # Wait for all send tasks to complete
+        await asyncio.gather(*send_tasks)
+        
+        # Small delay between sending to different chunks of chats
+        await asyncio.sleep(random.uniform(1, 3))
 
     async def _send_message(self, message_to_send: Message, chat_id: int):
         """Sends a single message (with or without media) to a chat."""
