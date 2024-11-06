@@ -154,49 +154,6 @@ class BroadcastMod(loader.Module):
                 f"Error in broadcast loop for {code_name}: {e}"
             )
 
-    async def _send_to_chats(
-        self, code_name, messages, message_index, chats, burst_count
-    ):
-        """Sends a burst of messages to a chunk of chats."""
-        if code_name not in self.broadcast["code_chats"]:
-            return  # Broadcast code deleted, stop sending
-        
-        send_tasks = []
-        for chat_id in chats:
-            try:
-                for _ in range(burst_count):
-                    message_to_send = messages[message_index % len(messages)]
-                    send_tasks.append(self._send_message(message_to_send, chat_id))
-                    message_index += 1
-            except Exception as e:
-                await self._send_error_message(
-                    f"Error sending message to {chat_id} in {code_name}: {e}"
-                )
-        
-        # Wait for all send tasks to complete
-        await asyncio.gather(*send_tasks)
-        
-        # Small delay between sending to different chunks of chats
-        await asyncio.sleep(random.uniform(1, 3))
-
-    async def _send_message(self, message_to_send: Message, chat_id: int):
-        """Sends a single message (with or without media) to a chat."""
-        try:
-            if (
-                message_to_send.media
-            ):  # Check if the message has media (photo, video, etc.)
-                await self.client.send_file(
-                    chat_id, message_to_send.media, caption=message_to_send.text
-                )  # Send media with caption
-            else:
-                await self.client.send_message(
-                    chat_id, message_to_send.text
-                )  # Send text message
-        except Exception as e:
-            await self._send_error_message(
-                f"Error sending message to chat {chat_id}: {e}"
-            )
-
     async def _restart_broadcast_loop(self, code_name):
         """Restarts the broadcast loop for a specific code."""
         if task := self.broadcast_tasks.pop(
@@ -204,19 +161,6 @@ class BroadcastMod(loader.Module):
         ):  # Stop the current task if it exists
             task.cancel()
         await self._start_broadcast_loops()  # Restart the loops
-
-    async def _send_error_message(self, message: str):
-        """Sends error messages to the user with rate limiting to prevent spam."""
-        self.error_messages.append(message)
-        current_time = time.time()
-        if (
-            current_time - self.last_error_message > 360 and len(self.error_messages) > 5
-        ):
-            self.last_error_message = current_time
-            error_text = "\n\n".join(self.error_messages)
-            self.error_messages = []
-            await self.client.send_message("me", f"Broadcast Errors:\n{error_text}")
-            await self._load_messages()
 
     async def _start_broadcast_loops(self):
         """Starts or restarts broadcast loops for all codes."""
@@ -228,6 +172,58 @@ class BroadcastMod(loader.Module):
                     self.broadcast_tasks[code_name] = asyncio.create_task(
                         self._messages_loop(code_name, data)
                     )
+
+    async def _send_error_message(self, message: str):
+        """Sends error messages to the user with rate limiting to prevent spam."""
+        self.error_messages.append(message)
+        current_time = time.time()
+        if current_time - self.last_error_message > 360:
+            self.last_error_message = current_time
+            error_text = "\n\n".join(self.error_messages)
+            self.error_messages = []
+            await self.client.send_message("me", f"Broadcast Errors:\n{error_text}")
+
+    async def _send_message(self, message_to_send: Message, chat_id: int):
+        """Sends a single message (with or without media) to a chat."""
+        try:
+            if message_to_send.media:
+                await self.client.send_file(
+                    chat_id, message_to_send.media, caption=message_to_send.text
+                )
+            else:
+                await self.client.send_message(chat_id, message_to_send.text)
+        except Exception as e:
+            if "file reference" in str(e).lower():
+                await self._load_messages()
+            else:
+                await self._send_error_message(
+                    f"Error sending message to chat {chat_id}: {e}"
+                )
+
+    async def _send_to_chats(
+        self, code_name, messages, message_index, chats, burst_count
+    ):
+        """Sends a burst of messages to a chunk of chats."""
+        if code_name not in self.broadcast["code_chats"]:
+            return  # Broadcast code deleted, stop sending
+        send_tasks = []
+        for chat_id in chats:
+            try:
+                for _ in range(burst_count):
+                    message_to_send = messages[message_index % len(messages)]
+                    send_tasks.append(self._send_message(message_to_send, chat_id))
+                    message_index += 1
+            except Exception as e:
+                await self._send_error_message(
+                    f"Error sending message to {chat_id} in {code_name}: {e}"
+                )
+        # Wait for all send tasks to complete
+
+        await asyncio.gather(*send_tasks)
+
+        # Small delay between sending to different chunks of chats
+
+        await asyncio.sleep(random.uniform(1, 3))
 
     @loader.command()
     async def addmsgcmd(self, message: Message):
