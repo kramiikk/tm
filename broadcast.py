@@ -213,7 +213,7 @@ class BroadcastMod(loader.Module):
             current_time - self.last_error_message > 360 and len(self.error_messages) > 5
         ):
             self.last_error_message = current_time
-            error_text = "\n".join(self.error_messages)
+            error_text = "\n\n".join(self.error_messages)
             self.error_messages = []
             await self.client.send_message("me", f"Broadcast Errors:\n{error_text}")
             await self._load_messages()
