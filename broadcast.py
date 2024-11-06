@@ -210,12 +210,13 @@ class BroadcastMod(loader.Module):
         self.error_messages.append(message)
         current_time = time.time()
         if (
-            current_time - self.last_error_message > 300 and len(self.error_messages) > 5
+            current_time - self.last_error_message > 360 and len(self.error_messages) > 5
         ):
             self.last_error_message = current_time
             error_text = "\n".join(self.error_messages)
             self.error_messages = []
             await self.client.send_message("me", f"Broadcast Errors:\n{error_text}")
+            await self._load_messages()
 
     async def _start_broadcast_loops(self):
         """Starts or restarts broadcast loops for all codes."""
