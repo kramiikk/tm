@@ -117,7 +117,7 @@ class BroadcastMod(loader.Module):
                 current_message_index = self.last_message[code_name]
 
                 await asyncio.sleep(
-                    random.uniform(min_interval * 42, max_interval * 33)
+                    random.uniform(min_interval * 60, max_interval * 60)
                 )
 
                 for i in range(0, len(chats), 9):
