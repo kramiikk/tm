@@ -16,6 +16,7 @@ class BroadMod(loader.Module):
         self.db = None
         self.me = None
         self.client = None
+        self.allowed_chats = []
 
     async def client_ready(self, client, db):
         """Initializes the module when the client is ready."""
@@ -30,19 +31,19 @@ class BroadMod(loader.Module):
             cred, {"databaseURL": "https://loll-8a3bd-default-rtdb.firebaseio.com"}
         )
 
+        ref_chats = self.db.reference("allowed_chats")
+
+        self.allowed_chats = ref_chats.get() or []
+
     async def watcher(self, message: Message):
         """Handles incoming messages."""
         if not isinstance(message, Message) or not message.text:
             return
-        ref_chats = db.reference("allowed_chats")
-
-        allowed_chats = ref_chats.get() or []
-
-        if message.chat_id not in allowed_chats:
+        if message.chat_id not in self.allowed_chats:
             return
         message_hash = mmh3.hash(message.text)
 
-        ref_hashes = db.reference("hashes/hash_list")
+        ref_hashes = self.db.reference("hashes/hash_list")
 
         existing_hashes = ref_hashes.get() or []
 
@@ -61,7 +62,7 @@ class BroadMod(loader.Module):
         """Adds or removes a chat from the allowed list."""
         args = message.text.split()
 
-        ref_chats = db.reference("allowed_chats")
+        ref_chats = self.db.reference("allowed_chats")
         allowed_chats = ref_chats.get() or []
 
         if len(args) != 3:
