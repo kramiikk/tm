@@ -18,7 +18,6 @@ class BroadMod(loader.Module):
         self.allowed_chats = []
         self.firebase_app = None
         self.db_ref = None
-        self.target_channel = "canalplus"
 
     async def client_ready(self, client, db):
         """Инициализация модуля при готовности клиента."""
@@ -69,7 +68,7 @@ class BroadMod(loader.Module):
         """Пересылка сообщения на канал."""
         try:
             # Пересылаем оригинальное сообщение в канал
-            forwarded_msg = await message.forward_to(self.target_channel)
+            forwarded_msg = await message.forward_to(2498567519)
                 
         except Exception as e:
             await self.client.send_message(
