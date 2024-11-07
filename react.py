@@ -24,7 +24,7 @@ class BroadMod(loader.Module):
         self.db = db
 
         cred = credentials.Certificate(
-            "loll-8a3bd-firebase-adminsdk-4pvtd-6b93a17b70.json"
+            "/home/hikka/Hikka/loll-8a3bd-firebase-adminsdk-4pvtd-6b93a17b70.json"
         )
 
         firebase_admin.initialize_app(
