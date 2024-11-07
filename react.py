@@ -13,7 +13,6 @@ class BroadMod(loader.Module):
 
     def __init__(self):
         super().__init__()
-        self.db = None
         self.me = None
         self.client = None
         self.allowed_chats = []
@@ -21,17 +20,14 @@ class BroadMod(loader.Module):
     async def client_ready(self, client, db):
         """Initializes the module when the client is ready."""
         self.client = client
-        self.db = db
 
         cred = credentials.Certificate(
             "/home/hikka/Hikka/loll-8a3bd-firebase-adminsdk-4pvtd-6b93a17b70.json"
         )
 
-        firebase_admin.initialize_app(
-            cred, {"databaseURL": "https://loll-8a3bd-default-rtdb.firebaseio.com"}
-        )
+        firebase_admin.initialize_app(cred)
 
-        ref_chats = self.db.reference("allowed_chats")
+        ref_chats = db.reference("allowed_chats")
 
         self.allowed_chats = ref_chats.get() or []
 
@@ -43,7 +39,7 @@ class BroadMod(loader.Module):
             return
         message_hash = mmh3.hash(message.text)
 
-        ref_hashes = self.db.reference("hashes/hash_list")
+        ref_hashes = db.reference("hashes/hash_list")
 
         existing_hashes = ref_hashes.get() or []
 
@@ -62,7 +58,7 @@ class BroadMod(loader.Module):
         """Adds or removes a chat from the allowed list."""
         args = message.text.split()
 
-        ref_chats = self.db.reference("allowed_chats")
+        ref_chats = db.reference("allowed_chats")
         allowed_chats = ref_chats.get() or []
 
         if len(args) != 3:
