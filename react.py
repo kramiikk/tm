@@ -87,14 +87,14 @@ class BroadMod(loader.Module):
                 # Если пересылка не удалась, пробуем отправить как новое сообщение
 
                 full_message = f"Переслано из {message.chat.title if message.chat.title else 'чата'}\n"
-                if message.sender:
-                    sender_name = message.sender.first_name
-                    if message.sender.last_name:
-                        sender_name += f" {message.sender.last_name}"
-                    if message.sender.username:
-                        sender_name += f" (@{message.sender.username})"
-                    full_message += f"От: {sender_name}\n"
-                full_message += f"➖➖➖➖➖➖➖➖➖\n {message.text}"
+                sender_name = message.sender.first_name
+                if message.sender.last_name:
+                    sender_name += f" {message.sender.last_name}"
+                if message.sender.username:
+                    sender_name += f" (@{message.sender.username})"
+                full_message += (
+                    f"От: {sender_name}\n ➖➖➖➖➖➖➖➖➖\n {message.text}"
+                )
 
                 await self.client.send_message(
                     FORWARD_TO_CHANNEL_ID, full_message, link_preview=False
