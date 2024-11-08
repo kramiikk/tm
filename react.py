@@ -60,11 +60,42 @@ class BroadMod(loader.Module):
 
     async def forward_to_channel(self, message: Message):
         try:
+            # Сначала пробуем переслать сообщение
+
             await message.forward_to(FORWARD_TO_CHANNEL_ID)
-        except Exception as e:
-            await self.client.send_message(
-                "me", f"❌ Ошибка при пересылке сообщения в канал: {e}"
-            )
+        except Exception as forward_error:
+            try:
+                # Если пересылка не удалась, пробуем отправить как новое сообщение
+
+                forward_header = f"Переслано из {message.chat.title if message.chat.title else 'чата'}\n"
+                if message.sender:
+                    sender_name = message.sender.first_name
+                    if message.sender.last_name:
+                        sender_name += f" {message.sender.last_name}"
+                    if message.sender.username:
+                        sender_name += f" (@{message.sender.username})"
+                    forward_header += f"От: {sender_name}\n"
+                forward_header += "➖➖➖➖➖➖➖➖➖\n"
+
+                # Собираем текст сообщения
+
+                message_text = message.text or message.raw_text or ""
+
+                # Объединяем заголовок и текст
+
+                full_message = forward_header + message_text
+
+                # Отправляем новое сообщение
+
+                await self.client.send_message(
+                    FORWARD_TO_CHANNEL_ID, full_message, link_preview=False
+                )
+            except Exception as send_error:
+                error_msg = (
+                    f"❌ Ошибка при пересылке: {forward_error}\n"
+                    f"❌ Ошибка при отправке: {send_error}"
+                )
+                await self.client.send_message("me", error_msg)
 
     async def manage_chat_cmd(self, message: Message):
         try:
@@ -126,30 +157,18 @@ class BroadMod(loader.Module):
                 )
             ).strip()
 
-            if not normalized_text:  # Skip empty messages after normalization
+            if not normalized_text:
                 return
             message_hash = str(mmh3.hash(normalized_text.lower()))
 
             async with self.lock:
-                # Get reference to hash list
-
                 hashes_ref = self.db_ref.child("hashes/hash_list")
-
-                # Get current hash list
-
                 current_hashes = hashes_ref.get() or []
                 if isinstance(current_hashes, dict):
                     current_hashes = list(current_hashes.values())
-                # Check if hash already exists
-
                 if message_hash not in current_hashes:
-                    # Add new hash
-
                     current_hashes.append(message_hash)
                     hashes_ref.set(current_hashes)
-
-                    # Forward message only after successful hash addition
-
                     await self.forward_to_channel(message)
         except Exception as e:
             error_message = f"Error processing message: {str(e)}\nMessage text: {message.text[:100]}..."
