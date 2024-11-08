@@ -139,8 +139,8 @@ class BroadMod(loader.Module):
     async def watcher(self, message: Message):
         if (
             not isinstance(message, Message)
+            or not message.sender
             or not message.text
-            or (message.sender and message.sender.bot)
             or message.chat_id not in self.allowed_chats
         ):
             return
