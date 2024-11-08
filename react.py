@@ -37,6 +37,7 @@ TRADING_KEYWORDS = [
     "сигна",
     "руб",
     "срочн",
+    "кто",
 ]
 
 
@@ -79,35 +80,25 @@ class BroadMod(loader.Module):
 
     async def forward_to_channel(self, message: Message):
         try:
-            # Сначала пробуем переслать сообщение
-
             await message.forward_to(FORWARD_TO_CHANNEL_ID)
-        except Exception as forward_error:
+        except Exception as e:
             try:
-                # Если пересылка не удалась, пробуем отправить как новое сообщение
-
-                full_message = f"Переслано из {message.chat.title if message.chat.title else 'чата'}\n"
-                sender_name = message.sender.first_name
-                if message.sender.last_name:
-                    sender_name += f" {message.sender.last_name}"
-                if message.sender.username:
-                    sender_name += f" (@{message.sender.username})"
-                full_message += (
-                    f"От: {sender_name}\n ➖➖➖➖➖➖➖➖➖\n {message.text}"
-                )
-
+                sender_info = f"Переслано из {message.chat.title or 'чата'}\nОт: {message.sender.first_name or ''} {message.sender.last_name or ''} {f'(@{message.sender.username})' if message.sender.username else ''}\n➖➖➖➖➖➖➖➖➖\n"
                 await self.client.send_message(
-                    FORWARD_TO_CHANNEL_ID, full_message, link_preview=False
+                    FORWARD_TO_CHANNEL_ID,
+                    sender_info + message.text,
+                    link_preview=False,
                 )
-            except Exception as e:
-                error_msg = f"❌ Ошибка при отправке: {e}"
-                await self.client.send_message("me", error_msg)
+            except Exception as forward_error:
+                await self.client.send_message(
+                    "me", f"❌ Ошибка при отправке: {forward_error}"
+                )
 
     async def manage_chat_cmd(self, message: Message):
         try:
             args = message.text.split()
 
-            if len(args) != 3:
+            if len(args) != 2:
                 if self.allowed_chats:
                     await message.reply(
                         f"📝 Список разрешенных чатов:\n{', '.join(map(str, self.allowed_chats))}"
@@ -116,26 +107,18 @@ class BroadMod(loader.Module):
                     await message.reply("📝 Список разрешенных чатов пуст.")
                 return
             try:
-                chat_id = int(args[2])
+                chat_id = int(args[1])
             except ValueError:
                 await message.reply(
                     "❌ Неверный формат ID чата. Укажите правильное число."
                 )
                 return
-            if args[1].lower() == "add":
-                if chat_id not in self.allowed_chats:
-                    self.allowed_chats.append(chat_id)
-                    txt = f"✅ Чат {chat_id} добавлен в список."
-                else:
-                    txt = f"❗ Чат {chat_id} уже в списке."
-            elif args[1].lower() == "remove":
-                if chat_id in self.allowed_chats:
-                    self.allowed_chats.remove(chat_id)
-                    txt = f"❌ Чат {chat_id} удален из списка."
-                else:
-                    txt = f"❗ Чат {chat_id} не найден в списке."
+            if chat_id in self.allowed_chats:
+                self.allowed_chats.remove(chat_id)
+                txt = f"❌ Чат {chat_id} удален из списка."
             else:
-                txt = "❌ Неверная команда. Используйте 'add' или 'remove'."
+                self.allowed_chats.append(chat_id)
+                txt = f"✅ Чат {chat_id} добавлен в список."
             chats_ref = self.db_ref.child("allowed_chats")
             chats_ref.set(self.allowed_chats)
             await message.reply(txt)
@@ -144,8 +127,7 @@ class BroadMod(loader.Module):
 
     async def watcher(self, message: Message):
         if (
-            not isinstance(message, Message)
-            or not message.sender
+            not message.sender
             or message.sender.bot
             or not message.text
             or len(message.text) < 18
@@ -178,12 +160,11 @@ class BroadMod(loader.Module):
             async with self.lock:
                 hashes_ref = self.db_ref.child("hashes/hash_list")
                 current_hashes = hashes_ref.get() or []
-                if isinstance(current_hashes, dict):
-                    current_hashes = list(current_hashes.values())
-                if message_hash not in current_hashes:
-                    current_hashes.append(message_hash)
-                    hashes_ref.set(current_hashes)
-                    await self.forward_to_channel(message)
+                if message_hash in current_hashes:
+                    return
+                current_hashes.append(message_hash)
+                hashes_ref.set(current_hashes)  # Update Firebase after adding the hash
+                await self.forward_to_channel(message)
         except Exception as e:
             error_message = f"Error processing message: {str(e)}\nMessage text: {message.text[:100]}..."
             await self.client.send_message("me", error_message)
