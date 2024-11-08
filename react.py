@@ -70,12 +70,9 @@ class BroadMod(loader.Module):
             chats_data = chats_ref.get()
 
             if chats_data:
-                if isinstance(chats_data, list):
-                    self.allowed_chats = chats_data
-                elif isinstance(chats_data, dict):
-                    self.allowed_chats = list(chats_data.values())
-                else:
-                    self.allowed_chats = []
+                self.allowed_chats = list(chats_data.values())
+            else:
+                self.allowed_chats = []
             await client.send_message(
                 "me",
                 f"Модуль успешно инициализирован\nРазрешенные чаты: {self.allowed_chats}",
