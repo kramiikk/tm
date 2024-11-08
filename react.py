@@ -67,12 +67,7 @@ class BroadMod(loader.Module):
         try:
             self.db_ref = firebase_db.reference("/")
             chats_ref = self.db_ref.child("allowed_chats")
-            chats_data = chats_ref.get()
-
-            if chats_data:
-                self.allowed_chats = list(chats_data.values())
-            else:
-                self.allowed_chats = []
+            self.allowed_chats = chats_ref.get()
             await client.send_message(
                 "me",
                 f"Модуль успешно инициализирован\nРазрешенные чаты: {self.allowed_chats}",
