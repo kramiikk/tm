@@ -12,6 +12,33 @@ FIREBASE_CREDENTIALS_PATH = (
 )
 FORWARD_TO_CHANNEL_ID = 2498567519
 
+TRADING_KEYWORDS = [
+    "акк",
+    "прод",
+    "куп",
+    "обмен",
+    "лег",
+    "оруж",
+    "артефакты",
+    "ивент",
+    "100",
+    "гарант",
+    "уд",
+    "утер",
+    "луна",
+    "ранг",
+    "AR",
+    "ищу",
+    "приор",
+    "стандарт",
+    "евро",
+    "уров",
+    "старт",
+    "сигна",
+    "руб",
+    "срочн",
+]
+
 
 @loader.tds
 class BroadMod(loader.Module):
@@ -67,34 +94,21 @@ class BroadMod(loader.Module):
             try:
                 # Если пересылка не удалась, пробуем отправить как новое сообщение
 
-                forward_header = f"Переслано из {message.chat.title if message.chat.title else 'чата'}\n"
+                full_message = f"Переслано из {message.chat.title if message.chat.title else 'чата'}\n"
                 if message.sender:
                     sender_name = message.sender.first_name
                     if message.sender.last_name:
                         sender_name += f" {message.sender.last_name}"
                     if message.sender.username:
                         sender_name += f" (@{message.sender.username})"
-                    forward_header += f"От: {sender_name}\n"
-                forward_header += "➖➖➖➖➖➖➖➖➖\n"
-
-                # Собираем текст сообщения
-
-                message_text = message.text or message.raw_text or ""
-
-                # Объединяем заголовок и текст
-
-                full_message = forward_header + message_text
-
-                # Отправляем новое сообщение
+                    full_message += f"От: {sender_name}\n"
+                full_message += f"➖➖➖➖➖➖➖➖➖\n {message.text}"
 
                 await self.client.send_message(
                     FORWARD_TO_CHANNEL_ID, full_message, link_preview=False
                 )
-            except Exception as send_error:
-                error_msg = (
-                    f"❌ Ошибка при пересылке: {forward_error}\n"
-                    f"❌ Ошибка при отправке: {send_error}"
-                )
+            except Exception as e:
+                error_msg = f"❌ Ошибка при отправке: {e}"
                 await self.client.send_message("me", error_msg)
 
     async def manage_chat_cmd(self, message: Message):
@@ -142,11 +156,15 @@ class BroadMod(loader.Module):
             or not message.sender
             or message.sender.bot
             or not message.text
+            or len(message.text) < 18
             or message.chat_id not in self.allowed_chats
         ):
             return
         if not self.db_ref:
             await self.client.send_message("me", "Firebase не инициализирован")
+            return
+        low = message.text.lower()
+        if not any(keyword.lower() in low for keyword in TRADING_KEYWORDS):
             return
         try:
             normalized_text = html.unescape(
@@ -156,14 +174,14 @@ class BroadMod(loader.Module):
                     re.sub(
                         r"[^\w\s,.!?;:—]",
                         "",
-                        re.sub(r"<[^>]+>", "", message.text),
+                        re.sub(r"<[^>]+>", "", low),
                     ),
                 )
             ).strip()
 
             if not normalized_text:
                 return
-            message_hash = str(mmh3.hash(normalized_text.lower()))
+            message_hash = str(mmh3.hash(normalized_text))
 
             async with self.lock:
                 hashes_ref = self.db_ref.child("hashes/hash_list")
