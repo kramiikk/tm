@@ -140,6 +140,7 @@ class BroadMod(loader.Module):
         if (
             not isinstance(message, Message)
             or not message.sender
+            or message.sender.bot
             or not message.text
             or message.chat_id not in self.allowed_chats
         ):
