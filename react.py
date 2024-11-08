@@ -146,67 +146,47 @@ class BroadMod(loader.Module):
                 )
             )
 
-            message_hash = str(
-                mmh3.hash(normalized_text.lower())
-            )  # Вычисляем хэш сообщения
+            message_hash = str(mmh3.hash(normalized_text.lower()))
 
-            async with self.lock:  # Блокируем для предотвращения race conditions
-                hashes_ref = self.db_ref.child(
-                    "hashes/hash_list"
-                )  # Ссылка на список хэшей сообщений
-                locks_ref = self.db_ref.child(
-                    "locks"
-                )  # Ссылка на блокировки транзакций
-                lock_ref = locks_ref.child(
-                    message_hash
-                )  # Блокировка для текущего сообщения
+            async with self.lock:
+                hashes_ref = self.db_ref.child("hashes/hash_list")
+                locks_ref = self.db_ref.child("locks")  # Ensure 'locks' node exists
+                lock_ref = locks_ref.child(message_hash)
 
                 try:
 
-                    def hash_transaction(
-                        current_data,
-                    ):  # Функция для выполнения транзакции
+                    def hash_transaction(current_data):
+                        lock_value = lock_ref.get()  # Get the lock value
                         if (
-                            lock_ref.get()
-                        ):  # Проверяем, обработано ли уже сообщение другим экземпляром бота
-                            return
-                        lock_ref.set(
-                            True
-                        )  # Устанавливаем блокировку, чтобы другие экземпляры не обработали это сообщение
+                            lock_value
+                        ):  # Check if lock exists and is True (or any value)
+                            return None  # Explicitly return None to abort
+                        lock_ref.set(True)
 
-                        current_data = (
-                            current_data or []
-                        )  # Если данных нет, создаем пустой список
-                        if isinstance(
-                            current_data, dict
-                        ):  # Преобразуем словарь в список, если необходимо
+                        current_data = current_data or []
+                        if isinstance(current_data, dict):
                             current_data = list(current_data.values())
-                        if (
-                            message_hash not in current_data
-                        ):  # Если хэш еще не существует, добавляем его
+                        if message_hash not in current_data:
                             current_data.append(message_hash)
-                            return current_data  # Возвращаем обновленный список хэшей
-                        return  # Если хэш уже существует, ничего не возвращаем (транзакция не выполнится)
+                            return current_data
+                        return None  # Explicitly return None if hash already exists
 
-                    update_result = hashes_ref.transaction(
-                        hash_transaction
-                    )  # Выполняем транзакцию
+                    update_result = hashes_ref.transaction(hash_transaction)
 
-                    if (
-                        update_result.committed
-                    ):  # Если транзакция успешна, пересылаем сообщение
-                        await self.forward_to_channel(message)
-                    elif message_hash not in (
-                        update_result.snapshot.val() or []
-                    ):  # Если транзакция не выполнена и хэша нет в базе, значит произошла ошибка
+                    if update_result:  # Check if update_result is not None
+                        if update_result.committed:
+                            await self.forward_to_channel(message)
+                        else:  # Transaction aborted, but not due to an error
+                            # Log or handle the aborted transaction (optional)
+
+                            print(f"Transaction aborted for {message_hash}")
+                    else:  # Transaction failed due to an error
                         await self.client.send_message(
                             "me",
                             f"Transaction failed: {message_hash} "
-                            f"(Original message: {message.text[max(0, len(message.text)-100):][:100]}...)",  # Ограничиваем длину с обеих сторон
+                            f"(Original message: {message.text[:100]}...)",
                         )
                 finally:
-                    lock_ref.delete()  # Удаляем блокировку после завершения транзакции
+                    lock_ref.delete()
         except Exception as e:
-            await self.client.send_message(
-                "me", f"❌ Ошибка при обработке сообщения: {e}"
-            )
+            await self.client.send_message("me", f"Error processing message: {e}")
