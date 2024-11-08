@@ -2,7 +2,7 @@ import asyncio
 import html
 import re
 import mmh3
-from telethon.tl.types import Message
+from telethon.tl.types import Message, User
 from .. import loader
 import firebase_admin
 from firebase_admin import credentials, db as firebase_db
@@ -128,7 +128,8 @@ class BroadMod(loader.Module):
     async def watcher(self, message: Message):
         if (
             not message.sender
-            or message.sender.bot
+            or isinstance(message.sender, User)
+            and message.sender.bot
             or not message.text
             or len(message.text) < 18
             or message.chat_id not in self.allowed_chats
