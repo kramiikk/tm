@@ -137,9 +137,12 @@ class BroadMod(loader.Module):
             await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
 
     async def watcher(self, message: Message):
-        if not isinstance(message, Message) or not message.text:
-            return
-        if message.chat_id not in self.allowed_chats:
+        if (
+            not isinstance(message, Message)
+            or not message.text
+            or (message.sender and message.sender.bot)
+            or message.chat_id not in self.allowed_chats
+        ):
             return
         if not self.db_ref:
             await self.client.send_message("me", "Firebase не инициализирован")
