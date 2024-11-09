@@ -337,3 +337,22 @@ class BroadMod(loader.Module):
 
         try:
             normalized_text_pattern = re.compile(r"<[^>]+>|[^\w\s,.!?;:—]|\s+")
+            normalized_text = html.unescape(
+                normalized_text_pattern.sub(" ", low)
+            ).strip()
+
+            if not normalized_text:
+                return
+            message_hash = str(mmh3.hash(normalized_text))
+
+            async with self.lock:
+                if (
+                    message_hash in self.bloom_filter
+                    and message_hash in self.hash_cache
+                ):
+                    return
+            await self.add_hash(message_hash)
+            await self.forward_to_channel(message)
+        except Exception as e:
+            error_message = f"Произошла ошибка: {type(e).__name__}: {e}\nТекст сообщения: {message.text[:100]}..."
+            await self.client.send_message("me", error_message)
