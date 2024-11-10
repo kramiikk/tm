@@ -7,7 +7,7 @@ import time
 from typing import List, Dict, Union
 
 import mmh3
-from bloomfilter import BloomFilter
+from bloom_filter import BloomFilter
 from telethon.tl.types import Message, User, Chat
 from telethon import errors
 
@@ -171,16 +171,17 @@ class BroadMod(loader.Module):
         super().__init__()
 
     def init_bloom_filter(self) -> bool:
-        """Initializes the Bloom filter, returning True on success, False on failure."""
         try:
-            self.bloom_filter = BloomFilter(
+            self.bloom_filter = BloomFilter(  # Use the correct import here
                 capacity=self.config["bloom_filter_capacity"],
                 error_rate=self.config["bloom_filter_error_rate"],
             )
             return True
         except Exception as e:
-            self.log.error(f"Bloom filter init error: {e}. Falling back to set()")
-            self.bloom_filter = set()  # Fallback to a set
+            self.log.error(
+                f"Bloom filter init error: {e}. Falling back to set(). Performance may be degraded."
+            )
+            self.bloom_filter = set()
             return False
 
     async def _initialize_firebase(self) -> bool:
@@ -240,6 +241,10 @@ class BroadMod(loader.Module):
                 await client.send_message(
                     "me", "❌ Bloom filter initialization failed. Module disabled."
                 )
+                await client.send_message(
+                    "me",
+                    "⚠️ Bloom filter initialization failed. Falling back to set(). Performance may be affected.",
+                )
                 return
             await self._load_recent_hashes()
 
@@ -282,6 +287,7 @@ class BroadMod(loader.Module):
         except Exception as e:
             self.log.error(f"Error loading recent hashes: {e}")
             self.hash_cache = {}
+            await self.client.send_message("me", f"❌ Error loading recent hashes: {e}")
 
     async def _clear_expired_hashes(self) -> int:
         """Clears expired hashes and rebuilds the Bloom filter.
@@ -350,11 +356,10 @@ class BroadMod(loader.Module):
                 self.log.error(f"Error adding hash: {e}")
 
     async def forward_to_channel(self, message: Message):
-        """Forwards the message to the configured channel, handling potential errors."""
         try:
             await message.forward_to(self.config["forward_channel_id"])
         except errors.ChannelPrivateError:
-            log.error("Could not forward message directly. Trying to send text...")
+            self.log.error("Could not forward message directly. Trying to send text...")
             try:
                 sender_info = self._get_sender_info(message)
                 await self.client.send_message(
