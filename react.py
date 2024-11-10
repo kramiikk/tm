@@ -7,7 +7,7 @@ import time
 from typing import List, Dict, Union
 
 import mmh3
-from pybloom_live import CountingBloomFilter
+from bloomfilter import BloomFilter
 from telethon.tl.types import Message, User, Chat
 from telethon import errors
 
@@ -173,16 +173,14 @@ class BroadMod(loader.Module):
     def init_bloom_filter(self) -> bool:
         """Initializes the Bloom filter, returning True on success, False on failure."""
         try:
-            self.bloom_filter = CountingBloomFilter(
+            self.bloom_filter = BloomFilter(
                 capacity=self.config["bloom_filter_capacity"],
                 error_rate=self.config["bloom_filter_error_rate"],
             )
             return True
         except Exception as e:
-            self.log.error(
-                f"Bloom filter init error: {e}. Falling back to set(). Performance may be impacted."
-            )
-            self.bloom_filter = set()
+            self.log.error(f"Bloom filter init error: {e}. Falling back to set()")
+            self.bloom_filter = set()  # Fallback to a set
             return False
 
     async def _initialize_firebase(self) -> bool:
@@ -286,7 +284,11 @@ class BroadMod(loader.Module):
             self.hash_cache = {}
 
     async def _clear_expired_hashes(self) -> int:
-        """Clears expired hashes from the cache and Firebase, returning the number of removed hashes."""
+        """Clears expired hashes and rebuilds the Bloom filter.
+
+        Rebuilding is necessary because the 'bloomfilter' library doesn't
+        support removing elements directly.
+        """
         async with self.lock:
             try:
                 current_time = time.time()
@@ -305,11 +307,16 @@ class BroadMod(loader.Module):
                     if timestamp >= expiration_time:
                         new_hash_cache[h] = timestamp
                     else:
-                        if self.bloom_filter:
-                            self.bloom_filter.remove(h)
                         removed_count += 1
                 self.hash_cache = new_hash_cache
 
+                if self.bloom_filter:
+                    self.bloom_filter = BloomFilter(
+                        capacity=self.config["bloom_filter_capacity"],
+                        error_rate=self.config["bloom_filter_error_rate"],
+                    )
+                    for h in self.hash_cache:
+                        self.bloom_filter.add(h)
                 if self.batch_processor:
                     await self.batch_processor.flush()
                 return removed_count
@@ -346,7 +353,7 @@ class BroadMod(loader.Module):
         """Forwards the message to the configured channel, handling potential errors."""
         try:
             await message.forward_to(self.config["forward_channel_id"])
-        except telethon.errors.ChannelPrivateError:
+        except errors.ChannelPrivateError:
             log.error("Could not forward message directly. Trying to send text...")
             try:
                 sender_info = self._get_sender_info(message)
@@ -355,12 +362,9 @@ class BroadMod(loader.Module):
                     sender_info + message.raw_text,
                     link_preview=False,
                 )
-            except Exception as forward_error:
-                log.exception(f"Error forwarding message text: {forward_error}")
-                await self.client.send_message(
-                    "me",
-                    f"❌ Ошибка при отправке: {forward_error}",  # Keep this for user notification
-                )
+            except Exception as e:
+                self.log.exception(f"Error forwarding message: {e}")
+                await self.client.send_message("me", f"❌ Ошибка при пересылке: {e}")
 
     def _get_sender_info(self, message: Message) -> str:
         """Constructs a string with sender information."""
