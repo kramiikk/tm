@@ -1,5 +1,6 @@
 import asyncio
 import html
+import math
 import logging
 import os
 import re
@@ -171,14 +172,14 @@ class BroadMod(loader.Module):
         super().__init__()
 
     def init_bloom_filter(self) -> bool:
-        """Initialize the Bloom filter with correct parameters."""
+        """Initialize the Bloom filter with correct parameters for v1.3.3."""
         try:
-            # Создаем BloomFilter с правильными параметрами
+            n = self.config["bloom_filter_capacity"]
+            p = self.config["bloom_filter_error_rate"]
+            size = int(-n * math.log(p) / (math.log(2) ** 2))
+            num_hashes = int(size / n * math.log(2))
 
-            self.bloom_filter = BloomFilter(
-                max_elements=self.config["bloom_filter_capacity"],
-                error_rate=self.config["bloom_filter_error_rate"],
-            )
+            self.bloom_filter = BloomFilter(num_bits=size, num_hashes=num_hashes)
             return True
         except Exception as e:
             self.log.error(
@@ -316,11 +317,13 @@ class BroadMod(loader.Module):
                 self.hash_cache = new_hash_cache
 
                 if self.bloom_filter:
-                    # Пересоздаем BloomFilter с правильными параметрами
+                    n = self.config["bloom_filter_capacity"]
+                    p = self.config["bloom_filter_error_rate"]
+                    size = int(-n * math.log(p) / (math.log(2) ** 2))
+                    num_hashes = int(size / n * math.log(2))
 
                     self.bloom_filter = BloomFilter(
-                        max_elements=self.config["bloom_filter_capacity"],
-                        error_rate=self.config["bloom_filter_error_rate"],
+                        num_bits=size, num_hashes=num_hashes
                     )
                     for h in self.hash_cache:
                         self.bloom_filter.add(h)
