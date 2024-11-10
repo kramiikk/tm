@@ -331,10 +331,12 @@ class BroadMod(loader.Module):
     async def add_hash(self, message_hash: str):
         """Adds a message hash to the cache and Firebase."""
         async with self.lock:
+            self.log.info("Aaa")
             current_time = time.time()
             self.hash_cache[message_hash] = current_time
             if self.bloom_filter:
                 self.bloom_filter.add(message_hash)
+            self.log.info("FFF")
             try:
                 hash_data = {"hash": message_hash, "timestamp": current_time}
                 if self.batch_processor:
