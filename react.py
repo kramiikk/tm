@@ -171,10 +171,11 @@ class BroadMod(loader.Module):
         super().__init__()
 
     def init_bloom_filter(self) -> bool:
+        """Initialize the Bloom filter with correct parameters."""
         try:
-            self.bloom_filter = BloomFilter(  # Use the correct import here
-                capacity=self.config["bloom_filter_capacity"],
-                error_rate=self.config["bloom_filter_error_rate"],
+            self.bloom_filter = BloomFilter(
+                size=self.config["bloom_filter_capacity"],
+                fp_prob=self.config["bloom_filter_error_rate"],
             )
             return True
         except Exception as e:
@@ -290,11 +291,7 @@ class BroadMod(loader.Module):
             await self.client.send_message("me", f"❌ Error loading recent hashes: {e}")
 
     async def _clear_expired_hashes(self) -> int:
-        """Clears expired hashes and rebuilds the Bloom filter.
-
-        Rebuilding is necessary because the 'bloomfilter' library doesn't
-        support removing elements directly.
-        """
+        """Clears expired hashes and rebuilds the Bloom filter."""
         async with self.lock:
             try:
                 current_time = time.time()
@@ -318,8 +315,8 @@ class BroadMod(loader.Module):
 
                 if self.bloom_filter:
                     self.bloom_filter = BloomFilter(
-                        capacity=self.config["bloom_filter_capacity"],
-                        error_rate=self.config["bloom_filter_error_rate"],
+                        size=self.config["bloom_filter_capacity"],
+                        fp_prob=self.config["bloom_filter_error_rate"],
                     )
                     for h in self.hash_cache:
                         self.bloom_filter.add(h)
