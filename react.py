@@ -4,7 +4,6 @@ import re
 import mmh3
 import time
 import datetime
-import logging
 from telethon.tl.types import Message
 from .. import loader, utils
 
@@ -12,7 +11,6 @@ import firebase_admin
 from firebase_admin import credentials, db as firebase_db
 from bloompy import CountingBloomFilter
 
-logger = logging.getLogger(__name__)
 
 TRADING_KEYWORDS = set(
     [
@@ -119,8 +117,7 @@ class BroadMod(loader.Module):
                 error_rate=self.config["bloom_filter_error_rate"],
             )
         except Exception as e:
-            logger.error(f"Failed to initialize Bloom filter: {e}")
-            self.bloom_filter = set()  # Fallback to using a set if Bloom filter fails
+            self.bloom_filter = set()
 
     async def client_ready(self, client, db):
         self.client = client
@@ -270,7 +267,6 @@ class BroadMod(loader.Module):
         try:
             await message.forward_to(self.config["forward_channel_id"])
         except Exception as e:
-            logger.error(f"Forward error: {type(e).__name__}: {e}")
             try:
                 # Attempt to send as plain text if forwarding fails
 
@@ -283,9 +279,6 @@ class BroadMod(loader.Module):
                     link_preview=False,
                 )
             except Exception as forward_error:
-                logger.error(
-                    f"Fallback forward error: {type(forward_error).__name__}: {forward_error}"
-                )
                 await self.client.send_message(
                     "me", f"❌ Ошибка при отправке: {forward_error}"
                 )
