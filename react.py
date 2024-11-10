@@ -433,13 +433,12 @@ class BroadMod(loader.Module):
 
     async def watcher(self, message: types.Message):
         """Watches for new messages and forwards them if they meet the criteria."""
-        if not self.initialized:
+        if (
+            not self.initialized
+            or len(message.text) < self.config["min_text_length"]
+            or message.chat_id not in self.allowed_chats
+        ):
             return
-        if len(message.text) < self.config["min_text_length"]:
-            return
-        if message.chat_id not in self.allowed_chats:
-            return
-        self.log.info("Chaa")
         try:
             sender = await message.get_sender()
             self.log.info(sender_info)
@@ -452,14 +451,15 @@ class BroadMod(loader.Module):
         found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
 
         if not found_keywords:
+            self.log.info("Faa")
             return
-        self.log.info("Waa")
         try:
             normalized_text = html.unescape(
                 re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", message.text.lower())
             ).strip()
 
             if not normalized_text:
+                self.log.info("Naa")
                 return
             message_hash = str(mmh3.hash(normalized_text))
             self.log.info(f"Generated hash: {message_hash}")
@@ -469,6 +469,7 @@ class BroadMod(loader.Module):
                     message_hash in self.bloom_filter
                     and message_hash in self.hash_cache
                 ):
+                    self.log.info("Haa")
                     return
                 await self.add_hash(message_hash)
                 await self.forward_to_channel(message)
