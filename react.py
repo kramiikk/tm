@@ -440,43 +440,12 @@ class BroadMod(loader.Module):
         if not self.initialized:
             self.log.warning("Module not initialized")
             return
-        # Log basic message info
-
-        self.log.info(f"Received message. Type: {type(message)}")
-
         # Check if message has text
 
         if not hasattr(message, "text") or not isinstance(message.text, str):
             self.log.info(
                 "Skipping: Message has no text attribute or text is not string"
             )
-            return
-        self.log.info(f"Message text length: {len(message.text)}")
-
-        # Check message length
-
-        if len(message.text) < self.config["min_text_length"]:
-            self.log.info(
-                f"Skipping: Message too short ({len(message.text)} < {self.config['min_text_length']})"
-            )
-            return
-        # Get chat ID and log it
-
-        chat_id = getattr(message, "chat_id", None)
-        if chat_id is None:
-            try:
-                chat = await message.get_chat()
-                chat_id = chat.id
-            except Exception as e:
-                self.log.error(f"Failed to get chat ID: {e}")
-                return
-        self.log.info(f"Message from chat ID: {chat_id}")
-        self.log.info(f"Allowed chats: {self.allowed_chats}")
-
-        # Check if chat is allowed
-
-        if chat_id not in self.allowed_chats:
-            self.log.info(f"Skipping: Chat {chat_id} not in allowed chats")
             return
         # Get sender info
 
