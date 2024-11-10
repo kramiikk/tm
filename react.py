@@ -438,16 +438,28 @@ class BroadMod(loader.Module):
     async def watcher(self, message):
         """Watches for new messages and forwards them if they meet the criteria."""
         if not self.initialized:
-            self.log.warning("Module not initialized")
             return
-        # Check if message has text
 
         if not hasattr(message, "text") or not isinstance(message.text, str):
             self.log.info(
                 "Skipping: Message has no text attribute or text is not string"
             )
             return
-        # Get sender info
+
+        if len(message.text) < self.config["min_text_length"]:
+            return
+
+        chat_id = getattr(message, "chat_id", None)
+        if chat_id is None:
+            try:
+                chat = await message.get_chat()
+                chat_id = chat.id
+            except Exception as e:
+                self.log.error(f"Failed to get chat ID: {e}")
+                return
+
+        if chat_id not in self.allowed_chats:
+            return
 
         try:
             sender = await message.get_sender()
@@ -458,14 +470,14 @@ class BroadMod(loader.Module):
         except Exception as e:
             self.log.error(f"Failed to get sender info: {e}")
             return
-        # Check trading keywords
+
+        if getattr(sender, "bot", False):
+            return
 
         low = message.text.lower()
         found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
-        self.log.info(f"Found keywords: {found_keywords}")
 
         if not found_keywords:
-            self.log.info("Skipping: No trading keywords found")
             return
         try:
             normalized_text = html.unescape(
@@ -473,7 +485,6 @@ class BroadMod(loader.Module):
             ).strip()
 
             if not normalized_text:
-                self.log.info("Skipping: Normalized text is empty")
                 return
             message_hash = str(mmh3.hash(normalized_text))
             self.log.info(f"Generated hash: {message_hash}")
