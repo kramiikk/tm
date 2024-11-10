@@ -3,12 +3,14 @@ import html
 import re
 import mmh3
 import time
+import os
 from telethon.tl.types import Message
 from .. import loader, utils
 
 import firebase_admin
 from firebase_admin import credentials, db as firebase_db
 from bloompy import CountingBloomFilter
+
 
 TRADING_KEYWORDS = set(
     [
@@ -46,40 +48,35 @@ class BatchProcessor:
         self.db_ref = db_ref
         self.batch_size = batch_size
         self.flush_interval = flush_interval
-        self.MAX_FIREBASE_HASHES = max_hashes
-        self.batch_queue = []
+        self.max_hashes = max_hashes
+        self.batch = []
         self.last_flush = time.time()
         self.lock = asyncio.Lock()
 
-    async def add_to_batch(self, hash_data):
-        """Add hash data to batch queue and flush if needed"""
+    async def add(self, hash_data):
         async with self.lock:
-            self.batch_queue.append(hash_data)
-            if len(self.batch_queue) >= self.batch_size or (
-                time.time() - self.last_flush > self.flush_interval
+            self.batch.append(hash_data)
+            if (
+                len(self.batch) >= self.batch_size
+                or time.time() - self.last_flush > self.flush_interval
             ):
                 await self.flush()
 
     async def flush(self):
-        """Flush current batch to Firebase"""
-        if not self.batch_queue:
+        if not self.batch:
             return
         async with self.lock:
             try:
                 hashes_ref = self.db_ref.child("hashes/hash_list")
                 current_hashes = hashes_ref.get() or []
-
-                if not isinstance(current_hashes, list):
-                    current_hashes = []
-                current_hashes.extend(self.batch_queue)
-
-                if len(current_hashes) > self.MAX_FIREBASE_HASHES:
-                    current_hashes = current_hashes[-self.MAX_FIREBASE_HASHES :]
+                current_hashes.extend(self.batch)
+                current_hashes = current_hashes[-self.max_hashes :]
                 hashes_ref.set(current_hashes)
-                self.batch_queue = []
+                self.batch = []
                 self.last_flush = time.time()
             except Exception as e:
-                print(f"Batch flush error: {e}")
+                self.db_ref.child("errors").push(str(e))
+                self.log.error(f"Batch flush error: {e}")
 
 
 @loader.tds
@@ -148,14 +145,14 @@ class BroadMod(loader.Module):
         super().__init__()
 
     def init_bloom_filter(self):
-        """Initialize the Bloom filter"""
         try:
             self.bloom_filter = CountingBloomFilter(
                 size=self.config["bloom_filter_capacity"],
                 error_rate=self.config["bloom_filter_error_rate"],
             )
             return True
-        except Exception:
+        except Exception as e:
+            self.log.error(f"Bloom filter init error: {e}. Falling back to set().")
             self.bloom_filter = set()
             return False
 
@@ -187,60 +184,73 @@ class BroadMod(loader.Module):
             )
             return False
 
-    async def _load_recent_hashes(self):
-        """Load recent hashes from Firebase"""
-        async with self.lock:
-            try:
-                hashes_ref = self.db_ref.child("hashes/hash_list")
-                all_hashes = hashes_ref.get() or []
-                if not isinstance(all_hashes, list):
-                    all_hashes = []
-                current_time = time.time()
-                recent_hashes = {}
+    async def client_ready(self, client, db):
+        self.client = client
+        self.log = client.log
 
-                for hash_data in all_hashes[-self.config["max_firebase_hashes"] :]:
-                    if not isinstance(hash_data, dict):
-                        continue
+        if not self.config["firebase_credentials_path"] or not os.path.exists(
+            self.config["firebase_credentials_path"]
+        ):
+            await self.client.send_message(
+                "me", "❌ Firebase credentials file not found or path is incorrect."
+            )
+            return
+        if not self.config["firebase_database_url"]:
+            await self.client.send_message(
+                "me", "❌ Firebase database URL is not configured."
+            )
+            return
+        if not firebase_admin._apps:
+            if not await self._initialize_firebase():
+                return
+        try:
+            self.db_ref = firebase_db.reference("/")
+            self.batch_processor = BatchProcessor(
+                self.db_ref, self.config["max_firebase_hashes"]
+            )
+
+            self.init_bloom_filter()
+
+            await self._load_recent_hashes()
+
+            chats_ref = self.db_ref.child("allowed_chats")
+            chats_data = chats_ref.get()
+            self.allowed_chats = chats_data if isinstance(chats_data, list) else []
+
+            self.initialized = True
+            await self.client.send_message(
+                "me",
+                self.strings["initialization_success"].format(
+                    chats=self.allowed_chats, hashes=len(self.hash_cache)
+                ),
+            )
+        except Exception as e:
+            await client.send_message("me", f"❌ Error loading data from Firebase: {e}")
+            self.initialized = False
+
+    async def _load_recent_hashes(self):
+        try:
+            hashes_ref = self.db_ref.child("hashes/hash_list")
+            all_hashes = hashes_ref.get() or []
+
+            current_time = time.time()
+            self.hash_cache = {}
+
+            for hash_data in all_hashes[-self.config["max_firebase_hashes"] :]:
+                if isinstance(hash_data, dict):
                     hash_value = hash_data.get("hash")
                     timestamp = hash_data.get("timestamp")
-
-                    if not hash_value or not timestamp:
-                        continue
-                    if current_time - timestamp < self.config["hash_retention_period"]:
-                        self.bloom_filter.add(hash_value)
-                        recent_hashes[hash_value] = timestamp
-                self.hash_cache = recent_hashes
-            except Exception as e:
-                await self.client.send_message("me", f"Ошибка при загрузке хэшей: {e}")
-                self.hash_cache = {}
-
-    async def client_ready(self, client, db):
-        """Initialize the module when client is ready"""
-        self.client = client
-
-        firebase_success = await self._initialize_firebase()
-        bloom_success = self.init_bloom_filter()
-
-        if firebase_success and bloom_success:
-            try:
-                chats_ref = self.db_ref.child("allowed_chats")
-                chats_data = chats_ref.get()
-                self.allowed_chats = chats_data if isinstance(chats_data, list) else []
-
-                await self._load_recent_hashes()
-                self.initialized = True
-
-                await client.send_message(
-                    "me",
-                    self.strings["initialization_success"].format(
-                        chats=self.allowed_chats, hashes=len(self.hash_cache)
-                    ),
-                )
-            except Exception as e:
-                await client.send_message(
-                    "me", self.strings["firebase_load_error"].format(error=str(e))
-                )
-                self.initialized = False
+                    if (
+                        hash_value
+                        and timestamp
+                        and current_time - timestamp
+                        < self.config["hash_retention_period"]
+                    ):
+                        self.hash_cache[hash_value] = timestamp
+                        if self.bloom_filter:
+                            self.bloom_filter.add(hash_value)
+        except Exception as e:
+            self.hash_cache = {}
 
     async def _clear_expired_hashes(self):
         """Clear expired hashes from cache and Firebase"""
@@ -258,11 +268,12 @@ class BroadMod(loader.Module):
                 new_hash_cache = {}
                 removed_count = 0
 
-                for h, timestamp in self.hash_cache.items():
+                for h, timestamp in list(self.hash_cache.items()):
                     if timestamp >= expiration_time:
                         new_hash_cache[h] = timestamp
                     else:
-                        self.bloom_filter.remove(h)
+                        if self.bloom_filter:
+                            self.bloom_filter.remove(h)
                         removed_count += 1
                 self.hash_cache = new_hash_cache
 
@@ -274,19 +285,18 @@ class BroadMod(loader.Module):
                 return 0
 
     async def add_hash(self, message_hash):
-        """Add new hash with batch processing"""
         async with self.lock:
             current_time = time.time()
             self.hash_cache[message_hash] = current_time
-            self.bloom_filter.add(message_hash)
-
+            if self.bloom_filter:
+                self.bloom_filter.add(message_hash)
             try:
                 hash_data = {"hash": message_hash, "timestamp": current_time}
                 if self.batch_processor:
-                    await self.batch_processor.add_to_batch(hash_data)
+                    await self.batch_processor.add(
+                        hash_data
+                    )  # Call add, not add_to_batch
                 else:
-                    # Fallback to direct update
-
                     hashes_ref = self.db_ref.child("hashes/hash_list")
                     current_hashes = hashes_ref.get() or []
                     if not isinstance(current_hashes, list):
@@ -298,9 +308,7 @@ class BroadMod(loader.Module):
                         ]
                     hashes_ref.set(current_hashes)
             except Exception as e:
-                await self.client.send_message(
-                    "me", f"Ошибка Firebase при добавлении хэша: {e}"
-                )
+                self.log.error(f"Error adding hash: {e}")
 
     async def forward_to_channel(self, message: Message):
         """Forward message to the specified channel"""
@@ -366,9 +374,7 @@ class BroadMod(loader.Module):
         if getattr(message, "chat_id", None) not in self.allowed_chats:
             return
         current_time = time.localtime()
-        if (
-            current_time.tm_min == 0 and current_time.tm_sec < 10
-        ):  # Даем 10-секундное окно для очистки
+        if current_time.tm_min == 0 and current_time.tm_sec < 10:
             removed_count = await self._clear_expired_hashes()
             if removed_count > 0:
                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S", current_time)
