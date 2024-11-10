@@ -177,6 +177,7 @@ class BroadMod(loader.Module):
                 self.config["bloom_filter_capacity"],
                 self.config["bloom_filter_error_rate"],
             )
+            self.log.info("Bloom filter initialized successfully")
             return True
         except Exception as e:
             self.log.error(
@@ -356,6 +357,9 @@ class BroadMod(loader.Module):
         """Forward message to the channel with improved error handling."""
         try:
             await message.forward_to(self.config["forward_channel_id"])
+            self.log.info(
+                f"Successfully forwarded message to channel {self.config['forward_channel_id']}"
+            )
         except errors.ChannelPrivateError:
             self.log.error("Could not forward message directly. Trying to send text...")
             try:
@@ -365,6 +369,7 @@ class BroadMod(loader.Module):
                     sender_info + message.text,
                     link_preview=False,
                 )
+                self.log.info("Successfully sent message text to channel")
             except Exception as e:
                 self.log.exception(f"Error forwarding message: {e}")
                 await self.client.send_message("me", f"❌ Ошибка при пересылке: {e}")
@@ -430,48 +435,38 @@ class BroadMod(loader.Module):
     async def watcher(self, message):
         """Watches for new messages and forwards them if they meet the criteria."""
         if not self.initialized:
+            self.log.warning("Module not initialized")
             return
-        # Проверяем тип события
-
         if not hasattr(message, "text") or not isinstance(message.text, str):
+            self.log.debug("Message has no text or text is not string")
             return
-        # Получаем отправителя безопасным способом
-
         sender = getattr(message, "sender", None)
         if sender is None:
             try:
                 sender = await message.get_sender()
-            except Exception:
+            except Exception as e:
+                self.log.error(f"Failed to get sender: {e}")
                 return
-        # Проверяем бота
-
         if getattr(sender, "bot", False):
+            self.log.debug("Message is from bot, skipping")
             return
         if len(message.text) < self.config["min_text_length"]:
+            self.log.debug(f"Message too short: {len(message.text)} chars")
             return
-        # Получаем chat_id безопасным способом
-
         chat_id = getattr(message, "chat_id", None)
         if chat_id is None:
             try:
                 chat = await message.get_chat()
                 chat_id = chat.id
-            except Exception:
+            except Exception as e:
+                self.log.error(f"Failed to get chat_id: {e}")
                 return
         if chat_id not in self.allowed_chats:
+            self.log.debug(f"Chat {chat_id} not in allowed chats: {self.allowed_chats}")
             return
-        current_time = time.localtime()
-        if current_time.tm_min == 0 and current_time.tm_sec < 10:
-            removed_count = await self._clear_expired_hashes()
-            if removed_count > 0:
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", current_time)
-                await self.client.send_message(
-                    "me",
-                    f"[{timestamp}] Очистка: удалено {removed_count} хэшей. "
-                    f"Размер кэша: {len(self.hash_cache)}",
-                )
         low = message.text.lower()
         if not any(keyword in low for keyword in TRADING_KEYWORDS):
+            self.log.debug("No trading keywords found in message")
             return
         try:
             normalized_text = html.unescape(
