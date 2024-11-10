@@ -355,13 +355,15 @@ class BroadMod(loader.Module):
 
     async def forward_to_channel(self, message):
         """Forward message to the channel with improved error handling."""
+        self.log.info(
+            f"Attempting to forward message to channel {self.config['forward_channel_id']}"
+        )
+
         try:
             await message.forward_to(self.config["forward_channel_id"])
-            self.log.info(
-                f"Successfully forwarded message to channel {self.config['forward_channel_id']}"
-            )
+            self.log.info("Message forwarded successfully")
         except errors.ChannelPrivateError:
-            self.log.error("Could not forward message directly. Trying to send text...")
+            self.log.error("Channel private error, attempting to send as text")
             try:
                 sender_info = await self._get_sender_info(message)
                 await self.client.send_message(
@@ -369,10 +371,11 @@ class BroadMod(loader.Module):
                     sender_info + message.text,
                     link_preview=False,
                 )
-                self.log.info("Successfully sent message text to channel")
+                self.log.info("Message sent as text successfully")
             except Exception as e:
-                self.log.exception(f"Error forwarding message: {e}")
-                await self.client.send_message("me", f"❌ Ошибка при пересылке: {e}")
+                error_msg = f"Failed to forward message: {type(e).__name__}: {str(e)}"
+                self.log.error(error_msg)
+                await self.client.send_message("me", f"❌ {error_msg}")
 
     async def _get_sender_info(self, message) -> str:
         """Constructs a string with sender information asynchronously."""
@@ -437,36 +440,68 @@ class BroadMod(loader.Module):
         if not self.initialized:
             self.log.warning("Module not initialized")
             return
+        # Log basic message info
+
+        self.log.info(f"Received message. Type: {type(message)}")
+
+        # Check if message has text
+
         if not hasattr(message, "text") or not isinstance(message.text, str):
-            self.log.debug("Message has no text or text is not string")
+            self.log.info(
+                "Skipping: Message has no text attribute or text is not string"
+            )
             return
-        sender = getattr(message, "sender", None)
-        if sender is None:
-            try:
-                sender = await message.get_sender()
-            except Exception as e:
-                self.log.error(f"Failed to get sender: {e}")
-                return
-        if getattr(sender, "bot", False):
-            self.log.debug("Message is from bot, skipping")
-            return
+        self.log.info(f"Message text length: {len(message.text)}")
+
+        # Check message length
+
         if len(message.text) < self.config["min_text_length"]:
-            self.log.debug(f"Message too short: {len(message.text)} chars")
+            self.log.info(
+                f"Skipping: Message too short ({len(message.text)} < {self.config['min_text_length']})"
+            )
             return
+        # Get chat ID and log it
+
         chat_id = getattr(message, "chat_id", None)
         if chat_id is None:
             try:
                 chat = await message.get_chat()
                 chat_id = chat.id
             except Exception as e:
-                self.log.error(f"Failed to get chat_id: {e}")
+                self.log.error(f"Failed to get chat ID: {e}")
                 return
+        self.log.info(f"Message from chat ID: {chat_id}")
+        self.log.info(f"Allowed chats: {self.allowed_chats}")
+
+        # Check if chat is allowed
+
         if chat_id not in self.allowed_chats:
-            self.log.debug(f"Chat {chat_id} not in allowed chats: {self.allowed_chats}")
+            self.log.info(f"Skipping: Chat {chat_id} not in allowed chats")
             return
+        # Get sender info
+
+        try:
+            sender = await message.get_sender()
+            sender_info = (
+                f"Sender ID: {sender.id}, Bot: {getattr(sender, 'bot', False)}"
+            )
+            self.log.info(sender_info)
+        except Exception as e:
+            self.log.error(f"Failed to get sender info: {e}")
+            return
+        # Check if sender is a bot
+
+        if getattr(sender, "bot", False):
+            self.log.info("Skipping: Message is from a bot")
+            return
+        # Check trading keywords
+
         low = message.text.lower()
-        if not any(keyword in low for keyword in TRADING_KEYWORDS):
-            self.log.debug("No trading keywords found in message")
+        found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
+        self.log.info(f"Found keywords: {found_keywords}")
+
+        if not found_keywords:
+            self.log.info("Skipping: No trading keywords found")
             return
         try:
             normalized_text = html.unescape(
@@ -474,18 +509,23 @@ class BroadMod(loader.Module):
             ).strip()
 
             if not normalized_text:
+                self.log.info("Skipping: Normalized text is empty")
                 return
             message_hash = str(mmh3.hash(normalized_text))
+            self.log.info(f"Generated hash: {message_hash}")
 
             async with self.lock:
                 if (
                     message_hash in self.bloom_filter
                     and message_hash in self.hash_cache
                 ):
+                    self.log.info("Skipping: Duplicate message detected")
                     return
-            await self.add_hash(message_hash)
-            await self.forward_to_channel(message)
+                self.log.info("Message is unique, proceeding with forward")
+                await self.add_hash(message_hash)
+                await self.forward_to_channel(message)
+                self.log.info("Message successfully processed and forwarded")
         except Exception as e:
-            error_message = f"Произошла ошибка: {type(e).name}: {e}\nТекст сообщения: {message.text[:100]}..."
-            self.log.exception(f"Error in watcher: {error_message}")
+            error_message = f"Error processing message: {type(e).__name__}: {str(e)}"
+            self.log.exception(error_message)
             await self.client.send_message("me", error_message)
