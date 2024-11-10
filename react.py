@@ -352,37 +352,45 @@ class BroadMod(loader.Module):
             except Exception as e:
                 self.log.error(f"Error adding hash: {e}")
 
-    async def forward_to_channel(self, message: Message):
+    async def forward_to_channel(self, message):
+        """Forward message to the channel with improved error handling."""
         try:
             await message.forward_to(self.config["forward_channel_id"])
         except errors.ChannelPrivateError:
             self.log.error("Could not forward message directly. Trying to send text...")
             try:
-                sender_info = self._get_sender_info(message)
+                sender_info = await self._get_sender_info(message)
                 await self.client.send_message(
                     self.config["forward_channel_id"],
-                    sender_info + message.raw_text,
+                    sender_info + message.text,
                     link_preview=False,
                 )
             except Exception as e:
                 self.log.exception(f"Error forwarding message: {e}")
                 await self.client.send_message("me", f"❌ Ошибка при пересылке: {e}")
 
-    def _get_sender_info(self, message: Message) -> str:
-        """Constructs a string with sender information."""
-        sender = message.sender
-        chat = message.chat
-        sender_str = (sender.first_name or sender.title) if sender else "Unknown"
-        chat_str = (
-            (
-                chat.title
-                if isinstance(chat, Chat)
-                else (chat.first_name if isinstance(chat, User) else "Unknown")
+    async def _get_sender_info(self, message) -> str:
+        """Constructs a string with sender information asynchronously."""
+        try:
+            sender = getattr(message, "sender", None)
+            if sender is None:
+                sender = await message.get_sender()
+            chat = getattr(message, "chat", None)
+            if chat is None:
+                chat = await message.get_chat()
+            sender_str = (sender.first_name or sender.title) if sender else "Unknown"
+            chat_str = (
+                (
+                    chat.title
+                    if isinstance(chat, Chat)
+                    else (chat.first_name if isinstance(chat, User) else "Unknown")
+                )
+                if chat
+                else "Unknown"
             )
-            if chat
-            else "Unknown"
-        )
-        return f"From: {sender_str} in {chat_str}\n\n"
+            return f"From: {sender_str} in {chat_str}\n\n"
+        except Exception:
+            return "From: Unknown in Unknown\n\n"
 
     @loader.command
     async def manage_chat_cmd(self, message: Message):
@@ -419,15 +427,38 @@ class BroadMod(loader.Module):
         except Exception as e:
             await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
 
-    async def watcher(self, message: Message):
+    async def watcher(self, message):
         """Watches for new messages and forwards them if they meet the criteria."""
         if not self.initialized:
             return
-        if not message.sender or getattr(message.sender, "bot", False):
+        # Проверяем тип события
+
+        if not hasattr(message, "text") or not isinstance(message.text, str):
             return
-        if not message.text or len(message.text) < self.config["min_text_length"]:
+        # Получаем отправителя безопасным способом
+
+        sender = getattr(message, "sender", None)
+        if sender is None:
+            try:
+                sender = await message.get_sender()
+            except Exception:
+                return
+        # Проверяем бота
+
+        if getattr(sender, "bot", False):
             return
-        if getattr(message, "chat_id", None) not in self.allowed_chats:
+        if len(message.text) < self.config["min_text_length"]:
+            return
+        # Получаем chat_id безопасным способом
+
+        chat_id = getattr(message, "chat_id", None)
+        if chat_id is None:
+            try:
+                chat = await message.get_chat()
+                chat_id = chat.id
+            except Exception:
+                return
+        if chat_id not in self.allowed_chats:
             return
         current_time = time.localtime()
         if current_time.tm_min == 0 and current_time.tm_sec < 10:
@@ -460,6 +491,6 @@ class BroadMod(loader.Module):
             await self.add_hash(message_hash)
             await self.forward_to_channel(message)
         except Exception as e:
-            error_message = f"Произошла ошибка: {type(e).__name__}: {e}\nТекст сообщения: {message.text[:100]}..."
+            error_message = f"Произошла ошибка: {type(e).name}: {e}\nТекст сообщения: {message.text[:100]}..."
             self.log.exception(f"Error in watcher: {error_message}")
             await self.client.send_message("me", error_message)
