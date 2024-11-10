@@ -458,14 +458,21 @@ class BroadMod(loader.Module):
                 return
             message_hash = str(mmh3.hash(normalized_text))
             self.log.info(f"Generated hash: {message_hash}")
-
+            # Отладочные принты перед условием
+            self.log.info(f"Bloom filter check: {message_hash in self.bloom_filter}")
+            self.log.info(f"Hash cache check: {message_hash in self.hash_cache}")
+            self.log.info(f"Bloom filter type: {type(self.bloom_filter)}")
+            self.log.info(f"Hash cache size: {len(self.hash_cache)}")
+                
             async with self.lock:
-                if (
-                    message_hash in self.bloom_filter
-                    and message_hash in self.hash_cache
-                ):
-                    self.log.info("Haa")
+                in_bloom = message_hash in self.bloom_filter
+                in_cache = message_hash in self.hash_cache
+                self.log.info(f"In bloom: {in_bloom}, In cache: {in_cache}")
+    
+                if in_bloom and in_cache:
+                    self.log.info("Duplicate detected")
                     return
+
                 await self.add_hash(message_hash)
                 await self.forward_to_channel(message)
                 self.log.info("Message successfully processed and forwarded")
