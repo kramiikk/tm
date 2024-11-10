@@ -9,6 +9,7 @@ from typing import List, Dict, Union
 import mmh3
 from pybloom_live import CountingBloomFilter
 from telethon.tl.types import Message, User, Chat
+from telethon import errors
 
 import firebase_admin
 from firebase_admin import credentials, db as firebase_db
