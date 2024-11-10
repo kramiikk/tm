@@ -79,7 +79,7 @@ class BroadMod(loader.Module):
             2498567519,
             lambda: self.strings("cfg_forward_channel"),
             "bloom_filter_capacity",
-            2500,
+            1000,
             lambda: self.strings("cfg_bloom_capacity"),
             "bloom_filter_error_rate",
             0.001,
@@ -91,7 +91,7 @@ class BroadMod(loader.Module):
             86400,
             lambda: self.strings("cfg_hash_retention"),
             "max_firebase_hashes",
-            10000,
+            1000,
             lambda: self.strings("cfg_max_firebase_hashes"),
             "min_text_length",
             18,
@@ -333,6 +333,9 @@ class BroadMod(loader.Module):
     async def watcher(self, message: Message):
         """Message watcher implementation"""
         if not self.db_ref or not self.bloom_filter:
+            await self.client.send_message(
+                "me", "Watcher: DB ref or Bloom filter not initialized"
+            )
             return
         if (
             not message.sender
@@ -355,6 +358,7 @@ class BroadMod(loader.Module):
                 await self.client.send_message("me", log_message)
         low = message.text.lower()
         if not any(keyword in low for keyword in TRADING_KEYWORDS):
+            await self.client.send_message("me", "Skipped: No trading keywords found")
             return
         try:
             normalized_text_pattern = re.compile(r"<[^>]+>|[^\w\s,.!?;:—]|\s+")
@@ -363,17 +367,22 @@ class BroadMod(loader.Module):
             ).strip()
 
             if not normalized_text:
+                await self.client.send_message("me", "Skipped: Empty normalized text")
                 return
             message_hash = str(mmh3.hash(normalized_text))
+            await self.client.send_message("me", f"Generated hash: {message_hash}")
 
             async with self.lock:
                 if (
                     message_hash in self.bloom_filter
                     and message_hash in self.hash_cache
                 ):
+                    await self.client.send_message("me", "Skipped: Duplicate message")
                     return
             await self.add_hash(message_hash)
+            await self.client.send_message("me", "Hash added successfully")
             await self.forward_to_channel(message)
+            await self.client.send_message("me", "Message forwarded successfully")
         except Exception as e:
             error_message = f"Произошла ошибка: {type(e).__name__}: {e}\nТекст сообщения: {message.text[:100]}..."
             await self.client.send_message("me", error_message)
