@@ -458,11 +458,6 @@ class BroadMod(loader.Module):
         except Exception as e:
             self.log.error(f"Failed to get sender info: {e}")
             return
-        # Check if sender is a bot
-
-        if getattr(sender, "bot", False):
-            self.log.info("Skipping: Message is from a bot")
-            return
         # Check trading keywords
 
         low = message.text.lower()
