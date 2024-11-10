@@ -50,7 +50,7 @@ TRADING_KEYWORDS = {
 
 
 class BatchProcessor:
-    """Processes hashes in batches to reduce Firebase load."""
+    """Processes hashes in batches to reduce Firebase load. v01"""
 
     def __init__(
         self,
@@ -173,9 +173,11 @@ class BroadMod(loader.Module):
     def init_bloom_filter(self) -> bool:
         """Initialize the Bloom filter with correct parameters."""
         try:
+            # Создаем BloomFilter с правильными параметрами
+
             self.bloom_filter = BloomFilter(
-                size=self.config["bloom_filter_capacity"],
-                fp_prob=self.config["bloom_filter_error_rate"],
+                max_elements=self.config["bloom_filter_capacity"],
+                error_rate=self.config["bloom_filter_error_rate"],
             )
             return True
         except Exception as e:
@@ -314,9 +316,11 @@ class BroadMod(loader.Module):
                 self.hash_cache = new_hash_cache
 
                 if self.bloom_filter:
+                    # Пересоздаем BloomFilter с правильными параметрами
+
                     self.bloom_filter = BloomFilter(
-                        size=self.config["bloom_filter_capacity"],
-                        fp_prob=self.config["bloom_filter_error_rate"],
+                        max_elements=self.config["bloom_filter_capacity"],
+                        error_rate=self.config["bloom_filter_error_rate"],
                     )
                     for h in self.hash_cache:
                         self.bloom_filter.add(h)
