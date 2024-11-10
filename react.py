@@ -439,15 +439,8 @@ class BroadMod(loader.Module):
             not self.initialized
             or len(message.text) < self.config["min_text_length"]
             or message.chat_id not in self.allowed_chats
+            or message.sender.bot
         ):
-            return
-        try:
-            sender = await message.get_sender()
-            self.log.info(sender_info)
-        except Exception as e:
-            self.log.error(f"Failed to get sender info: {e}")
-            return
-        if getattr(sender, "bot", False):
             return
         low = message.text.lower()
         found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
