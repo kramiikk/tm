@@ -8,8 +8,8 @@ from typing import List, Dict, Union
 
 import mmh3
 from bloom_filter import BloomFilter
-from telethon.tl.types import Message, User, Chat
-from telethon import errors
+from telethon.tl.types import User, Chat
+from telethon import errors, types
 
 import firebase_admin
 from firebase_admin import credentials, db as firebase_db
@@ -381,11 +381,7 @@ class BroadMod(loader.Module):
         """Constructs a string with sender information asynchronously."""
         try:
             sender = getattr(message, "sender", None)
-            if sender is None:
-                sender = await message.get_sender()
             chat = getattr(message, "chat", None)
-            if chat is None:
-                chat = await message.get_chat()
             sender_str = (sender.first_name or sender.title) if sender else "Unknown"
             chat_str = (
                 (
@@ -401,7 +397,7 @@ class BroadMod(loader.Module):
             return "From: Unknown in Unknown\n\n"
 
     @loader.command
-    async def manage_chat_cmd(self, message: Message):
+    async def manage_chat_cmd(self, message: types.Message):
         """Manages the list of allowed chats."""
         try:
             args = message.text.split()
@@ -435,33 +431,17 @@ class BroadMod(loader.Module):
         except Exception as e:
             await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
 
-    async def watcher(self, message):
+    async def watcher(self, message: types.Message):
         """Watches for new messages and forwards them if they meet the criteria."""
         if not self.initialized:
             return
-        if not hasattr(message, "text") or not isinstance(message.text, str):
-            self.log.info(
-                "Skipping: Message has no text attribute or text is not string"
-            )
-            return
         if len(message.text) < self.config["min_text_length"]:
             return
-        chat_id = getattr(message, "chat_id", None)
-        if chat_id is None:
-            try:
-                chat = await message.get_chat()
-                chat_id = chat.id
-            except Exception as e:
-                self.log.error(f"Failed to get chat ID: {e}")
-                return
-        if chat_id not in self.allowed_chats:
-            self.log.info("Naa")
+        if message.chat_id not in self.allowed_chats:
             return
+        self.log.info("Chaa")
         try:
             sender = await message.get_sender()
-            sender_info = (
-                f"Sender ID: {sender.id}, Bot: {getattr(sender, 'bot', False)}"
-            )
             self.log.info(sender_info)
         except Exception as e:
             self.log.error(f"Failed to get sender info: {e}")
