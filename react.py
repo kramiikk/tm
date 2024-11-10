@@ -408,3 +408,8 @@ class BroadMod(loader.Module):
                 f"Текст сообщения: {message.text[:100]}..."
             )
             await self.client.send_message("me", error_message)
+
+    async def cleanup_module(self):
+        """Ensure all pending data is saved before shutdown"""
+        if self.batch_processor:
+            await self.batch_processor.flush()
