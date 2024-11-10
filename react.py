@@ -4,12 +4,17 @@ import re
 import mmh3
 import time
 import os
+import logging
 from telethon.tl.types import Message
 from .. import loader, utils
 
 import firebase_admin
 from firebase_admin import credentials, db as firebase_db
 from bloompy import CountingBloomFilter
+
+logging.basicConfig(
+    format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.WARNING
+)
 
 
 TRADING_KEYWORDS = set(
@@ -141,10 +146,11 @@ class BroadMod(loader.Module):
         self.last_cleanup_time = 0
         self.batch_processor = None
         self.initialized = False
-
+        self.log = logging.getLogger(__name__)
         super().__init__()
 
     def init_bloom_filter(self):
+        """Initializes the Bloom filter."""
         try:
             self.bloom_filter = CountingBloomFilter(
                 size=self.config["bloom_filter_capacity"],
@@ -152,7 +158,9 @@ class BroadMod(loader.Module):
             )
             return True
         except Exception as e:
-            self.log.error(f"Bloom filter init error: {e}. Falling back to set().")
+            self.log.error(
+                f"Bloom filter init error: {e}. Falling back to set().  Consider disabling the module if this is critical."
+            )
             self.bloom_filter = set()
             return False
 
@@ -186,7 +194,6 @@ class BroadMod(loader.Module):
 
     async def client_ready(self, client, db):
         self.client = client
-        self.log = client.log
 
         if not self.config["firebase_credentials_path"] or not os.path.exists(
             self.config["firebase_credentials_path"]
@@ -209,8 +216,12 @@ class BroadMod(loader.Module):
                 self.db_ref, self.config["max_firebase_hashes"]
             )
 
-            self.init_bloom_filter()
-
+            if not self.init_bloom_filter():  # Call it only once
+                self.initialized = False
+                await client.send_message(
+                    "me", "❌ Bloom filter initialization failed. Module disabled."
+                )
+                return
             await self._load_recent_hashes()
 
             chats_ref = self.db_ref.child("allowed_chats")
@@ -250,6 +261,7 @@ class BroadMod(loader.Module):
                         if self.bloom_filter:
                             self.bloom_filter.add(hash_value)
         except Exception as e:
+            self.log.error(f"Error loading recent hashes: {e}")
             self.hash_cache = {}
 
     async def _clear_expired_hashes(self):
@@ -293,9 +305,7 @@ class BroadMod(loader.Module):
             try:
                 hash_data = {"hash": message_hash, "timestamp": current_time}
                 if self.batch_processor:
-                    await self.batch_processor.add(
-                        hash_data
-                    )  # Call add, not add_to_batch
+                    await self.batch_processor.add(hash_data)
                 else:
                     hashes_ref = self.db_ref.child("hashes/hash_list")
                     current_hashes = hashes_ref.get() or []
@@ -314,7 +324,12 @@ class BroadMod(loader.Module):
         """Forward message to the specified channel"""
         try:
             await message.forward_to(self.config["forward_channel_id"])
-        except Exception:
+        except (
+            telethon.errors.ChannelPrivateError
+        ):  # Example of more specific exception handling
+            self.log.error(
+                "Could not forward message.  Is the bot added to the channel?"
+            )
             try:
                 sender = message.sender if message.sender else "Unknown"
                 chat = message.chat if message.chat else "Unknown"
@@ -329,6 +344,7 @@ class BroadMod(loader.Module):
                     "me", f"❌ Ошибка при отправке: {forward_error}"
                 )
 
+    @loader.command
     async def manage_chat_cmd(self, message: Message):
         """Command handler for managing allowed chats"""
         try:
