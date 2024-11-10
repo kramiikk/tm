@@ -439,16 +439,13 @@ class BroadMod(loader.Module):
         """Watches for new messages and forwards them if they meet the criteria."""
         if not self.initialized:
             return
-
         if not hasattr(message, "text") or not isinstance(message.text, str):
             self.log.info(
                 "Skipping: Message has no text attribute or text is not string"
             )
             return
-
         if len(message.text) < self.config["min_text_length"]:
             return
-
         chat_id = getattr(message, "chat_id", None)
         if chat_id is None:
             try:
@@ -457,10 +454,9 @@ class BroadMod(loader.Module):
             except Exception as e:
                 self.log.error(f"Failed to get chat ID: {e}")
                 return
-
         if chat_id not in self.allowed_chats:
+            self.log.info("Naa")
             return
-
         try:
             sender = await message.get_sender()
             sender_info = (
@@ -470,15 +466,14 @@ class BroadMod(loader.Module):
         except Exception as e:
             self.log.error(f"Failed to get sender info: {e}")
             return
-
         if getattr(sender, "bot", False):
             return
-
         low = message.text.lower()
         found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
 
         if not found_keywords:
             return
+        self.log.info("Waa")
         try:
             normalized_text = html.unescape(
                 re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", message.text.lower())
@@ -494,9 +489,7 @@ class BroadMod(loader.Module):
                     message_hash in self.bloom_filter
                     and message_hash in self.hash_cache
                 ):
-                    self.log.info("Skipping: Duplicate message detected")
                     return
-                self.log.info("Message is unique, proceeding with forward")
                 await self.add_hash(message_hash)
                 await self.forward_to_channel(message)
                 self.log.info("Message successfully processed and forwarded")
