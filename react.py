@@ -216,36 +216,31 @@ class BroadMod(loader.Module):
 
     async def client_ready(self, client, db):
         """Initialize the module when client is ready"""
-        try:
-            self.client = client
+        self.client = client
 
-            firebase_success = await self._initialize_firebase()
-            bloom_success = self.init_bloom_filter()
+        firebase_success = await self._initialize_firebase()
+        bloom_success = self.init_bloom_filter()
 
-            if firebase_success and bloom_success:
-                try:
-                    chats_ref = self.db_ref.child("allowed_chats")
-                    chats_data = chats_ref.get()
-                    self.allowed_chats = (
-                        chats_data if isinstance(chats_data, list) else []
-                    )
+        if firebase_success and bloom_success:
+            try:
+                chats_ref = self.db_ref.child("allowed_chats")
+                chats_data = chats_ref.get()
+                self.allowed_chats = chats_data if isinstance(chats_data, list) else []
 
-                    await self._load_recent_hashes()
-                    self.initialized = True
+                await self._load_recent_hashes()
+                self.initialized = True
 
-                    await client.send_message(
-                        "me",
-                        self.strings["initialization_success"].format(
-                            chats=self.allowed_chats, hashes=len(self.hash_cache)
-                        ),
-                    )
-                except Exception as e:
-                    await client.send_message(
-                        "me", self.strings["firebase_load_error"].format(error=str(e))
-                    )
-                    self.initialized = False
-        finally:
-            await self.cleanup_module()
+                await client.send_message(
+                    "me",
+                    self.strings["initialization_success"].format(
+                        chats=self.allowed_chats, hashes=len(self.hash_cache)
+                    ),
+                )
+            except Exception as e:
+                await client.send_message(
+                    "me", self.strings["firebase_load_error"].format(error=str(e))
+                )
+                self.initialized = False
 
     async def _clear_expired_hashes(self):
         """Clear expired hashes from cache and Firebase"""
@@ -408,8 +403,3 @@ class BroadMod(loader.Module):
                 f"Текст сообщения: {message.text[:100]}..."
             )
             await self.client.send_message("me", error_message)
-
-    async def cleanup_module(self):
-        """Ensure all pending data is saved before shutdown"""
-        if self.batch_processor:
-            await self.batch_processor.flush()
