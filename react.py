@@ -459,22 +459,27 @@ class BroadMod(loader.Module):
                 return
             message_hash = str(mmh3.hash(normalized_text))
 
-            duplicate_in_bloom = message_hash in self.bloom_filter
-            duplicate_in_cache = message_hash in self.hash_cache
-            self.log.info(
-                f"Checking duplicates: bloom={duplicate_in_bloom}, cache={duplicate_in_cache}"
-            )
+            try:
+                async with self.lock:
+                    if (
+                        message_hash in self.bloom_filter
+                        and message_hash in self.hash_cache
+                    ):
+                        self.log.info("Duplicate detected")
+                        return
+                    self.log.info("Starting hash addition...")
+                    await self.add_hash(message_hash)
+                    self.log.info("Hash added successfully")
 
-            if duplicate_in_bloom and duplicate_in_cache:
-                self.log.info("Duplicate detected")
-                return
-            self.log.info("Before lock")
-            async with self.lock:
-                self.log.info("Lock acquired")
-                await self.add_hash(message_hash)
-                await self.forward_to_channel(message)
-                self.log.info("Processing complete")
+                    self.log.info("Starting message forward...")
+                    await self.forward_to_channel(message)
+                    self.log.info("Message forwarded successfully")
+            except Exception as e:
+                error_message = (
+                    f"Error processing message: {type(e).__name__}: {str(e)}"
+                )
+                self.log.exception(error_message)
+                await self.client.send_message("me", error_message)
         except Exception as e:
             error_message = f"Error processing message: {type(e).__name__}: {str(e)}"
             self.log.exception(error_message)
-            await self.client.send_message("me", error_message)
