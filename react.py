@@ -427,30 +427,23 @@ class BroadMod(loader.Module):
 
         if not found_keywords:
             return
-        try:
-            normalized_text = html.unescape(
-                re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", message.text.lower())
-            ).strip()
+        normalized_text = html.unescape(
+            re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", message.text.lower())
+        ).strip()
 
-            if not normalized_text:
+        if not normalized_text:
+            return
+        message_hash = str(mmh3.hash(normalized_text))
+
+        async with self.lock:
+            if message_hash in self.bloom_filter and message_hash in self.hash_cache:
+                self.log.info("Duplicate detected")
                 return
-            message_hash = str(mmh3.hash(normalized_text))
-
-            try:
-                async with self.lock:
-                    if (
-                        message_hash in self.bloom_filter
-                        and message_hash in self.hash_cache
-                    ):
-                        return
-                    await self.add_hash(message_hash)
-                    await self.forward_to_channel(message)
-            except Exception as e:
-                error_message = (
-                    f"Error processing message: {type(e).__name__}: {str(e)}"
-                )
-                self.log.exception(error_message)
-                await self.client.send_message("me", error_message)
+        self.log.info("Starting hash addition...")
+        try:
+            await asyncio.create_task(self.add_hash(message_hash))
         except Exception as e:
             error_message = f"Error processing message: {type(e).__name__}: {str(e)}"
             self.log.exception(error_message)
+        self.log.info("Starting message forward...")
+        await self.forward_to_channel(message)
