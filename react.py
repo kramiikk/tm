@@ -331,18 +331,26 @@ class BroadMod(loader.Module):
     async def add_hash(self, message_hash: str):
         """Adds a message hash to the cache and Firebase."""
         try:
+            self.log.info("lock prev")
             async with self.lock:
-                self.log.info("Aaa")
                 current_time = time.time()
+                self.log.info("Current time: %s", current_time)
                 self.hash_cache[message_hash] = current_time
+                self.log.info("Hash added to cache")
                 if self.bloom_filter:
+                    self.log.info("Adding hash to bloom filter")
                     self.bloom_filter.add(message_hash)
+                    self.log.info("Hash added to bloom filter")
                 self.log.info("FFF")
                 try:
                     hash_data = {"hash": message_hash, "timestamp": current_time}
+                    self.log.info("Hash data prepared")
                     if self.batch_processor:
+                        self.log.info("Sending hash to batch processor")
                         await self.batch_processor.add(hash_data)
+                        self.log.info("Hash added to batch processor")
                     else:
+                        self.log.info("Saving hash directly to Firebase")
                         hashes_ref = self.db_ref.child("hashes/hash_list")
                         current_hashes = hashes_ref.get() or []
                         if not isinstance(current_hashes, list):
@@ -353,6 +361,7 @@ class BroadMod(loader.Module):
                                 -self.config["max_firebase_hashes"] :
                             ]
                         hashes_ref.set(current_hashes)
+                        self.log.info("Hash saved to Firebase")
                 except Exception as e:
                     self.log.error(f"Error adding hash: {e}")
         finally:
@@ -465,9 +474,7 @@ class BroadMod(loader.Module):
                         message_hash in self.bloom_filter
                         and message_hash in self.hash_cache
                     ):
-                        self.log.info("Duplicate detected")
                         return
-                    self.log.info("Starting hash addition...")
                     await self.add_hash(message_hash)
                     self.log.info("Hash added successfully")
 
