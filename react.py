@@ -386,7 +386,7 @@ class BroadMod(loader.Module):
             return "From: Unknown in Unknown\n\n"
 
     @loader.command
-    async def manage_chat_cmd(self, message: types.Message):
+    async def managecmd(self, message: types.Message):
         """Manages the list of allowed chats."""
         try:
             args = message.text.split()
@@ -450,7 +450,6 @@ class BroadMod(loader.Module):
         try:
             await asyncio.create_task(self.add_hash(message_hash))
         except Exception as e:
-            error_message = f"Error processing message: {type(e).__name__}: {str(e)}"
-            self.log.exception(error_message)
+            self.log.exception("Err")
         self.log.info("Starting message forward...")
         await self.forward_to_channel(message)
