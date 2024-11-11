@@ -330,30 +330,33 @@ class BroadMod(loader.Module):
 
     async def add_hash(self, message_hash: str):
         """Adds a message hash to the cache and Firebase."""
-        async with self.lock:
-            self.log.info("Aaa")
-            current_time = time.time()
-            self.hash_cache[message_hash] = current_time
-            if self.bloom_filter:
-                self.bloom_filter.add(message_hash)
-            self.log.info("FFF")
-            try:
-                hash_data = {"hash": message_hash, "timestamp": current_time}
-                if self.batch_processor:
-                    await self.batch_processor.add(hash_data)
-                else:
-                    hashes_ref = self.db_ref.child("hashes/hash_list")
-                    current_hashes = hashes_ref.get() or []
-                    if not isinstance(current_hashes, list):
-                        current_hashes = []
-                    current_hashes.append(hash_data)
-                    if len(current_hashes) > self.config["max_firebase_hashes"]:
-                        current_hashes = current_hashes[
-                            -self.config["max_firebase_hashes"] :
-                        ]
-                    hashes_ref.set(current_hashes)
-            except Exception as e:
-                self.log.error(f"Error adding hash: {e}")
+        try:
+            async with self.lock:
+                self.log.info("Aaa")
+                current_time = time.time()
+                self.hash_cache[message_hash] = current_time
+                if self.bloom_filter:
+                    self.bloom_filter.add(message_hash)
+                self.log.info("FFF")
+                try:
+                    hash_data = {"hash": message_hash, "timestamp": current_time}
+                    if self.batch_processor:
+                        await self.batch_processor.add(hash_data)
+                    else:
+                        hashes_ref = self.db_ref.child("hashes/hash_list")
+                        current_hashes = hashes_ref.get() or []
+                        if not isinstance(current_hashes, list):
+                            current_hashes = []
+                        current_hashes.append(hash_data)
+                        if len(current_hashes) > self.config["max_firebase_hashes"]:
+                            current_hashes = current_hashes[
+                                -self.config["max_firebase_hashes"] :
+                            ]
+                        hashes_ref.set(current_hashes)
+                except Exception as e:
+                    self.log.error(f"Error adding hash: {e}")
+        finally:
+            self.lock.release()
 
     async def forward_to_channel(self, message):
         """Forward message to the channel with improved error handling."""
