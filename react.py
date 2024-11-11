@@ -354,51 +354,90 @@ class BroadMod(loader.Module):
             await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
 
     async def watcher(self, message: types.Message):
-        """Watcher"""
-        if (
-            not self.initialized
-            or not message.text
-            or len(message.text) < self.config["min_text_length"]
-            or message.chat_id not in self.allowed_chats
-            or message.sender.bot
-        ):
-            return
-        low = message.text.lower()
-        found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
-        if not found_keywords:
-            return
-        normalized_text = html.unescape(
-            re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", message.text.lower())
-        ).strip()
-        if not normalized_text:
-            return
-        message_hash = str(mmh3.hash(normalized_text))
-
-        if message_hash in self.hash_cache:
-            return
-        current_time = time.time()
-        self.hash_cache[message_hash] = current_time
-
-        if self.bloom_filter is not None:
-            self.bloom_filter.add(message_hash)
-        hash_data = {"hash": message_hash, "timestamp": current_time}
-
+        """Watcher method for processing and forwarding messages with improved error handling"""
         try:
-            if self.batch_processor:
-                await self.batch_processor.add(hash_data)
-            else:
-                hashes_ref = self.db_ref.child("hashes/hash_list")
-                current_hashes = hashes_ref.get() or []
-                if not isinstance(current_hashes, list):
-                    current_hashes = []
-                current_hashes.append(hash_data)
-                if len(current_hashes) > self.config["max_firebase_hashes"]:
-                    current_hashes = current_hashes[
-                        -self.config["max_firebase_hashes"] :
-                    ]
-                hashes_ref.set(current_hashes)
+            if (
+                not self.initialized
+                or not message.text
+                or len(message.text) < self.config["min_text_length"]
+                or message.chat_id not in self.allowed_chats
+                or message.sender.bot
+            ):
+                return
+            low = message.text.lower()
+            found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
+            if not found_keywords:
+                return
+            normalized_text = html.unescape(
+                re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", message.text.lower())
+            ).strip()
+            if not normalized_text:
+                return
+            message_hash = str(mmh3.hash(normalized_text))
+            if message_hash in self.hash_cache:
+                return
+            current_time = time.time()
+            self.hash_cache[message_hash] = current_time
+            if self.bloom_filter is not None:
+                self.bloom_filter.add(message_hash)
+            hash_data = {"hash": message_hash, "timestamp": current_time}
+
+            try:
+                if self.batch_processor:
+                    await self.batch_processor.add(hash_data)
+                else:
+                    hashes_ref = self.db_ref.child("hashes/hash_list")
+                    current_hashes = hashes_ref.get() or []
+                    if not isinstance(current_hashes, list):
+                        current_hashes = []
+                    current_hashes.append(hash_data)
+                    if len(current_hashes) > self.config["max_firebase_hashes"]:
+                        current_hashes = current_hashes[
+                            -self.config["max_firebase_hashes"] :
+                        ]
+                    hashes_ref.set(current_hashes)
+            except Exception as e:
+                self.log.error(f"Error adding hash to Firebase: {e}")
+                self.hash_cache.pop(message_hash, None)
+                return
+            max_retries = 3
+            retry_delay = 2
+
+            for attempt in range(max_retries):
+                try:
+                    try:
+                        channel = await self.client.get_entity(
+                            self.config["forward_channel_id"]
+                        )
+                    except Exception as e:
+                        self.log.error(f"Error getting forward channel: {e}")
+                        return
+                    await message.forward_to(
+                        self.config["forward_channel_id"],
+                        silent=True,
+                    )
+                    break
+                except errors.FloodWaitError as e:
+                    wait_time = e.seconds
+                    self.log.warning(f"Hit rate limit, waiting {wait_time} seconds")
+                    await asyncio.sleep(wait_time)
+                    continue
+                except errors.ChannelPrivateError:
+                    self.log.error("Bot doesn't have access to the forward channel")
+                    return
+                except errors.ChatWriteForbiddenError:
+                    self.log.error(
+                        "Bot doesn't have permission to write in the forward channel"
+                    )
+                    return
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        self.log.error(
+                            f"Failed to forward message after {max_retries} attempts: {e}"
+                        )
+                        return
+                    await asyncio.sleep(retry_delay * (attempt + 1))
+                    continue
         except Exception as e:
-            self.log.error(f"Error adding hash: {e}")
-            self.hash_cache.pop(message_hash, None)
+            self.log.error(f"Error in watcher: {str(e)}", exc_info=True)
             return
-        await message.forward_to(self.config["forward_channel_id"])
