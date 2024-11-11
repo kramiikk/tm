@@ -94,7 +94,7 @@ class BatchProcessor:
 
 @loader.tds
 class BroadMod(loader.Module):
-    """Module for tracking and forwarding messages with batch processing and duplicate filtering. v 0.01"""
+    """Module for tracking and forwarding messages with batch processing and duplicate filtering. v 0.02"""
 
     strings = {
         "name": "Broad",
