@@ -194,12 +194,11 @@ class BroadMod(loader.Module):
                 return
         try:
             self.db_ref = firebase_db.reference("/")
-            # Обновленная инициализация BatchProcessor только с необходимыми параметрами
 
             self.batch_processor = BatchProcessor(
                 db_ref=self.db_ref,
                 max_hashes=self.config["max_firebase_hashes"],
-                batch_size=50,  # Можно добавить в конфиг если нужно регулировать
+                batch_size=50,
             )
 
             if not self.init_bloom_filter():
@@ -240,7 +239,6 @@ class BroadMod(loader.Module):
                     cred, {"databaseURL": self.config["firebase_database_url"]}
                 )
             self.db_ref = firebase_db.reference("/")
-            # Обновленная инициализация BatchProcessor здесь тоже
 
             self.batch_processor = BatchProcessor(
                 db_ref=self.db_ref,
