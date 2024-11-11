@@ -446,7 +446,6 @@ class BroadMod(loader.Module):
         found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
 
         if not found_keywords:
-            self.log.info("Faa")
             return
         try:
             normalized_text = html.unescape(
@@ -454,25 +453,32 @@ class BroadMod(loader.Module):
             ).strip()
 
             if not normalized_text:
-                self.log.info("Naa")
                 return
             message_hash = str(mmh3.hash(normalized_text))
-            self.log.info(f"Generated hash: {message_hash}")
-            # Отладочные принты перед условием
-            self.log.info(f"Bloom filter check: {message_hash in self.bloom_filter}")
-            self.log.info(f"Hash cache check: {message_hash in self.hash_cache}")
-            self.log.info(f"Bloom filter type: {type(self.bloom_filter)}")
-            self.log.info(f"Hash cache size: {len(self.hash_cache)}")
-                
+
             async with self.lock:
-                in_bloom = message_hash in self.bloom_filter
-                in_cache = message_hash in self.hash_cache
-                self.log.info(f"In bloom: {in_bloom}, In cache: {in_cache}")
-    
+                if (
+                    message_hash in self.bloom_filter
+                    and message_hash in self.hash_cache
+                ):
+                    self.log.info("Duplicate detected")
+                    return
+                self.log.info("Starting hash addition...")
+                try:
+                    await self.add_hash(message_hash)
+                    self.log.info("Hash added successfully")
+                except Exception as e:
+                    self.log.error(f"Error adding hash: {e}")
+                    return
+                self.log.info("Starting message forward...")
+                try:
+                    await self.forward_to_channel(message)
+                    self.log.info("Message forwarded successfully")
+                except Exception as e:
+                    self.log.error(f"Error forwarding message: {e}")
                 if in_bloom and in_cache:
                     self.log.info("Duplicate detected")
                     return
-
                 await self.add_hash(message_hash)
                 await self.forward_to_channel(message)
                 self.log.info("Message successfully processed and forwarded")
