@@ -59,7 +59,6 @@ class BatchProcessor:
         batch_size: int = 100,
         flush_interval: int = 5,
     ):
-
         self.db_ref = db_ref
         self.max_hashes = max_hashes
         self.batch_size = batch_size
@@ -83,18 +82,25 @@ class BatchProcessor:
         """Flushes the accumulated hashes to Firebase."""
         if not self.batch:
             return
+        # Create a local copy of the batch and clear the original
+
         async with self.lock:
-            try:
-                hashes_ref = self.db_ref.child("hashes/hash_list")
-                current_hashes = hashes_ref.get() or []
-                current_hashes.extend(self.batch)
-                current_hashes = current_hashes[-self.max_hashes :]
-                hashes_ref.set(current_hashes)
-                self.batch = []
-                self.last_flush = time.time()
-            except Exception as e:
-                self.db_ref.child("errors").push(str(e))
-                self.log.error(f"Batch flush error: {e}")
+            current_batch = self.batch.copy()
+            self.batch = []
+        try:
+            hashes_ref = self.db_ref.child("hashes/hash_list")
+            current_hashes = hashes_ref.get() or []
+            current_hashes.extend(current_batch)
+            current_hashes = current_hashes[-self.max_hashes :]
+            hashes_ref.set(current_hashes)
+            self.last_flush = time.time()
+        except Exception as e:
+            # If there's an error, add the failed batch back
+
+            async with self.lock:
+                self.batch.extend(current_batch)
+            self.db_ref.child("errors").push(str(e))
+            self.log.error(f"Batch flush error: {e}")
 
 
 @loader.tds
@@ -316,31 +322,36 @@ class BroadMod(loader.Module):
                 return 0
 
     async def add_hash(self, message_hash: str):
-        """Adds a message hash to the cache and Firebase."""
+        """Adds a message hash to the cache and Firebase with proper lock handling."""
+        current_time = time.time()
+        hash_data = {"hash": message_hash, "timestamp": current_time}
+
         try:
             async with self.lock:
-                current_time = time.time()
                 self.hash_cache[message_hash] = current_time
                 if self.bloom_filter:
                     self.bloom_filter.add(message_hash)
-                hash_data = {"hash": message_hash, "timestamp": current_time}
-                if self.batch_processor:
-                    await self.batch_processor.add(hash_data)
-                else:
-                    hashes_ref = self.db_ref.child("hashes/hash_list")
-                    current_hashes = hashes_ref.get() or []
-                    if not isinstance(current_hashes, list):
-                        current_hashes = []
-                    current_hashes.append(hash_data)
-                    if len(current_hashes) > self.config["max_firebase_hashes"]:
-                        current_hashes = current_hashes[
-                            -self.config["max_firebase_hashes"] :
-                        ]
-                    hashes_ref.set(current_hashes)
+            if self.batch_processor:
+                await self.batch_processor.add(hash_data)
+            else:
+                async with self.lock:
+                    try:
+                        hashes_ref = self.db_ref.child("hashes/hash_list")
+                        current_hashes = hashes_ref.get() or []
+                        if not isinstance(current_hashes, list):
+                            current_hashes = []
+                        current_hashes.append(hash_data)
+                        if len(current_hashes) > self.config["max_firebase_hashes"]:
+                            current_hashes = current_hashes[
+                                -self.config["max_firebase_hashes"] :
+                            ]
+                        hashes_ref.set(current_hashes)
+                    except Exception as e:
+                        self.log.error(f"Error updating Firebase directly: {e}")
+                        raise
         except Exception as e:
             self.log.error(f"Error adding hash: {e}")
-        finally:
-            self.lock.release()
+            raise
 
     async def forward_to_channel(self, message):
         """Forward message to the channel with improved error handling."""
