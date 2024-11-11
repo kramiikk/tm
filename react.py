@@ -460,8 +460,6 @@ class BroadMod(loader.Module):
                         return
                     await self.add_hash(message_hash)
                     self.log.info("Hash added successfully")
-
-                    self.log.info("Starting message forward...")
                     await self.forward_to_channel(message)
                     self.log.info("Message forwarded successfully")
             except Exception as e:
