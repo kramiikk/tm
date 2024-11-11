@@ -59,15 +59,7 @@ class BatchProcessor:
         batch_size: int = 100,
         flush_interval: int = 5,
     ):
-        """
-        Initializes the BatchProcessor.
 
-        Args:
-            db_ref: The Firebase database reference.
-            max_hashes: The maximum number of hashes to store.
-            batch_size: The number of hashes to accumulate before flushing.
-            flush_interval: The time interval (in seconds) to flush automatically.
-        """
         self.db_ref = db_ref
         self.max_hashes = max_hashes
         self.batch_size = batch_size
@@ -177,7 +169,6 @@ class BroadMod(loader.Module):
                 self.config["bloom_filter_capacity"],
                 self.config["bloom_filter_error_rate"],
             )
-            self.log.info("Bloom filter initialized successfully")
             return True
         except Exception as e:
             self.log.error(
@@ -242,10 +233,6 @@ class BroadMod(loader.Module):
                 self.initialized = False
                 await client.send_message(
                     "me", "❌ Bloom filter initialization failed. Module disabled."
-                )
-                await client.send_message(
-                    "me",
-                    "⚠️ Bloom filter initialization failed. Falling back to set(). Performance may be affected.",
                 )
                 return
             await self._load_recent_hashes()
@@ -330,35 +317,35 @@ class BroadMod(loader.Module):
 
     async def add_hash(self, message_hash: str):
         """Adds a message hash to the cache and Firebase."""
-        async with self.lock:
-            current_time = time.time()
-            self.hash_cache[message_hash] = current_time
-            if self.bloom_filter:
-                self.bloom_filter.add(message_hash)
-            hash_data = {"hash": message_hash, "timestamp": current_time}
-            if self.batch_processor:
-                await self.batch_processor.add(hash_data)
-            else:
-                hashes_ref = self.db_ref.child("hashes/hash_list")
-                current_hashes = hashes_ref.get() or []
-                if not isinstance(current_hashes, list):
-                    current_hashes = []
-                current_hashes.append(hash_data)
-                if len(current_hashes) > self.config["max_firebase_hashes"]:
-                    current_hashes = current_hashes[
-                        -self.config["max_firebase_hashes"] :
-                    ]
-                hashes_ref.set(current_hashes)
+        try:
+            async with self.lock:
+                current_time = time.time()
+                self.hash_cache[message_hash] = current_time
+                if self.bloom_filter:
+                    self.bloom_filter.add(message_hash)
+                hash_data = {"hash": message_hash, "timestamp": current_time}
+                if self.batch_processor:
+                    await self.batch_processor.add(hash_data)
+                else:
+                    hashes_ref = self.db_ref.child("hashes/hash_list")
+                    current_hashes = hashes_ref.get() or []
+                    if not isinstance(current_hashes, list):
+                        current_hashes = []
+                    current_hashes.append(hash_data)
+                    if len(current_hashes) > self.config["max_firebase_hashes"]:
+                        current_hashes = current_hashes[
+                            -self.config["max_firebase_hashes"] :
+                        ]
+                    hashes_ref.set(current_hashes)
+        except Exception as e:
+            self.log.error(f"Error adding hash: {e}")
+        finally:
+            self.lock.release()
 
     async def forward_to_channel(self, message):
         """Forward message to the channel with improved error handling."""
-        self.log.info(
-            f"Attempting to forward message to channel {self.config['forward_channel_id']}"
-        )
-
         try:
             await message.forward_to(self.config["forward_channel_id"])
-            self.log.info("Message forwarded successfully")
         except errors.ChannelPrivateError:
             self.log.error("Channel private error, attempting to send as text")
             try:
@@ -368,11 +355,9 @@ class BroadMod(loader.Module):
                     sender_info + message.text,
                     link_preview=False,
                 )
-                self.log.info("Message sent as text successfully")
             except Exception as e:
                 error_msg = f"Failed to forward message: {type(e).__name__}: {str(e)}"
                 self.log.error(error_msg)
-                await self.client.send_message("me", f"❌ {error_msg}")
 
     async def _get_sender_info(self, message) -> str:
         """Constructs a string with sender information asynchronously."""
@@ -459,9 +444,7 @@ class BroadMod(loader.Module):
                     ):
                         return
                     await self.add_hash(message_hash)
-                    self.log.info("Hash added successfully")
                     await self.forward_to_channel(message)
-                    self.log.info("Message forwarded successfully")
             except Exception as e:
                 error_message = (
                     f"Error processing message: {type(e).__name__}: {str(e)}"
