@@ -62,7 +62,6 @@ class BatchProcessor:
         self.max_hashes = max_hashes
         self.batch_size = batch_size
         self.batch = []
-        self.log = log
 
     async def add(self, hash_data: dict):
         """add"""
@@ -90,8 +89,6 @@ class BatchProcessor:
                 current_hashes = current_hashes[-self.max_hashes :]
             hashes_ref.set(current_hashes)
         except Exception as e:
-            self.log.error(f"Batch flush error: {e}")
-
             self.batch.extend(current_batch)
 
 
@@ -168,9 +165,6 @@ class BroadMod(loader.Module):
             )
             return True
         except Exception as e:
-            self.log.error(
-                f"Bloom filter init error: {e}. Falling back to set(). Performance may be degraded."
-            )
             self.bloom_filter = set()
             return False
 
@@ -274,9 +268,7 @@ class BroadMod(loader.Module):
                         if self.bloom_filter:
                             self.bloom_filter.add(hash_value)
         except Exception as e:
-            self.log.error(f"Error loading recent hashes: {e}")
             self.hash_cache = {}
-            await self.client.send_message("me", f"❌ Error loading recent hashes: {e}")
 
     async def _clear_expired_hashes(self) -> int:
         """Clear"""
@@ -383,7 +375,6 @@ class BroadMod(loader.Module):
         message_hash = str(mmh3.hash(normalized_text))
 
         if message_hash in self.hash_cache:
-            self.log.info("Duplicate detected")
             return
         current_time = time.time()
         self.hash_cache[message_hash] = current_time
