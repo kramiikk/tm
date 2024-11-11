@@ -456,32 +456,21 @@ class BroadMod(loader.Module):
                 return
             message_hash = str(mmh3.hash(normalized_text))
 
+            duplicate_in_bloom = message_hash in self.bloom_filter
+            duplicate_in_cache = message_hash in self.hash_cache
+            self.log.info(
+                f"Checking duplicates: bloom={duplicate_in_bloom}, cache={duplicate_in_cache}"
+            )
+
+            if duplicate_in_bloom and duplicate_in_cache:
+                self.log.info("Duplicate detected")
+                return
+            self.log.info("Before lock")
             async with self.lock:
-                if (
-                    message_hash in self.bloom_filter
-                    and message_hash in self.hash_cache
-                ):
-                    self.log.info("Duplicate detected")
-                    return
-                self.log.info("Starting hash addition...")
-                try:
-                    await self.add_hash(message_hash)
-                    self.log.info("Hash added successfully")
-                except Exception as e:
-                    self.log.error(f"Error adding hash: {e}")
-                    return
-                self.log.info("Starting message forward...")
-                try:
-                    await self.forward_to_channel(message)
-                    self.log.info("Message forwarded successfully")
-                except Exception as e:
-                    self.log.error(f"Error forwarding message: {e}")
-                if in_bloom and in_cache:
-                    self.log.info("Duplicate detected")
-                    return
+                self.log.info("Lock acquired")
                 await self.add_hash(message_hash)
                 await self.forward_to_channel(message)
-                self.log.info("Message successfully processed and forwarded")
+                self.log.info("Processing complete")
         except Exception as e:
             error_message = f"Error processing message: {type(e).__name__}: {str(e)}"
             self.log.exception(error_message)
