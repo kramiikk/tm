@@ -174,34 +174,6 @@ class BroadMod(loader.Module):
             self.bloom_filter = set()
             return False
 
-    async def _initialize_firebase(self) -> bool:
-        """Initializes Firebase, returning True on success, False on failure."""
-        if not self.config["firebase_credentials_path"]:
-            await self.client.send_message("me", self.strings["no_firebase_path"])
-            return False
-        if not self.config["firebase_database_url"]:
-            await self.client.send_message("me", self.strings["no_firebase_url"])
-            return False
-        try:
-            if not firebase_admin._apps:
-                cred = credentials.Certificate(self.config["firebase_credentials_path"])
-                self.firebase_app = firebase_admin.initialize_app(
-                    cred, {"databaseURL": self.config["firebase_database_url"]}
-                )
-            self.db_ref = firebase_db.reference("/")
-            self.batch_processor = BatchProcessor(
-                self.db_ref,
-                max_hashes=self.config["max_firebase_hashes"],
-                batch_size=50,
-                flush_interval=5,
-            )
-            return True
-        except Exception as e:
-            await self.client.send_message(
-                "me", self.strings["firebase_init_error"].format(error=str(e))
-            )
-            return False
-
     async def client_ready(self, client, db):
         self.client = client
 
@@ -222,8 +194,12 @@ class BroadMod(loader.Module):
                 return
         try:
             self.db_ref = firebase_db.reference("/")
+            # Обновленная инициализация BatchProcessor только с необходимыми параметрами
+
             self.batch_processor = BatchProcessor(
-                self.db_ref, self.config["max_firebase_hashes"]
+                db_ref=self.db_ref,
+                max_hashes=self.config["max_firebase_hashes"],
+                batch_size=50,  # Можно добавить в конфиг если нужно регулировать
             )
 
             if not self.init_bloom_filter():
@@ -248,6 +224,35 @@ class BroadMod(loader.Module):
         except Exception as e:
             await client.send_message("me", f"❌ Error loading data from Firebase: {e}")
             self.initialized = False
+
+    async def _initialize_firebase(self) -> bool:
+        """Initializes Firebase, returning True on success, False on failure."""
+        if not self.config["firebase_credentials_path"]:
+            await self.client.send_message("me", self.strings["no_firebase_path"])
+            return False
+        if not self.config["firebase_database_url"]:
+            await self.client.send_message("me", self.strings["no_firebase_url"])
+            return False
+        try:
+            if not firebase_admin._apps:
+                cred = credentials.Certificate(self.config["firebase_credentials_path"])
+                self.firebase_app = firebase_admin.initialize_app(
+                    cred, {"databaseURL": self.config["firebase_database_url"]}
+                )
+            self.db_ref = firebase_db.reference("/")
+            # Обновленная инициализация BatchProcessor здесь тоже
+
+            self.batch_processor = BatchProcessor(
+                db_ref=self.db_ref,
+                max_hashes=self.config["max_firebase_hashes"],
+                batch_size=50,
+            )
+            return True
+        except Exception as e:
+            await self.client.send_message(
+                "me", self.strings["firebase_init_error"].format(error=str(e))
+            )
+            return False
 
     async def _load_recent_hashes(self):
         try:
