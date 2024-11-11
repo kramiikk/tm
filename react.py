@@ -82,8 +82,6 @@ class BatchProcessor:
         """Flushes the accumulated hashes to Firebase."""
         if not self.batch:
             return
-        # Create a local copy of the batch and clear the original
-
         async with self.lock:
             current_batch = self.batch.copy()
             self.batch = []
@@ -95,8 +93,6 @@ class BatchProcessor:
             hashes_ref.set(current_hashes)
             self.last_flush = time.time()
         except Exception as e:
-            # If there's an error, add the failed batch back
-
             async with self.lock:
                 self.batch.extend(current_batch)
             self.db_ref.child("errors").push(str(e))
