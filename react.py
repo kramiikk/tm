@@ -353,23 +353,67 @@ class BroadMod(loader.Module):
         except Exception as e:
             await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
 
+    async def _forward_album(self, messages: List[types.Message]) -> bool:
+        """Forward an entire album of messages."""
+        max_retries = 3
+        retry_delay = 2
+
+        for attempt in range(max_retries):
+            try:
+                try:
+                    channel = await self.client.get_entity(
+                        self.config["forward_channel_id"]
+                    )
+                except Exception as e:
+                    self.log.error(f"Error getting forward channel: {e}")
+                    return False
+                await self.client.forward_messages(
+                    entity=self.config["forward_channel_id"],
+                    messages=messages,
+                    silent=True,
+                )
+                return True
+            except errors.FloodWaitError as e:
+                wait_time = e.seconds
+                self.log.warning(f"Hit rate limit, waiting {wait_time} seconds")
+                await asyncio.sleep(wait_time)
+                continue
+            except errors.ChannelPrivateError:
+                self.log.error("Bot doesn't have access to the forward channel")
+                return False
+            except errors.ChatWriteForbiddenError:
+                self.log.error(
+                    "Bot doesn't have permission to write in the forward channel"
+                )
+                return False
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    self.log.error(
+                        f"Failed to forward album after {max_retries} attempts: {e}"
+                    )
+                    return False
+                await asyncio.sleep(retry_delay * (attempt + 1))
+                continue
+        return False
+
     async def watcher(self, message: types.Message):
         """Watcher method for processing and forwarding messages with improved error handling"""
         try:
             if (
                 not self.initialized
-                or not message.text
-                or len(message.text) < self.config["min_text_length"]
                 or message.chat_id not in self.allowed_chats
-                or message.sender.bot
+                or getattr(message.sender, "bot", False)
             ):
                 return
-            low = message.text.lower()
+            text_to_check = message.text or ""
+            if len(text_to_check) < self.config["min_text_length"]:
+                return
+            low = text_to_check.lower()
             found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
             if not found_keywords:
                 return
             normalized_text = html.unescape(
-                re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", message.text.lower())
+                re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", low)
             ).strip()
             if not normalized_text:
                 return
@@ -400,44 +444,44 @@ class BroadMod(loader.Module):
                 self.log.error(f"Error adding hash to Firebase: {e}")
                 self.hash_cache.pop(message_hash, None)
                 return
+            if hasattr(message, "grouped_id") and message.grouped_id:
+                chat = await message.get_chat()
+                album_messages = []
+                async for msg in self.client.iter_messages(
+                    chat,
+                    limit=50,
+                    offset_date=message.date,
+                ):
+                    if (
+                        hasattr(msg, "grouped_id")
+                        and msg.grouped_id == message.grouped_id
+                    ):
+                        album_messages.append(msg)
+                    if len(album_messages) >= 10:
+                        break
+                if album_messages:
+                    album_messages.sort(key=lambda m: m.id)
+                    await self._forward_album(album_messages)
+                    return
             max_retries = 3
-            retry_delay = 2
 
             for attempt in range(max_retries):
                 try:
-                    try:
-                        channel = await self.client.get_entity(
-                            self.config["forward_channel_id"]
-                        )
-                    except Exception as e:
-                        self.log.error(f"Error getting forward channel: {e}")
-                        return
                     await message.forward_to(
                         self.config["forward_channel_id"],
                         silent=True,
                     )
                     break
                 except errors.FloodWaitError as e:
-                    wait_time = e.seconds
-                    self.log.warning(f"Hit rate limit, waiting {wait_time} seconds")
+                    wait_time = time.time() + e.seconds
+                    self.log.warning(
+                        f"Hit rate limit {e.seconds}, waiting {wait_time} seconds"
+                    )
                     await asyncio.sleep(wait_time)
                     continue
                 except errors.ChannelPrivateError:
-                    self.log.error("Bot doesn't have access to the forward channel")
+                    self.log.error("Doesn't have access to the forward channel")
                     return
-                except errors.ChatWriteForbiddenError:
-                    self.log.error(
-                        "Bot doesn't have permission to write in the forward channel"
-                    )
-                    return
-                except Exception as e:
-                    if attempt == max_retries - 1:
-                        self.log.error(
-                            f"Failed to forward message after {max_retries} attempts: {e}"
-                        )
-                        return
-                    await asyncio.sleep(retry_delay * (attempt + 1))
-                    continue
         except Exception as e:
             self.log.error(f"Error in watcher: {str(e)}", exc_info=True)
             return
