@@ -299,49 +299,6 @@ class BroadMod(loader.Module):
             self.log.error(f"Error clearing hashes: {e}")
             return 0
 
-    async def _forward_album(self, messages: List[types.Message]) -> bool:
-        """Forward an entire album of messages."""
-        max_retries = 3
-        retry_delay = 2
-
-        for attempt in range(max_retries):
-            try:
-                try:
-                    channel = await self.client.get_entity(
-                        self.config["forward_channel_id"]
-                    )
-                except Exception as e:
-                    self.log.error(f"Error getting forward channel: {e}")
-                    return False
-                await self.client.forward_messages(
-                    entity=self.config["forward_channel_id"],
-                    messages=messages,
-                    silent=True,
-                )
-                return True
-            except errors.FloodWaitError as e:
-                wait_time = e.seconds
-                self.log.warning(f"Hit rate limit, waiting {wait_time} seconds")
-                await asyncio.sleep(wait_time)
-                continue
-            except errors.ChannelPrivateError:
-                self.log.error("Bot doesn't have access to the forward channel")
-                return False
-            except errors.ChatWriteForbiddenError:
-                self.log.error(
-                    "Bot doesn't have permission to write in the forward channel"
-                )
-                return False
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    self.log.error(
-                        f"Failed to forward album after {max_retries} attempts: {e}"
-                    )
-                    return False
-                await asyncio.sleep(retry_delay * (attempt + 1))
-                continue
-        return False
-
     @loader.command
     async def managecmd(self, message: types.Message):
         """Manages the list of allowed chats."""
@@ -425,44 +382,44 @@ class BroadMod(loader.Module):
                 self.log.error(f"Error adding hash to Firebase: {e}")
                 self.hash_cache.pop(message_hash, None)
                 return
-            if hasattr(message, "grouped_id") and message.grouped_id:
-                chat = await message.get_chat()
-                album_messages = []
-                async for msg in self.client.iter_messages(
-                    chat,
-                    limit=20,
-                    offset_date=message.date,
-                ):
-                    if (
-                        hasattr(msg, "grouped_id")
-                        and msg.grouped_id == message.grouped_id
+            try:
+                if hasattr(message, "grouped_id") and message.grouped_id:
+                    chat = await message.get_chat()
+                    album_messages = []
+                    async for msg in self.client.iter_messages(
+                        chat,
+                        limit=20,
+                        offset_date=message.date,
                     ):
-                        album_messages.append(msg)
-                    if len(album_messages) >= 10:
-                        break
-                if album_messages:
-                    album_messages.sort(key=lambda m: m.id)
-                    await self._forward_album(album_messages)
-                    return
-            max_retries = 3
-
-            for attempt in range(max_retries):
-                try:
+                        if (
+                            hasattr(msg, "grouped_id")
+                            and msg.grouped_id == message.grouped_id
+                        ):
+                            album_messages.append(msg)
+                        if len(album_messages) >= 10:
+                            break
+                    if album_messages:
+                        album_messages.sort(key=lambda m: m.id)
+                        await self.client.forward_messages(
+                            entity=self.config["forward_channel_id"],
+                            messages=album_messages,
+                            silent=True,
+                        )
+                else:
                     await message.forward_to(
                         self.config["forward_channel_id"],
                         silent=True,
                     )
-                    break
-                except errors.FloodWaitError as e:
-                    wait_time = time.time() + e.seconds
-                    self.log.warning(
-                        f"Hit rate limit {e.seconds}, waiting {wait_time} seconds"
-                    )
-                    await asyncio.sleep(wait_time)
-                    continue
-                except errors.ChannelPrivateError:
-                    self.log.error("Doesn't have access to the forward channel")
-                    return
+            except errors.FloodWaitError as e:
+                wait_time = time.time() + e.seconds
+                self.log.warning(
+                    f"Hit rate limit {e.seconds}, waiting {wait_time} seconds"
+                )
+                await asyncio.sleep(wait_time)
+                return
+            except errors.ChannelPrivateError:
+                self.log.error("Doesn't have access to the forward channel")
+                return
         except Exception as e:
             self.log.error(f"Error in watcher: {str(e)}", exc_info=True)
             return
