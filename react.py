@@ -322,6 +322,7 @@ class BroadMod(loader.Module):
                     message=self.strings["sender_info"].format(**sender_info),
                     reply_to=reply_to_id,
                     parse_mode="html",
+                    link_preview=False,
                 )
                 return True
             return False
