@@ -334,14 +334,14 @@ class BroadMod(loader.Module):
             await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
 
     async def watcher(self, message: types.Message):
-        """Watcher method for processing and forwarding messages with improved error handling"""
+        """Watcher method for processing and forwarding messages"""
+        if (
+            not self.initialized
+            or message.chat_id not in self.allowed_chats
+            or getattr(message.sender, "bot", False)
+        ):
+            return
         try:
-            if (
-                not self.initialized
-                or message.chat_id not in self.allowed_chats
-                or getattr(message.sender, "bot", False)
-            ):
-                return
             text_to_check = message.text or ""
             if len(text_to_check) < self.config["min_text_length"]:
                 return
@@ -362,9 +362,8 @@ class BroadMod(loader.Module):
             self.hash_cache[message_hash] = current_time
             if self.bloom_filter is not None:
                 self.bloom_filter.add(message_hash)
-            hash_data = {"hash": message_hash, "timestamp": current_time}
-
             try:
+                hash_data = {"hash": message_hash, "timestamp": current_time}
                 if self.batch_processor:
                     await self.batch_processor.add(hash_data)
                 else:
@@ -406,20 +405,23 @@ class BroadMod(loader.Module):
                             silent=True,
                         )
                 else:
-                    await message.forward_to(
-                        self.config["forward_channel_id"],
+                    await self.client.forward_messages(
+                        entity=self.config["forward_channel_id"],
+                        messages=message,
                         silent=True,
                     )
             except errors.FloodWaitError as e:
-                wait_time = time.time() + e.seconds
-                self.log.warning(
-                    f"Hit rate limit {e.seconds}, waiting {wait_time} seconds"
-                )
-                await asyncio.sleep(wait_time)
+                self.log.warning(f"Hit rate limit, waiting {e.seconds} seconds")
+                await asyncio.sleep(e.seconds)
+                self.hash_cache.pop(message_hash, None)
                 return
             except errors.ChannelPrivateError:
-                self.log.error("Doesn't have access to the forward channel")
+                self.log.error("No access to forward channel")
+                self.hash_cache.pop(message_hash, None)
+                return
+            except Exception as e:
+                self.log.error(f"Error forwarding message: {e}")
+                self.hash_cache.pop(message_hash, None)
                 return
         except Exception as e:
             self.log.error(f"Error in watcher: {str(e)}", exc_info=True)
-            return
