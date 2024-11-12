@@ -430,7 +430,7 @@ class BroadMod(loader.Module):
                 album_messages = []
                 async for msg in self.client.iter_messages(
                     chat,
-                    limit=50,
+                    limit=20,
                     offset_date=message.date,
                 ):
                     if (
