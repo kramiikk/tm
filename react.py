@@ -402,7 +402,8 @@ class BroadMod(loader.Module):
         if (
             not self.initialized
             or message.chat_id not in self.allowed_chats
-            or getattr(getattr(message, 'sender', None), "bot", False)
+            or (sender := getattr(message, 'sender', None)) is None
+            or getattr(sender, "bot", False)
         ):
             return
         try:
