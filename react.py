@@ -4,11 +4,10 @@ import logging
 import os
 import re
 import time
-from typing import List, Dict, Union
+from typing import List, Dict
 
 import mmh3
 from bloom_filter import BloomFilter
-from telethon.tl.types import User, Chat
 from telethon import errors, types
 
 import firebase_admin
@@ -300,59 +299,6 @@ class BroadMod(loader.Module):
             self.log.error(f"Error clearing hashes: {e}")
             return 0
 
-    async def _get_sender_info(self, message) -> str:
-        """Constructs a string with sender information asynchronously."""
-        try:
-            sender = getattr(message, "sender", None)
-            chat = getattr(message, "chat", None)
-            sender_str = (sender.first_name or sender.title) if sender else "Unknown"
-            chat_str = (
-                (
-                    chat.title
-                    if isinstance(chat, Chat)
-                    else (chat.first_name if isinstance(chat, User) else "Unknown")
-                )
-                if chat
-                else "Unknown"
-            )
-            return f"From: {sender_str} in {chat_str}\n\n"
-        except Exception:
-            return "From: Unknown in Unknown\n\n"
-
-    @loader.command
-    async def managecmd(self, message: types.Message):
-        """Manages the list of allowed chats."""
-        try:
-            args = message.text.split()
-
-            if len(args) != 2:
-                response = "📝 Список разрешенных чатов:\n"
-                response += (
-                    ", ".join(map(str, self.allowed_chats))
-                    if self.allowed_chats
-                    else "пуст"
-                )
-                await message.reply(response)
-                return
-            try:
-                chat_id = int(args[1])
-            except ValueError:
-                await message.reply(
-                    "❌ Неверный формат ID чата. Укажите правильное число."
-                )
-                return
-            if chat_id in self.allowed_chats:
-                self.allowed_chats.remove(chat_id)
-                txt = f"❌ Чат {chat_id} удален из списка."
-            else:
-                self.allowed_chats.append(chat_id)
-                txt = f"✅ Чат {chat_id} добавлен в список."
-            chats_ref = self.db_ref.child("allowed_chats")
-            chats_ref.set(self.allowed_chats)
-            await message.reply(txt)
-        except Exception as e:
-            await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
-
     async def _forward_album(self, messages: List[types.Message]) -> bool:
         """Forward an entire album of messages."""
         max_retries = 3
@@ -396,6 +342,40 @@ class BroadMod(loader.Module):
                 continue
         return False
 
+    @loader.command
+    async def managecmd(self, message: types.Message):
+        """Manages the list of allowed chats."""
+        try:
+            args = message.text.split()
+
+            if len(args) != 2:
+                response = "📝 Список разрешенных чатов:\n"
+                response += (
+                    ", ".join(map(str, self.allowed_chats))
+                    if self.allowed_chats
+                    else "пуст"
+                )
+                await message.reply(response)
+                return
+            try:
+                chat_id = int(args[1])
+            except ValueError:
+                await message.reply(
+                    "❌ Неверный формат ID чата. Укажите правильное число."
+                )
+                return
+            if chat_id in self.allowed_chats:
+                self.allowed_chats.remove(chat_id)
+                txt = f"❌ Чат {chat_id} удален из списка."
+            else:
+                self.allowed_chats.append(chat_id)
+                txt = f"✅ Чат {chat_id} добавлен в список."
+            chats_ref = self.db_ref.child("allowed_chats")
+            chats_ref.set(self.allowed_chats)
+            await message.reply(txt)
+        except Exception as e:
+            await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
+
     async def watcher(self, message: types.Message):
         """Watcher method for processing and forwarding messages with improved error handling"""
         try:
@@ -419,6 +399,7 @@ class BroadMod(loader.Module):
                 return
             message_hash = str(mmh3.hash(normalized_text))
             if message_hash in self.hash_cache:
+                await self._clear_expired_hashes()
                 return
             current_time = time.time()
             self.hash_cache[message_hash] = current_time
