@@ -146,7 +146,7 @@ class BroadMod(loader.Module):
             18,
             lambda: self.strings("cfg_min_text_length"),
             "forward_delay",
-            1,
+            3,
             lambda: self.strings("cfg_forward_delay"),
         )
 
@@ -402,7 +402,7 @@ class BroadMod(loader.Module):
         if (
             not self.initialized
             or message.chat_id not in self.allowed_chats
-            or getattr(message.sender, "bot", False)
+            or getattr(getattr(message, 'sender', None), "bot", False)
         ):
             return
         try:
