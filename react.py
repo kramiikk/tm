@@ -107,6 +107,7 @@ class BroadMod(loader.Module):
         "cfg_hash_retention": "Время хранения хэшей (в секундах)",
         "cfg_max_firebase_hashes": "Максимальное количество хэшей в Firebase",
         "cfg_min_text_length": "Минимальная длина текста для обработки",
+        "cfg_forward_delay": "Задержка между пересылкой сообщений (в секундах)",
         "no_firebase_path": "⚠️ Не указан путь к файлу учетных данных Firebase",
         "no_firebase_url": "⚠️ Не указан URL базы данных Firebase",
         "initialization_success": "✅ Модуль успешно инициализирован\nРазрешенные чаты: {chats}\nЗагружено хэшей: {hashes}",
@@ -144,6 +145,9 @@ class BroadMod(loader.Module):
             "min_text_length",
             18,
             lambda: self.strings("cfg_min_text_length"),
+            "forward_delay",
+            1,
+            lambda: self.strings("cfg_forward_delay"),
         )
 
         self.allowed_chats = []
@@ -302,7 +306,7 @@ class BroadMod(loader.Module):
             return 0
 
     async def _forward_and_reply(self, messages, sender_info: dict) -> bool:
-        """Forward messages and add sender info reply."""
+        "forward"
         try:
             forwarded = await self.client.forward_messages(
                 entity=self.config["forward_channel_id"],
@@ -311,8 +315,6 @@ class BroadMod(loader.Module):
             )
 
             if forwarded:
-                # For albums, forwarded will be a list; for single messages, a Message object
-
                 reply_to_id = (
                     forwarded[0].id if isinstance(forwarded, list) else forwarded.id
                 )
@@ -324,17 +326,12 @@ class BroadMod(loader.Module):
                     parse_mode="html",
                     link_preview=False,
                 )
-                return True
-            return False
+
+                await asyncio.sleep(self.config["forward_delay"])
+            return bool(forwarded)
         except errors.FloodWaitError as e:
             self.log.warning(f"Hit rate limit, waiting {e.seconds} seconds")
             await asyncio.sleep(e.seconds)
-            return False
-        except errors.ChannelPrivateError:
-            self.log.error("No access to forward channel")
-            return False
-        except Exception as e:
-            self.log.error(f"Error forwarding message: {e}")
             return False
 
     async def _get_sender_info(self, message: types.Message) -> dict:
