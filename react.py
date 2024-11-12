@@ -18,7 +18,7 @@ from .. import loader, utils
 logging.basicConfig(
     format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.WARNING
 )
-log = logging.getLogger(name)
+log = logging.getLogger(__name__)
 
 TRADING_KEYWORDS = {
     "акк",
