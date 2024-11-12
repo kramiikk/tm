@@ -127,7 +127,7 @@ class BroadMod(loader.Module):
             18,
             lambda: self.strings("cfg_min_text_length"),
             "forward_delay",
-            3,
+            8,
             lambda: self.strings("cfg_forward_delay"),
         )
 
