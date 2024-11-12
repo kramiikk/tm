@@ -4,20 +4,21 @@ import logging
 import os
 import re
 import time
-from typing import List, Dict
+from typing import List, Dict, Union
 
 import mmh3
 from bloom_filter import BloomFilter
-from telethon import errors, types
+from telethon import errors, types, utils as telethon_utils
 
 import firebase_admin
 from firebase_admin import credentials, db as firebase_db
 from .. import loader, utils
 
+
 logging.basicConfig(
     format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.WARNING
 )
-log = logging.getLogger(__name__)
+log = logging.getLogger(name)
 
 TRADING_KEYWORDS = {
     "акк",
@@ -93,7 +94,7 @@ class BatchProcessor:
 
 @loader.tds
 class BroadMod(loader.Module):
-    """Module for tracking and forwarding messages with batch processing and duplicate filtering. v 0.02"""
+    """Module for tracking and forwarding messages with batch processing and duplicate filtering. v 0.03"""
 
     strings = {
         "name": "Broad",
@@ -111,6 +112,7 @@ class BroadMod(loader.Module):
         "initialization_success": "✅ Модуль успешно инициализирован\nРазрешенные чаты: {chats}\nЗагружено хэшей: {hashes}",
         "firebase_init_error": "❌ Ошибка инициализации Firebase: {error}",
         "firebase_load_error": "❌ Ошибка при загрузке данных из Firebase: {error}",
+        "sender_info": "👤 Отправитель: <a href='{sender_url}'>{sender_name}</a> ({sender_id})\n💬 Источник: <a href='{message_url}'>{chat_title}</a>",
     }
 
     def __init__(self):
@@ -299,6 +301,70 @@ class BroadMod(loader.Module):
             self.log.error(f"Error clearing hashes: {e}")
             return 0
 
+    async def _forward_and_reply(self, messages, sender_info: dict) -> bool:
+        """Forward messages and add sender info reply."""
+        try:
+            forwarded = await self.client.forward_messages(
+                entity=self.config["forward_channel_id"],
+                messages=messages,
+                silent=True,
+            )
+
+            if forwarded:
+                # For albums, forwarded will be a list; for single messages, a Message object
+
+                reply_to_id = (
+                    forwarded[0].id if isinstance(forwarded, list) else forwarded.id
+                )
+
+                await self.client.send_message(
+                    entity=self.config["forward_channel_id"],
+                    message=self.strings["sender_info"].format(**sender_info),
+                    reply_to=reply_to_id,
+                    parse_mode="html",
+                )
+                return True
+            return False
+        except errors.FloodWaitError as e:
+            self.log.warning(f"Hit rate limit, waiting {e.seconds} seconds")
+            await asyncio.sleep(e.seconds)
+            return False
+        except errors.ChannelPrivateError:
+            self.log.error("No access to forward channel")
+            return False
+        except Exception as e:
+            self.log.error(f"Error forwarding message: {e}")
+            return False
+
+    async def _get_sender_info(self, message: types.Message) -> dict:
+        """Get formatted sender information."""
+        try:
+            chat = await message.get_chat()
+            sender = await message.get_sender()
+
+            if hasattr(sender, "deleted") and sender.deleted:
+                sender_name = "Deleted Account"
+            else:
+                sender_name = telethon_utils.get_display_name(sender)
+            if hasattr(sender, "username") and sender.username:
+                sender_url = f"https://t.me/{sender.username}"
+            else:
+                sender_url = f"tg://user?id={sender.id}"
+            if hasattr(chat, "username") and chat.username:
+                message_url = f"https://t.me/{chat.username}/{message.id}"
+            else:
+                message_url = f"https://t.me/c/{str(chat.id)[4:]}/{message.id}"
+            return {
+                "sender_name": html.escape(sender_name),
+                "sender_id": sender.id,
+                "sender_url": sender_url,
+                "chat_title": html.escape(chat.title),
+                "message_url": message_url,
+            }
+        except Exception as e:
+            log.error(f"Error getting sender info: {e}")
+            return None
+
     @loader.command
     async def managecmd(self, message: types.Message):
         """Manages the list of allowed chats."""
@@ -381,47 +447,31 @@ class BroadMod(loader.Module):
                 self.log.error(f"Error adding hash to Firebase: {e}")
                 self.hash_cache.pop(message_hash, None)
                 return
-            try:
-                if hasattr(message, "grouped_id") and message.grouped_id:
-                    chat = await message.get_chat()
-                    album_messages = []
-                    async for msg in self.client.iter_messages(
-                        chat,
-                        limit=20,
-                        offset_date=message.date,
+            sender_info = await self._get_sender_info(message)
+            if not sender_info:
+                return
+            success = False
+            if hasattr(message, "grouped_id") and message.grouped_id:
+                chat = await message.get_chat()
+                album_messages = []
+                async for msg in self.client.iter_messages(
+                    chat,
+                    limit=20,
+                    offset_date=message.date,
+                ):
+                    if (
+                        hasattr(msg, "grouped_id")
+                        and msg.grouped_id == message.grouped_id
                     ):
-                        if (
-                            hasattr(msg, "grouped_id")
-                            and msg.grouped_id == message.grouped_id
-                        ):
-                            album_messages.append(msg)
-                        if len(album_messages) >= 10:
-                            break
-                    if album_messages:
-                        album_messages.sort(key=lambda m: m.id)
-                        await self.client.forward_messages(
-                            entity=self.config["forward_channel_id"],
-                            messages=album_messages,
-                            silent=True,
-                        )
-                else:
-                    await self.client.forward_messages(
-                        entity=self.config["forward_channel_id"],
-                        messages=message,
-                        silent=True,
-                    )
-            except errors.FloodWaitError as e:
-                self.log.warning(f"Hit rate limit, waiting {e.seconds} seconds")
-                await asyncio.sleep(e.seconds)
+                        album_messages.append(msg)
+                    if len(album_messages) >= 10:
+                        break
+                if album_messages:
+                    album_messages.sort(key=lambda m: m.id)
+                    success = await self._forward_and_reply(album_messages, sender_info)
+            else:
+                success = await self._forward_and_reply(message, sender_info)
+            if not success:
                 self.hash_cache.pop(message_hash, None)
-                return
-            except errors.ChannelPrivateError:
-                self.log.error("No access to forward channel")
-                self.hash_cache.pop(message_hash, None)
-                return
-            except Exception as e:
-                self.log.error(f"Error forwarding message: {e}")
-                self.hash_cache.pop(message_hash, None)
-                return
         except Exception as e:
             self.log.error(f"Error in watcher: {str(e)}", exc_info=True)
