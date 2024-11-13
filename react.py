@@ -16,8 +16,6 @@ import firebase_admin
 from firebase_admin import credentials, db as firebase_db
 from .. import loader, utils
 
-# Configure logging
-
 
 logging.basicConfig(
     format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.WARNING
@@ -31,10 +29,10 @@ class BatchProcessor:
     def __init__(
         self, db_ref: firebase_db.Reference, max_hashes: int, batch_size: int = 50
     ):
-        self.db_ref = db_ref  # Firebase database reference
-        self.max_hashes = max_hashes  # Maximum number of hashes to store in Firebase
-        self.batch_size = batch_size  # Number of hashes to accumulate before writing
-        self.batch = []  # Current batch of hashes
+        self.db_ref = db_ref
+        self.max_hashes = max_hashes
+        self.batch_size = batch_size
+        self.batch = []
 
     async def add(self, hash_data: dict):
         """Adds a hash to the batch. Flushes the batch if it's full."""
@@ -47,15 +45,11 @@ class BatchProcessor:
         if not self.batch:
             return
         try:
-            current_batch = self.batch[
-                :
-            ]  # Create a copy to avoid modification during flush
-            self.batch.clear()  # Clear the current batch
+            current_batch = self.batch[:]
+            self.batch.clear()
 
             hashes_ref = self.db_ref.child("hashes/hash_list")
             current_hashes = hashes_ref.get() or []
-
-            # Handle potential data corruption from Firebase
 
             if not isinstance(current_hashes, list):
                 log.warning(
@@ -64,14 +58,12 @@ class BatchProcessor:
                 current_hashes = []
             current_hashes.extend(current_batch)
 
-            # Enforce maximum hash count
-
             if len(current_hashes) > self.max_hashes:
                 current_hashes = current_hashes[-self.max_hashes :]
             hashes_ref.set(current_hashes)
         except Exception as e:
             log.error(f"Error flushing batch to Firebase: {e}", exc_info=True)
-            self.batch.extend(current_batch)  # Restore the batch if flush failed
+            self.batch.extend(current_batch)
 
 
 @loader.tds
@@ -158,17 +150,17 @@ class BroadMod(loader.Module):
             lambda: "Keywords to trigger forwarding (list of strings)",
         )
 
-        self.message_queue = Queue()  # Queue for messages to be forwarded
-        self.processing_task = None  # Task handling message forwarding
-        self.allowed_chats = []  # List of chat IDs allowed to trigger forwarding
-        self.firebase_app = None  # Firebase app instance
-        self.db_ref = None  # Firebase database reference
-        self.bloom_filter = None  # Bloom filter for efficient duplicate detection
-        self.hash_cache = {}  # Cache of recently seen message hashes
-        self.last_cleanup_time = 0  # Timestamp of the last cache cleanup
-        self.batch_processor = None  # Batch processor for Firebase writes
-        self.initialized = False  # Flag indicating module initialization status
-        self.log = log  # Logger instance
+        self.message_queue = Queue()
+        self.processing_task = None
+        self.allowed_chats = []
+        self.firebase_app = None
+        self.db_ref = None
+        self.bloom_filter = None
+        self.hash_cache = {}
+        self.last_cleanup_time = 0
+        self.batch_processor = None
+        self.initialized = False
+        self.log = log
         super().__init__()
 
     def init_bloom_filter(self) -> bool:
@@ -181,14 +173,12 @@ class BroadMod(loader.Module):
             return True
         except Exception as e:
             log.warning(f"Bloom filter initialization failed, using set instead: {e}")
-            self.bloom_filter = set()  # Fallback to a less efficient set
+            self.bloom_filter = set()
             return False
 
     async def client_ready(self, client, db):
         """Initializes the module when the Telethon client is ready."""
         self.client = client
-
-        # Check for Firebase configuration
 
         if not self.config["firebase_credentials_path"] or not os.path.exists(
             self.config["firebase_credentials_path"]
@@ -202,8 +192,6 @@ class BroadMod(loader.Module):
                 "me", "❌ Firebase database URL is not configured."
             )
             return
-        # Initialize Firebase
-
         if not await self._initialize_firebase():
             return
         try:
@@ -237,8 +225,6 @@ class BroadMod(loader.Module):
         except Exception as e:
             await client.send_message("me", f"❌ Error loading data from Firebase: {e}")
             self.initialized = False
-        # Start the message processing task
-
         if not self.processing_task:
             self.processing_task = asyncio.create_task(self.process_queue())
 
@@ -328,12 +314,15 @@ class BroadMod(loader.Module):
         }
 
         if self.bloom_filter is not None and isinstance(self.bloom_filter, BloomFilter):
-            for h in self.hash_cache:
-                if h in self.bloom_filter:
-                    self.bloom_filter.remove(h)
+            self.bloom_filter = BloomFilter(
+                self.config["bloom_filter_capacity"],
+                self.config["bloom_filter_error_rate"],
+            )
+            for h, ts in self.hash_cache.items():
+                self.bloom_filter.add(h)
         elif isinstance(self.bloom_filter, set):
-            self.bloom_filter.difference_update(
-                h for h, ts in self.hash_cache.items() if ts < expiration_time
+            self.bloom_filter = set(
+                h for h, ts in self.hash_cache.items() if ts >= expiration_time
             )
 
     async def _get_sender_info(self, message: types.Message) -> dict:
@@ -433,8 +422,12 @@ class BroadMod(loader.Module):
                 return
             current_time = time.time()
             self.hash_cache[message_hash] = current_time
+
             if self.bloom_filter is not None:
-                self.bloom_filter.add(message_hash)
+                if isinstance(self.bloom_filter, BloomFilter):
+                    self.bloom_filter.add(message_hash)
+                elif isinstance(self.bloom_filter, set):
+                    self.bloom_filter.add(message_hash)
             try:
                 hash_data = {"hash": message_hash, "timestamp": current_time}
                 if self.batch_processor:
