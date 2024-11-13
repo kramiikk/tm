@@ -371,21 +371,21 @@ class BroadMod(loader.Module):
 
         try:
             entity = await self.client.get_entity("@bezscamasuka")
-        except (ValueError, TypeError, errors.UsernameInvalidError) as e:
-            log.error(f"Error resolving scam check channel: {e}")
-            return False, None
-        if not entity:
-            log.warning("Could not resolve scam check channel entity.")
-            return False, None
-        try:
-            async for message in self.client.iter_messages(
-                entity, limit=1000, reverse=True
-            ):
+            if not entity:
+                self.log.warning("Could not resolve scam check channel entity. Check the username.")
+                return False, None
+
+            async for message in self.client.iter_messages(entity, limit=1000, reverse=True):
                 if message.text is not None and str(user_id) in message.text:
                     post_link = f"https://t.me/bezscamasuka/{message.id}"
                     return True, post_link
+        except (ValueError, TypeError, errors.UsernameInvalidError) as e:
+            self.log.error(f"Error resolving scam check channel: {e}")
+            return False, None
         except Exception as e:
-            log.error(f"Error checking scammer: {e}")
+            self.log.error(f"Error checking scammer: {e}")
+            return False, None
+
         return False, None
 
     @loader.command
