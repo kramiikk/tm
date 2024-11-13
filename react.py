@@ -370,7 +370,7 @@ class BroadMod(loader.Module):
         """Check if user ID exists in the special channel and return post link."""
 
         try:
-            entity = await self.client.get_entity("@bezscamasuka")
+            entity = await self.client.get_entity(1539778138)
             if not entity:
                 self.log.warning("Could not resolve scam check channel entity. Check the username.")
                 return False, None
