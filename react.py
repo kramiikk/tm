@@ -1,10 +1,12 @@
 import asyncio
+import bisect
 import html
 import logging
 import os
 import re
 import time
-from typing import List, Dict, Union
+from asyncio import Queue
+from typing import List, Dict
 
 import mmh3
 from bloom_filter import BloomFilter
@@ -14,68 +16,67 @@ import firebase_admin
 from firebase_admin import credentials, db as firebase_db
 from .. import loader, utils
 
+# Configure logging
+
+
 logging.basicConfig(
-    format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", 
-    level=logging.WARNING
+    format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.WARNING
 )
 log = logging.getLogger(__name__)
 
-TRADING_KEYWORDS = {
-    "акк", "прод", "куп", "обмен", "лег", "оруж", "артефакты",
-    "ивент", "100", "гарант", "уд", "утер", "луна", "ранг",
-    "AR", "ищу", "приор", "стандарт", "евро", "уров", "старт",
-    "сигна", "руб", "срочн", "кто",
-}
 
 class BatchProcessor:
-    """Batch processor for Firebase operations"""
-    
+    """Handles batched writes to Firebase to reduce overhead."""
+
     def __init__(
-        self,
-        db_ref: firebase_db.Reference,
-        max_hashes: int,
-        batch_size: int = 100,
+        self, db_ref: firebase_db.Reference, max_hashes: int, batch_size: int = 50
     ):
-        self.db_ref = db_ref
-        self.max_hashes = max_hashes
-        self.batch_size = batch_size
-        self.batch = []
+        self.db_ref = db_ref  # Firebase database reference
+        self.max_hashes = max_hashes  # Maximum number of hashes to store in Firebase
+        self.batch_size = batch_size  # Number of hashes to accumulate before writing
+        self.batch = []  # Current batch of hashes
 
     async def add(self, hash_data: dict):
-        """Add a hash to the batch"""
+        """Adds a hash to the batch. Flushes the batch if it's full."""
         self.batch.append(hash_data)
-        
         if len(self.batch) >= self.batch_size:
             await self.flush()
 
     async def flush(self):
-        """Flush the batch to Firebase"""
+        """Writes the accumulated batch of hashes to Firebase."""
         if not self.batch:
             return
-        
         try:
-            current_batch = self.batch
-            self.batch = []
+            current_batch = self.batch[
+                :
+            ]  # Create a copy to avoid modification during flush
+            self.batch.clear()  # Clear the current batch
 
             hashes_ref = self.db_ref.child("hashes/hash_list")
             current_hashes = hashes_ref.get() or []
 
+            # Handle potential data corruption from Firebase
+
             if not isinstance(current_hashes, list):
+                log.warning(
+                    "Invalid data type received from Firebase. Resetting hash list."
+                )
                 current_hashes = []
-            
             current_hashes.extend(current_batch)
 
+            # Enforce maximum hash count
+
             if len(current_hashes) > self.max_hashes:
-                current_hashes = current_hashes[-self.max_hashes:]
-            
+                current_hashes = current_hashes[-self.max_hashes :]
             hashes_ref.set(current_hashes)
-            
         except Exception as e:
-            self.batch.extend(current_batch)
+            log.error(f"Error flushing batch to Firebase: {e}", exc_info=True)
+            self.batch.extend(current_batch)  # Restore the batch if flush failed
+
 
 @loader.tds
 class BroadMod(loader.Module):
-    """Module for tracking and forwarding messages. v 0.05"""
+    """Forwards messages containing specific keywords to a designated channel."""
 
     strings = {
         "name": "Broad",
@@ -88,7 +89,6 @@ class BroadMod(loader.Module):
         "cfg_hash_retention": "Время хранения хэшей (в секундах)",
         "cfg_max_firebase_hashes": "Максимальное количество хэшей в Firebase",
         "cfg_min_text_length": "Минимальная длина текста для обработки",
-        "cfg_forward_delay": "Задержка между пересылкой сообщений (в секундах)",
         "no_firebase_path": "⚠️ Не указан путь к файлу учетных данных Firebase",
         "no_firebase_url": "⚠️ Не указан URL базы данных Firebase",
         "initialization_success": "✅ Модуль успешно инициализирован\nРазрешенные чаты: {chats}\nЗагружено хэшей: {hashes}",
@@ -126,24 +126,53 @@ class BroadMod(loader.Module):
             "min_text_length",
             18,
             lambda: self.strings("cfg_min_text_length"),
-            "forward_delay",
-            13,
-            lambda: self.strings("cfg_forward_delay"),
+            "trading_keywords",
+            [
+                "акк",
+                "прод",
+                "куп",
+                "обмен",
+                "лег",
+                "оруж",
+                "артефакты",
+                "ивент",
+                "100",
+                "гарант",
+                "уд",
+                "утер",
+                "луна",
+                "ранг",
+                "AR",
+                "ищу",
+                "приор",
+                "стандарт",
+                "евро",
+                "уров",
+                "старт",
+                "сигна",
+                "руб",
+                "крыл",
+                "срочн",
+                "кто",
+            ],
+            lambda: "Keywords to trigger forwarding (list of strings)",
         )
 
-        self.allowed_chats = []
-        self.firebase_app = None
-        self.db_ref = None
-        self.bloom_filter = None
-        self.hash_cache = {}
-        self.last_cleanup_time = 0
-        self.batch_processor = None
-        self.initialized = False
-        self.log = log
+        self.message_queue = Queue()  # Queue for messages to be forwarded
+        self.processing_task = None  # Task handling message forwarding
+        self.allowed_chats = []  # List of chat IDs allowed to trigger forwarding
+        self.firebase_app = None  # Firebase app instance
+        self.db_ref = None  # Firebase database reference
+        self.bloom_filter = None  # Bloom filter for efficient duplicate detection
+        self.hash_cache = {}  # Cache of recently seen message hashes
+        self.last_cleanup_time = 0  # Timestamp of the last cache cleanup
+        self.batch_processor = None  # Batch processor for Firebase writes
+        self.initialized = False  # Flag indicating module initialization status
+        self.log = log  # Logger instance
         super().__init__()
 
     def init_bloom_filter(self) -> bool:
-        """Initialize the Bloom filter"""
+        """Initializes the Bloom filter for duplicate detection.  Falls back to a set if there's an error."""
         try:
             self.bloom_filter = BloomFilter(
                 self.config["bloom_filter_capacity"],
@@ -151,12 +180,15 @@ class BroadMod(loader.Module):
             )
             return True
         except Exception as e:
-            self.bloom_filter = set()
+            log.warning(f"Bloom filter initialization failed, using set instead: {e}")
+            self.bloom_filter = set()  # Fallback to a less efficient set
             return False
 
     async def client_ready(self, client, db):
-        """Initialize the module when client is ready"""
+        """Initializes the module when the Telethon client is ready."""
         self.client = client
+
+        # Check for Firebase configuration
 
         if not self.config["firebase_credentials_path"] or not os.path.exists(
             self.config["firebase_credentials_path"]
@@ -165,17 +197,15 @@ class BroadMod(loader.Module):
                 "me", "❌ Firebase credentials file not found or path is incorrect."
             )
             return
-
         if not self.config["firebase_database_url"]:
             await self.client.send_message(
                 "me", "❌ Firebase database URL is not configured."
             )
             return
+        # Initialize Firebase
 
-        if not firebase_admin._apps:
-            if not await self._initialize_firebase():
-                return
-
+        if not await self._initialize_firebase():
+            return
         try:
             self.db_ref = firebase_db.reference("/")
 
@@ -191,7 +221,6 @@ class BroadMod(loader.Module):
                     "me", "❌ Bloom filter initialization failed. Module disabled."
                 )
                 return
-
             await self._load_recent_hashes()
 
             chats_ref = self.db_ref.child("allowed_chats")
@@ -208,6 +237,41 @@ class BroadMod(loader.Module):
         except Exception as e:
             await client.send_message("me", f"❌ Error loading data from Firebase: {e}")
             self.initialized = False
+        # Start the message processing task
+
+        if not self.processing_task:
+            self.processing_task = asyncio.create_task(self.process_queue())
+
+    async def process_queue(self):
+        """Обрабатывает сообщения из очереди с задержкой"""
+        while True:
+            messages, sender_info = await self.message_queue.get()
+            try:
+                await asyncio.sleep(13)
+                forwarded = await self.client.forward_messages(
+                    entity=self.config["forward_channel_id"],
+                    messages=messages,
+                    silent=True,
+                )
+
+                if forwarded:
+                    reply_to_id = (
+                        forwarded[0].id if isinstance(forwarded, list) else forwarded.id
+                    )
+
+                    await self.client.send_message(
+                        entity=self.config["forward_channel_id"],
+                        message=self.strings["sender_info"].format(**sender_info),
+                        reply_to=reply_to_id,
+                        parse_mode="html",
+                        link_preview=False,
+                    )
+            except errors.FloodWaitError as e:
+                await asyncio.sleep(300 + e.seconds)
+            except Exception as e:
+                self.log.error(f"Error processing message: {e}", exc_info=True)
+            finally:
+                self.message_queue.task_done()
 
     async def _initialize_firebase(self) -> bool:
         """Initialize Firebase connection"""
@@ -234,19 +298,21 @@ class BroadMod(loader.Module):
             current_time = time.time()
             self.hash_cache = {}
 
-            for hash_data in all_hashes[-self.config["max_firebase_hashes"]:]:
+            for hash_data in all_hashes[-self.config["max_firebase_hashes"] :]:
                 if isinstance(hash_data, dict):
                     hash_value = hash_data.get("hash")
                     timestamp = hash_data.get("timestamp")
                     if (
                         hash_value
                         and timestamp
-                        and current_time - timestamp < self.config["hash_retention_period"]
+                        and current_time - timestamp
+                        < self.config["hash_retention_period"]
                     ):
                         self.hash_cache[hash_value] = timestamp
                         if self.bloom_filter:
                             self.bloom_filter.add(hash_value)
         except Exception as e:
+            self.log.error(f"Error loading recent hashes: {e}", exc_info=True)
             self.hash_cache = {}
 
     async def _clear_expired_hashes(self):
@@ -254,57 +320,21 @@ class BroadMod(loader.Module):
         current_time = time.time()
         if current_time - self.last_cleanup_time < self.config["cleanup_interval"]:
             return
-
         self.last_cleanup_time = current_time
         expiration_time = current_time - self.config["hash_retention_period"]
 
         self.hash_cache = {
-            h: ts for h, ts in self.hash_cache.items() 
-            if ts >= expiration_time
+            h: ts for h, ts in self.hash_cache.items() if ts >= expiration_time
         }
 
-        if self.bloom_filter is not None:
-            self.bloom_filter = BloomFilter(
-                self.config["bloom_filter_capacity"],
-                self.config["bloom_filter_error_rate"],
-            )
+        if self.bloom_filter is not None and isinstance(self.bloom_filter, BloomFilter):
             for h in self.hash_cache:
-                self.bloom_filter.add(h)
-
-        if self.batch_processor:
-            await self.batch_processor.flush()
-
-    async def _forward_and_reply(self, messages, sender_info: dict) -> bool:
-        """Forward messages and add sender info"""
-        try:
-            forwarded = await self.client.forward_messages(
-                entity=self.config["forward_channel_id"],
-                messages=messages,
-                silent=True,
+                if h in self.bloom_filter:
+                    self.bloom_filter.remove(h)
+        elif isinstance(self.bloom_filter, set):
+            self.bloom_filter.difference_update(
+                h for h, ts in self.hash_cache.items() if ts < expiration_time
             )
-
-            if forwarded:
-                reply_to_id = (
-                    forwarded[0].id if isinstance(forwarded, list) else forwarded.id
-                )
-
-                await self.client.send_message(
-                    entity=self.config["forward_channel_id"],
-                    message=self.strings["sender_info"].format(**sender_info),
-                    reply_to=reply_to_id,
-                    parse_mode="html",
-                    link_preview=False,
-                )
-
-                await asyncio.sleep(self.config["forward_delay"])
-                return True
-            return False
-
-        except errors.FloodWaitError as e:
-            await asyncio.sleep(e.seconds)
-            return False
-        except Exception as e:
-            return False
 
     async def _get_sender_info(self, message: types.Message) -> dict:
         """Get formatted sender information"""
@@ -317,19 +347,19 @@ class BroadMod(loader.Module):
                 if hasattr(sender, "deleted") and sender.deleted
                 else telethon_utils.get_display_name(sender)
             )
-            
+
             sender_url = (
                 f"https://t.me/{sender.username}"
                 if hasattr(sender, "username") and sender.username
                 else f"tg://user?id={sender.id}"
             )
-            
+
             message_url = (
                 f"https://t.me/{chat.username}/{message.id}"
                 if hasattr(chat, "username") and chat.username
                 else f"https://t.me/c/{str(chat.id)[4:]}/{message.id}"
             )
-            
+
             return {
                 "sender_name": html.escape(sender_name),
                 "sender_id": sender.id,
@@ -339,7 +369,7 @@ class BroadMod(loader.Module):
             }
         except Exception as e:
             log.error(f"Error getting sender info: {e}")
-            return None
+            return {}
 
     @loader.command
     async def managecmd(self, message: types.Message):
@@ -356,7 +386,6 @@ class BroadMod(loader.Module):
                 )
                 await message.reply(response)
                 return
-
             try:
                 chat_id = int(args[1])
             except ValueError:
@@ -364,18 +393,15 @@ class BroadMod(loader.Module):
                     "❌ Неверный формат ID чата. Укажите правильное число."
                 )
                 return
-
             if chat_id in self.allowed_chats:
                 self.allowed_chats.remove(chat_id)
                 txt = f"❌ Чат {chat_id} удален из списка."
             else:
                 self.allowed_chats.append(chat_id)
                 txt = f"✅ Чат {chat_id} добавлен в список."
-
             chats_ref = self.db_ref.child("allowed_chats")
             chats_ref.set(self.allowed_chats)
             await message.reply(txt)
-
         except Exception as e:
             await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
 
@@ -384,18 +410,16 @@ class BroadMod(loader.Module):
         if (
             not self.initialized
             or message.chat_id not in self.allowed_chats
-            or (sender := getattr(message, 'sender', None)) is None
+            or (sender := getattr(message, "sender", None)) is None
             or getattr(sender, "bot", False)
         ):
             return
-
         try:
             text_to_check = message.text or ""
             if len(text_to_check) < self.config["min_text_length"]:
                 return
-
             low = text_to_check.lower()
-            found_keywords = [kw for kw in TRADING_KEYWORDS if kw in low]
+            found_keywords = [kw for kw in self.config["trading_keywords"] if kw in low]
             if not found_keywords:
                 return
             normalized_text = html.unescape(
@@ -415,46 +439,30 @@ class BroadMod(loader.Module):
                 hash_data = {"hash": message_hash, "timestamp": current_time}
                 if self.batch_processor:
                     await self.batch_processor.add(hash_data)
-                else:
-                    hashes_ref = self.db_ref.child("hashes/hash_list")
-                    current_hashes = hashes_ref.get() or []
-                    if not isinstance(current_hashes, list):
-                        current_hashes = []
-                    current_hashes.append(hash_data)
-                    if len(current_hashes) > self.config["max_firebase_hashes"]:
-                        current_hashes = current_hashes[
-                            -self.config["max_firebase_hashes"] :
-                        ]
-                    hashes_ref.set(current_hashes)
             except Exception as e:
-                self.log.error(f"Error adding hash to Firebase: {e}")
+                self.log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
                 self.hash_cache.pop(message_hash, None)
                 return
             sender_info = await self._get_sender_info(message)
-            if not sender_info:
-                return
-            success = False
-            if hasattr(message, "grouped_id") and message.grouped_id:
-                chat = await message.get_chat()
-                album_messages = []
-                async for msg in self.client.iter_messages(
-                    chat,
-                    limit=20,
-                    offset_date=message.date,
-                ):
-                    if (
-                        hasattr(msg, "grouped_id")
-                        and msg.grouped_id == message.grouped_id
+            if sender_info:
+                messages = [message]
+                if hasattr(message, "grouped_id") and message.grouped_id:
+                    chat = await message.get_chat()
+                    async for msg in self.client.iter_messages(
+                        chat, limit=20, offset_date=message.date, timeout=10
                     ):
-                        album_messages.append(msg)
-                    if len(album_messages) >= 10:
-                        break
-                if album_messages:
-                    album_messages.sort(key=lambda m: m.id)
-                    success = await self._forward_and_reply(album_messages, sender_info)
-            else:
-                success = await self._forward_and_reply(message, sender_info)
-            if not success:
-                self.hash_cache.pop(message_hash, None)
+                        if (
+                            hasattr(msg, "grouped_id")
+                            and msg.grouped_id == message.grouped_id
+                            and msg.id != message.id
+                        ):
+                            bisect.insort(messages, msg, key=lambda m: m.id)
+                        if len(messages) >= 10:
+                            break
+                await self.message_queue.put((messages, sender_info))
+        except AttributeError as e:
+            self.log.error(
+                f"AttributeError in watcher: {e}, message: {message}", exc_info=True
+            )
         except Exception as e:
-            self.log.error(f"Error in watcher: {str(e)}", exc_info=True)
+            self.log.error(f"Error in watcher: {e}", exc_info=True)
