@@ -348,7 +348,7 @@ class BroadMod(loader.Module):
                 if hasattr(chat, "username") and chat.username
                 else f"https://t.me/c/{str(chat.id)[4:]}/{message.id}"
             )
-            is_scammer = await self.check_scammer_channel(sender.id)
+            is_scammer, scam_post_link = await self.check_scammer(sender.id)
 
             return {
                 "sender_name": html.escape(sender_name),
@@ -357,24 +357,30 @@ class BroadMod(loader.Module):
                 "chat_title": html.escape(chat.title),
                 "message_url": message_url,
                 "scam_warning": (
-                    f"\n⚠️ Осторожно! Обнаружен в базе сканеров." if is_scammer else ""
+                    f"\n⚠️ Осторожно! Этот пользователь был <a href='{scam_post_link}'>обнаружен в базе скамеров</a>."
+                    if is_scammer
+                    else ""
                 ),
             }
         except Exception as e:
             log.error(f"Error getting sender info: {e}")
             return {}
 
-    async def check_scammer(self, user_id: int) -> bool:
-        """Check if user ID exists in the special channel"""
+    async def check_scammer(self, user_id: int) -> tuple[bool, str | None]:
+        """Check if user ID exists in the special channel and return post link."""
         check_channel = "@bezscamasuka"
-
         try:
-            async for message in self.client.iter_messages(check_channel):
+            async for message in self.client.iter_messages(
+                check_channel, limit=1000, reverse=True
+            ):
                 if str(user_id) in message.text:
-                    return True
+                    # Construct a link to the message mentioning the scammer
+
+                    post_link = f"https://t.me/{check_channel}/{message.id}"
+                    return True, post_link
         except Exception as e:
             log.error(f"Error checking scammer: {e}")
-        return False
+        return False, None
 
     @loader.command
     async def managecmd(self, message: types.Message):
