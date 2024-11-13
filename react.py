@@ -348,7 +348,7 @@ class BroadMod(loader.Module):
                 if hasattr(chat, "username") and chat.username
                 else f"https://t.me/c/{str(chat.id)[4:]}/{message.id}"
             )
-            is_scammer, scam_post_link = await self.check_scammer(sender.id)
+            is_scammer, post_link = await self.check_scammer(sender.id)
 
             return {
                 "sender_name": html.escape(sender_name),
@@ -357,7 +357,7 @@ class BroadMod(loader.Module):
                 "chat_title": html.escape(chat.title),
                 "message_url": message_url,
                 "scam_warning": (
-                    f"\n⚠️ Осторожно! Этот пользователь был <a href='{scam_post_link}'>обнаружен в базе скамеров</a>."
+                    f"\n⚠️ Осторожно! Этот пользователь был <a href='{post_link}'>обнаружен в базе скамеров</a>."
                     if is_scammer
                     else ""
                 ),
