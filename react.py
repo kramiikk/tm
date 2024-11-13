@@ -373,9 +373,7 @@ class BroadMod(loader.Module):
             async for message in self.client.iter_messages(
                 check_channel, limit=1000, reverse=True
             ):
-                if str(user_id) in message.text:
-                    # Construct a link to the message mentioning the scammer
-
+                if message.text is not None and str(user_id) in message.text:
                     post_link = f"https://t.me/{check_channel}/{message.id}"
                     return True, post_link
         except Exception as e:
