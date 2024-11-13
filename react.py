@@ -374,7 +374,7 @@ class BroadMod(loader.Module):
         except (ValueError, TypeError, errors.UsernameInvalidError) as e:
             log.error(f"Error resolving scam check channel: {e}")
             return False, None
-        if not entity:  # Check if entity resolution failed
+        if not entity:
             log.warning("Could not resolve scam check channel entity.")
             return False, None
         try:
