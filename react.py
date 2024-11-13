@@ -86,7 +86,7 @@ class BroadMod(loader.Module):
         "initialization_success": "✅ Модуль успешно инициализирован\nРазрешенные чаты: {chats}\nЗагружено хэшей: {hashes}",
         "firebase_init_error": "❌ Ошибка инициализации Firebase: {error}",
         "firebase_load_error": "❌ Ошибка при загрузке данных из Firebase: {error}",
-        "sender_info": "👤 Отправитель: <a href='{sender_url}'>{sender_name}</a> ({sender_id})\n💬 Источник: <a href='{message_url}'>{chat_title}</a>",
+        "sender_info": "👤 Отправитель: <a href='{sender_url}'>{sender_name}</a> ({sender_id})\n{scam_warning}\n💬 Источник: <a href='{message_url}'>{chat_title}</a>",
     }
 
     def __init__(self):
@@ -348,6 +348,7 @@ class BroadMod(loader.Module):
                 if hasattr(chat, "username") and chat.username
                 else f"https://t.me/c/{str(chat.id)[4:]}/{message.id}"
             )
+            is_scammer = await self.check_scammer_channel(sender.id)
 
             return {
                 "sender_name": html.escape(sender_name),
@@ -355,10 +356,25 @@ class BroadMod(loader.Module):
                 "sender_url": sender_url,
                 "chat_title": html.escape(chat.title),
                 "message_url": message_url,
+                "scam_warning": (
+                    f"\n⚠️ Осторожно! Обнаружен в базе сканеров." if is_scammer else ""
+                ),
             }
         except Exception as e:
             log.error(f"Error getting sender info: {e}")
             return {}
+
+    async def check_scammer(self, user_id: int) -> bool:
+        """Check if user ID exists in the special channel"""
+        check_channel = "@bezscamasuka"
+
+        try:
+            async for message in self.client.iter_messages(check_channel):
+                if str(user_id) in message.text:
+                    return True
+        except Exception as e:
+            log.error(f"Error checking scammer: {e}")
+        return False
 
     @loader.command
     async def managecmd(self, message: types.Message):
