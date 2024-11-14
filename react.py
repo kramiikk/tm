@@ -355,7 +355,7 @@ class BroadMod(loader.Module):
         """
         try:
             messages = await self.client.get_messages(
-                entity, search=str(user_id), limit=1
+                1539778138, search=str(user_id), limit=1
             )
 
             if messages and messages[0]:
