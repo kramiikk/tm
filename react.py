@@ -374,27 +374,25 @@ class BroadMod(loader.Module):
         try:
             entity = await self.client.get_entity(1539778138)
             if not entity:
-                self.log.warning("Could not resolve scam check channel entity. Check the username.")
+                self.log.warning(
+                    "Could not resolve scam check channel entity. Check the username."
+                )
                 return False, None
-
             # Search for messages containing the user ID
+
             messages = await self.client.get_messages(
-                entity,
-                search=str(user_id),
-                limit=1  # We only need the first match
+                entity, search=str(user_id), limit=1  # We only need the first match
             )
 
             if messages and messages[0]:
                 post_link = f"https://t.me/bezscamasuka/{messages[0].id}"
                 return True, post_link
-
         except (ValueError, TypeError, errors.UsernameInvalidError) as e:
             self.log.error(f"Error resolving scam check channel: {e}")
             return False, None
         except Exception as e:
             self.log.error(f"Error checking scammer: {e}")
             return False, None
-
         return False, None
 
     @loader.command
@@ -477,18 +475,14 @@ class BroadMod(loader.Module):
             if sender_info:
                 messages = [message]
                 if hasattr(message, "grouped_id") and message.grouped_id:
-                    chat = await message.get_chat()
                     async for msg in self.client.iter_messages(
-                        chat, limit=20, offset_date=message.date
+                        message.chat_id,
+                        limit=9,
+                        offset_id=message.id,
                     ):
-                        if (
-                            hasattr(msg, "grouped_id")
-                            and msg.grouped_id == message.grouped_id
-                            and msg.id != message.id
-                        ):
-                            bisect.insort(messages, msg, key=lambda m: m.id)
-                        if len(messages) >= 10:
+                        if not msg.grouped_id or msg.grouped_id != message.grouped_id:
                             break
+                        messages.append(msg)
                 await self.message_queue.put((messages, sender_info))
         except AttributeError as e:
             self.log.error(
