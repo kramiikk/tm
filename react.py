@@ -280,7 +280,7 @@ class BroadMod(loader.Module):
             )
 
     async def process_queue(self):
-        """Обрабатывает сообщения из очереди с задержкой"""
+        """Processes messages from the queue with a delay."""
         while True:
             messages, sender_info = await self.message_queue.get()
             try:
@@ -292,19 +292,26 @@ class BroadMod(loader.Module):
                 )
 
                 if forwarded:
+                    reply_to_id = None
                     if isinstance(forwarded, list):
                         for msg in forwarded:
-                            reply_to_id = msg.id
-                            break
-                    else:
+                            if msg and hasattr(msg, "id"):
+                                reply_to_id = msg.id
+                                break
+                    elif forwarded and hasattr(forwarded, "id"):
                         reply_to_id = forwarded.id
-                    await self.client.send_message(
-                        entity=self.config["forward_channel_id"],
-                        message=self.strings["sender_info"].format(**sender_info),
-                        reply_to=reply_to_id,
-                        parse_mode="html",
-                        link_preview=False,
-                    )
+                    if reply_to_id:
+                        await self.client.send_message(
+                            entity=self.config["forward_channel_id"],
+                            message=self.strings["sender_info"].format(**sender_info),
+                            reply_to=reply_to_id,
+                            parse_mode="html",
+                            link_preview=False,
+                        )
+                    else:
+                        log.warning(
+                            "Failed to forward messages.  forwarded object is invalid."
+                        )
             except errors.FloodWaitError as e:
                 await asyncio.sleep(900 + e.seconds)
             except Exception as e:
@@ -363,9 +370,6 @@ class BroadMod(loader.Module):
             if messages and messages[0]:
                 post_link = f"https://t.me/bezscamasuka/{messages[0].id}"
                 return True, post_link
-        except (ValueError, TypeError, errors.UsernameInvalidError) as e:
-            log.error(f"Error resolving scam check channel: {e}")
-            return False, None
         except Exception as e:
             log.error(f"Error checking scammer: {e}")
             return False, None
@@ -431,19 +435,6 @@ class BroadMod(loader.Module):
             if message_hash in self.hash_cache:
                 await self._clear_expired_hashes()
                 return
-            sender_info = await self._get_sender_info(message)
-            if sender_info:
-                messages = [message]
-                if hasattr(message, "grouped_id") and message.grouped_id:
-                    async for msg in self.client.iter_messages(
-                        message.chat_id,
-                        limit=9,
-                        offset_id=message.id + 1,
-                    ):
-                        if not msg.grouped_id or msg.grouped_id != message.grouped_id:
-                            break
-                        messages.append(msg)
-                await self.message_queue.put((messages, sender_info))
             current_time = time.time()
             self.hash_cache[message_hash] = current_time
 
@@ -460,9 +451,17 @@ class BroadMod(loader.Module):
                 log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
                 self.hash_cache.pop(message_hash, None)
                 return
-        except AttributeError as e:
-            log.error(
-                f"AttributeError in watcher: {e}, message: {message}", exc_info=True
-            )
+            messages = [message]
+            if hasattr(message, "grouped_id") and message.grouped_id:
+                async for msg in self.client.iter_messages(
+                    message.chat_id,
+                    limit=9,
+                    offset_id=message.id + 1,
+                ):
+                    if not msg.grouped_id or msg.grouped_id != message.grouped_id:
+                        break
+                    messages.append(msg)
+            sender_info = await self._get_sender_info(message)
+            await self.message_queue.put((messages, sender_info))
         except Exception as e:
             log.error(f"Error in watcher: {e}", exc_info=True)
