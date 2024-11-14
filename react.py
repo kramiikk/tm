@@ -441,7 +441,7 @@ class BroadMod(loader.Module):
                 all_messages = await self.client.get_messages(
                     message.chat_id,
                     offset_id=message.id,
-                    limit=20,
+                    limit=10,
                 )
                 messages = [
                     msg for msg in all_messages if msg.grouped_id == message.grouped_id
