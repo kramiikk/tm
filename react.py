@@ -436,7 +436,7 @@ class BroadMod(loader.Module):
                     async for msg in self.client.iter_messages(
                         message.chat_id,
                         limit=9,
-                        offset_id=message.id,
+                        offset_id=message.id + 1,
                     ):
                         if not msg.grouped_id or msg.grouped_id != message.grouped_id:
                             break
