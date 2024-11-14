@@ -313,33 +313,30 @@ class BroadMod(loader.Module):
     async def _get_sender_info(self, message: types.Message) -> dict:
         """Get formatted sender information"""
         try:
-            chat = message.chat_id
-            sender = message.sender_id
-
             sender_name = (
                 "Deleted Account"
-                if hasattr(sender, "deleted") and sender.deleted
-                else telethon_utils.get_display_name(sender)
+                if hasattr(message.sender, "deleted") and message.sender.deleted
+                else message.sender.first_name
             )
 
             sender_url = (
-                f"https://t.me/{sender.username}"
-                if hasattr(sender, "username") and sender.username
-                else f"tg://user?id={sender.id}"
+                f"https://t.me/{message.sender.username}"
+                if hasattr(message.sender, "username") and message.sender.username
+                else f"tg://user?id={message.sender.id}"
             )
 
             message_url = (
-                f"https://t.me/{chat.username}/{message.id}"
-                if hasattr(chat, "username") and chat.username
-                else f"https://t.me/c/{str(chat.id)[4:]}/{message.id}"
+                f"https://t.me/{message.chat.username}/{message.id}"
+                if hasattr(message.chat, "username") and message.chat.username
+                else f"https://t.me/c/{str(message.chat_id)[4:]}/{message.id}"
             )
-            is_scammer, post_link = await self.check_scammer(sender.id)
+            is_scammer, post_link = await self.check_scammer(message.sender.id)
 
             return {
                 "sender_name": html.escape(sender_name),
-                "sender_id": sender.id,
+                "sender_id": message.sender.id,
                 "sender_url": sender_url,
-                "chat_title": html.escape(chat.title),
+                "chat_title": html.escape(message.chat.title),
                 "message_url": message_url,
                 "scam_warning": (
                     f"⚠️ Осторожно! Этот пользователь был <a href='{post_link}'>обнаружен в базе скамеров</a>.\n"
@@ -432,6 +429,19 @@ class BroadMod(loader.Module):
             if message_hash in self.hash_cache:
                 await self._clear_expired_hashes()
                 return
+            sender_info = await self._get_sender_info(message)
+            if sender_info:
+                messages = [message]
+                if hasattr(message, "grouped_id") and message.grouped_id:
+                    async for msg in self.client.iter_messages(
+                        message.chat_id,
+                        limit=9,
+                        offset_id=message.id,
+                    ):
+                        if not msg.grouped_id or msg.grouped_id != message.grouped_id:
+                            break
+                        messages.append(msg)
+                await self.message_queue.put((messages, sender_info))
             current_time = time.time()
             self.hash_cache[message_hash] = current_time
 
@@ -448,19 +458,6 @@ class BroadMod(loader.Module):
                 log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
                 self.hash_cache.pop(message_hash, None)
                 return
-            sender_info = await self._get_sender_info(message)
-            if sender_info:
-                messages = [message]
-                if hasattr(message, "grouped_id") and message.grouped_id:
-                    async for msg in self.client.iter_messages(
-                        message.chat_id,
-                        limit=9,
-                        offset_id=message.id,
-                    ):
-                        if not msg.grouped_id or msg.grouped_id != message.grouped_id:
-                            break
-                        messages.append(msg)
-                await self.message_queue.put((messages, sender_info))
         except AttributeError as e:
             log.error(
                 f"AttributeError in watcher: {e}, message: {message}", exc_info=True
