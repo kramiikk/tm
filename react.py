@@ -288,26 +288,16 @@ class BroadMod(loader.Module):
                 )
 
                 if forwarded:
-                    reply_to_id = None
-                    if isinstance(forwarded, list):
-                        for msg in forwarded:
-                            if msg and hasattr(msg, "id"):
-                                reply_to_id = msg.id
-                                break
-                    elif forwarded and hasattr(forwarded, "id"):
-                        reply_to_id = forwarded.id
-                    if reply_to_id:
-                        await self.client.send_message(
-                            entity=self.config["forward_channel_id"],
-                            message=self.strings["sender_info"].format(**sender_info),
-                            reply_to=reply_to_id,
-                            parse_mode="html",
-                            link_preview=False,
-                        )
-                    else:
-                        log.warning(
-                            "Failed to forward messages.  forwarded object is invalid."
-                        )
+                    reply_to_id = (
+                        forwarded[0].id if isinstance(forwarded, list) else forwarded.id
+                    )
+                    await self.client.send_message(
+                        entity=self.config["forward_channel_id"],
+                        message=self.strings["sender_info"].format(**sender_info),
+                        reply_to=reply_to_id,
+                        parse_mode="html",
+                        link_preview=False,
+                    )
             except errors.FloodWaitError as e:
                 await asyncio.sleep(900 + e.seconds)
             except Exception as e:
@@ -447,16 +437,17 @@ class BroadMod(loader.Module):
                 log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
                 self.hash_cache.pop(message_hash, None)
                 return
-            messages = [message]
             if hasattr(message, "grouped_id") and message.grouped_id:
-                async for msg in self.client.iter_messages(
+                all_messages = await self.client.get_messages(
                     message.chat_id,
-                    limit=9,
-                    offset_id=message.id + 1,
-                ):
-                    if not msg.grouped_id or msg.grouped_id != message.grouped_id:
-                        break
-                    messages.append(msg)
+                    offset_id=message.id,
+                    limit=20,
+                )
+                messages = [
+                    msg for msg in all_messages if msg.grouped_id == message.grouped_id
+                ]
+            else:
+                messages = [message]
             sender_info = await self._get_sender_info(message)
             await self.message_queue.put((messages, sender_info))
         except Exception as e:
