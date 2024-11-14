@@ -160,7 +160,6 @@ class BroadMod(loader.Module):
         self.last_cleanup_time = 0
         self.batch_processor = None
         self.initialized = False
-        self.log = log
         super().__init__()
 
     def init_bloom_filter(self) -> bool:
@@ -172,7 +171,7 @@ class BroadMod(loader.Module):
             )
             return True
         except Exception as e:
-            log.warning(f"Bloom filter initialization failed, using set instead: {e}")
+            log.error(f"Bloom filter initialization failed, using set instead: {e}")
             self.bloom_filter = set()
             return False
 
@@ -183,14 +182,10 @@ class BroadMod(loader.Module):
         if not self.config["firebase_credentials_path"] or not os.path.exists(
             self.config["firebase_credentials_path"]
         ):
-            await self.client.send_message(
-                "me", "❌ Firebase credentials file not found or path is incorrect."
-            )
+            log.warning("❌ Firebase credentials file not found or path is incorrect.")
             return
         if not self.config["firebase_database_url"]:
-            await self.client.send_message(
-                "me", "❌ Firebase database URL is not configured."
-            )
+            log.warning("❌ Firebase database URL is not configured.")
             return
         if not await self._initialize_firebase():
             return
@@ -205,9 +200,7 @@ class BroadMod(loader.Module):
 
             if not self.init_bloom_filter():
                 self.initialized = False
-                await client.send_message(
-                    "me", "❌ Bloom filter initialization failed. Module disabled."
-                )
+                log.warning("❌ Bloom filter initialization failed. Module disabled.")
                 return
             await self._load_recent_hashes()
 
@@ -216,48 +209,11 @@ class BroadMod(loader.Module):
             self.allowed_chats = chats_data if isinstance(chats_data, list) else []
 
             self.initialized = True
-            await self.client.send_message(
-                "me",
-                self.strings["initialization_success"].format(
-                    chats=self.allowed_chats, hashes=len(self.hash_cache)
-                ),
-            )
         except Exception as e:
-            await client.send_message("me", f"❌ Error loading data from Firebase: {e}")
+            log.error(f"❌ Error loading data from Firebase: {e}")
             self.initialized = False
         if not self.processing_task:
             self.processing_task = asyncio.create_task(self.process_queue())
-
-    async def process_queue(self):
-        """Обрабатывает сообщения из очереди с задержкой"""
-        while True:
-            messages, sender_info = await self.message_queue.get()
-            try:
-                await asyncio.sleep(13)
-                forwarded = await self.client.forward_messages(
-                    entity=self.config["forward_channel_id"],
-                    messages=messages,
-                    silent=True,
-                )
-
-                if forwarded:
-                    reply_to_id = (
-                        forwarded[0].id if isinstance(forwarded, list) else forwarded.id
-                    )
-
-                    await self.client.send_message(
-                        entity=self.config["forward_channel_id"],
-                        message=self.strings["sender_info"].format(**sender_info),
-                        reply_to=reply_to_id,
-                        parse_mode="html",
-                        link_preview=False,
-                    )
-            except errors.FloodWaitError as e:
-                await asyncio.sleep(300 + e.seconds)
-            except Exception as e:
-                self.log.error(f"Error processing message: {e}", exc_info=True)
-            finally:
-                self.message_queue.task_done()
 
     async def _initialize_firebase(self) -> bool:
         """Initialize Firebase connection"""
@@ -270,9 +226,7 @@ class BroadMod(loader.Module):
             self.db_ref = firebase_db.reference("/")
             return True
         except Exception as e:
-            await self.client.send_message(
-                "me", self.strings["firebase_init_error"].format(error=str(e))
-            )
+            log.error(self.strings["firebase_init_error"].format(error=str(e)))
             return False
 
     async def _load_recent_hashes(self):
@@ -298,7 +252,7 @@ class BroadMod(loader.Module):
                         if self.bloom_filter:
                             self.bloom_filter.add(hash_value)
         except Exception as e:
-            self.log.error(f"Error loading recent hashes: {e}", exc_info=True)
+            log.error(f"Error loading recent hashes: {e}", exc_info=True)
             self.hash_cache = {}
 
     async def _clear_expired_hashes(self):
@@ -325,11 +279,42 @@ class BroadMod(loader.Module):
                 h for h, ts in self.hash_cache.items() if ts >= expiration_time
             )
 
+    async def process_queue(self):
+        """Обрабатывает сообщения из очереди с задержкой"""
+        while True:
+            messages, sender_info = await self.message_queue.get()
+            try:
+                await asyncio.sleep(13)
+                forwarded = await self.client.forward_messages(
+                    entity=self.config["forward_channel_id"],
+                    messages=messages,
+                    silent=True,
+                )
+
+                if forwarded:
+                    reply_to_id = (
+                        forwarded[0].id if isinstance(forwarded, list) else forwarded.id
+                    )
+
+                    await self.client.send_message(
+                        entity=self.config["forward_channel_id"],
+                        message=self.strings["sender_info"].format(**sender_info),
+                        reply_to=reply_to_id,
+                        parse_mode="html",
+                        link_preview=False,
+                    )
+            except errors.FloodWaitError as e:
+                await asyncio.sleep(900 + e.seconds)
+            except Exception as e:
+                log.error(f"Error processing message: {e}", exc_info=True)
+            finally:
+                self.message_queue.task_done()
+
     async def _get_sender_info(self, message: types.Message) -> dict:
         """Get formatted sender information"""
         try:
-            chat = await message.get_chat()
-            sender = await message.get_sender()
+            chat = message.chat_id
+            sender = message.sender_id
 
             sender_name = (
                 "Deleted Account"
@@ -357,7 +342,7 @@ class BroadMod(loader.Module):
                 "chat_title": html.escape(chat.title),
                 "message_url": message_url,
                 "scam_warning": (
-                    f"\n⚠️ Осторожно! Этот пользователь был <a href='{post_link}'>обнаружен в базе скамеров</a>."
+                    f"⚠️ Осторожно! Этот пользователь был <a href='{post_link}'>обнаружен в базе скамеров</a>.\n"
                     if is_scammer
                     else ""
                 ),
@@ -372,26 +357,18 @@ class BroadMod(loader.Module):
         Uses message search instead of iteration for better performance.
         """
         try:
-            entity = await self.client.get_entity(1539778138)
-            if not entity:
-                self.log.warning(
-                    "Could not resolve scam check channel entity. Check the username."
-                )
-                return False, None
-            # Search for messages containing the user ID
-
             messages = await self.client.get_messages(
-                entity, search=str(user_id), limit=1  # We only need the first match
+                entity, search=str(user_id), limit=1
             )
 
             if messages and messages[0]:
                 post_link = f"https://t.me/bezscamasuka/{messages[0].id}"
                 return True, post_link
         except (ValueError, TypeError, errors.UsernameInvalidError) as e:
-            self.log.error(f"Error resolving scam check channel: {e}")
+            log.error(f"Error resolving scam check channel: {e}")
             return False, None
         except Exception as e:
-            self.log.error(f"Error checking scammer: {e}")
+            log.error(f"Error checking scammer: {e}")
             return False, None
         return False, None
 
@@ -468,7 +445,7 @@ class BroadMod(loader.Module):
                 if self.batch_processor:
                     await self.batch_processor.add(hash_data)
             except Exception as e:
-                self.log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
+                log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
                 self.hash_cache.pop(message_hash, None)
                 return
             sender_info = await self._get_sender_info(message)
@@ -485,8 +462,8 @@ class BroadMod(loader.Module):
                         messages.append(msg)
                 await self.message_queue.put((messages, sender_info))
         except AttributeError as e:
-            self.log.error(
+            log.error(
                 f"AttributeError in watcher: {e}, message: {message}", exc_info=True
             )
         except Exception as e:
-            self.log.error(f"Error in watcher: {e}", exc_info=True)
+            log.error(f"Error in watcher: {e}", exc_info=True)
