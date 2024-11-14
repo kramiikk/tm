@@ -81,11 +81,7 @@ class BroadMod(loader.Module):
         "cfg_hash_retention": "Время хранения хэшей (в секундах)",
         "cfg_max_firebase_hashes": "Максимальное количество хэшей в Firebase",
         "cfg_min_text_length": "Минимальная длина текста для обработки",
-        "no_firebase_path": "⚠️ Не указан путь к файлу учетных данных Firebase",
-        "no_firebase_url": "⚠️ Не указан URL базы данных Firebase",
-        "initialization_success": "✅ Модуль успешно инициализирован\nРазрешенные чаты: {chats}\nЗагружено хэшей: {hashes}",
         "firebase_init_error": "❌ Ошибка инициализации Firebase: {error}",
-        "firebase_load_error": "❌ Ошибка при загрузке данных из Firebase: {error}",
         "sender_info": "👤 Отправитель: <a href='{sender_url}'>{sender_name}</a> ({sender_id})\n{scam_warning}\n💬 Источник: <a href='{message_url}'>{chat_title}</a>",
     }
 
@@ -348,7 +344,7 @@ class BroadMod(loader.Module):
                 "chat_title": html.escape(message.chat.title),
                 "message_url": message_url,
                 "scam_warning": (
-                    f"⚠️ Осторожно! Этот пользователь был <a href='{post_link}'>обнаружен в базе скамеров</a>.\n"
+                    f"⚠️ Осторожно! Пользователь <a href='{post_link}'>обнаружен в базе скамеров</a>.\n"
                     if is_scammer
                     else ""
                 ),
