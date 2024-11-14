@@ -292,10 +292,12 @@ class BroadMod(loader.Module):
                 )
 
                 if forwarded:
-                    reply_to_id = (
-                        forwarded[0].id if isinstance(forwarded, list) else forwarded.id
-                    )
-
+                    if isinstance(forwarded, list):
+                        for msg in forwarded:
+                            reply_to_id = msg.id
+                            break
+                    else:
+                        reply_to_id = forwarded.id
                     await self.client.send_message(
                         entity=self.config["forward_channel_id"],
                         message=self.strings["sender_info"].format(**sender_info),
