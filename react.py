@@ -437,6 +437,7 @@ class BroadMod(loader.Module):
                 log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
                 self.hash_cache.pop(message_hash, None)
                 return
+            messages = [message]
             if hasattr(message, "grouped_id") and message.grouped_id:
                 async for msg in self.client.iter_messages(
                     message.chat_id, limit=10, offset_date=message.date
