@@ -440,7 +440,7 @@ class BroadMod(loader.Module):
             messages = [message]
             if hasattr(message, "grouped_id") and message.grouped_id:
                 async for msg in self.client.iter_messages(
-                    message.chat_id, limit=10, offset_date=message.date
+                    message.chat_id, limit=20, offset_date=message.date
                 ):
                     if (
                         hasattr(msg, "grouped_id")
