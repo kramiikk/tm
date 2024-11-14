@@ -438,16 +438,15 @@ class BroadMod(loader.Module):
                 self.hash_cache.pop(message_hash, None)
                 return
             if hasattr(message, "grouped_id") and message.grouped_id:
-                all_messages = await self.client.get_messages(
-                    message.chat_id,
-                    offset_id=message.id,
-                    limit=10,
-                )
-                messages = [
-                    msg for msg in all_messages if msg.grouped_id == message.grouped_id
-                ]
-            else:
-                messages = [message]
+                async for msg in self.client.iter_messages(
+                    message.chat_id, limit=10, offset_date=message.date
+                ):
+                    if (
+                        hasattr(msg, "grouped_id")
+                        and msg.grouped_id == message.grouped_id
+                        and msg.id != message.id
+                    ):
+                        bisect.insort(messages, msg, key=lambda m: m.id)
             sender_info = await self._get_sender_info(message)
             await self.message_queue.put((messages, sender_info))
         except Exception as e:
