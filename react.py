@@ -281,10 +281,10 @@ class BroadMod(loader.Module):
             messages, sender_info = await self.message_queue.get()
             try:
                 await asyncio.sleep(13)
-                forwarded = await self.client.forward_messages(
-                    entity=self.config["forward_channel_id"], messages=messages
-                )
-
+                if messages:
+                    forwarded = await self.client.forward_messages(
+                        entity=self.config["forward_channel_id"], messages=messages
+                    )
                 if forwarded:
                     reply_to_id = (
                         forwarded[0].id if isinstance(forwarded, list) else forwarded.id
@@ -296,6 +296,10 @@ class BroadMod(loader.Module):
                         parse_mode="html",
                         link_preview=False,
                     )
+            except errors.MessageIdInvalidError:
+                log.warning(
+                    "Невозможно переслать сообщение. Возможно, оно было удалено или недоступно."
+                )
             except errors.FloodWaitError as e:
                 await asyncio.sleep(900 + e.seconds)
             except Exception as e:
