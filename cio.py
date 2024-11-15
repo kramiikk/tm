@@ -113,34 +113,36 @@ class NgramSimilarityChecker:
 
     async def initialize(self):
         """Load existing n-grams from Firebase."""
-        self.ngram_cache = await self.firebase_handler.load_entries(self.retention_period)
+        self.ngram_cache = await self.firebase_handler.load_entries(
+            self.retention_period
+        )
 
     async def is_similar_to_cached(self, text: str, timestamp: float) -> bool:
         """Check if text is similar to any cached messages."""
         current_ngrams = self.generate_ngrams(text)
-        
+
         self.ngram_cache = {
-            hash_val: (ngrams, ts) 
+            hash_val: (ngrams, ts)
             for hash_val, (ngrams, ts) in self.ngram_cache.items()
             if timestamp - ts < self.retention_period
         }
-        
+
         for ngrams, _ in self.ngram_cache.values():
             similarity = self.calculate_similarity(current_ngrams, ngrams)
             if similarity >= self.similarity_threshold:
                 return True
-        
         cache_key = hash(frozenset(current_ngrams))
         self.ngram_cache[cache_key] = (current_ngrams, timestamp)
-        
+
         ngram_data = {
-            'hash': cache_key,
-            'ngrams': list(current_ngrams),
-            'timestamp': timestamp
+            "hash": cache_key,
+            "ngrams": list(current_ngrams),
+            "timestamp": timestamp,
         }
-        
+
         await self.firebase_handler.add_entry(ngram_data)
         return False
+
 
 @loader.tds
 class BroadMod(loader.Module):
@@ -253,21 +255,19 @@ class BroadMod(loader.Module):
         if not self.config["firebase_database_url"]:
             log.warning("❌ Firebase database URL is not configured.")
             return
-            
         if not await self._initialize_firebase():
             return
-            
         try:
             self.db_ref = firebase_db.reference("/")
-            
+
             self.similarity_checker = NgramSimilarityChecker(
                 db_ref=self.db_ref,
                 n=self.config["ngram_size"],
                 similarity_threshold=self.config["similarity_threshold"],
                 max_entries=self.config["max_ngram_entries"],
-                retention_period=self.config["ngram_retention_period"]
+                retention_period=self.config["ngram_retention_period"],
             )
-            
+
             await self.similarity_checker.initialize()
 
             chats_ref = self.db_ref.child("allowed_chats")
@@ -278,7 +278,6 @@ class BroadMod(loader.Module):
         except Exception as e:
             log.error(f"❌ Error loading data from Firebase: {e}")
             self.initialized = False
-            
         if not self.processing_task:
             self.processing_task = asyncio.create_task(self.process_queue())
 
@@ -378,7 +377,6 @@ class BroadMod(loader.Module):
                 )
                 await message.reply(response)
                 return
-
             try:
                 chat_id = int(args[1])
             except ValueError:
@@ -386,5 +384,58 @@ class BroadMod(loader.Module):
                     "❌ Неверный формат ID чата. Укажите правильное число."
                 )
                 return
+            if chat_id in self.allowed_chats:
+                self.allowed_chats.remove(chat_id)
+                txt = f"❌ Чат {chat_id} удален из списка."
+            else:
+                self.allowed_chats.append(chat_id)
+                txt = f"✅ Чат {chat_id} добавлен в список."
+            chats_ref = self.db_ref.child("allowed_chats")
+            chats_ref.set(self.allowed_chats)
+            await message.reply(txt)
+        except Exception as e:
+            await message.reply(f"❌ Ошибка при управлении списком чатов: {e}")
 
-            if chat_i
+    async def watcher(self, message: types.Message):
+        """Process and forward messages"""
+        if (
+            not self.initialized
+            or message.chat_id not in self.allowed_chats
+            or (sender := getattr(message, "sender", None)) is None
+            or getattr(sender, "bot", False)
+        ):
+            return
+        try:
+            text_to_check = message.text or ""
+            if len(text_to_check) < self.config["min_text_length"]:
+                return
+            low = text_to_check.lower()
+            found_keywords = [kw for kw in self.config["trading_keywords"] if kw in low]
+            if not found_keywords:
+                return
+            normalized_text = html.unescape(
+                re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", low)
+            ).strip()
+            if not normalized_text:
+                return
+            current_time = time.time()
+            if await self.similarity_checker.is_similar_to_cached(
+                normalized_text, current_time
+            ):
+                return
+            messages = []
+            if hasattr(message, "grouped_id") and message.grouped_id:
+                async for msg in self.client.iter_messages(
+                    message.chat_id, limit=10, offset_date=message.date
+                ):
+                    if (
+                        hasattr(msg, "grouped_id")
+                        and msg.grouped_id == message.grouped_id
+                    ):
+                        bisect.insort(messages, msg, key=lambda m: m.id)
+            else:
+                messages = [message]
+            sender_info = await self._get_sender_info(message)
+            await self.message_queue.put((messages, sender_info))
+        except Exception as e:
+            log.error(f"Error in watcher: {e}", exc_info=True)
