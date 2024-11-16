@@ -312,7 +312,7 @@ class BroadMod(loader.Module):
                 "chat_title": html.escape(message.chat.title),
                 "message_url": message_url,
                 "scam_warning": (
-                    f"⚠️ Осторожно! Пользователь <a href='{post_link}'>обнаружен в базе скамеров</a>.\n"
+                    f"╰┈➤⚠️ <a href='{post_link}'>Обнаружен в базе скамеров.</a>\n"
                     if is_scammer
                     else ""
                 ),
