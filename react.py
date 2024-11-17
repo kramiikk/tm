@@ -81,7 +81,7 @@ class BroadMod(loader.Module):
         "cfg_max_firebase_hashes": "Максимальное количество хэшей в Firebase",
         "cfg_min_text_length": "Минимальная длина текста для обработки",
         "firebase_init_error": "❌ Ошибка инициализации Firebase: {error}",
-        "sender_info": "<a href='{sender_url}'>👤 {sender_name}</a> [{sender_id}]\n{scam_warning}\n<a href='{message_url}'>💬 {chat_title}</a>",
+        "sender_info": "<a href='{sender_url}'>👤 {sender_name}</a> [{sender_id}]\n{scam_warning}\n<a href='{message_url}'>🍜 link</a>",
     }
 
     def __init__(self):
@@ -332,10 +332,9 @@ class BroadMod(loader.Module):
                 "sender_name": html.escape(sender_name),
                 "sender_id": message.sender.id,
                 "sender_url": sender_url,
-                "chat_title": html.escape(message.chat.title),
                 "message_url": message_url,
                 "scam_warning": (
-                    f"╰┈➤⚠️ <a href='{post_link}'>Обнаружен в базе скамеров.</a>\n"
+                    f"╰┈➤⚠️ <a href='{post_link}'>Есть в базе скамеров.</a>\n"
                     if is_scammer
                     else ""
                 ),
