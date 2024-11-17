@@ -58,11 +58,12 @@ class BatchProcessor:
             current_hashes.extend(current_batch)
 
             if len(current_hashes) > self.max_hashes:
-                current_hashes = current_hashes[-self.max_hashes:]
+                current_hashes = current_hashes[-self.max_hashes :]
             hashes_ref.set(current_hashes)
         except Exception as e:
             log.error(f"Error flushing batch to Firebase: {e}", exc_info=True)
             self.batch.extend(current_batch)
+
 
 @loader.tds
 class BroadMod(loader.Module):
@@ -80,7 +81,7 @@ class BroadMod(loader.Module):
         "cfg_max_firebase_hashes": "Максимальное количество хэшей в Firebase",
         "cfg_min_text_length": "Минимальная длина текста для обработки",
         "firebase_init_error": "❌ Ошибка инициализации Firebase: {error}",
-        "sender_info": "👤 Отправитель: <a href='{sender_url}'>{sender_name}</a> ({sender_id})\n{scam_warning}\n💬 Источник: <a href='{message_url}'>{chat_title}</a>",
+        "sender_info": "<a href='{sender_url}'>👤 {sender_name}</a> [{sender_id}]\n{scam_warning}\n<a href='{message_url}'>💬 {chat_title}</a>",
     }
 
     def __init__(self):
@@ -114,10 +115,32 @@ class BroadMod(loader.Module):
             lambda: self.strings("cfg_min_text_length"),
             "trading_keywords",
             [
-                "акк", "прод", "куп", "обмен", "лег", "оруж", "артефакты",
-                "ивент", "100", "гарант", "уд", "утер", "луна", "ранг",
-                "AR", "ищу", "приор", "стандарт", "евро", "уров", "старт",
-                "сигна", "руб", "крыл", "срочн", "кто",
+                "акк",
+                "прод",
+                "куп",
+                "обмен",
+                "лег",
+                "оруж",
+                "артефакты",
+                "ивент",
+                "100",
+                "гарант",
+                "уд",
+                "утер",
+                "луна",
+                "ранг",
+                "AR",
+                "ищу",
+                "приор",
+                "стандарт",
+                "евро",
+                "уров",
+                "старт",
+                "сигна",
+                "руб",
+                "крыл",
+                "срочн",
+                "кто",
             ],
             lambda: "Keywords to trigger forwarding (list of strings)",
         )
@@ -382,28 +405,23 @@ class BroadMod(loader.Module):
             or getattr(sender, "bot", False)
         ):
             return
-
         try:
             text_to_check = message.text or ""
             if len(text_to_check) < self.config["min_text_length"]:
                 return
-
             low = text_to_check.lower()
             found_keywords = [kw for kw in self.config["trading_keywords"] if kw in low]
             if not found_keywords:
                 return
-
             normalized_text = html.unescape(
                 re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", low)
             ).strip()
             if not normalized_text:
                 return
-
             message_hash = str(mmh3.hash(normalized_text))
             if message_hash in self.hash_cache:
                 await self._clear_expired_hashes()
                 return
-
             current_time = time.time()
             self.hash_cache[message_hash] = current_time
 
@@ -412,7 +430,6 @@ class BroadMod(loader.Module):
                     self.bloom_filter.add(message_hash)
                 elif isinstance(self.bloom_filter, set):
                     self.bloom_filter.add(message_hash)
-
             try:
                 hash_data = {"hash": message_hash, "timestamp": current_time}
                 if self.batch_processor:
@@ -421,7 +438,6 @@ class BroadMod(loader.Module):
                 log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
                 self.hash_cache.pop(message_hash, None)
                 return
-
             messages = []
             if hasattr(message, "grouped_id") and message.grouped_id:
                 async for msg in self.client.iter_messages(
@@ -434,7 +450,6 @@ class BroadMod(loader.Module):
                         bisect.insort(messages, msg, key=lambda m: m.id)
             else:
                 messages = [message]
-
             sender_info = await self._get_sender_info(message)
             await self.message_queue.put((messages, sender_info))
         except Exception as e:
