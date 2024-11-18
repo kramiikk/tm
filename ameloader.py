@@ -8,42 +8,40 @@ import re
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика. ИСПОЛЬЗОВАТЬ С ОСТОРОЖНОСТЬЮ, ЧИТАТЬ ВСЕ. ПРИ НЕАККУРАТНОМ ИСПОЛЬЗОВАНИИ ПРИДЕТСЯ ПЕРЕУСТАНАВЛИВАТЬ ХИККУ."""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
     async def updateloadercmd(self, message):
-        """[url] [text] [reset hikari/coddrago] - Обновить баннер и текст загрузчика
-        Примеры:
+        """
         .updateloader - показать справку
         .updateloader reset hikari - вернуть дефолтные настройки Hikka
         .updateloader reset coddrago - вернуть дефолтные настройки CodDrago
         .updateloader https://example.com/banner.mp4 - заменить только баннер
-        .updateloader https://example.com/banner.mp4 "Мой текст" - заменить баннер и текст
+        .updateloader https://example.com/banner.mp4 текст - заменить баннер и текст
         """
 
         args = message.raw_text.split(" ", 3)
 
         if len(args) == 1:
             help_text = (
-                "<b>📋 Справка по .updateloader:</b>\n\n"
+                "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
                 "• <code>.updateloader reset hikari</code> - Сброс к настройкам Hikka\n"
                 "• <code>.updateloader reset coddrago</code> - Сброс к настройкам CodDrago\n"
                 "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить только баннер\n"
-                '• <code>.updateloader https://site.com/banner.mp4 "Текст"</code> - Заменить баннер и текст\n\n'
-                "❗ <b>ИСПОЛЬЗОВАТЬ С ОСТОРОЖНОСТЬЮ</b>"
+                "• <code>.updateloader https://site.com/banner.mp4 текст</code> - Заменить баннер и текст\n\n"
             )
             await message.edit(help_text)
             return
-        full_reset = len(args) >= 3 and args[1] == "reset"
-        reset_type = args[2] if full_reset else None
+        reset = len(args) >= 3 and args[1] == "reset"
+        reset_type = args[2] if reset else None
 
         try:
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as file:
                 content = file.read()
-            if full_reset:
+            if reset:
                 if reset_type == "hikari":
                     url = "https://github.com/hikariatama/assets/raw/master/hikka_banner.mp4"
                     repo_link = "https://github.com/hikariatama/Hikka"
