@@ -108,10 +108,21 @@ class AmeChangeLoaderText(loader.Module):
                         content = re.sub(r"caption=\([\s\S]*?\),", new_caption, content)
                         result_message = f"✅ <b>Текст обновлен на:</b> <code>{custom_text}</code>"
                 
-                # Если аргументов два и первый URL, второй - текст
+                # Если аргументов два
                 elif len(args) == 3:
-                    url = args[1]
-                    custom_text = args[2]
+                    # Проверяем, являются ли оба аргумента текстом (не URL)
+                    if not (self.is_valid_url(args[1]) or self.is_valid_url(args[2])):
+                        await message.edit("❌ <b>Ошибка: Невозможно определить URL</b>")
+                        return
+
+                    # Первый аргумент - URL, второй - текст
+                    if self.is_valid_url(args[1]):
+                        url = args[1]
+                        custom_text = args[2]
+                    # Второй аргумент - URL, первый - текст  
+                    else:
+                        url = args[2]
+                        custom_text = args[1]
                     
                     content = re.sub(
                         r'(["\']\s*https://)[^\s"\']+(/[^\s"\']+)',
