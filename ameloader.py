@@ -11,10 +11,10 @@ class AmeChangeLoaderText(loader.Module):
     strings = {"name": "AmeChangeLoaderText"}
 
     def is_valid_url(self, url):
-        """Проверка, является ли строка валидным URL"""
+        """Проверка, является ли строка валидным URL, оканчивающимся на .mp4"""
         try:
             result = urllib.parse.urlparse(url)
-            return all([result.scheme, result.netloc])
+            return all([result.scheme, result.netloc]) and url.endswith(".mp4")
         except:
             return False
 
@@ -71,9 +71,7 @@ class AmeChangeLoaderText(loader.Module):
                 )
 
                 content = re.sub(
-                    r"([\'\"]\s*https://)[^\'\"]+([\'\"])",
-                    f"\\1{url}\\2",
-                    content,
+                    r"([\'\"]\s*https://)[^\'\"]+(\.mp4[\'\"])", f"\\1{url}\\2", content
                 )
                 content = re.sub(r"caption=\([\s\S]*?\),", caption, content)
 
@@ -81,26 +79,24 @@ class AmeChangeLoaderText(loader.Module):
                     f"✅ <b>Восстановлены дефолтные настройки {reset_type}</b>"
                 )
             else:
-                default_url = (
-                    "https://github.com/hikariatama/assets/raw/master/hikka_banner.mp4"
-                )
                 if self.is_valid_url(args[1]):
-                    url = args[1]
                     content = re.sub(
-                        r"([\'\"]\s*https://)[^\'\"]+([\'\"])",
-                        f"\\1{url}\\2",
+                        r"([\'\"]\s*https://)[^\'\"]+(\.mp4[\'\"])",
+                        f"\\1{args[1]}\\2",
                         content,
                     )
-                    result_message = f"✅ <b>Баннер обновлен на:</b> <code>{url}</code>"
-                else:
-                    url = default_url
-                    custom_text = args[1]
-                    new_caption = (
-                        'caption=(\n                    "{0}"\n                ),'
-                    ).format(custom_text)
-                    content = re.sub(r"caption=\([\s\S]*?\),", new_caption, content)
                     result_message = (
-                        f"✅ <b>Текст обновлен на:</b> <code>{custom_text}</code>"
+                        f"✅ <b>Баннер обновлен на:</b> <code>{args[1]}</code>"
+                    )
+                else:
+                    custom_text = re.escape(args[1])
+                    content = re.sub(
+                        r"caption=\([\s\S]*?\),",
+                        f'caption=(\n                    "{custom_text}"\n                ),',
+                        content,
+                    )
+                    result_message = (
+                        f"✅ <b>Текст обновлен на:</b> <code>{args[1]}</code>"
                     )
             with open(main_file_path, "w", encoding="utf-8") as file:
                 file.write(content)
