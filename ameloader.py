@@ -1,16 +1,21 @@
-# meta developer: @amm1e && @AmeMods
-
-
 from .. import loader
 import os
 import re
-
+import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
     """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
+
+    def is_valid_url(self, url):
+        """Проверка, является ли строка валидным URL"""
+        try:
+            result = urllib.parse.urlparse(url)
+            return all([result.scheme, result.netloc])
+        except:
+            return False
 
     async def updateloadercmd(self, message):
         """
@@ -19,6 +24,7 @@ class AmeChangeLoaderText(loader.Module):
         .updateloader reset coddrago - вернуть дефолтные настройки CodDrago
         .updateloader https://example.com/banner.mp4 - заменить только баннер
         .updateloader https://example.com/banner.mp4 текст - заменить баннер и текст
+        .updateloader текст - заменить только текст
         """
 
         args = message.raw_text.split(" ", 3)
@@ -29,7 +35,8 @@ class AmeChangeLoaderText(loader.Module):
                 "• <code>.updateloader reset hikari</code> - Сброс к настройкам Hikka\n"
                 "• <code>.updateloader reset coddrago</code> - Сброс к настройкам CodDrago\n"
                 "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить только баннер\n"
-                "• <code>.updateloader https://site.com/banner.mp4 текст</code> - Заменить баннер и текст\n\n"
+                "• <code>.updateloader https://site.com/banner.mp4 текст</code> - Заменить баннер и текст\n"
+                "• <code>.updateloader текст</code> - Заменить только текст\n\n"
             )
             await message.edit(help_text)
             return
@@ -80,30 +87,53 @@ class AmeChangeLoaderText(loader.Module):
                     "https://github.com/hikariatama/assets/raw/master/hikka_banner.mp4"
                 )
 
-                if len(args) >= 2 and not args[1].startswith('"'):
+                # Определяем, что делать в зависимости от аргументов
+                if len(args) == 2:
+                    # Если второй аргумент - URL
+                    if self.is_valid_url(args[1]):
+                        url = args[1]
+                        content = re.sub(
+                            r'(["\']\s*https://)[^\s"\']+(/[^\s"\']+)',
+                            f'\\1{url.replace("https://", "")}',
+                            content,
+                        )
+                        result_message = f"✅ <b>Баннер обновлен на:</b> <code>{url}</code>"
+                    # Если второй аргумент - текст
+                    else:
+                        url = default_url
+                        custom_text = args[1]
+                        new_caption = (
+                            'caption=(\n                    "{0}"\n                ),'
+                        ).format(custom_text)
+                        content = re.sub(r"caption=\([\s\S]*?\),", new_caption, content)
+                        result_message = f"✅ <b>Текст обновлен на:</b> <code>{custom_text}</code>"
+                
+                # Если аргументов два и первый URL, второй - текст
+                elif len(args) == 3:
                     url = args[1]
+                    custom_text = args[2]
+                    
                     content = re.sub(
                         r'(["\']\s*https://)[^\s"\']+(/[^\s"\']+)',
                         f'\\1{url.replace("https://", "")}',
                         content,
                     )
-                else:
-                    url = default_url
-                if len(args) == 3:
-                    custom_text = args[2].strip('"')
 
                     new_caption = (
                         'caption=(\n                    "{0}"\n                ),'
                     ).format(custom_text)
 
                     content = re.sub(r"caption=\([\s\S]*?\),", new_caption, content)
-
                     result_message = f"✅ <b>Баннер обновлен на:</b> <code>{url}</code>\n<b>Текст обновлен на:</b> <code>{custom_text}</code>"
                 else:
+                    url = default_url
                     result_message = f"✅ <b>Баннер обновлен на:</b> <code>{url}</code>"
+            
             with open(main_file_path, "w", encoding="utf-8") as file:
                 file.write(content)
+            
             result_message += "\n<b>Напишите</b> <code>.restart -f</code>"
             await message.edit(result_message)
+        
         except Exception as e:
             await message.edit(f"❌ <b>Ошибка:</b> <code>{e}</code>")
