@@ -87,8 +87,8 @@ class AmeChangeLoaderText(loader.Module):
                 if self.is_valid_url(args[1]):
                     url = args[1]
                     content = re.sub(
-                        r'(["\']\s*https://)[^\s"\']+(/[^\s"\']+)',
-                        f'\\1{url.replace("https://", "")}',
+                        r"([\'\"]\s*https://)[^\'\"]+([\'\"])",
+                        f'\\1{url.replace("https://", "")}\\2',
                         content,
                     )
                     result_message = f"✅ <b>Баннер обновлен на:</b> <code>{url}</code>"
