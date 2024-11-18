@@ -27,6 +27,7 @@ class AmeChangeLoaderText(loader.Module):
             main_file_path = os.path.join("hikka", "main.py")
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+
             if args[1] == "reset":
                 reset_type = args[2]
                 if reset_type == "hikari":
@@ -39,23 +40,27 @@ class AmeChangeLoaderText(loader.Module):
                     raise ValueError(
                         "Неверный тип сброса. Используйте hikari или coddrago"
                     )
+
+                animation_pattern = r'(await client\.hikka_inline\.bot\.send_animation\([^,]+,\s*)(["\']https://[^"\']+\.mp4["\'])'
+                content = re.sub(animation_pattern, rf'\1"{url}"', content)
+
                 caption = (
-                    'caption=(\n                    "🌘 <b>Hikka {} started!</b>\n\n🌳 <b>GitHub commit SHA: <a"'
-                    f' href="{repo_link}/commit/{{}}">{{}}</a></b>\n✊'
-                    ' <b>Update status: {}</b>\n<b>{}</b>".format(\n'
+                    'caption=(\n                    "🌘 <b>Hikka {} started!</b>\\n\\n'
+                    '🌳 <b>GitHub commit SHA: <a href=\\"{}/commit/{}\\">{}</a></b>\\n'
+                    '✊ <b>Update status: {}</b>\\n<b>{}</b>".format(\n'
                     '                        ".".join(list(map(str, list(version)))),\n'
                     "                        build,\n"
                     "                        build[:7],\n"
                     "                        upd,\n"
                     "                        web_url,\n"
                     "                    )\n                ),"
-                )
+                ).format(repo_link)
 
-                content = self._replace_banner_url(content, url)
                 content = re.sub(r"caption=\([\s\S]*?\),", caption, content)
                 result_message = f"✅ Восстановлены дефолтные настройки {reset_type}"
             elif self._is_valid_url(args[1]):
-                content = self._replace_banner_url(content, args[1])
+                animation_pattern = r'(await client\.hikka_inline\.bot\.send_animation\([^,]+,\s*)(["\']https://[^"\']+\.mp4["\'])'
+                content = re.sub(animation_pattern, rf'\1"{args[1]}"', content)
                 result_message = f"✅ Баннер обновлен на: <code>{args[1]}</code>"
             else:
                 custom_text = re.escape(args[1])
@@ -65,6 +70,7 @@ class AmeChangeLoaderText(loader.Module):
                     content,
                 )
                 result_message = f"✅ Текст обновлен на: <code>{args[1]}</code>"
+
             with open(main_file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             await message.edit(f"{result_message}\nНапишите <code>.restart -f</code>")
@@ -78,11 +84,3 @@ class AmeChangeLoaderText(loader.Module):
             return all([result.scheme, result.netloc]) and url.endswith(".mp4")
         except:
             return False
-
-    def _replace_banner_url(self, content, new_url):
-        """Заменяет URL баннера в контенте файла."""
-        return re.sub(
-            r"([\'\"]https://)[^\'\"]+(\.mp4[\'\"])",
-            f"\\1{new_url}\\2",
-            content,
-        )
