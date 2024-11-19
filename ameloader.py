@@ -2,12 +2,11 @@ from .. import loader
 import os
 import re
 import urllib.parse
-import logging
 
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика."""
+    """Модуль для изменения текста и баннера загрузчика. 03"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -49,11 +48,8 @@ class AmeChangeLoaderText(loader.Module):
             args = cmd[1].strip()
             main_file_path = os.path.join("hikka", "main.py")
 
-            # Чтение файла main.py
-
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            # Поиск блока анимации
 
             animation_block_pattern = (
                 r"([ \t]*)await\s+client\.hikka_inline\.bot\.send_animation\(\n"
@@ -73,16 +69,13 @@ class AmeChangeLoaderText(loader.Module):
                 new_block = re.sub(
                     r"caption=\(.*?\)", f'caption=("{user_text}")', full_block
                 )
-            # Обновление содержимого файла
 
             content = content.replace(full_block, new_block)
-
-            # Сохранение файла
 
             with open(main_file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             await message.edit(
-                f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
+                f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>/n{full_block} /n{new_block}"
             )
         except Exception as e:
             await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
