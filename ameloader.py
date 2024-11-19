@@ -10,6 +10,15 @@ class AmeChangeLoaderText(loader.Module):
 
     strings = {"name": "AmeChangeLoaderText"}
 
+    # Добавим словарь для определения переменных
+    PLACEHOLDERS = {
+        "version": "'.'.join(map(str, version))",
+        "build": "build",
+        "build_hash": "build[:7]",
+        "upd": "upd",
+        "web_url": "web_url"
+    }
+
     async def updateloadercmd(self, message):
         """Обновляет текст и баннер загрузчика."""
         args = message.raw_text.split(" ", 3)
@@ -20,7 +29,16 @@ class AmeChangeLoaderText(loader.Module):
                 "• <code>.updateloader reset hikari</code> - Сброс к настройкам Hikka\n"
                 "• <code>.updateloader reset coddrago</code> - Сброс к настройкам CodDrago\n"
                 "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить баннер\n"
-                "• <code>.updateloader текст</code> - Заменить текст\n\n"
+                "• <code>.updateloader текст</code> - Заменить текст\n"
+                "• <code>.updateloader текст с placeholder</code> - Заменить текст с переменными:\n"
+                "   {version} - версия\n"
+                "   {build} - полный билд\n"
+                "   {build_hash} - короткий хеш билда\n"
+                "   {upd} - статус обновления\n"
+                "   {web_url} - веб-URL\n\n"
+                "Примеры:\n"
+                "<code>.updateloader Апдейт {upd} | Версия {version}</code>\n"
+                "<code>.updateloader Билд {build_hash} Статус {upd} Веб {web_url}</code>\n\n"
             )
             return
         try:
@@ -44,16 +62,17 @@ class AmeChangeLoaderText(loader.Module):
                 animation_pattern = r'(await client\.hikka_inline\.bot\.send_animation\([^,]+,\s*)(["\']https://[^"\']+\.mp4["\'])'
                 content = re.sub(animation_pattern, rf'\1"{url}"', content)
 
+                # Формируем строки определений для каждого плейсхолдера
+                placeholder_defs = []
+                for name, value in self.PLACEHOLDERS.items():
+                    placeholder_defs.append(f"{name}={value}")
+                
                 caption = (
-                    'caption=(\n                    "🌘 <b>Hikka {} started!</b>\\n\\n'
-                    '🌳 <b>GitHub commit SHA: <a href=\\"{}/commit/{}\\">{}</a></b>\\n'
-                    '✊ <b>Update status: {}</b>\\n<b>{}</b>".format(\n'
-                    '                        ".".join(list(map(str, list(version)))),\n'
-                    "                        build,\n"
-                    "                        build[:7],\n"
-                    "                        upd,\n"
-                    "                        web_url,\n"
-                    "                    )\n                ),"
+                    'caption=(\n                    f"🌘 <b>Hikka {version} started!</b>\\n\\n'
+                    '🌳 <b>GitHub commit SHA: <a href=\\"{}/commit/{build_hash}\\">{build_hash}</a></b>\\n'
+                    '✊ <b>Update status: {upd}</b>\\n<b>{web_url}</b>",\n'
+                    f'                    {",".join(placeholder_defs)}\n'
+                    "                ),"
                 ).format(repo_link)
 
                 content = re.sub(r"caption=\([\s\S]*?\),", caption, content)
@@ -63,12 +82,31 @@ class AmeChangeLoaderText(loader.Module):
                 content = re.sub(animation_pattern, rf'\1"{args[1]}"', content)
                 result_message = f"✅ Баннер обновлен на: <code>{args[1]}</code>"
             else:
-                custom_text = re.escape(args[1])
-                content = re.sub(
-                    r"caption=\([\s\S]*?\),",
-                    f'caption=(\n                    "{custom_text}"\n                ),',
-                    content,
-                )
+                user_text = re.escape(args[1])
+                has_placeholders = any(x in args[1] for x in [f"{{{k}}}" for k in self.PLACEHOLDERS.keys()])
+                
+                if has_placeholders:
+                    # Формируем строки определений только для используемых плейсхолдеров
+                    used_placeholders = []
+                    for name in self.PLACEHOLDERS.keys():
+                        if f"{{{name}}}" in args[1]:
+                            used_placeholders.append(f"{name}={self.PLACEHOLDERS[name]}")
+                    
+                    custom_text = (
+                        'caption=(\n                    f"'
+                        + user_text
+                        + '",\n'
+                        + "                    " + ",\n                    ".join(used_placeholders) + "\n"
+                        + "                ),"
+                    )
+                else:
+                    custom_text = (
+                        'caption=(\n                    f"'
+                        + user_text
+                        + '"\n                ),'
+                    )
+                
+                content = re.sub(r"caption=\([\s\S]*?\),", custom_text, content)
                 result_message = f"✅ Текст обновлен на: <code>{args[1]}</code>"
 
             with open(main_file_path, "w", encoding="utf-8") as f:
