@@ -33,7 +33,7 @@ class AmeChangeLoaderText(loader.Module):
         "<code>.updateloader Статус {upd} Веб {web_url}</code>\n\n"
     }
 
-    ANIMATION_TEMPLATE = """\n            await client.hikka_inline.bot.send_animation(
+    ANIMATION_TEMPLATE = """\n\n            await client.hikka_inline.bot.send_animation(
                 logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
                 "{url}",
                 caption=(
@@ -77,7 +77,8 @@ class AmeChangeLoaderText(loader.Module):
                 r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
                 r"\s*caption=\(\n"
                 r"\s*(.*?)\n"
-                r"\s*\))"
+                r"\s*\)\n"
+                r"\s*\)(?:\s*,\s*\)\s*,\s*\)\s*)?)"
             )
 
             animation_block_match = re.search(
