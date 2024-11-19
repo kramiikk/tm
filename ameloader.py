@@ -10,13 +10,12 @@ class AmeChangeLoaderText(loader.Module):
 
     strings = {"name": "AmeChangeLoaderText"}
 
-    # Добавим словарь для определения переменных
     PLACEHOLDERS = {
         "version": "'.'.join(map(str, version))",
         "build": "build",
         "build_hash": "build[:7]",
         "upd": "upd",
-        "web_url": "web_url"
+        "web_url": "web_url",
     }
 
     async def updateloadercmd(self, message):
@@ -36,8 +35,7 @@ class AmeChangeLoaderText(loader.Module):
                 "   {build_hash} - короткий хеш билда\n"
                 "   {upd} - статус обновления\n"
                 "   {web_url} - веб-URL\n\n"
-                "Примеры:\n"
-                "<code>.updateloader Апдейт {upd} | Версия {version}</code>\n"
+                "Пример:\n"
                 "<code>.updateloader Билд {build_hash} Статус {upd} Веб {web_url}</code>\n\n"
             )
             return
@@ -45,7 +43,6 @@ class AmeChangeLoaderText(loader.Module):
             main_file_path = os.path.join("hikka", "main.py")
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-
             if args[1] == "reset":
                 reset_type = args[2]
                 if reset_type == "hikari":
@@ -58,15 +55,12 @@ class AmeChangeLoaderText(loader.Module):
                     raise ValueError(
                         "Неверный тип сброса. Используйте hikari или coddrago"
                     )
-
                 animation_pattern = r'(await client\.hikka_inline\.bot\.send_animation\([^,]+,\s*)(["\']https://[^"\']+\.mp4["\'])'
                 content = re.sub(animation_pattern, rf'\1"{url}"', content)
 
-                # Формируем строки определений для каждого плейсхолдера
                 placeholder_defs = []
                 for name, value in self.PLACEHOLDERS.items():
                     placeholder_defs.append(f"{name}={value}")
-                
                 caption = (
                     'caption=(\n                    f"🌘 <b>Hikka {version} started!</b>\\n\\n'
                     '🌳 <b>GitHub commit SHA: <a href=\\"{}/commit/{build_hash}\\">{build_hash}</a></b>\\n'
@@ -82,38 +76,41 @@ class AmeChangeLoaderText(loader.Module):
                 content = re.sub(animation_pattern, rf'\1"{args[1]}"', content)
                 result_message = f"✅ Баннер обновлен на: <code>{args[1]}</code>"
             else:
-                user_text = re.escape(args[1])
-                has_placeholders = any(x in args[1] for x in [f"{{{k}}}" for k in self.PLACEHOLDERS.keys()])
-                
+                user_text = args[1]
+                has_placeholders = any(
+                    f"{{{k}}}" in user_text for k in self.PLACEHOLDERS.keys()
+                )
+
                 if has_placeholders:
-                    # Формируем строки определений только для используемых плейсхолдеров
+
                     used_placeholders = []
                     for name in self.PLACEHOLDERS.keys():
-                        if f"{{{name}}}" in args[1]:
-                            used_placeholders.append(f"{name}={self.PLACEHOLDERS[name]}")
-                    
+                        if f"{{{name}}}" in user_text:
+                            used_placeholders.append(
+                                f"{name}={self.PLACEHOLDERS[name]}"
+                            )
                     custom_text = (
-                        'caption=(\n                    f"'
-                        + user_text
-                        + '",\n'
-                        + "                    " + ",\n                    ".join(used_placeholders) + "\n"
-                        + "                ),"
+                        "caption=(\n"
+                        f'                    f"{user_text}",\n'
+                        f'                    {",".join(used_placeholders)}\n'
+                        "                ),"
                     )
                 else:
-                    custom_text = (
-                        'caption=(\n                    f"'
-                        + user_text
-                        + '"\n                ),'
-                    )
-                
-                content = re.sub(r"caption=\([\s\S]*?\),", custom_text, content)
-                result_message = f"✅ Текст обновлен на: <code>{args[1]}</code>"
 
-            with open(main_file_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            await message.edit(f"{result_message}\nНапишите <code>.restart -f</code>")
+                    custom_text = (
+                        "caption=(\n"
+                        f'                    f"{user_text}"\n'
+                        "                ),"
+                    )
+                content = re.sub(r"caption=\([\s\S]*?\),", custom_text, content)
+
+                with open(main_file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                await message.edit(
+                    f"✅ Текст обновлен на: <code>{user_text}</code>\nНапишите <code>.restart -f</code>"
+                )
         except Exception as e:
-            await message.edit(f"❌ Ошибка: <code>{e}</code>")
+            await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
 
     def _is_valid_url(self, url):
         """Проверяет, является ли URL валидным и оканчивается на .mp4."""
