@@ -54,13 +54,13 @@ class AmeChangeLoaderText(loader.Module):
                 content = f.read()
 
             animation_block_pattern = (
-                r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
-                r"\s*.*?,\n"
-                r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
-                r"\s*caption=\(\n"
-                r"\s*(.*?)\n"
-                r"\s*\),\n"
-                r"\s*\))"
+                r'(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n'
+                r'\s*.*?,\n'
+                r'\s*(?:\"|\')([^\'\"]+)(?:\"|\'),\n'
+                r'\s*caption=\(\n'
+                r'\s*(.*?)\n'
+                r'\s*\)(?:\s*,\s*)?)\n'
+                r'\s*\)'
             )
 
             animation_block_match = re.search(
@@ -69,22 +69,30 @@ class AmeChangeLoaderText(loader.Module):
 
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
+            
             full_block = animation_block_match.group(1)
             current_url = animation_block_match.group(2)
             current_caption = animation_block_match.group(3)
 
             if self._is_valid_url(args):
                 new_block = re.sub(
-                    r"(?:\"|\')([^'\"]+\.(?:mp4|gif))(?:\"|\')", f'"{args}"', full_block
+                    r'(?:\"|\')([^\'\"]+\.(?:mp4|gif))(?:\"|\')', 
+                    f'"{args}"', 
+                    full_block
                 )
             else:
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
-                    r"caption=\(\n\s*(.*?)\n\s*\)",
+                    r'caption=\(\n\s*(.*?)\n\s*\)(?:\s*,\s*)?',
                     f'caption=(\n{" " * 16}"{user_text}"\n{" " * 12})',
                     full_block,
                     flags=re.DOTALL,
                 )
+            
+            # Добавляем закрывающую скобку
+            if not new_block.strip().endswith(')'):
+                new_block += ')'
+
             content = content.replace(full_block, new_block)
 
             try:
