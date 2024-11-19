@@ -70,7 +70,7 @@ class AmeChangeLoaderText(loader.Module):
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
                     r"caption=\(.*?\)\).*?\n.*?\)",
-                    f'caption=("{user_text}"))',
+                    f'caption=("{user_text}")',
                     full_block,
                     flags=re.DOTALL,
                 )
