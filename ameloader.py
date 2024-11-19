@@ -2,6 +2,7 @@ from .. import loader
 import os
 import re
 import urllib.parse
+import logging
 
 
 @loader.tds
@@ -18,6 +19,20 @@ class AmeChangeLoaderText(loader.Module):
         "web_url": "web_url",
     }
 
+    strings_ru = {
+        "help": "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
+        "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить баннер\n"
+        "• <code>.updateloader текст</code> - Заменить текст\n"
+        "• <code>.updateloader текст с placeholder</code> - Заменить текст с переменными:\n"
+        "   {version} - версия\n"
+        "   {build} - полный билд\n"
+        "   {build_hash} - короткий хеш билда\n"
+        "   {upd} - статус обновления\n"
+        "   {web_url} - веб-URL\n\n"
+        "Пример:\n"
+        "<code>.updateloader Статус {upd} Веб {web_url}</code>\n\n"
+    }
+
     def _replace_placeholders(self, text):
         for key, value in self.PLACEHOLDERS.items():
             text = text.replace(f"{{{key}}}", value)
@@ -29,19 +44,7 @@ class AmeChangeLoaderText(loader.Module):
         """
         cmd = message.raw_text.split(maxsplit=1)
         if len(cmd) == 1:
-            await message.edit(
-                "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
-                "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить баннер\n"
-                "• <code>.updateloader текст</code> - Заменить текст\n"
-                "• <code>.updateloader текст с placeholder</code> - Заменить текст с переменными:\n"
-                "   {version} - версия\n"
-                "   {build} - полный билд\n"
-                "   {build_hash} - короткий хеш билда\n"
-                "   {upd} - статус обновления\n"
-                "   {web_url} - веб-URL\n\n"
-                "Пример:\n"
-                "<code>.updateloader Статус {upd} Веб {web_url}</code>\n\n"
-            )
+            await message.edit(self.strings("help"))
             return
         try:
             args = cmd[1].strip()
@@ -49,11 +52,14 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+            # Более гибкий шаблон для поиска блока анимации
+
             animation_block_pattern = (
                 r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
-                r"\s*.*?,\n"
-                r"\s*.*?caption=\(\n"
-                r"\s*.*?\n"
+                r"\s*.*?,\n"  # Первый аргумент (log_id)
+                r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"  # Второй аргумент (URL анимации) - захватываем в группу
+                r"\s*caption=\(\n"
+                r"\s*(.*?)\n"  # Текст caption - захватываем в группу
                 r"\s*\),\n"
                 r"\s*\))"
             )
@@ -65,16 +71,18 @@ class AmeChangeLoaderText(loader.Module):
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
             full_block = animation_block_match.group(1)
+            current_url = animation_block_match.group(2)
+            current_caption = animation_block_match.group(3)
 
             if self._is_valid_url(args):
                 new_block = re.sub(
-                    r'"(https://[^"]+\.(?:mp4|gif))"', f'"{args}"', full_block
+                    r"(?:\"|\')([^'\"]+\.(?:mp4|gif))(?:\"|\')", f'"{args}"', full_block
                 )
             else:
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
-                    r"caption=\(\n.*?\),",
-                    f'caption=(\n                    "{user_text}"\n                ),',
+                    r"caption=\(\n\s*(.*?)\n\s*\)",
+                    f'caption=(\n{" " * 16}"{user_text}"\n{" " * 12})',
                     full_block,
                     flags=re.DOTALL,
                 )
@@ -88,14 +96,11 @@ class AmeChangeLoaderText(loader.Module):
                     )
             except OSError as e:
                 await message.edit(f"❌ Ошибка записи в файл: {e}")
-                return
         except Exception as e:
             await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
 
     def _is_valid_url(self, url):
-        """
-        Проверяет, является ли URL валидным и оканчивается на .mp4, .gif.
-        """
+        """Проверяет URL."""
         try:
             result = urllib.parse.urlparse(url)
             return all([result.scheme, result.netloc]) and (
