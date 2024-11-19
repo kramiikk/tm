@@ -6,7 +6,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика. 07"""
+    """Модуль для изменения текста и баннера загрузчика. 03"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -50,12 +50,11 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
             animation_block_pattern = (
-                r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
-                r"\s*.*?,\n"
-                r"\s*.*?caption=\(\n"
-                r"\s*.*?\n"
-                r"\s*\),\n"
-                r"\s*\))"
+                r"await\s+client\.hikka_inline\.bot\.send_animation\(\n"
+                r".*?,\n"
+                r".*?caption=\(.*?\)\).*?\n"
+                r".*?\),"
+                r"\n.*?\)"
             )
 
             animation_block_match = re.search(
@@ -64,14 +63,14 @@ class AmeChangeLoaderText(loader.Module):
 
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
-            full_block = animation_block_match.group(1)
+            full_block = animation_block_match.group(0)
 
             if self._is_valid_url(args):
                 new_block = re.sub(r'"https://[^"]+\.mp4"', f'"{args}"', full_block)
             else:
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
-                    r"caption=\(\n.*?\),",
+                    r"caption=\(.*?\)\).*?\n.*?\)," r"\n.*?\)",
                     f'caption=(\n                    "{user_text}"\n                ),',
                     full_block,
                     flags=re.DOTALL,
