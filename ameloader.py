@@ -7,7 +7,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика."""
+    """Модуль для изменения текста и баннера загрузчика.1S"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -59,8 +59,7 @@ class AmeChangeLoaderText(loader.Module):
                 r'\s*(?:\"|\')([^\'\"]+)(?:\"|\'),\n'
                 r'\s*caption=\(\n'
                 r'\s*(.*?)\n'
-                r'\s*\)(?:\s*,\s*)?)\n'
-                r'\s*\)'
+                r'\s*\).*?)'
             )
 
             animation_block_match = re.search(
@@ -80,18 +79,18 @@ class AmeChangeLoaderText(loader.Module):
                     f'"{args}"', 
                     full_block
                 )
+                # Удаляем лишние запятые и скобки
+                new_block = re.sub(r',\s*\)?\s*\)$', ')', new_block)
             else:
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
-                    r'caption=\(\n\s*(.*?)\n\s*\)(?:\s*,\s*)?',
+                    r'caption=\(\n\s*(.*?)\n\s*\).*?$',
                     f'caption=(\n{" " * 16}"{user_text}"\n{" " * 12})',
                     full_block,
                     flags=re.DOTALL,
                 )
-            
-            # Добавляем закрывающую скобку
-            if not new_block.strip().endswith(')'):
-                new_block += ')'
+                # Удаляем лишние запятые и скобки
+                new_block = re.sub(r',\s*\)?\s*\)$', ')', new_block)
 
             content = content.replace(full_block, new_block)
 
