@@ -49,25 +49,41 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            animation_block_pattern = (
-                r"([ \t]*)await\s+client\.hikka_inline\.bot\.send_animation\(\n"
-                r"(?:[ \t]+[^\n]+\n)*"
-                r"[ \t]+\)"
-            )
-            animation_block_match = re.search(animation_block_pattern, content)
-            if not animation_block_match:
-                raise ValueError("Не удалось найти блок отправки анимации в main.py")
-            full_block = animation_block_match.group(0)
-            indent = animation_block_match.group(1)
+            # Более точный паттерн для поиска блока
 
+            animation_block_pattern = (
+                r"await\s+client\.hikka_inline\.bot\.send_animation\(\n"
+                r'.*?caption=\(\s*"[^"]*"\s*\),\n'
+                r".*?\)"
+            )
+
+            # Находим все совпадения
+
+            animation_blocks = re.findall(animation_block_pattern, content, re.DOTALL)
+
+            if not animation_blocks:
+                raise ValueError("Не удалось найти блок отправки анимации в main.py")
             if self._is_valid_url(args):
-                new_block = re.sub(r'"https://[^"]+\.mp4"', f'"{args}"', full_block)
-            else:
-                user_text = self._replace_placeholders(args)
+                # Замена URL баннера
+
                 new_block = re.sub(
-                    r'caption=\(\s*"[^"]*"\s*\)', f'caption=("{user_text}")', full_block
+                    r'"https://[^"]+\.mp4"', f'"{args}"', animation_blocks[0]
                 )
-            content = content.replace(full_block, new_block)
+            else:
+                # Замена текста
+
+                user_text = self._replace_placeholders(args)
+                # Более надежная замена caption
+
+                new_block = re.sub(
+                    r'caption=\(\s*"[^"]*"\s*\)',
+                    f'caption=("{user_text}")',
+                    animation_blocks[0],
+                )
+            # Заменяем весь блок
+
+            content = content.replace(animation_blocks[0], new_block)
+
             with open(main_file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             await message.edit(
