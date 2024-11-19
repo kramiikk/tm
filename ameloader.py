@@ -33,13 +33,12 @@ class AmeChangeLoaderText(loader.Module):
         "<code>.updateloader Статус {upd} Веб {web_url}</code>\n\n"
     }
 
-    ANIMATION_TEMPLATE = """            await client.hikka_inline.bot.send_animation(
+    ANIMATION_TEMPLATE = """\n            await client.hikka_inline.bot.send_animation(
                 logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
                 "{url}",
                 caption=(
                 {caption}
-                )
-            )"""
+                )"""
 
     def _replace_placeholders(self, text):
         for key, value in self.PLACEHOLDERS.items():
