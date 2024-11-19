@@ -46,6 +46,23 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+            # Находим блок кода с отправкой анимации
+
+            animation_block_pattern = (
+                r"await client\.hikka_inline\.bot\.send_animation\([^)]+\)"
+            )
+            animation_block = re.search(animation_block_pattern, content)
+
+            if not animation_block:
+                raise ValueError("Не удалось найти блок отправки анимации в main.py")
+            # Получаем текущий URL баннера
+
+            current_url_pattern = r'"(https://[^"]+\.mp4)"'
+            current_url_match = re.search(current_url_pattern, animation_block.group(0))
+            if not current_url_match:
+                current_url = "https://x0.at/pYQV.mp4"  # Дефолтный URL
+            else:
+                current_url = current_url_match.group(1)
             if args.startswith("reset"):
                 reset_args = args.split()
                 if len(reset_args) < 2:
@@ -61,27 +78,23 @@ class AmeChangeLoaderText(loader.Module):
                     raise ValueError(
                         "Неверный тип сброса. Используйте hikari или coddrago"
                     )
-                animation_pattern = r'(await client\.hikka_inline\.bot\.send_animation\([^,]+,\s*)(["\']https://[^"\']+\.mp4["\'])'
-                content = re.sub(animation_pattern, rf'\1"{url}"', content)
-
-                default_caption = (
-                    "caption=(\n"
-                    '                    f"🌘 <b>Hikka {version} started!</b>\\n\\n'
+                new_animation_block = (
+                    "await client.hikka_inline.bot.send_animation(\n"
+                    "                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                    f'                "{url}",\n'
+                    '                caption=f"🌘 <b>Hikka {version} started!</b>\\n\\n'
                     f'🌳 <b>GitHub commit SHA: <a href="{repo_link}/commit/{{build_hash}}">{{build_hash}}</a></b>\\n'
                     '✊ <b>Update status: {upd}</b>\\n<b>{web_url}</b>",\n'
-                    '                    version=".".join(map(str, version)),\n'
-                    "                    build_hash=build[:7],\n"
-                    "                    upd=upd,\n"
-                    "                    web_url=web_url\n"
-                    "                ),"
+                    '                version=".".join(map(str, version)),\n'
+                    "                build_hash=build[:7],\n"
+                    "                upd=upd,\n"
+                    "                web_url=web_url\n"
+                    "            )"
                 )
-
-                content = re.sub(r"caption=\([\s\S]*?\),", default_caption, content)
-                result_message = f"✅ Восстановлены дефолтные настройки {reset_type}"
             elif self._is_valid_url(args):
-                animation_pattern = r'(await client\.hikka_inline\.bot\.send_animation\([^,]+,\s*)(["\']https://[^"\']+\.mp4["\'])'
-                content = re.sub(animation_pattern, rf'\1"{args}"', content)
-                result_message = f"✅ Баннер обновлен на: <code>{args}</code>"
+                new_animation_block = animation_block.group(0).replace(
+                    current_url, args
+                )
             else:
                 user_text = args.replace('"', '\\"')
                 has_placeholders = any(
@@ -93,22 +106,35 @@ class AmeChangeLoaderText(loader.Module):
                     for name, value in self.PLACEHOLDERS.items():
                         if f"{{{name}}}" in user_text:
                             used_placeholders.append(f"{name}={value}")
-                    custom_text = (
-                        "caption=(\n"
-                        f'                    f"{user_text}",\n'
-                        f'                    {", ".join(used_placeholders)}\n'
-                        "                ),"
+                    new_animation_block = (
+                        "await client.hikka_inline.bot.send_animation(\n"
+                        "                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                        f'                "{current_url}",\n'  # Используем текущий URL
+                        f'                caption=f"{user_text}",\n'
+                        f'                {", ".join(used_placeholders)}\n'
+                        "            )"
                     )
                 else:
-                    custom_text = (
-                        "caption=(\n"
-                        f'                    "{user_text}"\n'
-                        "                ),"
+                    new_animation_block = (
+                        "await client.hikka_inline.bot.send_animation(\n"
+                        "                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                        f'                "{current_url}",\n'  # Используем текущий URL
+                        f'                caption="{user_text}"\n'
+                        "            )"
                     )
-                content = re.sub(r"caption=\([\s\S]*?\),", custom_text, content)
-                result_message = f"✅ Текст обновлен на: <code>{user_text}</code>"
+            # Заменяем старый блок на новый
+
+            content = content.replace(animation_block.group(0), new_animation_block)
+
             with open(main_file_path, "w", encoding="utf-8") as f:
                 f.write(content)
+            result_message = ""
+            if args.startswith("reset"):
+                result_message = f"✅ Восстановлены дефолтные настройки {reset_type}"
+            elif self._is_valid_url(args):
+                result_message = f"✅ Баннер обновлен на: <code>{args}</code>"
+            else:
+                result_message = f"✅ Текст обновлен на: <code>{user_text}</code>"
             await message.edit(f"{result_message}\nНапишите <code>.restart -f</code>")
         except Exception as e:
             await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
