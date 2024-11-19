@@ -67,7 +67,6 @@ class AmeChangeLoaderText(loader.Module):
                 new_block = re.sub(
                     r'caption=\(\s*"[^"]*"\s*\)', f'caption=("{user_text}")', full_block
                 )
-                await message.reply(f"{new_block}")
             content = content.replace(full_block, new_block)
             with open(main_file_path, "w", encoding="utf-8") as f:
                 f.write(content)
