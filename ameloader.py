@@ -52,14 +52,13 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            # Более гибкий шаблон для поиска блока анимации
 
             animation_block_pattern = (
                 r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
-                r"\s*.*?,\n"  # Первый аргумент (log_id)
-                r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"  # Второй аргумент (URL анимации) - захватываем в группу
+                r"\s*.*?,\n"
+                r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
                 r"\s*caption=\(\n"
-                r"\s*(.*?)\n"  # Текст caption - захватываем в группу
+                r"\s*(.*?)\n"
                 r"\s*\),\n"
                 r"\s*\))"
             )
