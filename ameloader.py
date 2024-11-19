@@ -19,6 +19,11 @@ class AmeChangeLoaderText(loader.Module):
         "web_url": "web_url",
     }
 
+    def _replace_placeholders(self, text):
+        for key, value in self.PLACEHOLDERS.items():
+            text = text.replace(f"{{{key}}}", value)
+        return text
+
     async def updateloadercmd(self, message):
         """
         Команда для обновления текста или баннера загрузчика.
@@ -58,37 +63,27 @@ class AmeChangeLoaderText(loader.Module):
             animation_block_match = re.search(animation_block_pattern, content)
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
+            full_block = animation_block_match.group(0)
             indent = animation_block_match.group(1)
 
-            # Формирование нового блока с нужными переменными
-
-            new_block = (
-                f"{indent}await client.hikka_inline.bot.send_animation(\n"
-                f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                f'{indent}    "{args}"'
-                if self._is_valid_url(args)
-                else (
-                    '"https://x0.at/pYQV.mp4",\n' f'{indent}    caption=("{args}"'
-                    if not self._is_valid_url(args)
-                    else "caption=(\n"
-                    f'{indent}    "🌘 <b>Hikka {self.PLACEHOLDERS["version"]} started!</b>\\n\\n"\n'
-                    f'{indent}    "🌳 <b>GitHub commit SHA: <a href=\\"https://github.com/coddrago/Hikka/commit/{self.PLACEHOLDERS["build"]}\\">{self.PLACEHOLDERS["build_hash"]}</a></b>\\n"\n'
-                    f'{indent}    "✊ <b>Update status: {self.PLACEHOLDERS["upd"]}</b>\\n"\n'
-                    f'{indent}    "<b>{self.PLACEHOLDERS["web_url"]}</b>")\n'
-                    f"{indent})\n"
+            if self._is_valid_url(args):
+                new_block = re.sub(r'"https://[^"]+\.mp4"', f'"{args}"', full_block)
+            else:
+                user_text = self._replace_placeholders(args)
+                new_block = re.sub(
+                    r"caption=\(.*?\)", f'caption=("{user_text}")', full_block
                 )
-            )
+            # Обновление содержимого файла
 
-            # Замена старого блока на новый
-
-            content = content.replace(animation_block_match.group(0), new_block)
+            content = content.replace(full_block, new_block)
 
             # Сохранение файла
 
             with open(main_file_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            result_message = f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
-            await message.edit(result_message)
+            await message.edit(
+                f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
+            )
         except Exception as e:
             await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
 
