@@ -62,8 +62,7 @@ class AmeChangeLoaderText(loader.Module):
 
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
-            full_block = animation_block_match.group(0)
-            caption_content = animation_block_match.group(1)
+            full_block = animation_block_match.group(1)
 
             if self._is_valid_url(args):
                 new_block = re.sub(
