@@ -25,8 +25,6 @@ class AmeChangeLoaderText(loader.Module):
         if len(cmd) == 1:
             await message.edit(
                 "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
-                "• <code>.updateloader reset hikari</code> - Сброс к настройкам Hikka\n"
-                "• <code>.updateloader reset coddrago</code> - Сброс к настройкам CodDrago\n"
                 "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить баннер\n"
                 "• <code>.updateloader текст</code> - Заменить текст\n"
                 "• <code>.updateloader текст с placeholder</code> - Заменить текст с переменными:\n"
@@ -63,35 +61,7 @@ class AmeChangeLoaderText(loader.Module):
                 current_url = "https://x0.at/pYQV.mp4"  # Дефолтный URL
             else:
                 current_url = current_url_match.group(1)
-            if args.startswith("reset"):
-                reset_args = args.split()
-                if len(reset_args) < 2:
-                    raise ValueError("Укажите тип сброса: hikari или coddrago")
-                reset_type = reset_args[1]
-                if reset_type == "hikari":
-                    url = "https://github.com/hikariatama/assets/raw/master/hikka_banner.mp4"
-                    repo_link = "https://github.com/hikariatama/Hikka"
-                elif reset_type == "coddrago":
-                    url = "https://x0.at/pYQV.mp4"
-                    repo_link = "https://github.com/coddrago/Hikka"
-                else:
-                    raise ValueError(
-                        "Неверный тип сброса. Используйте hikari или coddrago"
-                    )
-                new_animation_block = (
-                    "await client.hikka_inline.bot.send_animation(\n"
-                    "                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                    f'                "{url}",\n'
-                    '                caption=f"🌘 <b>Hikka {version} started!</b>\\n\\n'
-                    f'🌳 <b>GitHub commit SHA: <a href="{repo_link}/commit/{{build_hash}}">{{build_hash}}</a></b>\\n'
-                    '✊ <b>Update status: {upd}</b>\\n<b>{web_url}</b>",\n'
-                    '                version=".".join(map(str, version)),\n'
-                    "                build_hash=build[:7],\n"
-                    "                upd=upd,\n"
-                    "                web_url=web_url\n"
-                    "            )"
-                )
-            elif self._is_valid_url(args):
+            if self._is_valid_url(args):
                 new_animation_block = animation_block.group(0).replace(
                     current_url, args
                 )
@@ -107,20 +77,20 @@ class AmeChangeLoaderText(loader.Module):
                         if f"{{{name}}}" in user_text:
                             used_placeholders.append(f"{name}={value}")
                     new_animation_block = (
-                        "await client.hikka_inline.bot.send_animation(\n"
-                        "                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                        f'                "{current_url}",\n'  # Используем текущий URL
-                        f'                caption=f"{user_text}",\n'
-                        f'                {", ".join(used_placeholders)}\n'
-                        "            )"
+                        "           await client.hikka_inline.bot.send_animation(\n"
+                        "               logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                        f'              "{current_url}",\n'  # Используем текущий URL
+                        f'              caption=f"{user_text}",\n'
+                        f'              {", ".join(used_placeholders)}\n'
+                        "           )"
                     )
                 else:
                     new_animation_block = (
-                        "await client.hikka_inline.bot.send_animation(\n"
-                        "                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                        f'                "{current_url}",\n'  # Используем текущий URL
-                        f'                caption="{user_text}"\n'
-                        "            )"
+                        "           await client.hikka_inline.bot.send_animation(\n"
+                        "               logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                        f'              "{current_url}",\n'  # Используем текущий URL
+                        f'              caption="{user_text}"\n'
+                        "           )"
                     )
             # Заменяем старый блок на новый
 
