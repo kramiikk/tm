@@ -2,8 +2,6 @@ from .. import loader
 import os
 import re
 import urllib.parse
-import logging
-
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
