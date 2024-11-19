@@ -7,7 +7,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика."""
+    """Модуль для изменения текста и баннера загрузчика. 1.3"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -75,11 +75,9 @@ class AmeChangeLoaderText(loader.Module):
                 # Если аргумент - текст
 
                 user_text = args.replace('"', '\\"')
-                caption_match = re.search(
-                    r'caption=\(\s*"(.*?)"\s*\)', full_block, re.DOTALL
-                )
+                caption_match = re.search(r'caption=\((.*?)\)', full_block, re.DOTALL)
                 if not caption_match:
-                    raise ValueError("Не удалось найти параметр caption в блоке")
+                    raise ValueError("Не удалось найти параметр caption в блоке: {full_block}")
                 old_caption = caption_match.group(1)
                 new_caption = f'"{user_text}"'
                 new_block = full_block.replace(old_caption, new_caption)
