@@ -7,7 +7,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.1S"""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -33,10 +33,27 @@ class AmeChangeLoaderText(loader.Module):
         "<code>.updateloader Статус {upd} Веб {web_url}</code>\n\n"
     }
 
+    ANIMATION_TEMPLATE = """            await client.hikka_inline.bot.send_animation(
+                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
+                "{url}",
+                caption=(
+                {caption}
+                )
+            )"""
+
     def _replace_placeholders(self, text):
         for key, value in self.PLACEHOLDERS.items():
             text = text.replace(f"{{{key}}}", value)
         return text
+
+    def _format_caption(self, text, has_placeholders):
+        """Форматирует caption в зависимости от наличия плейсхолдеров."""
+        return text if has_placeholders else f'"{text}"'
+
+    def _create_animation_block(self, url, caption_text, has_placeholders=False):
+        """Создает блок анимации с форматированным текстом."""
+        formatted_caption = self._format_caption(caption_text, has_placeholders)
+        return self.ANIMATION_TEMPLATE.format(url=url, caption=formatted_caption)
 
     async def updateloadercmd(self, message):
         """
@@ -46,6 +63,7 @@ class AmeChangeLoaderText(loader.Module):
         if len(cmd) == 1:
             await message.edit(self.strings("help"))
             return
+
         try:
             args = cmd[1].strip()
             main_file_path = os.path.join("hikka", "main.py")
@@ -54,12 +72,13 @@ class AmeChangeLoaderText(loader.Module):
                 content = f.read()
 
             animation_block_pattern = (
-                r'(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n'
-                r'\s*.*?,\n'
-                r'\s*(?:\"|\')([^\'\"]+)(?:\"|\'),\n'
-                r'\s*caption=\(\n'
-                r'\s*(.*?)\n'
-                r'\s*\).*?)'
+                r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
+                r"\s*.*?,\n"
+                r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
+                r"\s*caption=\(\n"
+                r"\s*(.*?)\n"
+                r"\s*\)(?:\s*,)?\n"
+                r"\s*\))"
             )
 
             animation_block_match = re.search(
@@ -71,26 +90,20 @@ class AmeChangeLoaderText(loader.Module):
             
             full_block = animation_block_match.group(1)
             current_url = animation_block_match.group(2)
-            current_caption = animation_block_match.group(3)
 
             if self._is_valid_url(args):
-                new_block = re.sub(
-                    r'(?:\"|\')([^\'\"]+\.(?:mp4|gif))(?:\"|\')', 
-                    f'"{args}"', 
-                    full_block
+                new_block = self._create_animation_block(
+                    url=args,
+                    caption_text=animation_block_match.group(3).strip()
                 )
-                # Удаляем лишние запятые и скобки
-                new_block = re.sub(r',\s*\)?\s*\)$', ')', new_block)
             else:
+                has_placeholders = any(key in args for key in self.PLACEHOLDERS.keys())
                 user_text = self._replace_placeholders(args)
-                new_block = re.sub(
-                    r'caption=\(\n\s*(.*?)\n\s*\).*?$',
-                    f'caption=(\n{" " * 16}"{user_text}"\n{" " * 12})',
-                    full_block,
-                    flags=re.DOTALL,
+                new_block = self._create_animation_block(
+                    url=current_url,
+                    caption_text=user_text,
+                    has_placeholders=has_placeholders
                 )
-                # Удаляем лишние запятые и скобки
-                new_block = re.sub(r',\s*\)?\s*\)$', ')', new_block)
 
             content = content.replace(full_block, new_block)
 
