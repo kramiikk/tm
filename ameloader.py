@@ -50,10 +50,12 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
             animation_block_pattern = (
-                r"await\s+client\.hikka_inline\.bot\.send_animation\(\n"
-                r".*?,\n"
-                r".*?caption=\((.*?)\)\).*?\n"
-                r".*?\)"
+                r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
+                r"\s*.*?,\n"
+                r"\s*.*?caption=\(\n"
+                r"\s*.*?\n"
+                r"\s*\),\n"
+                r"\s*\))"
             )
 
             animation_block_match = re.search(
