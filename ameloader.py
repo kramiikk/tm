@@ -75,7 +75,9 @@ class AmeChangeLoaderText(loader.Module):
                 # Если аргумент - текст
 
                 user_text = args.replace('"', '\\"')
-                caption_match = re.search(r"caption=(.*?)", full_block, re.DOTALL)
+                caption_match = re.search(
+                    r'caption=\(\s*"(.*?)"\s*\)', full_block, re.DOTALL
+                )
                 if not caption_match:
                     raise ValueError("Не удалось найти параметр caption в блоке")
                 old_caption = caption_match.group(1)
