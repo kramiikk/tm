@@ -6,7 +6,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.014"""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -50,10 +50,9 @@ class AmeChangeLoaderText(loader.Module):
 
             # Поиск блока анимации
             animation_block_pattern = (
-                r"([ \t]*)await\s+client\.hikka_inline\.bot\.send_animation\n"
-                r"(?:[ \t]*.+,\n)*"
-                r"[ \t]*caption=(?:[^)]+),?\n"
-                r"[ \t]*"
+                r"([ \t]*)await\s+client\.hikka_inline\.bot\.send_animation\n"  # Совпадение с вызовом функции
+                r"(?:[ \t]+[^\n]+\n)*"  # Захват параметров (многострочно)
+                r"[ \t]+"  # Закрывающая скобка
             )
             animation_block_match = re.search(animation_block_pattern, content)
             if not animation_block_match:
@@ -61,21 +60,26 @@ class AmeChangeLoaderText(loader.Module):
 
             full_block = animation_block_match.group(0)
 
-            # Определение текущего URL
+            # Получение текущего URL из блока
             current_url = re.search(r'"(https://[^"]+\.mp4)"', full_block).group(1)
 
             # Замена блока
             if self._is_valid_url(args):
+                # Если аргумент - это URL
                 new_block = full_block.replace(current_url, args)
                 result_message = f"✅ Баннер обновлен на: <code>{args}</code>"
             else:
+                # Если аргумент - текст
                 user_text = args.replace('"', '\\"')
-                new_block = full_block.replace(
-                    re.search(r'caption=(.*?)', full_block).group(1),
-                    f'"{user_text}"',
-                )
+                caption_match = re.search(r'caption=(.*?)', full_block, re.DOTALL)
+                if not caption_match:
+                    raise ValueError("Не удалось найти параметр caption в блоке")
+                old_caption = caption_match.group(1)
+                new_caption = f'"{user_text}"'
+                new_block = full_block.replace(old_caption, new_caption)
                 result_message = f"✅ Текст обновлен на: <code>{user_text}</code>"
 
+            # Обновление содержимого файла
             content = content.replace(full_block, new_block)
 
             # Сохранение файла
