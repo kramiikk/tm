@@ -6,7 +6,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика. 03"""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -52,9 +52,8 @@ class AmeChangeLoaderText(loader.Module):
             animation_block_pattern = (
                 r"await\s+client\.hikka_inline\.bot\.send_animation\(\n"
                 r".*?,\n"
-                r".*?caption=\(.*?\)\).*?\n"
-                r".*?\),"
-                r"\n.*?\)"
+                r".*?caption=\((.*?)\)\).*?\n"
+                r".*?\)"
             )
 
             animation_block_match = re.search(
@@ -64,33 +63,40 @@ class AmeChangeLoaderText(loader.Module):
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
             full_block = animation_block_match.group(0)
+            caption_content = animation_block_match.group(1)
 
             if self._is_valid_url(args):
-                new_block = re.sub(r'"https://[^"]+\.mp4"', f'"{args}"', full_block)
+                new_block = re.sub(
+                    r'"(https://[^"]+\.(?:mp4|gif))"', f'"{args}"', full_block
+                )
             else:
                 user_text = self._replace_placeholders(args)
-                new_block = re.sub(
-                    r"caption=\(.*?\)\).*?\n.*?\)," r"\n.*?\)",
-                    f'caption=(\n                    "{user_text}"\n                )\n            ),',
-                    full_block,
-                    flags=re.DOTALL,
+                new_caption = f'caption=("{user_text}")'
+                new_block = full_block.replace(
+                    f"caption=({caption_content})", new_caption
                 )
             content = content.replace(full_block, new_block)
 
-            with open(main_file_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            await message.edit(
-                f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
-            )
+            try:
+                with open(main_file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                    await message.edit(
+                        f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
+                    )
+            except OSError as e:  # Handle file writing errors
+                await message.edit(f"❌ Ошибка записи в файл: {e}")
+                return
         except Exception as e:
             await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
 
     def _is_valid_url(self, url):
         """
-        Проверяет, является ли URL валидным и оканчивается на .mp4.
+        Проверяет, является ли URL валидным и оканчивается на .mp4, .gif.
         """
         try:
             result = urllib.parse.urlparse(url)
-            return all([result.scheme, result.netloc]) and url.lower().endswith(".mp4")
+            return all([result.scheme, result.netloc]) and (
+                url.lower().endswith(".mp4") or url.lower().endswith(".gif")
+            )
         except:
             return False
