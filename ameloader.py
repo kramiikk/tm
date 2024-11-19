@@ -6,7 +6,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика. 05"""
+    """Модуль для изменения текста и баннера загрузчика. 06"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -52,9 +52,8 @@ class AmeChangeLoaderText(loader.Module):
             animation_block_pattern = (
                 r"await\s+client\.hikka_inline\.bot\.send_animation\(\n"
                 r".*?,\n"
-                r".*?caption=\(.*?\).*?,"
-                r".*?\n.*?\),"
-                r"\n.*?\)"
+                r".*?caption=\(.*?\)\).*?\n"
+                r".*?\)"
             )
 
             animation_block_match = re.search(
@@ -70,7 +69,7 @@ class AmeChangeLoaderText(loader.Module):
             else:
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
-                    r"caption=\(.*?\).*?,\n.*?\n.*?\)",
+                    r"caption=\(.*?\)\).*?\n.*?\)",
                     f'caption=("{user_text}"))',
                     full_block,
                     flags=re.DOTALL,
