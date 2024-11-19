@@ -3,6 +3,7 @@ import os
 import re
 import urllib.parse
 
+
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
     """Модуль для изменения текста и баннера загрузчика."""
@@ -14,18 +15,6 @@ class AmeChangeLoaderText(loader.Module):
         "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить баннер\n"
         "• <code>.updateloader текст</code> - Заменить текст\n"
     }
-
-    ANIMATION_TEMPLATE = """\n            await client.hikka_inline.bot.send_animation(
-                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
-                "{url}",
-                caption=(
-                {caption}
-                )
-            )\n            """
-
-    def _create_animation_block(self, url, caption_text):
-        """Создает блок анимации с форматированным текстом."""
-        return self.ANIMATION_TEMPLATE.format(url=url, caption=caption_text)
 
     async def updateloadercmd(self, message):
         """
@@ -61,14 +50,21 @@ class AmeChangeLoaderText(loader.Module):
             current_url = animation_block_match.group(2)
 
             if self._is_valid_url(args):
-                new_block = self._create_animation_block(
-                    url=args, caption_text=animation_block_match.group(3).strip()
-                )
+                new_block = f"""\n            await client.hikka_inline.bot.send_animation(
+                                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
+                                "{args}",
+                                caption=(
+                                {animation_block_match.group(3).strip()}
+                                )
+                            )\n            """
             else:
-                new_block = self._create_animation_block(
-                    url=current_url,
-                    caption_text=f"{args}",
-                )
+                new_block = f"""\n            await client.hikka_inline.bot.send_animation(
+                                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
+                                "{current_url}",
+                                caption=(
+                                "{args}"
+                                )
+                            )\n            """
             content = content.replace(full_block, new_block)
 
             try:
