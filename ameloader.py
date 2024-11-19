@@ -50,7 +50,6 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-
             animation_block_pattern = (
                 r"([ \t]*)await\s+client\.hikka_inline\.bot\.send_animation\(\n"
                 r"(?:[ \t]+[^\n]+\n)*"
@@ -67,9 +66,8 @@ class AmeChangeLoaderText(loader.Module):
             else:
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
-                    r"caption=\(.*?\)", f'caption=("{user_text}")', full_block
+                    r'caption=\(\s*"[^"]*"\s*\)', f'caption=("{user_text}")', full_block
                 )
-
             content = content.replace(full_block, new_block)
 
             with open(main_file_path, "w", encoding="utf-8") as f:
