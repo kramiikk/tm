@@ -52,7 +52,7 @@ class AmeChangeLoaderText(loader.Module):
             animation_block_pattern = (
                 r"await\s+client\.hikka_inline\.bot\.send_animation\(\n"
                 r".*?,\n"
-                r".*?caption=\(.*?\),\n"
+                r".*?caption=\(.*?\).*?,\n"
                 r".*?\)"
             )
 
@@ -67,10 +67,10 @@ class AmeChangeLoaderText(loader.Module):
             if self._is_valid_url(args):
                 new_block = re.sub(r'"https://[^"]+\.mp4"', f'"{args}"', full_block)
             else:
-
+                user_text = self._replace_placeholders(args)
                 new_block = re.sub(
-                    r"caption=\(.*?\)",
-                    f'caption=("{args}")',
+                    r"caption=\(.*?\).*?,\n",
+                    f'caption=("{user_text}"),\n',
                     full_block,
                     flags=re.DOTALL,
                 )
