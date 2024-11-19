@@ -71,9 +71,11 @@ class AmeChangeLoaderText(loader.Module):
                 )
             else:
                 user_text = self._replace_placeholders(args)
-                new_caption = f'caption=("{user_text}")'
-                new_block = full_block.replace(
-                    f"caption=({caption_content})", new_caption
+                new_block = re.sub(
+                    r"caption=\(\n.*?\),",
+                    f'caption=(\n                    "{user_text}"\n                ),',
+                    full_block,
+                    flags=re.DOTALL,
                 )
             content = content.replace(full_block, new_block)
 
@@ -83,7 +85,7 @@ class AmeChangeLoaderText(loader.Module):
                     await message.edit(
                         f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
                     )
-            except OSError as e:  # Handle file writing errors
+            except OSError as e:
                 await message.edit(f"❌ Ошибка записи в файл: {e}")
                 return
         except Exception as e:
