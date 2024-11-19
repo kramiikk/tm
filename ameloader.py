@@ -7,12 +7,12 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика. 1.3"""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
     PLACEHOLDERS = {
-        "version": "'.'.join(map(str, __version__))",
+        "version": "'.'.join(map(str, version))",
         "build": "build",
         "build_hash": "build[:7]",
         "upd": "upd",
@@ -58,43 +58,37 @@ class AmeChangeLoaderText(loader.Module):
             animation_block_match = re.search(animation_block_pattern, content)
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
-            full_block = animation_block_match.group(0)
+            indent = animation_block_match.group(1)
 
-            # Получение текущего URL из блока
+            # Формирование нового блока с нужными переменными
 
-            current_url = re.search(r'"(https://[^"]+\.mp4)"', full_block).group(1)
-
-            # Замена блока
-
-            if self._is_valid_url(args):
-                # Если аргумент - это URL
-
-                new_block = full_block.replace(current_url, args)
-                result_message = f"✅ Баннер обновлен на: <code>{args}</code>"
-            else:
-                # Если аргумент - текст
-
-                user_text = args.replace('"', '\\"')
-                caption_match = re.search(r"caption=\((.*?)\)", full_block, re.DOTALL)
-                if not caption_match:
-                    raise ValueError(
-                        "Не удалось найти параметр caption в блоке: {full_block}"
-                    )
-                old_caption = caption_match.group(1)
-                new_caption = f'"{user_text}"'
-                new_block = full_block.replace(
-                    f"caption=({old_caption})", f"caption=({new_caption})"
+            new_block = (
+                f"{indent}await client.hikka_inline.bot.send_animation(\n"
+                f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                f'{indent}    "{args}"'
+                if self._is_valid_url(args)
+                else (
+                    '"https://x0.at/pYQV.mp4",\n' f'{indent}    caption=("{args}"'
+                    if not self._is_valid_url(args)
+                    else "caption=(\n"
+                    f'{indent}    "🌘 <b>Hikka {self.PLACEHOLDERS["version"]} started!</b>\\n\\n"\n'
+                    f'{indent}    "🌳 <b>GitHub commit SHA: <a href=\\"https://github.com/coddrago/Hikka/commit/{self.PLACEHOLDERS["build"]}\\">{self.PLACEHOLDERS["build_hash"]}</a></b>\\n"\n'
+                    f'{indent}    "✊ <b>Update status: {self.PLACEHOLDERS["upd"]}</b>\\n"\n'
+                    f'{indent}    "<b>{self.PLACEHOLDERS["web_url"]}</b>")\n'
+                    f"{indent})\n"
                 )
-                result_message = f"✅ Текст обновлен на: <code>{user_text}</code>"
-            # Обновление содержимого файла
+            )
 
-            content = content.replace(full_block, new_block)
+            # Замена старого блока на новый
+
+            content = content.replace(animation_block_match.group(0), new_block)
 
             # Сохранение файла
 
             with open(main_file_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            await message.edit(f"{result_message}\nНапишите <code>.restart -f</code>")
+            result_message = f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
+            await message.edit(result_message)
         except Exception as e:
             await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
 
