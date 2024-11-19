@@ -44,8 +44,6 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            # Находим блок кода с отправкой анимации
-
             animation_block_pattern = (
                 r"await client\.hikka_inline\.bot\.send_animation\([^)]+\)"
             )
@@ -53,12 +51,10 @@ class AmeChangeLoaderText(loader.Module):
 
             if not animation_block:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
-            # Получаем текущий URL баннера
-
             current_url_pattern = r'"(https://[^"]+\.mp4)"'
             current_url_match = re.search(current_url_pattern, animation_block.group(0))
             if not current_url_match:
-                current_url = "https://x0.at/pYQV.mp4"  # Дефолтный URL
+                current_url = "https://x0.at/pYQV.mp4"
             else:
                 current_url = current_url_match.group(1)
             if self._is_valid_url(args):
@@ -77,23 +73,21 @@ class AmeChangeLoaderText(loader.Module):
                         if f"{{{name}}}" in user_text:
                             used_placeholders.append(f"{name}={value}")
                     new_animation_block = (
-                        "           await client.hikka_inline.bot.send_animation(\n"
+                        "await client.hikka_inline.bot.send_animation(\n"
                         "               logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                        f'              "{current_url}",\n'  # Используем текущий URL
+                        f'              "{current_url}",\n'
                         f'              caption=f"{user_text}",\n'
                         f'              {", ".join(used_placeholders)}\n'
                         "           )"
                     )
                 else:
                     new_animation_block = (
-                        "           await client.hikka_inline.bot.send_animation(\n"
+                        "await client.hikka_inline.bot.send_animation(\n"
                         "               logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                        f'              "{current_url}",\n'  # Используем текущий URL
+                        f'              "{current_url}",\n'
                         f'              caption="{user_text}"\n'
                         "           )"
                     )
-            # Заменяем старый блок на новый
-
             content = content.replace(animation_block.group(0), new_animation_block)
 
             with open(main_file_path, "w", encoding="utf-8") as f:
