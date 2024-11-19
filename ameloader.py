@@ -38,7 +38,8 @@ class AmeChangeLoaderText(loader.Module):
                 "{url}",
                 caption=(
                 {caption}
-                )"""
+                )
+            )"""
 
     def _replace_placeholders(self, text):
         for key, value in self.PLACEHOLDERS.items():
@@ -76,7 +77,6 @@ class AmeChangeLoaderText(loader.Module):
                 r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
                 r"\s*caption=\(\n"
                 r"\s*(.*?)\n"
-                r"\s*\)(?:\s*,)?\n"
                 r"\s*\))"
             )
 
