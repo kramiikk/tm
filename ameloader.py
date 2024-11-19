@@ -67,7 +67,7 @@ class AmeChangeLoaderText(loader.Module):
             else:
                 new_block = self._create_animation_block(
                     url=current_url,
-                    caption_text=args,
+                    caption_text=f"{args}",
                 )
             content = content.replace(full_block, new_block)
 
