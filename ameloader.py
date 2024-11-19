@@ -39,7 +39,7 @@ class AmeChangeLoaderText(loader.Module):
                 caption=(
                 {caption}
                 )
-            )\n\n"""
+            )\n\n            """
 
     def _replace_placeholders(self, text):
         for key, value in self.PLACEHOLDERS.items():
