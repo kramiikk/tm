@@ -11,7 +11,7 @@ class AmeChangeLoaderText(loader.Module):
     strings = {"name": "AmeChangeLoaderText"}
 
     PLACEHOLDERS = {
-        "version": "'.'.join(map(str, version))",
+        "version": "'.'.join(map(str, __version__))",
         "build": "build",
         "build_hash": "build[:7]",
         "upd": "upd",
@@ -43,13 +43,11 @@ class AmeChangeLoaderText(loader.Module):
         ]
         if text:
             if any(f"{{{k}}}" in text for k in self.PLACEHOLDERS.keys()):
-                # Обработка текста с плейсхолдерами
                 lines.append(f'{param_indent}caption=f"{text}"')
                 for name, value in self.PLACEHOLDERS.items():
                     if f"{{{name}}}" in text:
                         lines.append(f"{param_indent}{name}={value},")
             else:
-                # Добавление простого текста
                 lines.append(f'{param_indent}caption="{text}"')
         lines.append(f"{base_indent})")
         return "\n".join(lines)
@@ -81,19 +79,14 @@ class AmeChangeLoaderText(loader.Module):
             main_file_path = os.path.join("hikka", "main.py")
 
             # Чтение файла main.py
-            try:
-                with open(main_file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-            except FileNotFoundError:
-                raise ValueError(f"Файл {main_file_path} не найден")
-            except Exception as e:
-                raise ValueError(f"Ошибка при чтении файла: {str(e)}")
+            with open(main_file_path, "r", encoding="utf-8") as f:
+                content = f.read()
 
             # Поиск блока анимации
             animation_block_pattern = (
                 r"([ \t]*)await\s+client\.hikka_inline\.bot\.send_animation\n"
-                r"(?:\s*[^\n]*\n)*?"
-                r"\s*"
+                r"(?:[ \t]*[^\n]*\n)*?"
+                r"[ \t]*"
             )
             animation_block_match = re.search(animation_block_pattern, content)
             if not animation_block_match:
@@ -116,11 +109,8 @@ class AmeChangeLoaderText(loader.Module):
             content = content.replace(full_block, new_animation_block)
 
             # Сохранение файла
-            try:
-                with open(main_file_path, "w", encoding="utf-8") as f:
-                    f.write(content)
-            except Exception as e:
-                raise ValueError(f"Ошибка при сохранении файла: {str(e)}")
+            with open(main_file_path, "w", encoding="utf-8") as f:
+                f.write(content)
 
             await message.edit(f"{result_message}\nНапишите <code>.restart -f</code>")
 
