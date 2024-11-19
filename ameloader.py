@@ -52,10 +52,8 @@ class AmeChangeLoaderText(loader.Module):
             animation_block_pattern = (
                 r"await\s+client\.hikka_inline\.bot\.send_animation\(\n"
                 r".*?,\n"
-                r".*?caption=\(\n"
-                r'.*?".*?'
-                r'(?:{}.*?"\.format\(.*?\)|.*?")'
-                r"\n.*?\),"
+                r".*?caption=\(.*?\)\).*?\n"
+                r".*?\),"
                 r"\n.*?\)"
             )
 
