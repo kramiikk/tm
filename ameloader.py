@@ -20,9 +20,9 @@ class AmeChangeLoaderText(loader.Module):
 
     async def updateloadercmd(self, message):
         """Обновляет текст и баннер загрузчика."""
-        args = message.raw_text.split(" ", 3)
+        cmd = message.raw_text.split(maxsplit=1)
 
-        if len(args) == 1:
+        if len(cmd) == 1:
             await message.edit(
                 "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
                 "• <code>.updateloader reset hikari</code> - Сброс к настройкам Hikka\n"
@@ -35,16 +35,22 @@ class AmeChangeLoaderText(loader.Module):
                 "   {build_hash} - короткий хеш билда\n"
                 "   {upd} - статус обновления\n"
                 "   {web_url} - веб-URL\n\n"
-                "Пример:\n"
+                "Примеры:\n"
+                "<code>.updateloader Апдейт {upd} | Версия {version}</code>\n"
                 "<code>.updateloader Билд {build_hash} Статус {upd} Веб {web_url}</code>\n\n"
             )
             return
         try:
+            args = cmd[1].strip()
             main_file_path = os.path.join("hikka", "main.py")
+
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            if args[1] == "reset":
-                reset_type = args[2]
+            if args.startswith("reset"):
+                reset_args = args.split()
+                if len(reset_args) < 2:
+                    raise ValueError("Укажите тип сброса: hikari или coddrago")
+                reset_type = reset_args[1]
                 if reset_type == "hikari":
                     url = "https://github.com/hikariatama/assets/raw/master/hikka_banner.mp4"
                     repo_link = "https://github.com/hikariatama/Hikka"
@@ -58,57 +64,52 @@ class AmeChangeLoaderText(loader.Module):
                 animation_pattern = r'(await client\.hikka_inline\.bot\.send_animation\([^,]+,\s*)(["\']https://[^"\']+\.mp4["\'])'
                 content = re.sub(animation_pattern, rf'\1"{url}"', content)
 
-                placeholder_defs = []
-                for name, value in self.PLACEHOLDERS.items():
-                    placeholder_defs.append(f"{name}={value}")
-                caption = (
-                    'caption=(\n                    f"🌘 <b>Hikka {version} started!</b>\\n\\n'
-                    '🌳 <b>GitHub commit SHA: <a href=\\"{}/commit/{build_hash}\\">{build_hash}</a></b>\\n'
+                default_caption = (
+                    "caption=(\n"
+                    '                    f"🌘 <b>Hikka {version} started!</b>\\n\\n'
+                    f'🌳 <b>GitHub commit SHA: <a href="{repo_link}/commit/{{build_hash}}">{{build_hash}}</a></b>\\n'
                     '✊ <b>Update status: {upd}</b>\\n<b>{web_url}</b>",\n'
-                    f'                    {",".join(placeholder_defs)}\n'
+                    '                    version=".".join(map(str, version)),\n'
+                    "                    build_hash=build[:7],\n"
+                    "                    upd=upd,\n"
+                    "                    web_url=web_url\n"
                     "                ),"
-                ).format(repo_link)
+                )
 
-                content = re.sub(r"caption=\([\s\S]*?\),", caption, content)
+                content = re.sub(r"caption=\([\s\S]*?\),", default_caption, content)
                 result_message = f"✅ Восстановлены дефолтные настройки {reset_type}"
-            elif self._is_valid_url(args[1]):
+            elif self._is_valid_url(args):
                 animation_pattern = r'(await client\.hikka_inline\.bot\.send_animation\([^,]+,\s*)(["\']https://[^"\']+\.mp4["\'])'
-                content = re.sub(animation_pattern, rf'\1"{args[1]}"', content)
-                result_message = f"✅ Баннер обновлен на: <code>{args[1]}</code>"
+                content = re.sub(animation_pattern, rf'\1"{args}"', content)
+                result_message = f"✅ Баннер обновлен на: <code>{args}</code>"
             else:
-                user_text = args[1]
+                user_text = args.replace('"', '\\"')
                 has_placeholders = any(
                     f"{{{k}}}" in user_text for k in self.PLACEHOLDERS.keys()
                 )
 
                 if has_placeholders:
-
                     used_placeholders = []
-                    for name in self.PLACEHOLDERS.keys():
+                    for name, value in self.PLACEHOLDERS.items():
                         if f"{{{name}}}" in user_text:
-                            used_placeholders.append(
-                                f"{name}={self.PLACEHOLDERS[name]}"
-                            )
+                            used_placeholders.append(f"{name}={value}")
                     custom_text = (
                         "caption=(\n"
                         f'                    f"{user_text}",\n'
-                        f'                    {",".join(used_placeholders)}\n'
+                        f'                    {", ".join(used_placeholders)}\n'
                         "                ),"
                     )
                 else:
-
                     custom_text = (
                         "caption=(\n"
-                        f'                    f"{user_text}"\n'
+                        f'                    "{user_text}"\n'
                         "                ),"
                     )
                 content = re.sub(r"caption=\([\s\S]*?\),", custom_text, content)
-
-                with open(main_file_path, "w", encoding="utf-8") as f:
-                    f.write(content)
-                await message.edit(
-                    f"✅ Текст обновлен на: <code>{user_text}</code>\nНапишите <code>.restart -f</code>"
-                )
+                result_message = f"✅ Текст обновлен на: <code>{user_text}</code>"
+            with open(main_file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            await message.edit(f"{result_message}\nНапишите <code>.restart -f</code>")
         except Exception as e:
             await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
 
