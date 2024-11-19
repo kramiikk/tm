@@ -52,8 +52,9 @@ class AmeChangeLoaderText(loader.Module):
             animation_block_pattern = (
                 r"await\s+client\.hikka_inline\.bot\.send_animation\(\n"
                 r".*?,\n"
-                r".*?caption=\(.*?\).*?,\n"
-                r".*?\)"
+                r".*?caption=\(.*?\).*?,"
+                r".*?\n.*?\),"
+                r"\n.*?\)"
             )
 
             animation_block_match = re.search(
@@ -69,8 +70,8 @@ class AmeChangeLoaderText(loader.Module):
             else:
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
-                    r"caption=\(.*?\).*?,\n",
-                    f'caption=("{user_text}"),\n',
+                    r"caption=\(.*?\).*?,\n.*?\n.*?\)",
+                    f'caption=("{user_text}"))',
                     full_block,
                     flags=re.DOTALL,
                 )
