@@ -6,7 +6,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика. v0.13"""
+    """Модуль для изменения текста и баннера загрузчика.014"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -51,9 +51,9 @@ class AmeChangeLoaderText(loader.Module):
             # Поиск блока анимации
             animation_block_pattern = (
                 r"([ \t]*)await\s+client\.hikka_inline\.bot\.send_animation\n"
-                r"(?:[ \t]*.+,\n)*"  # Все параметры
-                r"[ \t]*caption=(?:[^\n]+)\s*\n"
-                r"[ \t]*"  # Закрывающая скобка вызова
+                r"(?:[ \t]*.+,\n)*"
+                r"[ \t]*caption=(?:[^)]+),?\n"
+                r"[ \t]*"
             )
             animation_block_match = re.search(animation_block_pattern, content)
             if not animation_block_match:
