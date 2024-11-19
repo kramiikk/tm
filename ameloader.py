@@ -60,6 +60,7 @@ class AmeChangeLoaderText(loader.Module):
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
             full_block = animation_block_match.group(0)
             indent = animation_block_match.group(1)
+            await message.reply(f"{full_block}")
 
             if self._is_valid_url(args):
                 new_block = re.sub(r'"https://[^"]+\.mp4"', f'"{args}"', full_block)
@@ -68,12 +69,13 @@ class AmeChangeLoaderText(loader.Module):
                 new_block = re.sub(
                     r'caption=\(\s*"[^"]*"\s*\)', f'caption=("{user_text}")', full_block
                 )
+                await message.reply(f"{new_block}")
             content = content.replace(full_block, new_block)
-
+            await message.reply(f"{content}")
             with open(main_file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             await message.edit(
-                f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>/n{full_block} /n{new_block}"
+                f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
             )
         except Exception as e:
             await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
