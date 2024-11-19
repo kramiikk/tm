@@ -48,7 +48,7 @@ class AmeChangeLoaderText(loader.Module):
 
     def _create_animation_block(self, url, caption_text, has_placeholders=False):
         """Создает блок анимации с форматированным текстом."""
-        return self.ANIMATION_TEMPLATE.format(url=url, caption=caption_text if has_placeholders else f"{caption_text}")
+        return self.ANIMATION_TEMPLATE.format(url=url, caption=f"{caption_text}" if has_placeholders else caption_text)
 
     async def updateloadercmd(self, message):
         """
