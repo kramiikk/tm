@@ -39,21 +39,16 @@ class AmeChangeLoaderText(loader.Module):
                 caption=(
                 {caption}
                 )
-            )\n\n            """
+            )\n            """
 
     def _replace_placeholders(self, text):
         for key, value in self.PLACEHOLDERS.items():
             text = text.replace(f"{{{key}}}", value)
         return text
 
-    def _format_caption(self, text, has_placeholders):
-        """Форматирует caption в зависимости от наличия плейсхолдеров."""
-        return text if has_placeholders else f'"{text}"'
-
     def _create_animation_block(self, url, caption_text, has_placeholders=False):
         """Создает блок анимации с форматированным текстом."""
-        formatted_caption = self._format_caption(caption_text, has_placeholders)
-        return self.ANIMATION_TEMPLATE.format(url=url, caption=formatted_caption)
+        return self.ANIMATION_TEMPLATE.format(url=url, caption=caption_text)
 
     async def updateloadercmd(self, message):
         """
@@ -63,14 +58,12 @@ class AmeChangeLoaderText(loader.Module):
         if len(cmd) == 1:
             await message.edit(self.strings("help"))
             return
-
         try:
             args = cmd[1].strip()
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-
             animation_block_pattern = (
                 r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
                 r"\s*.*?,\n"
@@ -87,14 +80,12 @@ class AmeChangeLoaderText(loader.Module):
 
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
-            
             full_block = animation_block_match.group(1)
             current_url = animation_block_match.group(2)
 
             if self._is_valid_url(args):
                 new_block = self._create_animation_block(
-                    url=args,
-                    caption_text=animation_block_match.group(3).strip()
+                    url=args, caption_text=animation_block_match.group(3).strip()
                 )
             else:
                 has_placeholders = any(key in args for key in self.PLACEHOLDERS.keys())
@@ -102,9 +93,8 @@ class AmeChangeLoaderText(loader.Module):
                 new_block = self._create_animation_block(
                     url=current_url,
                     caption_text=user_text,
-                    has_placeholders=has_placeholders
+                    has_placeholders=has_placeholders,
                 )
-
             content = content.replace(full_block, new_block)
 
             try:
