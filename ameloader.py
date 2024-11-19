@@ -11,26 +11,10 @@ class AmeChangeLoaderText(loader.Module):
 
     strings = {"name": "AmeChangeLoaderText"}
 
-    PLACEHOLDERS = {
-        "version": "'.'.join(map(str, version))",
-        "build": "build",
-        "build_hash": "build[:7]",
-        "upd": "upd",
-        "web_url": "web_url",
-    }
-
     strings_ru = {
         "help": "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
         "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить баннер\n"
         "• <code>.updateloader текст</code> - Заменить текст\n"
-        "• <code>.updateloader текст с placeholder</code> - Заменить текст с переменными:\n"
-        "   {version} - версия\n"
-        "   {build} - полный билд\n"
-        "   {build_hash} - короткий хеш билда\n"
-        "   {upd} - статус обновления\n"
-        "   {web_url} - веб-URL\n\n"
-        "Пример:\n"
-        "<code>.updateloader Статус {upd} Веб {web_url}</code>\n\n"
     }
 
     ANIMATION_TEMPLATE = """\n            await client.hikka_inline.bot.send_animation(
@@ -41,14 +25,9 @@ class AmeChangeLoaderText(loader.Module):
                 )
             )\n            """
 
-    def _replace_placeholders(self, text):
-        for key, value in self.PLACEHOLDERS.items():
-            text = text.replace(f"{{{key}}}", value)
-        return text
-
-    def _create_animation_block(self, url, caption_text, has_placeholders=False):
+    def _create_animation_block(self, url, caption_text):
         """Создает блок анимации с форматированным текстом."""
-        return self.ANIMATION_TEMPLATE.format(url=url, caption=f"{caption_text}" if has_placeholders else caption_text)
+        return self.ANIMATION_TEMPLATE.format(url=url, caption=caption_text)
 
     async def updateloadercmd(self, message):
         """
@@ -88,12 +67,9 @@ class AmeChangeLoaderText(loader.Module):
                     url=args, caption_text=animation_block_match.group(3).strip()
                 )
             else:
-                has_placeholders = any(key in args for key in self.PLACEHOLDERS.keys())
-                user_text = self._replace_placeholders(args)
                 new_block = self._create_animation_block(
                     url=current_url,
-                    caption_text=user_text,
-                    has_placeholders=has_placeholders,
+                    caption_text=args,
                 )
             content = content.replace(full_block, new_block)
 
