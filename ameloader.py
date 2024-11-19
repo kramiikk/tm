@@ -71,7 +71,7 @@ class AmeChangeLoaderText(loader.Module):
                 user_text = self._replace_placeholders(args)
                 new_block = re.sub(
                     r"caption=\(.*?\)\).*?\n.*?\)," r"\n.*?\)",
-                    f'caption=(\n                    "{user_text}"\n                ),',
+                    f'caption=(\n                    "{user_text}"\n                )\n            ),',
                     full_block,
                     flags=re.DOTALL,
                 )
