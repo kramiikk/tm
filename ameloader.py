@@ -62,12 +62,14 @@ class AmeChangeLoaderText(loader.Module):
                     new_caption = current_caption
                 else:
                     new_url = current_url
-                    caption_lines = current_caption.split("\n")
-                    if len(caption_lines) > 2:
-                        first_line_indent = len(caption_lines[1]) - len(
-                            caption_lines[1].lstrip()
+                    caption_match = re.search(
+                        r"caption=\((.*?)\)", current_caption, re.DOTALL
+                    )
+                    if caption_match:
+                        original_indent = len(caption_match.group(1)) - len(
+                            caption_match.group(1).lstrip()
                         )
-                        new_caption = f'caption=(\n{" " * first_line_indent}"{args}"\n{" " * (first_line_indent - 2)}))'
+                        new_caption = f'caption=({" " * original_indent}"{args}")'
                     else:
                         new_caption = f'caption=("{args}")'
                 return (
@@ -76,8 +78,7 @@ class AmeChangeLoaderText(loader.Module):
                     f"{send_animation_start}"
                     f"{log_line}"
                     f"{new_url}, "
-                    f"{new_caption}, "
-                    f"{send_animation_end}"
+                    f"{new_caption})"
                     f"{post_animation_space}"
                     f"{logging_debug}"
                 )
