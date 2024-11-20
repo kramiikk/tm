@@ -6,7 +6,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.2"""
+    """Модуль для изменения текста и баннера загрузчика.3"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -30,10 +30,9 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-
             animation_pattern = (
-                r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
-                r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
+                r"await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*"
+                r"logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*"
                 r'"[^"]+",\s*'
                 r'caption=\s*\(\s*"[^"]+"\s*\),?\s*\)'
             )
@@ -41,26 +40,22 @@ class AmeChangeLoaderText(loader.Module):
             match = re.search(animation_pattern, content, re.DOTALL)
 
             if not match:
-                simple_pattern = r'await client\.hikka_inline\.bot\.send_animation\([^)]+\)'
+                simple_pattern = (
+                    r"await client\.hikka_inline\.bot\.send_animation\([^)]+\)"
+                )
                 match = re.search(simple_pattern, content, re.DOTALL)
                 if not match:
-                    raise ValueError("Не удалось найти блок отправки анимации в main.py")
-
+                    raise ValueError(
+                        "Не удалось найти блок отправки анимации в main.py"
+                    )
             old_block = match.group(0)
 
             if self._is_valid_url(args):
-                new_block = re.sub(
-                    r'"[^"]+"(?=,\s*caption)',
-                    f'"{args}"',
-                    old_block
-                )
+                new_block = re.sub(r'"[^"]+"(?=,\s*caption)', f'"{args}"', old_block)
             else:
                 new_block = re.sub(
-                    r'(caption=\s*\(\s*")([^"]*)(")',
-                    f'\\1{args}\\3',
-                    old_block
-            )
-
+                    r'(caption=\s*\(\s*")([^"]*)(")', f"\\1{args}\\3", old_block
+                )
             updated_content = content.replace(old_block, new_block)
 
             try:
