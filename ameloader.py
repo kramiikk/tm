@@ -24,8 +24,7 @@ class AmeChangeLoaderText(loader.Module):
 
             # Захватываем блок send_animation с параметрами
             animation_pattern = (
-                r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
-                r'.*?\)'
+                r'await\s+client\.hikka_inline\.bot\.send_animation\s*\((?:[^)(]|\((?:[^)(]|\([^)(]*\))*\))*\)'
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
