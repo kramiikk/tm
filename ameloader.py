@@ -25,31 +25,26 @@ class AmeChangeLoaderText(loader.Module):
         if len(cmd) == 1:
             await message.edit(self.strings("help"))
             return
-        
         try:
             args = cmd[1].strip()
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            
-            # More comprehensive regex to handle default Hikka loader block
             animation_block_pattern = (
-                r'(\s*)\)(\s*)'
-                r'(\s*self\.omit_log\s*=\s*True\s*)'
-                r'(\s*)'
-                r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*)'
-                r'(logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)'
+                r"(\s*)\)(\s*)"
+                r"(\s*self\.omit_log\s*=\s*True\s*)"
+                r"(\s*)"
+                r"(await\s+client\.hikka_inline\.bot\.send_animation\(\s*)"
+                r"(logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"
                 r'(".*?"),\s*'
-                r'(caption=\(.*?\)),\s*'
-                r'(\))'
-                r'(\s*)'
-                r'(logging\.debug\()'
+                r"(caption=\(.*?\)),\s*"
+                r"(\))"
+                r"(\s*)"
+                r"(logging\.debug\()"
             )
 
-            # Use regex to find and replace the entire animation block
             def replace_block(match):
-                # Preserve original indentation and formatting
                 pre_close_paren = match.group(1)
                 post_close_paren = match.group(2)
                 omit_log_line = match.group(3)
@@ -62,34 +57,36 @@ class AmeChangeLoaderText(loader.Module):
                 post_animation_space = match.group(10)
                 logging_debug = match.group(11)
 
-                # Determine new URL and caption
                 if self._is_valid_url(args):
                     new_url = f'"{args}"'
                     new_caption = current_caption
                 else:
                     new_url = current_url
-                    # Replace the entire caption text with the new text
-                    new_caption = f'caption=(\n{" " * (len(omit_log_indent) + 4)}"{args}"\n{" " * (len(omit_log_indent) + 2)})'
-
-                # Reconstruct the block with the same formatting
+                    caption_lines = current_caption.split("\n")
+                    if len(caption_lines) > 2:
+                        first_line_indent = len(caption_lines[1]) - len(
+                            caption_lines[1].lstrip()
+                        )
+                        new_caption = f'caption=(\n{" " * first_line_indent}"{args}"\n{" " * (first_line_indent - 2)}))'
+                    else:
+                        new_caption = f'caption=("{args}")'
                 return (
-                    f'{pre_close_paren}){post_close_paren}'
-                    f'{omit_log_line}{omit_log_indent}'
-                    f'{send_animation_start}'
-                    f'{log_line}'
-                    f'{new_url}, '
-                    f'{new_caption}, '
-                    f'{send_animation_end}'
-                    f'{post_animation_space}'
-                    f'{logging_debug}'
+                    f"{pre_close_paren}){post_close_paren}"
+                    f"{omit_log_line}{omit_log_indent}"
+                    f"{send_animation_start}"
+                    f"{log_line}"
+                    f"{new_url}, "
+                    f"{new_caption}, "
+                    f"{send_animation_end}"
+                    f"{post_animation_space}"
+                    f"{logging_debug}"
                 )
 
-            # Perform the replacement
             new_content = re.sub(
-                animation_block_pattern, 
-                replace_block, 
-                content, 
-                flags=re.DOTALL | re.MULTILINE
+                animation_block_pattern,
+                replace_block,
+                content,
+                flags=re.DOTALL | re.MULTILINE,
             )
 
             try:
@@ -106,8 +103,7 @@ class AmeChangeLoaderText(loader.Module):
     def _is_valid_url(self, url):
         """Проверяет URL."""
         try:
-            # Remove potential quotes
-            clean_url = url.strip('"\'')
+            clean_url = url.strip("\"'")
             result = urllib.parse.urlparse(clean_url)
             return all([result.scheme, result.netloc]) and (
                 clean_url.lower().endswith(".mp4") or clean_url.lower().endswith(".gif")
