@@ -30,49 +30,64 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+
+            # Обновленное регулярное выражение с опциональным форматированием
             animation_block_pattern = (
-                r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
-                r"\s*.*?,\n"
-                r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
-                r"\s*caption=\(\n"
-                r"\s*(.*?)\n"
-                r"\s*\)\n"
-                r"\s*\)(?:\s*,\s*\)\s*)?)"
+                r'([ \t]*await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
+                r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
+                r'(?P<url>["\'][^"\']+["\'])\s*,\s*'
+                r'caption=\s*\(\s*'
+                r'(?P<caption>'
+                r'(?:[^()]*?(?:\([^()]*\))*[^()]*?\.format\s*\([^)]+\)\s*|'  # Вариант с format()
+                r'["\'][^"\']*["\'])'  # Вариант без format()
+                r')\s*'
+                r'\)\s*,?\s*\))'
             )
 
-            animation_block_match = re.search(
-                animation_block_pattern, content, re.DOTALL
-            )
+            animation_block_match = re.search(animation_block_pattern, content, re.DOTALL)
 
             if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
+
             full_block = animation_block_match.group(1)
-            current_url = animation_block_match.group(2)
+            current_url = animation_block_match.group('url').strip('\'"')
+            current_caption = animation_block_match.group('caption').strip()
+            indent = re.match(r'^[ \t]*', full_block).group(0)
+
+            # Проверяем наличие .format() в текущем caption
+            has_format = '.format(' in current_caption
 
             if self._is_valid_url(args):
-                new_block = f"""\n            await client.hikka_inline.bot.send_animation(
-                                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
-                                "{args}",
-                                caption=(
-                                {animation_block_match.group(3).strip()}
-                                )
-                            )\n            """
+                # Если меняем медиа, проверяем наличие format()
+                caption = "\"Ready\"" if has_format else current_caption
+                new_block = (
+                    f"{indent}await client.hikka_inline.bot.send_animation(\n"
+                    f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                    f"{indent}    \"{args}\",\n"
+                    f"{indent}    caption=(\n"
+                    f"{indent}        {caption}\n"
+                    f"{indent}    ),\n"
+                    f"{indent})"
+                )
             else:
-                new_block = f"""\n            await client.hikka_inline.bot.send_animation(
-                                logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
-                                "{current_url}",
-                                caption=(
-                                "{args}"
-                                )
-                            )\n            """
+                new_block = (
+                    f"{indent}await client.hikka_inline.bot.send_animation(\n"
+                    f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                    f"{indent}    \"{current_url}\",\n"
+                    f"{indent}    caption=(\n"
+                    f"{indent}        \"{args}\"\n"
+                    f"{indent}    ),\n"
+                    f"{indent})"
+                )
+
             content = content.replace(full_block, new_block)
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
                     f.write(content)
-                    await message.edit(
-                        f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
-                    )
+                await message.edit(
+                    f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
+                )
             except OSError as e:
                 await message.edit(f"❌ Ошибка записи в файл: {e}")
         except Exception as e:
