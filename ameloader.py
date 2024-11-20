@@ -6,7 +6,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика."""
+    """Модуль для изменения текста и баннера загрузчика.1"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -31,15 +31,13 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Обновленный паттерн для точного соответствия блоку
+            # Более гибкий паттерн
             animation_pattern = (
-                r'([ \t]*await client\.hikka_inline\.bot\.send_animation\(\s*\n'
-                r'[ \t]*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*\n'
-                r'[ \t]*(?P<url>"[^"]+"),\s*\n'
-                r'[ \t]*caption=\(\s*\n'
-                r'[ \t]*(?P<caption>"[^"]+"\s*\.\s*format\([^)]+\))\s*\n'
-                r'[ \t]*\),\s*\n'
-                r'[ \t]*\))'
+                r'(await\s+client\.hikka_inline\.bot\.send_animation\s*\('
+                r'[^,]+,'  # первый аргумент (логгер)
+                r'\s*(?P<url>"[^"]+")\s*,'  # URL в кавычках
+                r'\s*caption\s*=\s*\([^)]+\)'  # весь блок caption
+                r'\s*\))'  # закрывающая скобка
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
@@ -47,16 +45,16 @@ class AmeChangeLoaderText(loader.Module):
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
 
             full_block = match.group(1)
-            indent = re.match(r'^[ \t]*', full_block).group(0)
+            indent = re.match(r'^\s*', full_block).group(0)
             
             if self._is_valid_url(args):
-                # Если это URL - заменяем только URL
+                # Заменяем только URL
                 new_block = content[match.start():match.end()].replace(
                     match.group('url'),
                     f'"{args}"'
                 )
             else:
-                # Если это текст - создаем новый блок с простым текстом
+                # Создаем новый простой блок с текстом
                 new_block = (
                     f"{indent}await client.hikka_inline.bot.send_animation(\n"
                     f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
