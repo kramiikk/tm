@@ -6,7 +6,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.3"""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -17,9 +17,6 @@ class AmeChangeLoaderText(loader.Module):
     }
 
     async def updateloadercmd(self, message):
-        """
-        Команда для обновления текста или баннера загрузчика.
-        """
         cmd = message.raw_text.split(maxsplit=1)
         if len(cmd) == 1:
             await message.edit(self.strings("help"))
@@ -30,6 +27,8 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+            # Точный паттерн, соответствующий структуре в файле
+
             animation_pattern = (
                 r"await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*"
                 r"logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*"
@@ -49,6 +48,7 @@ class AmeChangeLoaderText(loader.Module):
                         "Не удалось найти блок отправки анимации в main.py"
                     )
             old_block = match.group(0)
+            await message.reply(f"Old Block: {old_block}")  # Debug await message.reply
 
             if self._is_valid_url(args):
                 new_block = re.sub(r'"[^"]+"(?=,\s*caption)', f'"{args}"', old_block)
@@ -56,7 +56,12 @@ class AmeChangeLoaderText(loader.Module):
                 new_block = re.sub(
                     r'(caption=\s*\(\s*")([^"]*)(")', f"\\1{args}\\3", old_block
                 )
+            await message.reply(f"New Block: {new_block}")  # Debug await message.reply
+
+            # Заменяем старый блок на новый
+
             updated_content = content.replace(old_block, new_block)
+            await message.reply(f"Updated Content: {updated_content[:500]}...")  # Debug await message.reply
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
