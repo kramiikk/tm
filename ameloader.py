@@ -3,6 +3,7 @@ import re
 import os
 import urllib.parse
 
+
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
     """Модуль для изменения текста и баннера загрузчика."""
@@ -14,41 +15,40 @@ class AmeChangeLoaderText(loader.Module):
         if len(cmd) == 1:
             await message.edit(self.strings("help"))
             return
-
         try:
             args = cmd[1].strip()
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-
             # Захватываем блок send_animation с параметрами
+
             animation_pattern = (
-                r'await\s+client\.hikka_inline\.bot\.send_animation\s*\((?:[^)(]|\((?:[^)(]|\([^)(]*\))*\))*\)'
+                r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
+                r"\s*.*?,\n"
+                r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
+                r"\s*caption=\(\n"
+                r"\s*(.*?)\n"
+                r"\s*\)\n"
+                r"\s*\)(?:\s*,\s*\)\s*)?)"
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
             if not match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
-
             old_block = match.group(0)
             await message.reply(f"Old Block: {old_block}")
 
             if self._is_valid_url(args):
-                new_block = re.sub(
-                    r'"([^"]+)"(?=,\s*caption)',
-                    f'"{args}"',
-                    old_block
-                )
+                new_block = re.sub(r'"([^"]+)"(?=,\s*caption)', f'"{args}"', old_block)
             else:
                 new_block = re.sub(
-                    r'(caption=\s*\(\s*")([^"]*)(")',
-                    f'\\1{args}\\3',
-                    old_block
+                    r'(caption=\s*\(\s*")([^"]*)(")', f"\\1{args}\\3", old_block
                 )
             await message.reply(f"New Block: {new_block}")
 
             # Заменяем старый блок на новый
+
             updated_content = content.replace(old_block, new_block)
             await message.reply(f"Updated Content: {updated_content[:500]}...")
 
