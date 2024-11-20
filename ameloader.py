@@ -2,7 +2,6 @@ from .. import loader
 import os
 import re
 import urllib.parse
-import logging
 
 
 @loader.tds
@@ -47,8 +46,15 @@ class AmeChangeLoaderText(loader.Module):
                         f'{prefix}"{args}",{caption_start}{current_caption_content}{caption_end}\n'
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
-                lines = current_caption_content.split("\n")
+                
+                if args.startswith('f"'):
+                    new_caption_content = args
+                else:
+                    
+                    clean_text = args.strip('"\'')
+                    new_caption_content = f'"{clean_text}"'
 
+                lines = current_caption_content.split("\n")
                 if len(lines) > 1:
                     content_lines = [line for line in lines if line.strip()]
                     if content_lines:
@@ -56,11 +62,8 @@ class AmeChangeLoaderText(loader.Module):
                         indent = len(first_content_line) - len(
                             first_content_line.lstrip()
                         )
-                        new_caption_content = f'\n{" " * indent}{args}'
-                    else:
-                        new_caption_content = f"{args}"
-                else:
-                    new_caption_content = f"{args}"
+                        new_caption_content = f'\n{" " * indent}{new_caption_content}'
+                
                 return (
                     f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n'
                     f"{prev_line_indent}{logging_indent}logging.debug("
@@ -82,7 +85,11 @@ class AmeChangeLoaderText(loader.Module):
     def _is_valid_url(self, url):
         """Проверяет URL."""
         try:
-            clean_url = url.strip("\"'")
+            clean_url = url.strip()
+            if clean_url.startswith('"') or clean_url.startswith("'") or \
+               clean_url.endswith('"') or clean_url.endswith("'"):
+                return False
+            
             result = urllib.parse.urlparse(clean_url)
             return all([result.scheme, result.netloc]) and (
                 clean_url.lower().endswith(".mp4") or clean_url.lower().endswith(".gif")
