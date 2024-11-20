@@ -1,4 +1,4 @@
-from .. import loader
+from .. import loader, utils
 import os
 import re
 import urllib.parse
@@ -20,12 +20,12 @@ class AmeChangeLoaderText(loader.Module):
         """
         Команда для обновления текста или баннера загрузчика.
         """
-        cmd = message.raw_text.split(maxsplit=1)
-        if len(cmd) == 1:
+        cmd = utils.get_args_raw(message)  # Используем raw аргументы
+        if not cmd:
             await message.edit(self.strings("help"))
             return
         try:
-            args = cmd[1].strip()
+            args = cmd  # Используем аргументы как есть, без обработки
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as f:
@@ -47,22 +47,8 @@ class AmeChangeLoaderText(loader.Module):
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
 
-                # Для f-строк просто передаем как есть
-                if args.lstrip().startswith(('f"', "f'")):
-                    new_caption_content = args
-                else:
-                    # Для обычных строк добавляем кавычки
-                    clean_text = args.strip('"\'')
-                    new_caption_content = f'"{clean_text}"'
-
-                # Обработка отступов для многострочного контента
-                lines = current_caption_content.split("\n")
-                if len(lines) > 1 and not args.lstrip().startswith(('f"', "f'")):
-                    content_lines = [line for line in lines if line.strip()]
-                    if content_lines:
-                        first_content_line = content_lines[0]
-                        indent = len(first_content_line) - len(first_content_line.lstrip())
-                        new_caption_content = f'\n{" " * indent}{new_caption_content}'
+                # Передаем строку как есть, без обработки
+                new_caption_content = args
 
                 return (
                     f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n'
