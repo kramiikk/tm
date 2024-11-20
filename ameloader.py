@@ -31,73 +31,36 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            animation_block_pattern = (
-                r"(\s*)\)(\s*)"
-                r"(\s*self\.omit_log\s*=\s*True\s*)"
-                r"(\s*)"
-                r"(await\s+client\.hikka_inline\.bot\.send_animation\(\s*)"
-                r"(logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"
-                r'(".*?"),\s*'
-                r"(caption=\(.*?\))\s*"
-                r"(\))"
-                r"(\s*)"
-                r"(logging\.debug\()"
-            )
+            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)"(,\s*caption=\(.*?\))'
 
-            def replace_block(match):
-                pre_close_paren = match.group(1)
-                post_close_paren = match.group(2)
-                omit_log_line = match.group(3)
-                omit_log_indent = match.group(4)
-                send_animation_start = match.group(5)
-                log_line = match.group(6)
-                current_url = match.group(7)
-                current_caption = match.group(8)
-                send_animation_end = match.group(9)
-                post_animation_space = match.group(10)
-                logging_debug = match.group(11)
+            def replace_handler(match):
+                prefix = match.group(1)
+                current_url = match.group(2)
+                caption_part = match.group(3)
 
                 if self._is_valid_url(args):
-                    new_url = f'"{args}"'
-                    new_caption = current_caption
-                else:
-                    new_url = current_url
-                    # Более точная обработка caption с сохранением форматирования
+                    return f'{prefix}"{args}"{caption_part}'
+                caption_pattern = r"caption=\((.+?)\)"
 
-                    caption_match = re.search(
-                        r"caption=\((.*?)\)", current_caption, re.DOTALL
-                    )
-                    if caption_match:
-                        # Определяем текущие отступы
+                def replace_caption(caption_match):
+                    original_content = caption_match.group(1)
 
-                        full_match = caption_match.group(0)
-                        start_indent = len(full_match) - len(full_match.lstrip())
-                        content_indent = len(caption_match.group(1)) - len(
-                            caption_match.group(1).lstrip()
+                    lines = original_content.split("\n")
+                    if len(lines) > 1:
+                        indent = len(lines[1]) - len(lines[1].lstrip())
+                        return (
+                            f'caption=(\n{" " * indent}"{args}"\n{" " * (indent - 2)})'
                         )
-
-                        # Создаем новую caption с сохранением отступов
-
-                        new_caption = f'caption=({" " * (content_indent - 4)}"{args}")'
                     else:
-                        new_caption = f'caption=("{args}")'
-                return (
-                    f"{pre_close_paren}){post_close_paren}"
-                    f"{omit_log_line}{omit_log_indent}"
-                    f"{send_animation_start}"
-                    f"{log_line}"
-                    f"{new_url}, "
-                    f"{new_caption})"
-                    f"{post_animation_space}"
-                    f"{logging_debug}"
+                        return f'caption=("{args}")'
+
+                new_caption_part = re.sub(
+                    caption_pattern, replace_caption, caption_part, flags=re.DOTALL
                 )
 
-            new_content = re.sub(
-                animation_block_pattern,
-                replace_block,
-                content,
-                flags=re.DOTALL | re.MULTILINE,
-            )
+                return f'{prefix}"{current_url}"{new_caption_part}'
+
+            new_content = re.sub(pattern, replace_handler, content, flags=re.DOTALL)
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
