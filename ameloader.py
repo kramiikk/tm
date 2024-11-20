@@ -60,9 +60,9 @@ class AmeChangeLoaderText(loader.Module):
                             f'\n{" " * indent}{eval(f"f'''{args}'''")}'
                         )
                     else:
-                        new_caption_content = eval(f"f'''{args}'''")
+                        new_caption_content = eval(f"f'''{args}'''".strip())
                 else:
-                    new_caption_content = eval(f"f'''{args}'''")
+                    new_caption_content = eval(f"f'''{args}'''".strip())
                 return (
                     f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n'
                     f"{prev_line_indent}{logging_indent}logging.debug("
