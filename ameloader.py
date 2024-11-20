@@ -5,7 +5,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика."""
+    """Модуль для изменения текста и баннера загрузчика.4"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -27,7 +27,7 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Расширенный паттерн для захвата более точного блока
+            # Уточненный паттерн для захвата блока кода
             animation_pattern = (
                 r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
                 r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
@@ -48,8 +48,8 @@ class AmeChangeLoaderText(loader.Module):
 
             if self._is_valid_url(args):
                 new_block = re.sub(
-                    animation_pattern,
-                    f'await client.hikka_inline.bot.send_animation(logging.getLogger().handlers[0].get_logid_by_client(client.tg_id), "{args}", caption=("new caption"))',
+                    r'"([^"]+)"(?=,\s*caption)',
+                    f'"{args}"',
                     old_block
                 )
             else:
