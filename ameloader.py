@@ -6,7 +6,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика."""
+    """Модуль для изменения текста и баннера загрузчика.2"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -31,45 +31,45 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Обновленный паттерн поиска блока анимации
+            # Точный паттерн, соответствующий структуре в файле
             animation_pattern = (
                 r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
                 r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
-                r'(?P<url>"[^"]+"),\s*'
+                r'"[^"]+",\s*'
                 r'caption=\s*\(\s*'
-                r'(?P<caption>"[^"]+")\s*'
+                r'"[^"]+"\s*'
+                r'\),?\s*'
                 r'\)'
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
+            
             if not match:
-                raise ValueError("Не удалось найти блок отправки анимации в main.py")
+                # Если не нашли, пробуем найти более простой паттерн
+                simple_pattern = r'await client\.hikka_inline\.bot\.send_animation\([^)]+\)'
+                match = re.search(simple_pattern, content, re.DOTALL)
+                if not match:
+                    raise ValueError("Не удалось найти блок отправки анимации в main.py")
 
-            url = match.group('url').strip('"')  # Убираем кавычки из найденного URL
-            caption = match.group('caption').strip('"')  # Убираем кавычки из найденного caption
+            old_block = match.group(0)
             
             if self._is_valid_url(args):
                 # Заменяем URL
-                new_url = args
-                new_caption = caption
+                new_block = re.sub(
+                    r'"[^"]+"(?=,\s*caption)',  # Находим URL перед caption
+                    f'"{args}"',
+                    old_block
+                )
             else:
                 # Заменяем текст
-                new_url = url
-                new_caption = args
+                new_block = re.sub(
+                    r'(?<=caption=\s*\(\s*)"[^"]+"',  # Находим текст внутри caption
+                    f'"{args}"',
+                    old_block
+                )
 
-            # Формируем новый блок без лишних кавычек
-            new_block = (
-                f'await client.hikka_inline.bot.send_animation(\n'
-                f'    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n'
-                f'    "{new_url}",\n'
-                f'    caption=(\n'
-                f'        "{new_caption}"\n'
-                f'    )\n'
-                f')'
-            )
-
-            # Заменяем весь найденный блок
-            updated_content = content.replace(match.group(0), new_block)
+            # Заменяем старый блок на новый
+            updated_content = content.replace(old_block, new_block)
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
