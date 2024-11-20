@@ -36,37 +36,31 @@ class AmeChangeLoaderText(loader.Module):
                 r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
                 r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
                 r'"[^"]+",\s*'
-                r'caption=\s*\(\s*'
-                r'"[^"]+"\s*'
-                r'\),?\s*'
-                r'\)'
+                r'caption=\s*\(\s*"[^"]+"\s*\),?\s*\)'
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
             
             if not match:
-                # Если не нашли, пробуем найти более простой паттерн
                 simple_pattern = r'await client\.hikka_inline\.bot\.send_animation\([^)]+\)'
                 match = re.search(simple_pattern, content, re.DOTALL)
                 if not match:
                     raise ValueError("Не удалось найти блок отправки анимации в main.py")
 
             old_block = match.group(0)
-            
+
             if self._is_valid_url(args):
-                # Заменяем URL
                 new_block = re.sub(
-                    r'"[^"]+"(?=,\s*caption)',  # Находим URL перед caption
+                    r'"[^"]+"(?=,\s*caption)',
                     f'"{args}"',
                     old_block
                 )
             else:
-                # Заменяем текст
                 new_block = re.sub(
-                    r'(caption=\s*\(\s*")([^"]*)(")',  # Находим текст внутри caption
+                    r'(caption=\s*\(\s*")([^"]*)(")',
                     f'\\1{args}\\3',
                     old_block
-                )
+            )
 
             # Заменяем старый блок на новый
             updated_content = content.replace(old_block, new_block)
