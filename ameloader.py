@@ -38,7 +38,7 @@ class AmeChangeLoaderText(loader.Module):
                 r"(await\s+client\.hikka_inline\.bot\.send_animation\(\s*)"
                 r"(logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"
                 r'(".*?"),\s*'
-                r"(caption=\(.*?\)),\s*"
+                r"(caption=\(.*?\))\s*"
                 r"(\))"
                 r"(\s*)"
                 r"(logging\.debug\()"
@@ -62,14 +62,23 @@ class AmeChangeLoaderText(loader.Module):
                     new_caption = current_caption
                 else:
                     new_url = current_url
+                    # Более точная обработка caption с сохранением форматирования
+
                     caption_match = re.search(
                         r"caption=\((.*?)\)", current_caption, re.DOTALL
                     )
                     if caption_match:
-                        original_indent = len(caption_match.group(1)) - len(
+                        # Определяем текущие отступы
+
+                        full_match = caption_match.group(0)
+                        start_indent = len(full_match) - len(full_match.lstrip())
+                        content_indent = len(caption_match.group(1)) - len(
                             caption_match.group(1).lstrip()
                         )
-                        new_caption = f'caption=({" " * original_indent}"{args}")'
+
+                        # Создаем новую caption с сохранением отступов
+
+                        new_caption = f'caption=({" " * (content_indent - 4)}"{args}")'
                     else:
                         new_caption = f'caption=("{args}")'
                 return (
