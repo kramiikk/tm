@@ -1,7 +1,8 @@
 from .. import loader
-import re
 import os
+import re
 import urllib.parse
+
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
@@ -9,7 +10,16 @@ class AmeChangeLoaderText(loader.Module):
 
     strings = {"name": "AmeChangeLoaderText"}
 
+    strings_ru = {
+        "help": "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
+        "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить баннер\n"
+        "• <code>.updateloader текст</code> - Заменить текст\n"
+    }
+
     async def updateloadercmd(self, message):
+        """
+        Команда для обновления текста или баннера загрузчика.
+        """
         cmd = message.raw_text.split(maxsplit=1)
         if len(cmd) == 1:
             await message.edit(self.strings("help"))
@@ -20,46 +30,53 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+            animation_block_pattern = (
+                r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
+                r"\s*.*?,\n"
+                r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
+                r"\s*caption=\(\n"
+                r"\s*(.*?)\n"
+                r"\s*\)\n"
+                r"\s*\)(?:\s*,\s*\)\s*)?)"
+            )
 
-            # Захватываем блок send_animation с параметрами
-            animation_pattern = re.compile(r"""
-                await \s+ client \. hikka_inline \. bot \. send_animation  # Начало вызова send_animation
-                \(
-                .*?  # Любые символы между скобками (не жадный поиск)
-                caption \s* = \s* \(  # Начало аргумента caption
-                \s* (
-                    \"\"\"(.*?) \"\"\"  |  # Тройные кавычки
-                    '(.*?)'  |  # Одинарные кавычки
-                    \"(.*?)\"  # Двойные кавычки
-                )
-                \s* \)  # Конец аргумента caption
-                .*?  # Любые символы после caption (не жадный поиск)
-                \)  # Конец вызова send_animation
-            """, re.VERBOSE | re.DOTALL)
+            animation_block_match = re.search(
+                animation_block_pattern, content, re.DOTALL
+            )
 
-            match = animation_pattern.search(content)
-            if not match:
+            if not animation_block_match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
-            old_block = match.group(0)
-            caption_match = match.group(2) or match.group(3) or match.group(4)  # Получаем текст подписи
-            await message.reply(f"Old Block: {old_block}")
+            full_block = animation_block_match.group(1)
+            current_url = animation_block_match.group(2)
+
+            # Определяем отступы, используя отступы из найденного блока
+
+            indent = re.match(r"(\s*)", full_block).group(1)
 
             if self._is_valid_url(args):
-                new_block = re.sub(r'"([^"]+)"(?=,\s*caption)', f'"{args}"', old_block)
+                new_block = f"""{indent}await client.hikka_inline.bot.send_animation(
+{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
+{indent}    "{args}",
+{indent}    caption=(
+{indent}    {animation_block_match.group(3).strip()}
+{indent}    )
+{indent})"""
             else:
-                new_block = old_block.replace(caption_match, args)  # Заменяем только текст подписи
-            await message.reply(f"New Block: {new_block}")
-
-            # Заменяем старый блок на новый
-            updated_content = content.replace(old_block, new_block)
-            await message.reply(f"Updated Content: {updated_content[:500]}...")
+                new_block = f"""{indent}await client.hikka_inline.bot.send_animation(
+{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
+{indent}    "{current_url}",
+{indent}    caption=(
+{indent}    "{args}"
+{indent}    )
+{indent})"""
+            content = content.replace(full_block, new_block)
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
-                    f.write(updated_content)
-                await message.edit(
-                    f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
-                )
+                    f.write(content)
+                    await message.edit(
+                        f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
+                    )
             except OSError as e:
                 await message.edit(f"❌ Ошибка записи в файл: {e}")
         except Exception as e:
