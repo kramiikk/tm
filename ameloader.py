@@ -31,7 +31,6 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Точный паттерн, соответствующий структуре в файле
             animation_pattern = (
                 r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
                 r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
@@ -62,7 +61,6 @@ class AmeChangeLoaderText(loader.Module):
                     old_block
             )
 
-            # Заменяем старый блок на новый
             updated_content = content.replace(old_block, new_block)
 
             try:
