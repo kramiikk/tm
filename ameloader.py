@@ -7,7 +7,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.1"""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -44,22 +44,14 @@ class AmeChangeLoaderText(loader.Module):
                 prev_line_indent = match.group(6)
                 logging_indent = match.group(7)
 
-                # Если передан URL, меняем URL
-
                 if self._is_valid_url(args):
                     return (
                         f'{prefix}"{args}",{caption_start}{current_caption_content}{caption_end}\n'
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
-                # Обработка текста
-
                 lines = current_caption_content.split("\n")
 
-                # Обработка многострочного формата
-
                 if len(lines) > 1:
-                    # Найдем отступ первой содержательной строки
-
                     content_lines = [line for line in lines if line.strip()]
                     if content_lines:
                         first_content_line = content_lines[0]
@@ -70,15 +62,11 @@ class AmeChangeLoaderText(loader.Module):
                     else:
                         new_caption_content = f'"{args}"'
                 else:
-                    # Однострочный формат
-
                     new_caption_content = f'"{args}"'
                 return (
                     f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n'
                     f"{prev_line_indent}{logging_indent}logging.debug("
                 )
-
-            # Выполняем замену
 
             new_content = re.sub(pattern, replace_handler, content, flags=re.DOTALL)
 
