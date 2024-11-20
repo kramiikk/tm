@@ -3,6 +3,7 @@ import os
 import re
 import urllib.parse
 
+
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
     """Модуль для изменения текста и баннера загрузчика.4"""
@@ -26,43 +27,35 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-
-            # Уточненный паттерн для захвата блока кода
             animation_pattern = (
-                r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
-                r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
+                r"await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*"
+                r"logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*"
                 r'"([^"]+)",\s*'
                 r'caption=\s*\(\s*"([^"]*)"\s*\)\s*\)'
             )
+            simple_pattern = (
+                r"await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*" r"[^)]*\)"
+            )
 
             match = re.search(animation_pattern, content, re.DOTALL)
-            
+
             if not match:
-                simple_pattern = r'await client\.hikka_inline\.bot\.send_animation\([^)]+\)'
                 match = re.search(simple_pattern, content, re.DOTALL)
                 if not match:
-                    raise ValueError("Не удалось найти блок отправки анимации в main.py")
-
+                    raise ValueError(
+                        "Не удалось найти блок отправки анимации в main.py"
+                    )
             old_block = match.group(0)
-            await message.reply(f"Old Block: {old_block}")  # Debug reply
-
             if self._is_valid_url(args):
-                new_block = re.sub(
-                    r'"([^"]+)"(?=,\s*caption)',
-                    f'"{args}"',
-                    old_block
-                )
+                new_block = re.sub(r'"([^"]+)"(?=,\s*caption)', f'"{args}"', old_block)
             else:
                 new_block = re.sub(
-                    r'(caption=\s*\(\s*")([^"]*)(")',
-                    f'\\1{args}\\3',
-                    old_block
+                    r'(caption=\s*\(\s*")([^"]*)(")', f"\\1{args}\\3", old_block
                 )
-            await message.reply(f"New Block: {new_block}")  # Debug reply
+            await message.reply(f"New Block: {new_block}")
 
-            # Заменяем старый блок на новый
             updated_content = content.replace(old_block, new_block)
-            await message.reply(f"Updated Content: {updated_content[:500]}...")  # Debug reply
+            await message.reply(f"Updated Content: {updated_content[:500]}...")
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
