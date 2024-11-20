@@ -7,7 +7,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.4"""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -33,7 +33,7 @@ class AmeChangeLoaderText(loader.Module):
                 content = f.read()
             # Более точный паттерн для поиска блока
 
-            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),\s*\))\s*(\s*logging\.debug\()'
+            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),\s*\))\s*(\s*)(\s*logging\.debug\()'
 
             def replace_handler(match):
                 prefix = match.group(1)
@@ -41,12 +41,13 @@ class AmeChangeLoaderText(loader.Module):
                 caption_start = match.group(3)
                 current_caption_content = match.group(4)
                 caption_end = match.group(5)
-                logging_debug = match.group(6)
+                previous_whitespace = match.group(6)
+                logging_debug = match.group(7)
 
                 # Если передан URL, меняем URL
 
                 if self._is_valid_url(args):
-                    return f'{prefix}"{args}",{caption_start}{current_caption_content}{caption_end} {logging_debug}'
+                    return f'{prefix}"{args}",{caption_start}{current_caption_content}{caption_end} {previous_whitespace}{logging_debug}'
                 # Обработка текста
 
                 lines = current_caption_content.split("\n")
@@ -69,7 +70,7 @@ class AmeChangeLoaderText(loader.Module):
                     # Однострочный формат
 
                     new_caption_content = f'"{args}"'
-                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n {logging_debug}'
+                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end} {previous_whitespace}{logging_debug}'
 
             # Выполняем замену
 
