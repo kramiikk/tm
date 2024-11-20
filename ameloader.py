@@ -48,6 +48,7 @@ class AmeChangeLoaderText(loader.Module):
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
             full_block = animation_block_match.group(1)
             current_url = animation_block_match.group(2)
+            caption_content = animation_block_match.group(3).strip()
 
             # Определяем отступы, используя отступы из найденного блока
 
@@ -58,7 +59,7 @@ class AmeChangeLoaderText(loader.Module):
 {indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
 {indent}    "{args}",
 {indent}    caption=(
-{indent}    {animation_block_match.group(3).strip()}
+{indent}    {caption_content if ".format" not in caption_content else '"Ready"'}
 {indent}    )
 {indent})"""
             else:
