@@ -6,7 +6,7 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.1"""
+    """Модуль для изменения текста и баннера загрузчика."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -31,13 +31,12 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Более гибкий паттерн
+            # Улучшенный паттерн для поиска блока анимации
             animation_pattern = (
-                r'(await\s+client\.hikka_inline\.bot\.send_animation\s*\('
-                r'[^,]+,'  # первый аргумент (логгер)
-                r'\s*(?P<url>"[^"]+")\s*,'  # URL в кавычках
-                r'\s*caption\s*=\s*\([^)]+\)'  # весь блок caption
-                r'\s*\))'  # закрывающая скобка
+                r'(await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
+                r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
+                r'(?P<url>"[^"]+"),\s*'
+                r'caption=\s*\(\s*(?P<caption>"[^"]+"|\'[^\']+\'|\([^)]+\))\s*\),?\s*\))'
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
@@ -48,23 +47,31 @@ class AmeChangeLoaderText(loader.Module):
             indent = re.match(r'^\s*', full_block).group(0)
             
             if self._is_valid_url(args):
-                # Заменяем только URL
-                new_block = content[match.start():match.end()].replace(
-                    match.group('url'),
-                    f'"{args}"'
-                )
-            else:
-                # Создаем новый простой блок с текстом
+                # Заменяем URL, сохраняя существующий caption
+                current_caption = match.group('caption')
                 new_block = (
                     f"{indent}await client.hikka_inline.bot.send_animation(\n"
                     f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                    f"{indent}    {match.group('url')},\n"
+                    f"{indent}    \"{args}\",\n"
+                    f"{indent}    caption=(\n"
+                    f"{indent}        {current_caption}\n"
+                    f"{indent}    ),\n"
+                    f"{indent})"
+                )
+            else:
+                # Заменяем caption, сохраняя существующий URL
+                current_url = match.group('url')
+                new_block = (
+                    f"{indent}await client.hikka_inline.bot.send_animation(\n"
+                    f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
+                    f"{indent}    {current_url},\n"
                     f"{indent}    caption=(\n"
                     f"{indent}        \"{args}\"\n"
                     f"{indent}    ),\n"
                     f"{indent})"
                 )
 
+            # Заменяем старый блок на новый
             updated_content = content.replace(full_block, new_block)
 
             try:
