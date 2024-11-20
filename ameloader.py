@@ -69,6 +69,10 @@ class AmeChangeLoaderText(loader.Module):
 {indent}    "{args}"
 {indent}    )
 {indent})"""
+            # Добавляем \n к full_block, если он не заканчивается на \n
+
+            if not full_block.endswith("\n"):
+                full_block += "\n"
             content = content.replace(full_block, new_block)
 
             try:
