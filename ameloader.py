@@ -31,7 +31,6 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            # Улучшенный паттерн для более точного поиска
 
             pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),\s*\))\s*(\s*)\n(\s*)logging\.debug\('
 
