@@ -31,48 +31,45 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Улучшенный паттерн для поиска блока анимации
+            # Обновленный паттерн поиска блока анимации
             animation_pattern = (
-                r'(await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
+                r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
                 r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
                 r'(?P<url>"[^"]+"),\s*'
-                r'caption=\s*\(\s*(?P<caption>"[^"]+"|\'[^\']+\'|\([^)]+\))\s*\),?\s*\))'
+                r'caption=\s*\(\s*'
+                r'(?P<caption>"[^"]+")\s*'
+                r'\)'
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
             if not match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
 
-            full_block = match.group(1)
-            indent = re.match(r'^\s*', full_block).group(0)
+            url = match.group('url').strip('"')  # Убираем кавычки из найденного URL
+            caption = match.group('caption').strip('"')  # Убираем кавычки из найденного caption
             
             if self._is_valid_url(args):
-                # Заменяем URL, сохраняя существующий caption
-                current_caption = match.group('caption')
-                new_block = (
-                    f"{indent}await client.hikka_inline.bot.send_animation(\n"
-                    f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                    f"{indent}    \"{args}\",\n"
-                    f"{indent}    caption=(\n"
-                    f"{indent}        {current_caption}\n"
-                    f"{indent}    ),\n"
-                    f"{indent})"
-                )
+                # Заменяем URL
+                new_url = args
+                new_caption = caption
             else:
-                # Заменяем caption, сохраняя существующий URL
-                current_url = match.group('url')
-                new_block = (
-                    f"{indent}await client.hikka_inline.bot.send_animation(\n"
-                    f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                    f"{indent}    {current_url},\n"
-                    f"{indent}    caption=(\n"
-                    f"{indent}        \"{args}\"\n"
-                    f"{indent}    ),\n"
-                    f"{indent})"
-                )
+                # Заменяем текст
+                new_url = url
+                new_caption = args
 
-            # Заменяем старый блок на новый
-            updated_content = content.replace(full_block, new_block)
+            # Формируем новый блок без лишних кавычек
+            new_block = (
+                f'await client.hikka_inline.bot.send_animation(\n'
+                f'    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n'
+                f'    "{new_url}",\n'
+                f'    caption=(\n'
+                f'        "{new_caption}"\n'
+                f'    )\n'
+                f')'
+            )
+
+            # Заменяем весь найденный блок
+            updated_content = content.replace(match.group(0), new_block)
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
