@@ -7,7 +7,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.1"""
+    """Модуль для изменения текста и баннера загрузчика.2"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -31,17 +31,17 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),.*?logging\.debug\()'
+            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\))(.*?)logging\.debug\()'
 
             def replace_handler(match):
                 prefix = match.group(1)
                 current_url = match.group(2)
                 caption_start = match.group(3)
                 current_caption_content = match.group(4)
-                suffix = match.group(5)
+                caption_end = match.group(5)
 
                 if self._is_valid_url(args):
-                    return f'{prefix}"{args}",{caption_start}{current_caption_content}{suffix}'
+                    return f'{prefix}"{args}",{caption_start}{current_caption_content}{caption_end}, )  logging.debug('
                 lines = current_caption_content.split("\n")
 
                 if len(lines) > 1:
@@ -56,7 +56,7 @@ class AmeChangeLoaderText(loader.Module):
                         new_caption_content = f'"{args}"'
                 else:
                     new_caption_content = f'"{args}"'
-                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}{suffix}'
+                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}, )  logging.debug('
 
             new_content = re.sub(pattern, replace_handler, content, flags=re.DOTALL)
 
