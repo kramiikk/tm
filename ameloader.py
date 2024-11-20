@@ -7,7 +7,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика.3"""
+    """Модуль для изменения текста и баннера загрузчика.4"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -33,7 +33,7 @@ class AmeChangeLoaderText(loader.Module):
                 content = f.read()
             # Более точный паттерн для поиска блока
 
-            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),\s*\))\s*(logging\.debug\()'
+            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),\s*\))\s*(\s*logging\.debug\()'
 
             def replace_handler(match):
                 prefix = match.group(1)
@@ -69,7 +69,7 @@ class AmeChangeLoaderText(loader.Module):
                     # Однострочный формат
 
                     new_caption_content = f'"{args}"'
-                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end} {logging_debug}'
+                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n {logging_debug}'
 
             # Выполняем замену
 
