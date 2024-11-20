@@ -1,3 +1,4 @@
+from ... import loader
 import re
 import os
 import urllib.parse
