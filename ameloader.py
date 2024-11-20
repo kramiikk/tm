@@ -46,23 +46,29 @@ class AmeChangeLoaderText(loader.Module):
                         f'{prefix}"{args}",{caption_start}{current_caption_content}{caption_end}\n'
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
+
+                # Определяем, является ли строка f-строкой и сохраняем 'f' в начале
+                is_fstring = args.lstrip().startswith(('f"', "f'"))
+                quote_char = '"' if 'f"' in args else "'"
                 
-                if args.startswith('f"'):
-                    new_caption_content = args
+                if is_fstring:
+                    # Убираем возможные лишние кавычки, но сохраняем 'f' и содержимое
+                    clean_text = args.lstrip().replace('f"', '', 1).replace("f'", '', 1).strip('"\'')
+                    new_caption_content = f'f{quote_char}{clean_text}{quote_char}'
                 else:
-                    
+                    # Для обычных строк
                     clean_text = args.strip('"\'')
                     new_caption_content = f'"{clean_text}"'
 
+                # Обработка отступов для многострочного контента
                 lines = current_caption_content.split("\n")
                 if len(lines) > 1:
                     content_lines = [line for line in lines if line.strip()]
                     if content_lines:
                         first_content_line = content_lines[0]
-                        indent = len(first_content_line) - len(
-                            first_content_line.lstrip()
-                        )
-                        new_caption_content = f'\n{" " * indent}{new_caption_content}'
+                        indent = len(first_content_line) - len(first_content_line.lstrip())
+                        if not is_fstring:
+                            new_caption_content = f'\n{" " * indent}{new_caption_content}'
                 
                 return (
                     f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n'
@@ -74,9 +80,9 @@ class AmeChangeLoaderText(loader.Module):
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
                     f.write(new_content)
-                    await message.edit(
-                        f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
-                    )
+                await message.edit(
+                    f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
+                )
             except OSError as e:
                 await message.edit(f"❌ Ошибка записи в файл: {e}")
         except Exception as e:
