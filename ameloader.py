@@ -7,7 +7,7 @@ import logging
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика."""
+    """Модуль для изменения текста и баннера загрузчика.1"""
 
     strings = {"name": "AmeChangeLoaderText"}
 
@@ -31,34 +31,32 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)"(,\s*caption=\(.*?\))'
+            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),.*?logging\.debug\()'
 
             def replace_handler(match):
                 prefix = match.group(1)
                 current_url = match.group(2)
-                caption_part = match.group(3)
+                caption_start = match.group(3)
+                current_caption_content = match.group(4)
+                suffix = match.group(5)
 
                 if self._is_valid_url(args):
-                    return f'{prefix}"{args}"{caption_part}'
-                caption_pattern = r"caption=\((.+?)\)"
+                    return f'{prefix}"{args}",{caption_start}{current_caption_content}{suffix}'
+                lines = current_caption_content.split("\n")
 
-                def replace_caption(caption_match):
-                    original_content = caption_match.group(1)
-
-                    lines = original_content.split("\n")
-                    if len(lines) > 1:
-                        indent = len(lines[1]) - len(lines[1].lstrip())
-                        return (
-                            f'caption=(\n{" " * indent}"{args}"\n{" " * (indent - 2)})'
+                if len(lines) > 1:
+                    content_lines = [line for line in lines if line.strip()]
+                    if content_lines:
+                        first_content_line = content_lines[0]
+                        indent = len(first_content_line) - len(
+                            first_content_line.lstrip()
                         )
+                        new_caption_content = f'\n{" " * indent}"{args}"'
                     else:
-                        return f'caption=("{args}")'
-
-                new_caption_part = re.sub(
-                    caption_pattern, replace_caption, caption_part, flags=re.DOTALL
-                )
-
-                return f'{prefix}"{current_url}"{new_caption_part}'
+                        new_caption_content = f'"{args}"'
+                else:
+                    new_caption_content = f'"{args}"'
+                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}{suffix}'
 
             new_content = re.sub(pattern, replace_handler, content, flags=re.DOTALL)
 
