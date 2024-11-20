@@ -25,7 +25,7 @@ class AmeChangeLoaderText(loader.Module):
             await message.edit(self.strings("help"))
             return
         try:
-            args = cmd  # Используем аргументы как есть, без обработки
+            args = f"{cmd}"  # Используем аргументы как есть, без обработки
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as f:
