@@ -31,35 +31,39 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Исправленный паттерн регулярного выражения
-            animation_pattern = r"""(?P<indent>\s*)await\s+client\.hikka_inline\.bot\.send_animation\(\s*
-                logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*
-                (?P<url>["'][^"']+["']),\s*
-                caption\s*=\s*(?P<caption>[^,\n]+)(?:\s*,\s*)?\)"""
+            # Обновленный паттерн для поиска блока с учетом format()
+            animation_pattern = (
+                r'([ \t]*await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
+                r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
+                r'(?P<url>["\'][^"\']+["\'])\s*,\s*'
+                r'caption=\s*\(\s*'
+                r'(?P<caption>"[^"]+"|\'[^\']+\')'
+                r'(?:\s*\.\s*format\s*\([^)]+\))?\s*'
+                r'\)\s*,?\s*\))'
+            )
 
-            match = re.search(animation_pattern, content, re.VERBOSE | re.DOTALL)
+            match = re.search(animation_pattern, content, re.DOTALL)
             if not match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
 
-            full_block = match.group(0)
-            indent = match.group('indent')
+            full_block = match.group(1)
+            indent = re.match(r'^[ \t]*', full_block).group(0)
             
             if self._is_valid_url(args):
-                # Если это URL - заменяем URL, оставляем текущий caption
-                new_block = (
-                    f"{indent}await client.hikka_inline.bot.send_animation(\n"
-                    f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
-                    f"{indent}    \"{args}\",\n"
-                    f"{indent}    caption={match.group('caption')}\n"
-                    f"{indent})"
+                # Если это URL - заменяем URL, сохраняем текущий caption
+                new_block = content[match.start():match.end()].replace(
+                    match.group('url'),
+                    f'"{args}"'
                 )
             else:
-                # Если это текст - заменяем caption, оставляем текущий URL
+                # Если это текст - создаем новый блок с простым caption
                 new_block = (
                     f"{indent}await client.hikka_inline.bot.send_animation(\n"
                     f"{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),\n"
                     f"{indent}    {match.group('url')},\n"
-                    f"{indent}    caption=\"{args}\"\n"
+                    f"{indent}    caption=(\n"
+                    f"{indent}        \"{args}\"\n"
+                    f"{indent}    ),\n"
                     f"{indent})"
                 )
 
