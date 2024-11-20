@@ -40,7 +40,7 @@ class AmeChangeLoaderText(loader.Module):
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
-            
+
             if not match:
                 simple_pattern = r'await client\.hikka_inline\.bot\.send_animation\([^)]+\)'
                 match = re.search(simple_pattern, content, re.DOTALL)
