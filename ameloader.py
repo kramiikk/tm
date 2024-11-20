@@ -3,7 +3,6 @@ import os
 import re
 import urllib.parse
 
-
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
     """Модуль для изменения текста и баннера загрузчика."""
@@ -27,41 +26,43 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            # Точный паттерн, соответствующий структуре в файле
 
+            # Расширенный паттерн для захвата более точного блока
             animation_pattern = (
-                r"await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*"
-                r"logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*"
-                r'"[^"]+",\s*'
-                r'caption=\s*\(\s*"[^"]+"\s*\),?\s*\)'
+                r'await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
+                r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
+                r'"([^"]+)",\s*'
+                r'caption=\s*\(\s*"([^"]*)"\s*\)\s*\)'
             )
 
             match = re.search(animation_pattern, content, re.DOTALL)
-
+            
             if not match:
-                simple_pattern = (
-                    r"await client\.hikka_inline\.bot\.send_animation\([^)]+\)"
-                )
+                simple_pattern = r'await client\.hikka_inline\.bot\.send_animation\([^)]+\)'
                 match = re.search(simple_pattern, content, re.DOTALL)
                 if not match:
-                    raise ValueError(
-                        "Не удалось найти блок отправки анимации в main.py"
-                    )
+                    raise ValueError("Не удалось найти блок отправки анимации в main.py")
+
             old_block = match.group(0)
-            await message.reply(f"Old Block: {old_block}")  # Debug await message.reply
+            await message.reply(f"Old Block: {old_block}")  # Debug reply
 
             if self._is_valid_url(args):
-                new_block = re.sub(r'"[^"]+"(?=,\s*caption)', f'"{args}"', old_block)
+                new_block = re.sub(
+                    animation_pattern,
+                    f'await client.hikka_inline.bot.send_animation(logging.getLogger().handlers[0].get_logid_by_client(client.tg_id), "{args}", caption=("new caption"))',
+                    old_block
+                )
             else:
                 new_block = re.sub(
-                    r'(caption=\s*\(\s*")([^"]*)(")', f"\\1{args}\\3", old_block
+                    r'(caption=\s*\(\s*")([^"]*)(")',
+                    f'\\1{args}\\3',
+                    old_block
                 )
-            await message.reply(f"New Block: {new_block}")  # Debug await message.reply
+            await message.reply(f"New Block: {new_block}")  # Debug reply
 
             # Заменяем старый блок на новый
-
             updated_content = content.replace(old_block, new_block)
-            await message.reply(f"Updated Content: {updated_content[:500]}...")  # Debug await message.reply
+            await message.reply(f"Updated Content: {updated_content[:500]}...")  # Debug reply
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:
