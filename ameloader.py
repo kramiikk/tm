@@ -31,20 +31,18 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Паттерн для поиска блока с анимацией с учетом форматирования
-            animation_pattern = (
-                r'([ \t]*await\s+client\.hikka_inline\.bot\.send_animation\s*\(\s*'
-                r'logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*'
-                r'(?P<url>["\'][^"\']+["\'])\s*,\s*'
-                r'caption\s*=\s*(?P<caption>[^,\n]+)(?:\s*,\s*)?\)'
-            )
+            # Исправленный паттерн регулярного выражения
+            animation_pattern = r"""(?P<indent>\s*)await\s+client\.hikka_inline\.bot\.send_animation\(\s*
+                logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*
+                (?P<url>["'][^"']+["']),\s*
+                caption\s*=\s*(?P<caption>[^,\n]+)(?:\s*,\s*)?\)"""
 
-            match = re.search(animation_pattern, content, re.DOTALL)
+            match = re.search(animation_pattern, content, re.VERBOSE | re.DOTALL)
             if not match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
 
             full_block = match.group(0)
-            indent = re.match(r'^[ \t]*', full_block).group(0)
+            indent = match.group('indent')
             
             if self._is_valid_url(args):
                 # Если это URL - заменяем URL, оставляем текущий caption
