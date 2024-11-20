@@ -21,13 +21,12 @@ class AmeChangeLoaderText(loader.Module):
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Захватываем блок send_animation с параметрами
             animation_pattern = (
                 r"(\s*await\s+client\.hikka_inline\.bot\.send_animation\(\n"
                 r"\s*.*?,\n"
                 r"\s*(?:\"|\')([^'\"]+)(?:\"|\'),\n"
                 r"\s*caption=\(\n"
-                r"\s*(\"\"\"(.*?)\"\"\"|'(.*?)'|\"(.*?)\")\n"  # Изменено регулярное выражение
+                r"\s*(\"\"\"(.*?)\"\"\"|'(.*?)'|\"(.*?)\")\n"
                 r"\s*\)\n"
                 r"\s*\)(?:\s*,\s*\)\s*)?)"
             )
@@ -36,16 +35,15 @@ class AmeChangeLoaderText(loader.Module):
             if not match:
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
             old_block = match.group(0)
-            caption_match = match.group(3) or match.group(4) or match.group(5)  # Получаем текст подписи
+            caption_match = match.group(3) or match.group(4) or match.group(5)
             await message.reply(f"Old Block: {old_block}")
 
             if self._is_valid_url(args):
                 new_block = re.sub(r'"([^"]+)"(?=,\s*caption)', f'"{args}"', old_block)
             else:
-                new_block = old_block.replace(caption_match, args)  # Заменяем только текст подписи
+                new_block = old_block.replace(caption_match, args)
             await message.reply(f"New Block: {new_block}")
 
-            # Заменяем старый блок на новый
             updated_content = content.replace(old_block, new_block)
             await message.reply(f"Updated Content: {updated_content[:500]}...")
 
