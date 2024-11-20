@@ -47,29 +47,23 @@ class AmeChangeLoaderText(loader.Module):
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
 
-                # Определяем, является ли строка f-строкой и сохраняем 'f' в начале
-                is_fstring = args.lstrip().startswith(('f"', "f'"))
-                quote_char = '"' if 'f"' in args else "'"
-                
-                if is_fstring:
-                    # Убираем возможные лишние кавычки, но сохраняем 'f' и содержимое
-                    clean_text = args.lstrip().replace('f"', '', 1).replace("f'", '', 1).strip('"\'')
-                    new_caption_content = f'f{quote_char}{clean_text}{quote_char}'
+                # Для f-строк просто передаем как есть
+                if args.lstrip().startswith(('f"', "f'")):
+                    new_caption_content = args
                 else:
-                    # Для обычных строк
+                    # Для обычных строк добавляем кавычки
                     clean_text = args.strip('"\'')
                     new_caption_content = f'"{clean_text}"'
 
                 # Обработка отступов для многострочного контента
                 lines = current_caption_content.split("\n")
-                if len(lines) > 1:
+                if len(lines) > 1 and not args.lstrip().startswith(('f"', "f'")):
                     content_lines = [line for line in lines if line.strip()]
                     if content_lines:
                         first_content_line = content_lines[0]
                         indent = len(first_content_line) - len(first_content_line.lstrip())
-                        if not is_fstring:
-                            new_caption_content = f'\n{" " * indent}{new_caption_content}'
-                
+                        new_caption_content = f'\n{" " * indent}{new_caption_content}'
+
                 return (
                     f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n'
                     f"{prev_line_indent}{logging_indent}logging.debug("
