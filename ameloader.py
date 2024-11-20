@@ -61,7 +61,7 @@ class AmeChangeLoaderText(loader.Module):
 {indent}    caption=(
 {indent}    {caption_content if ".format" not in caption_content else '"Ready"'}
 {indent}    )
-{indent})"""
+{indent})\n"""
             else:
                 new_block = f"""{indent}await client.hikka_inline.bot.send_animation(
 {indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
@@ -69,7 +69,7 @@ class AmeChangeLoaderText(loader.Module):
 {indent}    caption=(
 {indent}    "{args}"
 {indent}    )
-{indent})"""
+{indent})\n"""
             # Добавляем \n к full_block, если он не заканчивается на \n
 
             if not full_block.endswith("\n"):
