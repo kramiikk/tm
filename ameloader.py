@@ -42,7 +42,7 @@ class AmeChangeLoaderText(loader.Module):
 
                 if self._is_valid_url(args):
                     return (
-                        f'{prefix}"{args}",{caption_start}{current_caption_content}{caption_end}\n'
+                        f'{prefix}"{cmd}",{caption_start}{current_caption_content}{caption_end}\n'
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
 
@@ -57,7 +57,7 @@ class AmeChangeLoaderText(loader.Module):
                 with open(main_file_path, "w", encoding="utf-8") as f:
                     f.write(new_content)
                 await message.edit(
-                    f"✅ Обновлено на: <code>{args}</code>\nНапишите <code>.restart -f</code>"
+                    f"✅ Обновлено на: <code>{cmd}</code>\nНапишите <code>.restart -f</code>"
                 )
             except OSError as e:
                 await message.edit(f"❌ Ошибка записи в файл: {e}")
