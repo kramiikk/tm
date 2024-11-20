@@ -31,20 +31,29 @@ class AmeChangeLoaderText(loader.Module):
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\))(.*?)logging\.debug\()'
+            # Более надежный паттерн с учетом сложной структуры
+
+            pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\).*?)(\).*?)logging\.debug\('
 
             def replace_handler(match):
                 prefix = match.group(1)
                 current_url = match.group(2)
                 caption_start = match.group(3)
                 current_caption_content = match.group(4)
-                caption_end = match.group(5)
+
+                # Если передан URL, меняем URL
 
                 if self._is_valid_url(args):
-                    return f'{prefix}"{args}",{caption_start}{current_caption_content}{caption_end}, )  logging.debug('
+                    return f'{prefix}"{args}",{caption_start}{current_caption_content}), )  logging.debug('
+                # Обработка текста
+
                 lines = current_caption_content.split("\n")
 
+                # Обработка многострочного формата
+
                 if len(lines) > 1:
+                    # Найдем отступ первой содержательной строки
+
                     content_lines = [line for line in lines if line.strip()]
                     if content_lines:
                         first_content_line = content_lines[0]
@@ -55,8 +64,12 @@ class AmeChangeLoaderText(loader.Module):
                     else:
                         new_caption_content = f'"{args}"'
                 else:
+                    # Однострочный формат
+
                     new_caption_content = f'"{args}"'
-                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}, )  logging.debug('
+                return f'{prefix}"{current_url}",{caption_start}{new_caption_content}), )  logging.debug('
+
+            # Выполняем замену с флагом re.DOTALL для многострочного поиска
 
             new_content = re.sub(pattern, replace_handler, content, flags=re.DOTALL)
 
