@@ -63,7 +63,7 @@ class AmeChangeLoaderText(loader.Module):
             else:
                 # Заменяем текст
                 new_block = re.sub(
-                    r'(?<=caption=\s*\(\s*)"[^"]+"',  # Находим текст внутри caption
+                    r'(?<=caption=\s*\(\s*)".*?"',  # Находим текст внутри caption
                     f'"{args}"',
                     old_block
                 )
