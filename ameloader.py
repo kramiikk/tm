@@ -48,32 +48,22 @@ class AmeChangeLoaderText(loader.Module):
                 raise ValueError("Не удалось найти блок отправки анимации в main.py")
             full_block = animation_block_match.group(1)
             current_url = animation_block_match.group(2)
-            caption_content = animation_block_match.group(3).strip()
-
-            # Определяем отступы, используя отступы из найденного блока
 
             indent = re.match(r"(\s*)", full_block).group(1)
 
             if self._is_valid_url(args):
-                new_block = f"""{indent}await client.hikka_inline.bot.send_animation(
-{indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
-{indent}    "{args}",
-{indent}    caption=(
-{indent}    {caption_content if ".format" not in caption_content else '"Ready"'}
-{indent}    )
-{indent})\n"""
+                p1 = args
+                p2 = "Ready"
             else:
-                new_block = f"""{indent}await client.hikka_inline.bot.send_animation(
+                p1 = current_url
+                p2 = args
+            new_block = f"""{indent}await client.hikka_inline.bot.send_animation(
 {indent}    logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
-{indent}    "{current_url}",
+{indent}    {p1},
 {indent}    caption=(
-{indent}    "{args}"
+{indent}    {p2}
 {indent}    )
 {indent})\n"""
-            # Добавляем \n к full_block, если он не заканчивается на \n
-
-            if not full_block.endswith("\n"):
-                full_block += "\n"
             content = content.replace(full_block, new_block)
 
             try:
