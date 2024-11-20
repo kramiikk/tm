@@ -40,7 +40,7 @@ class AmeChangeLoaderText(loader.Module):
                 prev_line_indent = match.group(6)
                 logging_indent = match.group(7)
 
-                if self._is_valid_url(args):
+                if self._is_valid_url(cmd):
                     return (
                         f'{prefix}"{cmd}",{caption_start}{current_caption_content}{caption_end}\n'
                         f"{prev_line_indent}{logging_indent}logging.debug("
