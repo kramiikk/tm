@@ -25,7 +25,6 @@ class AmeChangeLoaderText(loader.Module):
             await message.edit(self.strings("help"))
             return
         try:
-            args = f"{cmd}"  # Используем аргументы как есть, без обработки
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as f:
@@ -47,11 +46,8 @@ class AmeChangeLoaderText(loader.Module):
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
 
-                # Передаем строку как есть, без обработки
-                new_caption_content = args
-
                 return (
-                    f'{prefix}"{current_url}",{caption_start}{new_caption_content}{caption_end}\n'
+                    f'{prefix}"{current_url}",{caption_start}f"{cmd}"{caption_end}\n'
                     f"{prev_line_indent}{logging_indent}logging.debug("
                 )
 
