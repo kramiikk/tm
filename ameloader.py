@@ -10,11 +10,6 @@ class AmeChangeLoaderText(loader.Module):
 
     strings = {"name": "AmeChangeLoaderText"}
 
-    strings_ru = {
-        "help": "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
-        "
-    }
-
     async def updateloadercmd(self, message):
         """
         Для баннера подходят только файлы с форматом mp4 и gif.
