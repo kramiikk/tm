@@ -67,7 +67,6 @@ class GroupVideoModule(loader.Module):
     async def _create_group_call(self, chat: Union[Chat, Channel]) -> Optional[types.phone.GroupCall]:
         """Создание нового видеочата"""
         try:
-            await utils.answer(message, self.strings["creating_chat"])
             call = await self._client(CreateGroupCallRequest(
                 peer=chat,
                 title="Видеочат",
@@ -149,12 +148,9 @@ class GroupVideoModule(loader.Module):
                         id=call.call.id,
                         access_hash=call.call.access_hash
                     ),
-                    params={
-                        "muted": True,
-                        "video_stopped": True,
-                        "screen_sharing": False,
-                        "raise_hand": False
-                    }
+                    params=types.DataJSON(
+                        data='{"muted": true, "video_stopped": true, "screen_sharing": false, "raise_hand": false}'
+                    )
                 ))
                 
                 await utils.answer(message, self.strings["joined"])
