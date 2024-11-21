@@ -4,7 +4,6 @@ from typing import Dict, Any, Optional
 
 import ffmpeg
 import pytgcalls
-from youtube_dl import YoutubeDL
 from pytgcalls import GroupCallFactory
 from telethon import types
 
@@ -12,96 +11,71 @@ from .. import loader, utils
 
 @loader.tds
 class VideoModModule(loader.Module):
-    """Module for working with video chat in Hikka"""
+    """Модуль для работы с видео в чате"""
 
     strings = {
         "name": "VideoMod",
-        "downloading": "<b>📥 Downloading...</b>",
-        "converting": "<b>🔄 Converting...</b>",
-        "video_playing": "<b>🎥 Playing video...</b>",
-        "joined": "<b>✅ Connected to video chat</b>",
-        "no_media": "<b>❗ No media found</b>",
-        "error": "<b>❌ Error: {}</b>"
+        "converting": "<b>🔄 Конвертация видео...</b>",
+        "video_playing": "<b>🎥 Воспроизведение видео...</b>",
+        "joined": "<b>✅ Подключено к видео чату</b>",
+        "no_media": "<b>❗ Медиафайл не найден</b>",
+        "error": "<b>❌ Ошибка: {}</b>"
     }
 
     def __init__(self):
         self._group_calls: Dict[str, Any] = {}
-        self._client: Optional[Any] = None
-        self._db: Optional[Any] = None
+        self._client = None
+        self._db = None
 
     async def client_ready(self, client, db):
-        """Initialize client when module is ready"""
+        """Инициализация клиента при готовности модуля"""
         self._client = client
         self._db = db
 
     def _get_group_call(self, chat_id: int) -> Any:
-        """Get or create group call for a chat"""
+        """Получение или создание группового звонка"""
         chat_str = str(chat_id)
         if chat_str not in self._group_calls:
-            try:
-                self._group_calls[chat_str] = GroupCallFactory(
-                    self._client, 
-                    pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON
-                ).get_file_group_call()
-            except Exception as e:
-                logging.error(f"Failed to create group call: {e}")
-                raise
+            self._group_calls[chat_str] = GroupCallFactory(
+                self._client, 
+                pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON
+            ).get_file_group_call()
         return self._group_calls[chat_str]
 
     async def _download_video(self, message: types.Message) -> Optional[str]:
-        """Download video from message or link"""
-        # Try to download video from reply
+        """Загрузка видео из сообщения"""
         try:
+            # Проверяем ответное сообщение на наличие видео
             reply = await message.get_reply_message()
-            if reply and reply.video:
-                return await reply.download_media()
+            if not reply or not reply.file or not reply.file.mime_type.startswith('video/'):
+                await utils.answer(message, self.strings["no_media"])
+                return None
 
-            # Try to download from link
-            args = utils.get_args_raw(message)
-            if args:
-                ytdl_opts = {
-                    "format": "bestvideo+bestaudio/best",
-                    "outtmpl": "%(title)s.%(ext)s",
-                    "nooverwrites": True,
-                    "no_warnings": True,
-                    "quiet": True,
-                }
-                
-                with YoutubeDL(ytdl_opts) as ydl:
-                    info = ydl.extract_info(args, download=True)
-                    filename = ydl.prepare_filename(info)
-                    
-                    # Ensure it's a video file
-                    if 'vcodec' not in info or info['vcodec'] == 'none':
-                        await utils.answer(message, self.strings["no_media"])
-                        return None
-                    
-                    return filename
+            # Загружаем видео
+            video_file = await reply.download_media()
+            return video_file
+        
         except Exception as e:
             await utils.answer(message, self.strings["error"].format(str(e)))
             return None
 
     @loader.command()
     async def vplaycmd(self, message: types.Message):
-        """Play video in video chat"""
-        # Validation and early return
-        if not message:
-            return
-
-        # Download video
+        """Воспроизведение видео в видео чате"""
+        # Загрузка видео
         video_file = await self._download_video(message)
         if not video_file:
             return
 
         input_file = None
         try:
-            # Prepare conversion message
+            # Подготовка к конвертации
             await utils.answer(message, self.strings["converting"])
             
-            # Path for converted file
+            # Путь для конвертированного файла
             input_file = f"media_video_{os.getpid()}.raw"
             
-            # Convert video
+            # Конвертация видео
             conversion_cmd = (
                 ffmpeg.input(video_file)
                 .output(
@@ -117,36 +91,33 @@ class VideoModModule(loader.Module):
             )
             conversion_cmd.run()
             
-            # Get chat and group call
+            # Получение группового звонка
             chat_id = message.chat_id
             group_call = self._get_group_call(chat_id)
             
-            # Start call and play video
+            # Начало звонка и воспроизведение видео
             await group_call.start(chat_id)
             group_call.input_filename = input_file
             
-            # Send success message
+            # Сообщение об успешном воспроизведении
             await utils.answer(message, self.strings["video_playing"])
         
         except Exception as e:
-            logging.error(f"Video playback error: {e}")
+            logging.error(f"Ошибка воспроизведения видео: {e}")
             await utils.answer(message, self.strings["error"].format(str(e)))
         finally:
-            # Clean up temporary files
+            # Очистка временных файлов
             try:
                 if video_file and os.path.exists(video_file):
                     os.remove(video_file)
                 if input_file and os.path.exists(input_file):
                     os.remove(input_file)
             except Exception as cleanup_e:
-                logging.error(f"Cleanup error: {cleanup_e}")
+                logging.error(f"Ошибка очистки: {cleanup_e}")
 
     @loader.command()
     async def vjoincmd(self, message: types.Message):
-        """Join video chat"""
-        if not message:
-            return
-
+        """Присоединение к видео чату"""
         try:
             chat_id = message.chat_id
             group_call = self._get_group_call(chat_id)
