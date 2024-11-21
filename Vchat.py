@@ -21,8 +21,6 @@ from typing import *
 
 from .. import loader, utils
 
-@loader.unrestricted
-@loader.ratelimit
 @loader.tds
 class VoiceMod(loader.Module):
     """Module for working with voice and video chat"""
@@ -72,166 +70,159 @@ class VoiceMod(loader.Module):
         "default_search": "ytsearch",
     }
     
-    group_calls: Dict[int, GroupCallFile] = {}
+    def __init__(self):
+        self.group_calls = {}
+        self.client = None
+        self.db = None
 
-    async def get_chat(self, m: types.Message):
+    async def client_ready(self, client, db):
+        """Initialize client and database"""
+        self.client = client
+        self.db = db
+        return True
+
+    async def _get_chat(self, m: types.Message):
+        """Get chat ID from message"""
         args = utils.get_args_raw(m)
         if not args:
-            chat = m.chat.id
-        else:
+            return m.chat.id
+        
+        try:
+            # Try to get chat ID directly
+            chat = int(args)
+        except:
+            # If not a number, try to get entity
             try:
-                chat = int(args)
-            except:
-                chat = args
-            try:
-                chat = (await m.client.get_entity(chat)).id
+                chat = (await m.client.get_entity(args)).id
             except Exception as e:
                 await utils.answer(m, self.strings("error").format(str(e)))
                 return None
+        
         return chat
 
-    def _call(self, m: types.Message, chat: int):
-        if str(chat) not in self.group_calls:
-            self.group_calls[str(chat)] = GroupCallFactory(
-                m.client, pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON
+    def _init_group_call(self, client, chat):
+        """Initialize group call for a chat"""
+        chat_str = str(chat)
+        if chat_str not in self.group_calls:
+            self.group_calls[chat_str] = GroupCallFactory(
+                client, 
+                pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON
             ).get_file_group_call()
+        return self.group_calls[chat_str]
 
-    async def client_ready(self, client, db):
-        self.client = client
-        self.db = db
-
-    async def prepare_media(self, media, is_video=False):
-        """Prepare media file for playback"""
-        input_file = f"media_{'video' if is_video else 'audio'}_{os.getpid()}.raw"
-        
-        # Ensure input is a path to a file
-        if isinstance(media, bytes):
-            with open(input_file, 'wb') as f:
-                f.write(media)
-        elif isinstance(media, str):
-            input_file = media
-        else:
-            return None
-
-        try:
-            # Convert media to raw format
-            if is_video:
-                ffmpeg.input(input_file).output(
-                    f'{input_file}_converted.raw', 
-                    format='rawvideo', 
-                    vcodec='rawvideo', 
-                    pix_fmt='yuv420p',
-                    acodec='pcm_s16le', 
-                    ac=2, 
-                    ar='48k'
-                ).overwrite_output().run()
-                converted_file = f'{input_file}_converted.raw'
-            else:
-                ffmpeg.input(input_file).output(
-                    f'{input_file}_converted.raw', 
-                    format='s16le', 
-                    acodec='pcm_s16le', 
-                    ac=2, 
-                    ar='48k'
-                ).overwrite_output().run()
-                converted_file = f'{input_file}_converted.raw'
-            
-            return converted_file
-        except Exception as e:
-            logging.error(f"Media conversion error: {e}")
-            return None
-
-    async def vplaycmd(self, m: types.Message):
-        """.vplay [chat (optional)] <link/reply_to_media>
-        Play audio/video in VC"""
+    async def _download_media(self, m: types.Message):
+        """Download media from message or link"""
         args = utils.get_args_raw(m)
         r = await m.get_reply_message()
         
-        # Determine media source
-        media = None
-        is_video = False
-        
+        # Check replied media first
         if r:
-            # Check for video or audio from reply
             if r.video:
-                media = await r.download_media(bytes)
-                is_video = True
+                return await r.download_media(bytes), True
             elif r.audio:
-                media = await r.download_media(bytes)
-                is_video = False
+                return await r.download_media(bytes), False
         
-        if not media and args:
-            # Try to download from link
+        # Try to download from link
+        if args:
             try:
                 with YoutubeDL(self.ytdlopts) as ydl:
                     info = ydl.extract_info(args, download=True)
                     filename = ydl.prepare_filename(info)
                     
-                media = filename
-                is_video = 'vcodec' in info and info['vcodec'] != 'none'
+                    # Determine if it's a video
+                    is_video = 'vcodec' in info and info['vcodec'] != 'none'
+                    return filename, is_video
             except Exception as e:
-                return await utils.answer(m, self.strings("error").format(str(e)))
+                await utils.answer(m, self.strings("error").format(str(e)))
+                return None, None
         
+        return None, None
+
+    async def vplaycmd(self, m: types.Message):
+        """Play audio/video in voice chat"""
+        # Download media
+        media, is_video = await self._download_media(m)
         if not media:
             return await utils.answer(m, self.strings("no_media"))
         
         # Get chat
-        chat = await self.get_chat(m)
+        chat = await self._get_chat(m)
         if not chat:
             return
         
-        # Prepare media
         try:
+            # Prepare message
             m = await utils.answer(m, self.strings("converting"))
-            converted_media = await self.prepare_media(media, is_video)
             
-            if not converted_media:
-                return await utils.answer(m, self.strings("error").format("Conversion failed"))
+            # Prepare media for playback
+            input_file = f"media_{'video' if is_video else 'audio'}_{os.getpid()}.raw"
             
-            # Join and play
-            self._call(m, chat)
-            await self.group_calls[str(chat)].start(chat)
-            self.group_calls[str(chat)].input_filename = converted_media
+            # Convert media
+            conversion_cmd = (
+                ffmpeg.input(media)
+                .output(
+                    input_file, 
+                    format='rawvideo' if is_video else 's16le', 
+                    vcodec='rawvideo' if is_video else 'pcm_s16le', 
+                    pix_fmt='yuv420p' if is_video else None,
+                    acodec='pcm_s16le', 
+                    ac=2, 
+                    ar='48k'
+                )
+                .overwrite_output()
+            )
+            conversion_cmd.run()
             
+            # Initialize group call
+            group_call = self._init_group_call(self.client, chat)
+            
+            # Start call and play
+            await group_call.start(chat)
+            group_call.input_filename = input_file
+            
+            # Send success message
             await utils.answer(m, self.strings("video_playing" if is_video else "playing"))
         
         except Exception as e:
             logging.error(f"Playback error: {e}")
             await utils.answer(m, self.strings("error").format(str(e)))
         finally:
-            # Cleanup temporary files
+            # Cleanup files
             try:
                 if isinstance(media, str) and os.path.exists(media):
                     os.remove(media)
-                if 'converted_media' in locals() and os.path.exists(converted_media):
-                    os.remove(converted_media)
+                if os.path.exists(input_file):
+                    os.remove(input_file)
             except Exception as cleanup_e:
                 logging.error(f"Cleanup error: {cleanup_e}")
-      
+
     async def vjoincmd(self, m: types.Message):
-        """.vjoin
-        Join to the VC"""
-        chat = await self.get_chat(m)
+        """Join voice chat"""
+        chat = await self._get_chat(m)
         if not chat:
             return
-        self._call(m, chat)
-        await self.group_calls[str(chat)].start(chat)
-        await utils.answer(m, self.strings("join"))
+        
+        try:
+            group_call = self._init_group_call(self.client, chat)
+            await group_call.start(chat)
+            await utils.answer(m, self.strings("join"))
+        except Exception as e:
+            await utils.answer(m, self.strings("error").format(str(e)))
 
     async def vleavecmd(self, m: types.Message):
-        """.vleave
-        Leave from the VC"""
-        chat = await self.get_chat(m)
+        """Leave voice chat"""
+        chat = await self._get_chat(m)
         if not chat:
             return
-        self._call(m, chat)
-        await self.group_calls[str(chat)].stop()
-        del self.group_calls[str(chat)]
+        
         try:
-            os.remove(f"{chat}.raw")
-        except:
-            pass
-        await utils.answer(m, self.strings("leave"))
+            chat_str = str(chat)
+            if chat_str in self.group_calls:
+                await self.group_calls[chat_str].stop()
+                del self.group_calls[chat_str]
+            await utils.answer(m, self.strings("leave"))
+        except Exception as e:
+            await utils.answer(m, self.strings("error").format(str(e)))
 
     async def vreplaycmd(self, m: types.Message):
         """.vreplay
