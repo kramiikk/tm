@@ -1,3 +1,6 @@
+# meta developers: @amm1e & @AmeMods, @me_rne
+
+
 from .. import loader, utils
 import os
 import re
@@ -6,23 +9,28 @@ import urllib.parse
 
 @loader.tds
 class AmeChangeLoaderText(loader.Module):
-    """Модуль для изменения текста и баннера загрузчика."""
+    """Модуль для изменения текста и баннера загрузчика в hikka-logs."""
 
     strings = {"name": "AmeChangeLoaderText"}
 
-    async def updateloadercmd(self, message):
+    async def updlcmd(self, message):
         """
         Для баннера подходят только файлы с форматом mp4 и gif.
         Они должны быть загружены на сайт, и добавлены по ссылке.
 
-        • .updateloader https://x0.at/pYQV.mp4 - Заменить баннер
+        • .updl https://x0.at/pYQV.mp4 - Заменить баннер
 
-        • .updateloader текст - Заменить текст
+        • .updl текст - Заменить текст
+
+        Для стандартного вида:
+        <pre>.updl 🌘 <b>Hikka {'.'.join(map(str, version.____version____))} started!</b>\n
+        \n🌳 <b>GitHub commit SHA: <a href='https://github.com/coddrago/Hikka/commit/{build}'>{build[:7]}</a></b>\n
+        ✊ <b>Update status: {upd}</b>\n<b>{web_url}</b></pre>
         """
         cmd = utils.get_args_raw(message).replace('"', '\\"')
 
         if not cmd:
-            await message.edit("Вводить так: .команда ваш текст")
+            await message.edit("Вводить так: .updl ваш текст")
             return
         try:
             main_file_path = os.path.join("hikka", "main.py")
@@ -59,7 +67,7 @@ class AmeChangeLoaderText(loader.Module):
                 with open(main_file_path, "w", encoding="utf-8") as f:
                     f.write(new_content)
                 await message.edit(
-                    f"✅ Обновлено на: <code>{cmd}</code>\nНапишите <code>.restart -f</code>"
+                    f"✅ Обновлено на: <code>{cmd}</code>\nНапишите <code>.restart -f</code>, результат будет в hikka-logs"
                 )
             except OSError as e:
                 await message.edit(f"❌ Ошибка записи в файл: {e}")
