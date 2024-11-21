@@ -14,13 +14,15 @@ class AmeChangeLoaderText(loader.Module):
         """
         Для баннера подходят только файлы с форматом mp4 и gif.
         Они должны быть загружены на сайт, и добавлены по ссылке.
-        • .updateloader https://site.com/banner.mp4</code> - Заменить баннер\n
-        • .updateloader текст</code> - Заменить текст\n
+
+        • .updateloader https://site.com/banner.mp4 - Заменить баннер
+
+        • .updateloader текст - Заменить текст
         """
         cmd = utils.get_args_raw(message).replace('"', '\\"')
 
         if not cmd:
-            await message.edit("Вводить так .команда ваш текст")
+            await message.edit("Вводить так: .команда ваш текст")
             return
         try:
             main_file_path = os.path.join("hikka", "main.py")
