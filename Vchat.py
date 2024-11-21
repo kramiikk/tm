@@ -232,13 +232,9 @@ class GroupVideoModule(loader.Module):
             if not call:
                 await self._client.send_message(message.chat, self.strings["error"].format("Нет активного видеочата"))
                 return
-
-            await self._client(LeaveGroupCallRequest(
-                call=InputGroupCall(
-                    id=call.call.id,
-                    access_hash=call.call.access_hash
-                ),
-                source=0
-            ))
             
-            await self._client.send_message(message.chat, self.strings["leave_success"])
+            try:
+                await self._client(LeaveGroupCallRequest(
+                    call=InputGroupCall(
+                        id=call.call.id,
+                        access_hash=call.call.access_hash
