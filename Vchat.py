@@ -67,6 +67,7 @@ class GroupVideoModule(loader.Module):
     async def _create_group_call(self, chat: Union[Chat, Channel]) -> Optional[types.phone.GroupCall]:
         """Создание нового видеочата"""
         try:
+            await self._client.send_message(chat, self.strings["creating_chat"])
             call = await self._client(CreateGroupCallRequest(
                 peer=chat,
                 title="Видеочат",
@@ -95,7 +96,7 @@ class GroupVideoModule(loader.Module):
             
         except Exception as e:
             logging.error(f"Ошибка загрузки видео: {e}")
-            await utils.answer(message, self.strings["download_error"].format(str(e)))
+            await self._client.send_message(message.chat, self.strings["download_error"].format(str(e)))
             return None
 
     async def _convert_video(self, input_path: str) -> Optional[str]:
@@ -131,15 +132,15 @@ class GroupVideoModule(loader.Module):
         chat = message.chat
         
         if not isinstance(chat, (Chat, Channel)):
-            await utils.answer(message, self.strings["not_group"])
+            await self._client.send_message(message.chat, self.strings["not_group"])
             return
             
         try:
-            await utils.answer(message, self.strings["joining"])
+            await self._client.send_message(message.chat, self.strings["joining"])
             
             call = await self._get_group_call(chat, create=True)
             if not call:
-                await utils.answer(message, self.strings["error"].format("Не удалось получить информацию о видеочате"))
+                await self._client.send_message(message.chat, self.strings["error"].format("Не удалось получить информацию о видеочате"))
                 return
 
             try:
@@ -148,20 +149,23 @@ class GroupVideoModule(loader.Module):
                         id=call.call.id,
                         access_hash=call.call.access_hash
                     ),
-                    params=types.DataJSON(
-                        data='{"muted": true, "video_stopped": true, "screen_sharing": false, "raise_hand": false}'
-                    )
+                    params={
+                        "muted": True,
+                        "video_stopped": True,
+                        "screen_sharing": False,
+                        "raise_hand": False
+                    }
                 ))
                 
-                await utils.answer(message, self.strings["joined"])
+                await self._client.send_message(message.chat, self.strings["joined"])
                 
             except errors.ChatAdminRequiredError:
-                await utils.answer(message, self.strings["error"].format("Требуются права администратора"))
+                await self._client.send_message(message.chat, self.strings["error"].format("Требуются права администратора"))
             except errors.GroupCallJoinMissingError:
-                await utils.answer(message, self.strings["error"].format("Не удалось присоединиться к видеочату"))
+                await self._client.send_message(message.chat, self.strings["error"].format("Не удалось присоединиться к видеочату"))
             
         except Exception as e:
-            await utils.answer(message, self.strings["error"].format(str(e)))
+            await self._client.send_message(message.chat, self.strings["error"].format(str(e)))
 
     @loader.command
     async def vplaycmd(self, message: Message):
@@ -169,17 +173,17 @@ class GroupVideoModule(loader.Module):
         chat = message.chat
         
         if not isinstance(chat, (Chat, Channel)):
-            await utils.answer(message, self.strings["not_group"])
+            await self._client.send_message(message.chat, self.strings["not_group"])
             return
             
         if not await message.get_reply_message():
-            await utils.answer(message, self.strings["no_reply_video"])
+            await self._client.send_message(message.chat, self.strings["no_reply_video"])
             return
             
         try:
             call = await self._get_group_call(chat, create=True)
             if not call:
-                await utils.answer(message, self.strings["error"].format("Не удалось получить информацию о видеочате"))
+                await self._client.send_message(message.chat, self.strings["error"].format("Не удалось получить информацию о видеочате"))
                 return
                 
             try:
@@ -189,14 +193,14 @@ class GroupVideoModule(loader.Module):
                 
             video_path = await self._download_video(message)
             if not video_path:
-                await utils.answer(message, self.strings["invalid_file"])
+                await self._client.send_message(message.chat, self.strings["invalid_file"])
                 return
                 
-            await utils.answer(message, self.strings["converting"])
+            await self._client.send_message(message.chat, self.strings["converting"])
             
             converted_path = await self._convert_video(video_path)
             if not converted_path:
-                await utils.answer(message, self.strings["convert_error"].format("Ошибка конвертации"))
+                await self._client.send_message(message.chat, self.strings["convert_error"].format("Ошибка конвертации"))
                 return
                 
             try:
@@ -212,7 +216,7 @@ class GroupVideoModule(loader.Module):
                     os.remove(converted_path)
                 
         except Exception as e:
-            await utils.answer(message, self.strings["error"].format(str(e)))
+            await self._client.send_message(message.chat, self.strings["error"].format(str(e)))
 
     @loader.command
     async def vleavecmd(self, message: Message):
@@ -220,13 +224,13 @@ class GroupVideoModule(loader.Module):
         chat = message.chat
         
         if not isinstance(chat, (Chat, Channel)):
-            await utils.answer(message, self.strings["not_group"])
+            await self._client.send_message(message.chat, self.strings["not_group"])
             return
             
         try:
             call = await self._get_group_call(chat)
             if not call:
-                await utils.answer(message, self.strings["error"].format("Нет активного видеочата"))
+                await self._client.send_message(message.chat, self.strings["error"].format("Нет активного видеочата"))
                 return
 
             await self._client(LeaveGroupCallRequest(
@@ -237,7 +241,4 @@ class GroupVideoModule(loader.Module):
                 source=0
             ))
             
-            await utils.answer(message, self.strings["leave_success"])
-            
-        except Exception as e:
-            await utils.answer(message, self.strings["error"].format(str(e)))
+            await self._client.send_message(message.chat, self.strings["leave_success"])
