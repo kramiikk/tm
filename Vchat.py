@@ -8,6 +8,7 @@ import io
 import os
 import re
 import logging
+import asyncio
 
 import ffmpeg
 import pytgcalls
@@ -42,6 +43,7 @@ class VoiceMod(loader.Module):
         "replay": "<b>[VoiceMod]</b> Replaying...",
         "error": "<b>[VoiceMod]</b> Error: <code>{}</code>",
         "video_playing": "<b>[VoiceMod]</b> Video playing...",
+        "no_media": "<b>[VoiceMod]</b> No audio/video found.",
     }
     
     ytdlopts = {
@@ -56,16 +58,21 @@ class VoiceMod(loader.Module):
             {
                 "key": "FFmpegVideoConvertor",
                 "preferedformat": "mp4",
+            },
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
             }
         ],
-        "outtmpl": "ytdl_out.mp4",
+        "outtmpl": "%(title)s.%(ext)s",
         "quiet": True,
-        "logtostderr": False,
+        "nooverwrites": True,
+        "no_warnings": True,
+        "default_search": "ytsearch",
     }
     
     group_calls: Dict[int, GroupCallFile] = {}
-
-    tag = "<b>[Shazam]</b> "
 
     async def get_chat(self, m: types.Message):
         args = utils.get_args_raw(m)
@@ -93,79 +100,113 @@ class VoiceMod(loader.Module):
         self.client = client
         self.db = db
 
+    async def prepare_media(self, media, is_video=False):
+        """Prepare media file for playback"""
+        input_file = f"media_{'video' if is_video else 'audio'}_{os.getpid()}.raw"
+        
+        # Ensure input is a path to a file
+        if isinstance(media, bytes):
+            with open(input_file, 'wb') as f:
+                f.write(media)
+        elif isinstance(media, str):
+            input_file = media
+        else:
+            return None
+
+        try:
+            # Convert media to raw format
+            if is_video:
+                ffmpeg.input(input_file).output(
+                    f'{input_file}_converted.raw', 
+                    format='rawvideo', 
+                    vcodec='rawvideo', 
+                    pix_fmt='yuv420p',
+                    acodec='pcm_s16le', 
+                    ac=2, 
+                    ar='48k'
+                ).overwrite_output().run()
+                converted_file = f'{input_file}_converted.raw'
+            else:
+                ffmpeg.input(input_file).output(
+                    f'{input_file}_converted.raw', 
+                    format='s16le', 
+                    acodec='pcm_s16le', 
+                    ac=2, 
+                    ar='48k'
+                ).overwrite_output().run()
+                converted_file = f'{input_file}_converted.raw'
+            
+            return converted_file
+        except Exception as e:
+            logging.error(f"Media conversion error: {e}")
+            return None
+
     async def vplaycmd(self, m: types.Message):
-        """.vplay [chat (optional)] <link/reply_to_video>
-        Play video in VC"""
+        """.vplay [chat (optional)] <link/reply_to_media>
+        Play audio/video in VC"""
         args = utils.get_args_raw(m)
         r = await m.get_reply_message()
-        chat = from_file = link = None
         
-        # Parsing chat and link arguments
-        if args:
-            _ = re.match(r"(-?\d+|@[A-Za-z0-9_]{5,})\s+(.*)", args)
-            __ = re.match(r"(-?\d+|@[A-Za-z0-9_]{5,})", args)
-            if _:
-                chat = _.group(1)
-                link = _.group(2)
-            elif __:
-                chat = __.group(1)
-            else:
-                chat = m.chat.id
-                link = args or None
+        # Determine media source
+        media = None
+        is_video = False
+        
+        if r:
+            # Check for video or audio from reply
+            if r.video:
+                media = await r.download_media(bytes)
+                is_video = True
+            elif r.audio:
+                media = await r.download_media(bytes)
+                is_video = False
+        
+        if not media and args:
+            # Try to download from link
+            try:
+                with YoutubeDL(self.ytdlopts) as ydl:
+                    info = ydl.extract_info(args, download=True)
+                    filename = ydl.prepare_filename(info)
+                    
+                media = filename
+                is_video = 'vcodec' in info and info['vcodec'] != 'none'
+            except Exception as e:
+                return await utils.answer(m, self.strings("error").format(str(e)))
+        
+        if not media:
+            return await utils.answer(m, self.strings("no_media"))
+        
+        # Get chat
+        chat = await self.get_chat(m)
+        if not chat:
+            return
+        
+        # Prepare media
+        try:
+            m = await utils.answer(m, self.strings("converting"))
+            converted_media = await self.prepare_media(media, is_video)
             
+            if not converted_media:
+                return await utils.answer(m, self.strings("error").format("Conversion failed"))
+            
+            # Join and play
+            self._call(m, chat)
+            await self.group_calls[str(chat)].start(chat)
+            self.group_calls[str(chat)].input_filename = converted_media
+            
+            await utils.answer(m, self.strings("video_playing" if is_video else "playing"))
+        
+        except Exception as e:
+            logging.error(f"Playback error: {e}")
+            await utils.answer(m, self.strings("error").format(str(e)))
+        finally:
+            # Cleanup temporary files
             try:
-                chat = int(chat)
-            except:
-                chat = chat
-            try:
-                chat = (await m.client.get_entity(chat)).id
-            except Exception as e:
-                return await utils.answer(m, self.strings("error").format(str(e)))
-        else:
-            chat = m.chat.id
-        
-        # Check for video file or link
-        if r and r.video and not link:
-            from_file = True
-        if not link and (not r or not r.video):
-            return utils.answer(m, "no video/link")
-        
-        if str(chat) not in self.group_calls:
-            return await utils.answer(m, self.strings("plsjoin"))
-        
-        self._call(m, chat)
-        input_file = f"{chat}.raw"
-        
-        m = await utils.answer(m, self.strings("downloading"))
-        
-        # Download video from file or link
-        if from_file:
-            video_original = await r.download_media()
-        else:
-            try:
-                with YoutubeDL(self.ytdlopts) as rip:
-                    rip.extract_info(link)
-            except Exception as e:
-                return await utils.answer(m, self.strings("error").format(str(e)))
-            video_original = "ytdl_out.mp4"
-        
-        m = await utils.answer(m, self.strings("converting"))
-        
-        # Convert video to appropriate format for voice chat
-        ffmpeg.input(video_original).output(
-            input_file, 
-            format="rawvideo", 
-            vcodec="rawvideo", 
-            pix_fmt="yuv420p",
-            acodec="pcm_s16le", 
-            ac=2, 
-            ar="48k"
-        ).overwrite_output().run()
-        
-        os.remove(video_original)
-        
-        await utils.answer(m, self.strings("video_playing"))
-        self.group_calls[str(chat)].input_filename = input_file
+                if isinstance(media, str) and os.path.exists(media):
+                    os.remove(media)
+                if 'converted_media' in locals() and os.path.exists(converted_media):
+                    os.remove(converted_media)
+            except Exception as cleanup_e:
+                logging.error(f"Cleanup error: {cleanup_e}")
       
     async def vjoincmd(self, m: types.Message):
         """.vjoin
