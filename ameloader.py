@@ -17,31 +17,37 @@ class AmeChangeLoaderText(loader.Module):
         • .updateloader https://site.com/banner.mp4</code> - Заменить баннер\n
         • .updateloader текст</code> - Заменить текст\n
         """
-        cmd = utils.get_args_raw(message)
-        
+        cmd = utils.get_args_raw(message).replace('"', '\\"')
+
         if not cmd:
-            await message.edit(self.strings("help"))
+            await message.edit("Вводить так .команда ваш текст")
             return
-        
         try:
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            
             pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),\s*\))\s*(\s*)\n(\s*)logging\.debug\('
 
             def replace_handler(match):
-                prefix, current_url, caption_start, current_caption_content, caption_end, prev_line_indent, logging_indent = match.groups()
-                
+                (
+                    prefix,
+                    current_url,
+                    caption_start,
+                    current_caption_content,
+                    caption_end,
+                    prev_line_indent,
+                    logging_indent,
+                ) = match.groups()
+
                 if self._is_valid_url(cmd):
                     return (
-                        f'{prefix}"{cmd.replace('"', "\\")}",{caption_start}{current_caption_content}{caption_end}\n'
+                        f'{prefix}"{cmd}",{caption_start}{current_caption_content}{caption_end}\n'
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
                 else:
                     return (
-                        f'{prefix}"{current_url}",{caption_start}f"{cmd.replace('"', "\\")}"{caption_end}\n'
+                        f'{prefix}"{current_url}",{caption_start}f"{cmd}"{caption_end}\n'
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
 
@@ -62,9 +68,8 @@ class AmeChangeLoaderText(loader.Module):
         """Проверкк URL."""
         try:
             result = urllib.parse.urlparse(url)
-            return (
-                all([result.scheme, result.netloc]) and 
-                (url.lower().endswith(".mp4") or url.lower().endswith(".gif"))
+            return all([result.scheme, result.netloc]) and (
+                url.lower().endswith(".mp4") or url.lower().endswith(".gif")
             )
         except Exception:
             return False
