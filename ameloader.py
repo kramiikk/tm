@@ -15,7 +15,7 @@ class AmeChangeLoaderText(loader.Module):
         Для баннера подходят только файлы с форматом mp4 и gif.
         Они должны быть загружены на сайт, и добавлены по ссылке.
 
-        • .updateloader https://site.com/banner.mp4 - Заменить баннер
+        • .updateloader https://x0.at/pYQV.mp4 - Заменить баннер
 
         • .updateloader текст - Заменить текст
         """
