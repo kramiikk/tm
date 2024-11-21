@@ -12,44 +12,43 @@ class AmeChangeLoaderText(loader.Module):
 
     strings_ru = {
         "help": "<b>📋 Справка по AmeChangeLoaderText:</b>\n\n"
-        "• <code>.updateloader https://site.com/banner.mp4</code> - Заменить баннер\n"
-        "• <code>.updateloader текст</code> - Заменить текст\n"
+        "
     }
 
     async def updateloadercmd(self, message):
         """
-        Команда для обновления текста или баннера загрузчика.
+        Для баннера подходят только файлы с форматом mp4 и gif.
+        Они должны быть загружены на сайт, и добавлены по ссылке.
+        • .updateloader https://site.com/banner.mp4</code> - Заменить баннер\n
+        • .updateloader текст</code> - Заменить текст\n
         """
-        cmd = utils.get_args_raw(message)  # Используем raw аргументы
+        cmd = utils.get_args_raw(message)
+        
         if not cmd:
             await message.edit(self.strings("help"))
             return
+        
         try:
             main_file_path = os.path.join("hikka", "main.py")
 
             with open(main_file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+            
             pattern = r'(await\s+client\.hikka_inline\.bot\.send_animation\(\s*logging\.getLogger\(\)\.handlers\[0\]\.get_logid_by_client\(client\.tg_id\),\s*)"([^"]+)",(.*?caption=\()(.*?)(\),\s*\))\s*(\s*)\n(\s*)logging\.debug\('
 
             def replace_handler(match):
-                prefix = match.group(1)
-                current_url = match.group(2)
-                caption_start = match.group(3)
-                current_caption_content = match.group(4)
-                caption_end = match.group(5)
-                prev_line_indent = match.group(6)
-                logging_indent = match.group(7)
-
+                prefix, current_url, caption_start, current_caption_content, caption_end, prev_line_indent, logging_indent = match.groups()
+                
                 if self._is_valid_url(cmd):
                     return (
-                        f'{prefix}"{cmd}",{caption_start}{current_caption_content}{caption_end}\n'
+                        f'{prefix}"{cmd.replace('"', "\\")}",{caption_start}{current_caption_content}{caption_end}\n'
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
-
-                return (
-                    f'{prefix}"{current_url}",{caption_start}f"{cmd}"{caption_end}\n'
-                    f"{prev_line_indent}{logging_indent}logging.debug("
-                )
+                else:
+                    return (
+                        f'{prefix}"{current_url}",{caption_start}f"{cmd.replace('"', "\\")}"{caption_end}\n'
+                        f"{prev_line_indent}{logging_indent}logging.debug("
+                    )
 
             new_content = re.sub(pattern, replace_handler, content, flags=re.DOTALL)
 
@@ -62,19 +61,15 @@ class AmeChangeLoaderText(loader.Module):
             except OSError as e:
                 await message.edit(f"❌ Ошибка записи в файл: {e}")
         except Exception as e:
-            await message.edit(f"❌ Ошибка: <code>{str(e)}</code>")
+            await message.edit(f"❌ Ошибка: <code>{e}</code>")
 
     def _is_valid_url(self, url):
-        """Проверяет URL."""
+        """Проверкк URL."""
         try:
-            clean_url = url.strip()
-            if clean_url.startswith('"') or clean_url.startswith("'") or \
-               clean_url.endswith('"') or clean_url.endswith("'"):
-                return False
-            
-            result = urllib.parse.urlparse(clean_url)
-            return all([result.scheme, result.netloc]) and (
-                clean_url.lower().endswith(".mp4") or clean_url.lower().endswith(".gif")
+            result = urllib.parse.urlparse(url)
+            return (
+                all([result.scheme, result.netloc]) and 
+                (url.lower().endswith(".mp4") or url.lower().endswith(".gif"))
             )
-        except:
+        except Exception:
             return False
