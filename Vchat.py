@@ -1,7 +1,7 @@
 #      Coded by D4n1l3k300       #
 #   supplemented by Yahikor0     #
 #    This code under AGPL-3.0    #
-#          version 1.1.1         #
+#          version 1.1.2         #
 
 # requires: ffmpeg-python pytgcalls[telethon] youtube-dl ShazamAPI
 
@@ -85,9 +85,12 @@ class VoiceMod(loader.Module):
         return chat
 
     def _call(self, m: types.Message, chat: int):
+        """Создание группового вызова с поддержкой видео"""
         if str(chat) not in self.group_calls:
             self.group_calls[str(chat)] = GroupCallFactory(
-                m.client, pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON
+                m.client, 
+                pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON,
+                enable_video=True
             ).get_file_group_call()
 
     async def client_ready(self, client, db):
@@ -154,7 +157,7 @@ class VoiceMod(loader.Module):
 
     async def vplayvideocmd(self, message: types.Message):
         """.vplayvideo [chat (optional)] <reply to video>
-        Play video in VC"""
+        Воспроизведение видео в войс-чате"""
         args = utils.get_args_raw(message)
         r = await message.get_reply_message()
         
@@ -181,31 +184,62 @@ class VoiceMod(loader.Module):
                 return await utils.answer(message, self.strings("plsjoin"))
             
             self._call(message, chat)
-            input_file = f"{chat}.raw"
+            input_video = f"{chat}_video.raw"
+            input_audio = f"{chat}_audio.raw"
             
             # Загрузка видео
             m = await utils.answer(message, self.strings("downloading"))
             video_original = await r.download_media()
             
-            # Конвертация видео
+            # Конвертация видео и аудио раздельно
             m = await utils.answer(m, self.strings("converting"))
-            ffmpeg.input(video_original).output(
-                input_file, 
-                format="s16le", 
-                acodec="pcm_s16le", 
-                ac=2, 
-                ar="48k"
-            ).overwrite_output().run()
             
+            # Извлечение и конвертация видео
+            (
+                ffmpeg
+                .input(video_original)
+                .output(
+                    input_video, 
+                    vcodec='rawvideo', 
+                    pix_fmt='yuv420p', 
+                    s='640x480'  # Размер видео можно настроить
+                )
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+            
+            # Извлечение и конвертация аудио
+            (
+                ffmpeg
+                .input(video_original)
+                .output(
+                    input_audio, 
+                    format='s16le', 
+                    acodec='pcm_s16le', 
+                    ac=2, 
+                    ar='48000'
+                )
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+            
+            # Удаление оригинального файла
             os.remove(video_original)
             
             # Воспроизведение
             await utils.answer(m, self.strings("playing"))
-            self.group_calls[str(chat)].input_filename = input_file
+            
+            # Настройка групового вызова для воспроизведения
+            group_call = self.group_calls[str(chat)]
+            group_call.input_filename = input_audio  # Аудио
+            group_call.input_video_filename = input_video  # Видео
         
         except Exception as e:
+            # Расширенная обработка ошибок
+            import traceback
+            traceback.print_exc()
             return await utils.answer(message, self.strings("error").format(str(e)))
-
+            
     async def vjoincmd(self, m: types.Message):
         """.vjoin
         Join to the VC"""
