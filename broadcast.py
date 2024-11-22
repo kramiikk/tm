@@ -50,137 +50,6 @@ class BroadcastMod(loader.Module):
         except Exception:
             pass
 
-    async def watcher(self, message: Message):
-        """Handles incoming messages for automatic chat management."""
-        if not isinstance(message, Message) or self.me.id not in self.ids:
-            return
-        current_time = time.time()
-        if current_time - self.last_loop_start >= 600:
-            self.last_loop_start = current_time
-            async with self._loop_start_lock:
-                for code_name, data in self.broadcast["code_chats"].items():
-                    if code_name not in self.broadcast_tasks and self.messages.get(
-                        code_name
-                    ):
-                        self.broadcast_tasks[code_name] = asyncio.create_task(
-                            self._messages_loop(code_name, data)
-                        )
-        if self.wat and message.sender_id == self.me.id:
-            for code_name in self.broadcast["code_chats"]:
-                if message.text.strip().endswith(code_name):
-                    await self._add_remove_chat(code_name, message.chat_id)
-                    break
-
-    async def _add_remove_chat(self, code_name: str, chat_id: int):
-        """Adds or removes a chat from a broadcast code."""
-        chats = self.broadcast["code_chats"][code_name]["chats"]
-        if chat_id in chats:
-            chats.remove(chat_id)
-            action = "removed from"
-        else:
-            chats.append(chat_id)
-            action = "added to"
-        self.db.set("broadcast", "Broadcast", self.broadcast)
-        await self.client.send_message(
-            "me", f"Chat {chat_id} {action} broadcast code '{code_name}'."
-        )
-
-    async def _load_messages(self):
-        """Loads messages from the database."""
-        for code_name, data in self.broadcast["code_chats"].items():
-            self.messages[code_name] = []
-            for message_data in data.get("messages", []):
-                await asyncio.sleep(random.uniform(8, 13))
-                try:
-                    message = await self.client.get_messages(
-                        message_data["chat_id"], ids=message_data["message_id"]
-                    )
-                    if message:
-                        self.messages[code_name].append(message)
-                except Exception as e:
-                    await self._send_error_message(f"Error loading message: {e}")
-
-    async def _messages_loop(self, code_name: str, data: Dict):
-        """Main loop for sending broadcast messages."""
-        try:
-            while code_name in self.broadcast["code_chats"]:
-                messages_to_send = self.messages.get(code_name, [])
-                if not messages_to_send:
-                    continue
-                min_interval, max_interval = data.get("interval", (9, 13))
-                burst_count = data.get("burst_count", 1)
-                chats = data["chats"]
-
-                random.shuffle(chats)
-
-                self.last_message.setdefault(code_name, 0)
-                current_message_index = self.last_message[code_name]
-
-                await asyncio.sleep(
-                    random.uniform(min_interval * 60, max_interval * 60)
-                )
-
-                for i in range(0, len(chats), 9):
-                    chunk = chats[i : i + 9]
-                    await self._send_to_chats(
-                        code_name,
-                        messages_to_send,
-                        current_message_index,
-                        chunk,
-                        burst_count,
-                    )
-                    current_message_index = (
-                        current_message_index + len(chunk) * burst_count
-                    ) % len(messages_to_send)
-                self.last_message[code_name] = current_message_index
-        except asyncio.CancelledError:
-            pass
-        except Exception as e:
-            await self._send_error_message(
-                f"Error in broadcast loop for {code_name}: {e}"
-            )
-
-    async def _send_error_message(self, message: str):
-        """Sends error messages to the user with rate limiting to prevent spam."""
-        self.error_messages.append(message)
-        current_time = time.time()
-        if current_time - self.last_error_message > 333:
-            self.last_error_message = current_time
-            error_text = "\n\n".join(self.error_messages)
-            self.error_messages = []
-            await self.client.send_message("me", f"Broadcast Errors:\n{error_text}")
-
-    async def _send_message(self, message_to_send: Message, chat_id: int):
-        """Sends a single message (with or without media) to a chat."""
-        try:
-            if message_to_send.media:
-                await self.client.send_file(
-                    chat_id, message_to_send.media, caption=message_to_send.text
-                )
-            else:
-                await self.client.send_message(chat_id, message_to_send.text)
-        except Exception as e:
-            await asyncio.sleep(random.uniform(8, 13))
-            if "file reference" in str(e).lower():
-                await self._load_messages()
-            else:
-                await self._send_error_message(
-                    f"Error sending message to chat {chat_id}: {e}"
-                )
-
-    async def _send_to_chats(
-        self, code_name, messages, message_index, chats, burst_count
-    ):
-        """Sends a burst of messages to a chunk of chats."""
-        send_tasks = []
-        for chat_id in chats:
-            await asyncio.sleep(random.uniform(1, 3))
-            for _ in range(burst_count):
-                message_to_send = messages[message_index % len(messages)]
-                send_tasks.append(self._send_message(message_to_send, chat_id))
-                message_index = (message_index + 1) % len(messages)
-        await asyncio.gather(*send_tasks)
-
     @loader.command()
     async def addmsgcmd(self, message: Message):
         """Adds the replied-to message to a broadcast code. Usage: `.addmsg <code>`"""
@@ -439,3 +308,134 @@ class BroadcastMod(loader.Module):
             message,
             f"Automatic chat management {'enabled' if self.wat else 'disabled'}.",
         )
+
+    async def _add_remove_chat(self, code_name: str, chat_id: int):
+        """Adds or removes a chat from a broadcast code."""
+        chats = self.broadcast["code_chats"][code_name]["chats"]
+        if chat_id in chats:
+            chats.remove(chat_id)
+            action = "removed from"
+        else:
+            chats.append(chat_id)
+            action = "added to"
+        self.db.set("broadcast", "Broadcast", self.broadcast)
+        await self.client.send_message(
+            "me", f"Chat {chat_id} {action} broadcast code '{code_name}'."
+        )
+
+    async def _load_messages(self):
+        """Loads messages from the database."""
+        for code_name, data in self.broadcast["code_chats"].items():
+            self.messages[code_name] = []
+            for message_data in data.get("messages", []):
+                await asyncio.sleep(random.uniform(8, 13))
+                try:
+                    message = await self.client.get_messages(
+                        message_data["chat_id"], ids=message_data["message_id"]
+                    )
+                    if message:
+                        self.messages[code_name].append(message)
+                except Exception as e:
+                    await self._send_error_message(f"Error loading message: {e}")
+
+    async def _messages_loop(self, code_name: str, data: Dict):
+        """Main loop for sending broadcast messages."""
+        try:
+            while code_name in self.broadcast["code_chats"]:
+                messages_to_send = self.messages.get(code_name, [])
+                if not messages_to_send:
+                    continue
+                min_interval, max_interval = data.get("interval", (9, 13))
+                burst_count = data.get("burst_count", 1)
+                chats = data["chats"]
+
+                random.shuffle(chats)
+
+                self.last_message.setdefault(code_name, 0)
+                current_message_index = self.last_message[code_name]
+
+                await asyncio.sleep(
+                    random.uniform(min_interval * 60, max_interval * 60)
+                )
+
+                for i in range(0, len(chats), 9):
+                    chunk = chats[i : i + 9]
+                    await self._send_to_chats(
+                        code_name,
+                        messages_to_send,
+                        current_message_index,
+                        chunk,
+                        burst_count,
+                    )
+                    current_message_index = (
+                        current_message_index + len(chunk) * burst_count
+                    ) % len(messages_to_send)
+                self.last_message[code_name] = current_message_index
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            await self._send_error_message(
+                f"Error in broadcast loop for {code_name}: {e}"
+            )
+
+    async def _send_error_message(self, message: str):
+        """Sends error messages to the user with rate limiting to prevent spam."""
+        self.error_messages.append(message)
+        current_time = time.time()
+        if current_time - self.last_error_message > 333:
+            self.last_error_message = current_time
+            error_text = "\n\n".join(self.error_messages)
+            self.error_messages = []
+            await self.client.send_message("me", f"Broadcast Errors:\n{error_text}")
+
+    async def _send_message(self, message_to_send: Message, chat_id: int):
+        """Sends a single message (with or without media) to a chat."""
+        try:
+            if message_to_send.media:
+                await self.client.send_file(
+                    chat_id, message_to_send.media, caption=message_to_send.text
+                )
+            else:
+                await self.client.send_message(chat_id, message_to_send.text)
+        except Exception as e:
+            await asyncio.sleep(random.uniform(8, 13))
+            if "file reference" in str(e).lower():
+                await self._load_messages()
+            else:
+                await self._send_error_message(
+                    f"Error sending message to chat {chat_id}: {e}"
+                )
+
+    async def _send_to_chats(
+        self, code_name, messages, message_index, chats, burst_count
+    ):
+        """Sends a burst of messages to a chunk of chats."""
+        send_tasks = []
+        for chat_id in chats:
+            await asyncio.sleep(random.uniform(1, 3))
+            for _ in range(burst_count):
+                message_to_send = messages[message_index % len(messages)]
+                send_tasks.append(self._send_message(message_to_send, chat_id))
+                message_index = (message_index + 1) % len(messages)
+        await asyncio.gather(*send_tasks)
+
+    async def watcher(self, message: Message):
+        """Handles incoming messages for automatic chat management."""
+        if not isinstance(message, Message) or self.me.id not in self.ids:
+            return
+        current_time = time.time()
+        if current_time - self.last_loop_start >= 600:
+            self.last_loop_start = current_time
+            async with self._loop_start_lock:
+                for code_name, data in self.broadcast["code_chats"].items():
+                    if code_name not in self.broadcast_tasks and self.messages.get(
+                        code_name
+                    ):
+                        self.broadcast_tasks[code_name] = asyncio.create_task(
+                            self._messages_loop(code_name, data)
+                        )
+        if self.wat and message.sender_id == self.me.id:
+            for code_name in self.broadcast["code_chats"]:
+                if message.text.strip().endswith(code_name):
+                    await self._add_remove_chat(code_name, message.chat_id)
+                    break
