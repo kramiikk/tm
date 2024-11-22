@@ -8,7 +8,6 @@
 import io
 import os
 import re
-import logging
 
 import ffmpeg
 import pytgcalls
@@ -17,7 +16,7 @@ from youtube_dl import YoutubeDL
 from pytgcalls import GroupCallFactory
 from pytgcalls.implementation.group_call_file import GroupCallFile
 from telethon import types
-from typing import *
+from typing import Dict
 
 from .. import loader, utils
 
@@ -43,6 +42,7 @@ class VoiceMod(loader.Module):
         "unmute": "<b>[VoiceMod]</b> Unmuted!",
         "replay": "<b>[VoiceMod]</b> Replaying...",
         "error": "<b>[VoiceMod]</b> Error: <code>{}</code>",
+        "no_video": "<b>[VoiceMod]</b> No video in reply",
     }
     
     ytdlopts = {
@@ -65,7 +65,7 @@ class VoiceMod(loader.Module):
         "logtostderr": False,
     }
     
-    group_calls: Dict[int, GroupCallFile] = {}
+    group_calls: Dict[str, GroupCallFile] = {}
     tag = "<b>[Shazam]</b> "
 
     async def get_chat(self, m: types.Message):
@@ -124,28 +124,33 @@ class VoiceMod(loader.Module):
         if r and r.audio and not link:
             from_file = True
         if not link and (not r or not r.audio):
-            return utils.answer(m, "no audio/link")
+            return await utils.answer(m, "no audio/link")
         if str(chat) not in self.group_calls:
             return await utils.answer(m, self.strings("plsjoin"))
         self._call(m, chat)
         input_file = f"{chat}.raw"
         m = await utils.answer(m, self.strings("downloading"))
-        if from_file:
-            audio_original = await r.download_media()
-        else:
-            try:
+        
+        try:
+            if from_file:
+                audio_original = await r.download_media()
+            else:
                 with YoutubeDL(self.ytdlopts) as rip:
                     rip.extract_info(link)
-            except Exception as e:
-                return await utils.answer(m, self.strings("error").format(str(e)))
-            audio_original = "ytdl_out.mp3"
-        m = await utils.answer(m, self.strings("converting"))
-        ffmpeg.input(audio_original).output(
-            input_file, format="s16le", acodec="pcm_s16le", ac=2, ar="48k"
-        ).overwrite_output().run()
-        os.remove(audio_original)
-        await utils.answer(m, self.strings("playing"))
-        self.group_calls[str(chat)].input_filename = input_file
+                audio_original = "ytdl_out.mp3"
+            
+            m = await utils.answer(m, self.strings("converting"))
+            ffmpeg.input(audio_original).output(
+                input_file, format="s16le", acodec="pcm_s16le", ac=2, ar="48k"
+            ).overwrite_output().run()
+            
+            os.remove(audio_original)
+            
+            await utils.answer(m, self.strings("playing"))
+            self.group_calls[str(chat)].input_filename = input_file
+        
+        except Exception as e:
+            return await utils.answer(m, self.strings("error").format(str(e)))
 
     async def vplayvideocmd(self, message: types.Message):
         """.vplayvideo [chat (optional)] <reply to video>
@@ -154,48 +159,52 @@ class VoiceMod(loader.Module):
         r = await message.get_reply_message()
         
         if not r or not r.media:
-            return await utils.answer(message, "no video in reply")
+            return await utils.answer(message, self.strings("no_video"))
         
-        # Определение чата
-        chat = None
-        if args:
-            try:
-                chat = int(args)
-            except:
-                chat = args
-            try:
-                chat = (await message.client.get_entity(chat)).id
-            except Exception as e:
-                return await utils.answer(message, self.strings("error").format(str(e)))
-        else:
-            chat = message.chat.id
+        try:
+            # Определение чата
+            chat = None
+            if args:
+                try:
+                    chat = int(args)
+                except:
+                    chat = args
+                try:
+                    chat = (await message.client.get_entity(chat)).id
+                except Exception as e:
+                    return await utils.answer(message, self.strings("error").format(str(e)))
+            else:
+                chat = message.chat.id
+            
+            # Проверка подключения к войс-чату
+            if str(chat) not in self.group_calls:
+                return await utils.answer(message, self.strings("plsjoin"))
+            
+            self._call(message, chat)
+            input_file = f"{chat}.raw"
+            
+            # Загрузка видео
+            m = await utils.answer(message, self.strings("downloading"))
+            video_original = await r.download_media()
+            
+            # Конвертация видео
+            m = await utils.answer(m, self.strings("converting"))
+            ffmpeg.input(video_original).output(
+                input_file, 
+                format="s16le", 
+                acodec="pcm_s16le", 
+                ac=2, 
+                ar="48k"
+            ).overwrite_output().run()
+            
+            os.remove(video_original)
+            
+            # Воспроизведение
+            await utils.answer(m, self.strings("playing"))
+            self.group_calls[str(chat)].input_filename = input_file
         
-        # Проверка подключения к войс-чату
-        if str(chat) not in self.group_calls:
-            return await utils.answer(message, self.strings("plsjoin"))
-        
-        self._call(message, chat)
-        input_file = f"{chat}.raw"
-        
-        # Загрузка видео
-        m = await utils.answer(message, self.strings("downloading"))
-        video_original = await r.download_media()
-        
-        # Конвертация видео
-        m = await utils.answer(m, self.strings("converting"))
-        ffmpeg.input(video_original).output(
-            input_file, 
-            format="s16le", 
-            acodec="pcm_s16le", 
-            ac=2, 
-            ar="48k"
-        ).overwrite_output().run()
-        
-        os.remove(video_original)
-        
-        # Воспроизведение
-        await utils.answer(m, self.strings("playing"))
-        self.group_calls[str(chat)].input_filename = input_file
+        except Exception as e:
+            return await utils.answer(message, self.strings("error").format(str(e)))
 
     async def vjoincmd(self, m: types.Message):
         """.vjoin
