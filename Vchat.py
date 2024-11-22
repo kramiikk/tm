@@ -31,6 +31,9 @@ class VideoCallsModule(loader.Module):
         "not_in_call": "<b>❌ Сначала присоединитесь к видеочату</b>",
     }
 
+    def __init__(self):
+        self.name = self.strings["name"]
+
     async def _get_chat_call(self, chat):
         """Получение информации о текущем видеочате"""
         try:
@@ -74,7 +77,6 @@ class VideoCallsModule(loader.Module):
             logging.error(f"Ошибка загрузки медиафайла: {e}")
             return None
 
-    @loader.command
     async def vcreatecmd(self, message):
         """Создать новый видеочат в группе"""
         chat = message.chat
@@ -95,7 +97,6 @@ class VideoCallsModule(loader.Module):
             else:
                 await utils.answer(message, self.strings["error_creating"].format(error_msg))
 
-    @loader.command
     async def vjoincmd(self, message):
         """Присоединиться к существующему видеочату"""
         chat = message.chat
@@ -124,7 +125,6 @@ class VideoCallsModule(loader.Module):
         except Exception as e:
             await utils.answer(message, self.strings["error_joining"].format(str(e)))
 
-    @loader.command
     async def vplaycmd(self, message):
         """Воспроизвести видео в видеочате (ответьте на сообщение с видео)"""
         try:
@@ -159,11 +159,8 @@ class VideoCallsModule(loader.Module):
                     params=tl.DataJSON(data="{}")
                 ))
                 
-                # Начинаем трансляцию видео
-                # Здесь должен быть код для воспроизведения видео через GroupCall API
-                # К сожалению, прямая трансляция видео требует дополнительных библиотек
-                # и настройки медиасервера, поэтому этот функционал нужно реализовывать
-                # с использованием pytgcalls или аналогичной библиотеки
+                # Здесь должен быть код для воспроизведения видео
+                # Требуется дополнительная настройка pytgcalls
                 
             except Exception as e:
                 await utils.answer(status_msg, self.strings["error_playing"].format(str(e)))
