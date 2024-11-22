@@ -1,7 +1,7 @@
 #      Coded by D4n1l3k300       #
 #   supplemented by Yahikor0     #
-#    This code under AGPL-3.0
-#          version 1.1.0
+#    This code under AGPL-3.0    #
+#          version 1.1.0         #
 
 # requires: ffmpeg-python pytgcalls[telethon] youtube-dl ShazamAPI
 
