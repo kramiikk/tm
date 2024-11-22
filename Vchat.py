@@ -1,7 +1,7 @@
 #      Coded by D4n1l3k300       #
 #   supplemented by Yahikor0     #
 #    This code under AGPL-3.0    #
-#          version 1.3.0         #
+#          version 1.3.1         #
 
 # requires: ffmpeg-python pytgcalls[telethon] youtube-dl ShazamAPI
 import io
@@ -127,16 +127,26 @@ class VoiceMod(loader.Module):
             m = await utils.answer(m, self.strings("converting"))
             
             try:
+                # Конвертация с сохранением видео
+                input_file = f"{chat}_video.raw"
+                
                 ffmpeg.input(video_original).output(
                     input_file, 
-                    format='s16le', 
-                    acodec='pcm_s16le', 
-                    ac=2, 
-                    ar='48k'
+                    format='rawvideo',  # Сохраняем видеопоток
+                    vcodec='rawvideo',  # Кодек видео 
+                    acodec='pcm_s16le',  # Аудио как PCM
+                    pix_fmt='yuv420p',   # Формат пикселей 
+                    video_bitrate='1000k', 
+                    audio_bitrate='128k', 
+                    ac=2,              # 2 аудиоканала
+                    ar='48000'         # Частота дискретизации
                 ).overwrite_output().run()
-            except Exception as convert_error:
-                await utils.answer(message, f"Ошибка конвертации: {convert_error}")
-                return
+                
+                # Передача файла в группой вызов
+                self.group_calls[str(chat)].input_filename = input_file
+                
+            except Exception as e:
+                await utils.answer(message, f"Ошибка конвертации видео: {e}")
             
             # Удаляем оригинальный файл
             try:
