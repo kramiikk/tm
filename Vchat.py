@@ -4,17 +4,21 @@
 #          version 1.3.1         #
 
 # requires: ffmpeg-python pytgcalls[telethon] youtube-dl ShazamAPI
+
 import io
 import os
 import re
 
+import cv2
 import ffmpeg
 import pytgcalls
+import numpy as np
 from pytgcalls import GroupCallFactory
 from telethon import types
 from typing import Dict
 
 from .. import loader, utils
+
 
 @loader.unrestricted
 @loader.ratelimit
@@ -36,7 +40,7 @@ class VoiceMod(loader.Module):
         "error": "<b>[VoiceMod]</b> Ошибка: <code>{}</code>",
         "no_video": "<b>[VoiceMod]</b> Нет видео в ответе",
     }
-    
+
     group_calls: Dict[str, GroupCallFactory] = {}
 
     async def get_chat(self, m: types.Message):
@@ -60,8 +64,7 @@ class VoiceMod(loader.Module):
         """Создание группового вызова"""
         if str(chat) not in self.group_calls:
             self.group_calls[str(chat)] = GroupCallFactory(
-                m.client, 
-                pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON
+                m.client, pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON
             ).get_file_group_call()
 
     async def client_ready(self, client, db):
@@ -75,16 +78,17 @@ class VoiceMod(loader.Module):
             chat = await self.get_chat(m)
             if not chat:
                 return
-            
             # Создаем групповой вызов перед подключением
+
             if str(chat) not in self.group_calls:
                 self._call(m, chat)
-            
             # Подключение к войс-чату
+
             await self.group_calls[str(chat)].start(chat)
             await utils.answer(m, self.strings("join"))
         except Exception as e:
             import traceback
+
             traceback.print_exc()
             await utils.answer(m, f"Ошибка подключения: {e}")
 
@@ -93,12 +97,12 @@ class VoiceMod(loader.Module):
         Воспроизведение видео в войс-чате"""
         args = utils.get_args_raw(message)
         r = await message.get_reply_message()
-        
+
         if not r or not r.media:
             return await utils.answer(message, self.strings("no_video"))
-        
         try:
             # Определение чата
+
             chat = None
             if args:
                 try:
@@ -108,62 +112,63 @@ class VoiceMod(loader.Module):
                 try:
                     chat = (await message.client.get_entity(chat)).id
                 except Exception as e:
-                    return await utils.answer(message, self.strings("error").format(str(e)))
+                    return await utils.answer(
+                        message, self.strings("error").format(str(e))
+                    )
             else:
                 chat = message.chat.id
-            
             # Проверка подключения к войс-чату
+
             if str(chat) not in self.group_calls:
                 return await utils.answer(message, self.strings("plsjoin"))
-            
             self._call(message, chat)
             input_file = f"{chat}.raw"
-            
+
             # Загрузка видео
+
             m = await utils.answer(message, self.strings("downloading"))
             video_original = await r.download_media()
-            
+
             # Конвертация видео
+
             m = await utils.answer(m, self.strings("converting"))
-            
+            cap = cv2.VideoCapture(video_original)
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
+            out = cv2.VideoWriter(input_file, fourcc, 20.0, (width, height))
+
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                out.write(frame)
+            cap.release()
+            out.release()
+
             try:
-                # Конвертация с сохранением видео
-                input_file = f"{chat}_video.raw"
-                
                 ffmpeg.input(video_original).output(
-                    input_file, 
-                    format='rawvideo',  # Сохраняем видеопоток
-                    vcodec='rawvideo',  # Кодек видео 
-                    acodec='pcm_s16le',  # Аудио как PCM
-                    pix_fmt='yuv420p',   # Формат пикселей 
-                    video_bitrate='1000k', 
-                    audio_bitrate='128k', 
-                    ac=2,              # 2 аудиоканала
-                    ar='48000'         # Частота дискретизации
+                    input_file, format="s16le", acodec="pcm_s16le", ac=2, ar="48k"
                 ).overwrite_output().run()
-                
-                # Передача файла в группой вызов
-                self.group_calls[str(chat)].input_filename = input_file
-                
-            except Exception as e:
-                await utils.answer(message, f"Ошибка конвертации видео: {e}")
-            
+            except Exception as convert_error:
+                await utils.answer(message, f"Ошибка конвертации: {convert_error}")
+                return
             # Удаляем оригинальный файл
+
             try:
                 os.remove(video_original)
             except:
                 pass
-            
             # Воспроизведение
+
             await utils.answer(m, self.strings("playing"))
             self.group_calls[str(chat)].input_filename = input_file
-        
         except Exception as e:
             import traceback
+
             traceback.print_exc()
             return await utils.answer(message, self.strings("error").format(str(e)))
 
     # Остальные методы (vleavecmd, vstopcmd и т.д.) остаются без изменений
+
     async def vleavecmd(self, m: types.Message):
         """Покинуть войс-чат"""
         chat = await self.get_chat(m)
