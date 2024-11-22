@@ -5,6 +5,7 @@
 
 # requires: ffmpeg-python pytgcalls[telethon] youtube-dl ShazamAPI
 
+
 import io
 import os
 import re
@@ -134,6 +135,12 @@ class VoiceMod(loader.Module):
             m = await utils.answer(m, self.strings("converting"))
             cap = cv2.VideoCapture(video_original)
             fourcc = cv2.VideoWriter_fourcc(*"XVID")
+
+            # Define width and height
+
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
             out = cv2.VideoWriter(input_file, fourcc, 20.0, (width, height))
 
             while True:
