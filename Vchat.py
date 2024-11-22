@@ -1,7 +1,7 @@
 #      Coded by D4n1l3k300       #
 #   supplemented by Yahikor0     #
 #    This code under AGPL-3.0    #
-#          version 1.2.0         #
+#          version 1.3.0         #
 
 # requires: ffmpeg-python pytgcalls[telethon] youtube-dl ShazamAPI
 import io
@@ -10,7 +10,6 @@ import re
 
 import ffmpeg
 import pytgcalls
-from youtube_dl import YoutubeDL
 from pytgcalls import GroupCallFactory
 from telethon import types
 from typing import Dict
@@ -38,28 +37,7 @@ class VoiceMod(loader.Module):
         "no_video": "<b>[VoiceMod]</b> Нет видео в ответе",
     }
     
-    ytdlopts = {
-        "format": "bestaudio",
-        "addmetadata": True,
-        "key": "FFmpegMetadata",
-        "writethumbnail": True,
-        "prefer_ffmpeg": True,
-        "geo_bypass": True,
-        "nocheckcertificate": True,
-        "postprocessors": [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "320",
-            }
-        ],
-        "outtmpl": "ytdl_out.mp3",
-        "quiet": True,
-        "logtostderr": False,
-    }
-    
     group_calls: Dict[str, GroupCallFactory] = {}
-    tag = "<b>[Shazam]</b> "
 
     async def get_chat(self, m: types.Message):
         """Получение ID чата"""
