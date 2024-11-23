@@ -9,7 +9,7 @@ from .. import loader, utils
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Broadcasts messages to multiple chats at configurable intervals."""
+    """Broadcasts messages to multiple chats at configurable intervals. v 2.0.0"""
 
     strings = {"name": "Broadcast"}
 
@@ -83,34 +83,6 @@ class BroadcastMod(loader.Module):
             await utils.answer(
                 message, f"This message is already in broadcast code '{code_name}'."
             )
-
-    @loader.command()
-    async def burstcmd(self, message: Message):
-        """Sets the number of messages to send at once per chat. Usage: `.burst <code> <count>`"""
-        args = utils.get_args(message)
-        if len(args) != 2:
-            return await utils.answer(
-                message,
-                "Please specify the code and burst count. Example: `.burst my_code 3`",
-            )
-        code_name = args[0]
-        try:
-            burst_count = int(args[1])
-            if burst_count <= 0:
-                raise ValueError
-        except ValueError:
-            return await utils.answer(
-                message, "Burst count must be a positive integer."
-            )
-        if code_name not in self.broadcast["code_chats"]:
-            return await utils.answer(
-                message, f"Broadcast code '{code_name}' not found."
-            )
-        self.broadcast["code_chats"][code_name]["burst_count"] = burst_count
-        self.db.set("broadcast", "Broadcast", self.broadcast)
-        await utils.answer(
-            message, f"Burst count for '{code_name}' set to {burst_count}."
-        )
 
     @loader.command()
     async def chatcmd(self, message: Message):
@@ -269,12 +241,11 @@ class BroadcastMod(loader.Module):
         for code_name, data in code_chats.items():
             chat_list = ", ".join(str(chat_id) for chat_id in data.get("chats", []))
             interval = data.get("interval", (9, 13))
-            burst_count = data.get("burst_count", 1)
             message_count = len(data.get("messages", []))
             text += (
                 f"- `{code_name}`: Chats: {chat_list or '(empty)'}\n"
                 f"  Interval: {interval[0]} - {interval[1]} minutes\n"
-                f"  Messages: {message_count} | Burst: {burst_count}\n\n"
+                f"  Messages: {message_count}\n\n"
             )
         await utils.answer(message, text, parse_mode="Markdown")
 
@@ -346,7 +317,6 @@ class BroadcastMod(loader.Module):
                 if not messages_to_send:
                     continue
                 min_interval, max_interval = data.get("interval", (9, 13))
-                burst_count = data.get("burst_count", 1)
                 chats = data["chats"]
 
                 random.shuffle(chats)
@@ -365,11 +335,10 @@ class BroadcastMod(loader.Module):
                         messages_to_send,
                         current_message_index,
                         chunk,
-                        burst_count,
                     )
-                    current_message_index = (
-                        current_message_index + len(chunk) * burst_count
-                    ) % len(messages_to_send)
+                    current_message_index = (current_message_index + len(chunk)) % len(
+                        messages_to_send
+                    )
                 self.last_message[code_name] = current_message_index
         except asyncio.CancelledError:
             pass
@@ -406,17 +375,14 @@ class BroadcastMod(loader.Module):
                     f"Error sending message to chat {chat_id}: {e}"
                 )
 
-    async def _send_to_chats(
-        self, code_name, messages, message_index, chats, burst_count
-    ):
-        """Sends a burst of messages to a chunk of chats."""
+    async def _send_to_chats(self, code_name, messages, message_index, chats):
+        """Sends messages to a chunk of chats."""
         send_tasks = []
         for chat_id in chats:
             await asyncio.sleep(random.uniform(1, 3))
-            for _ in range(burst_count):
-                message_to_send = messages[message_index % len(messages)]
-                send_tasks.append(self._send_message(message_to_send, chat_id))
-                message_index = (message_index + 1) % len(messages)
+            message_to_send = messages[message_index % len(messages)]
+            send_tasks.append(self._send_message(message_to_send, chat_id))
+            message_index = (message_index + 1) % len(messages)
         await asyncio.gather(*send_tasks)
 
     async def watcher(self, message: Message):
