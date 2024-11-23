@@ -1,4 +1,3 @@
-import json
 import random
 import asyncio
 import time
@@ -9,7 +8,7 @@ from .. import loader, utils
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Broadcasts messages to multiple chats at configurable intervals. v 2.0.0"""
+    """Broadcasts messages to multiple chats at configurable intervals. v 2.1.0"""
 
     strings = {"name": "Broadcast"}
 
@@ -171,35 +170,6 @@ class BroadcastMod(loader.Module):
             response += f"\nBroadcast code '{code_name}' deleted because it has no more messages."
         self.db.set("broadcast", "Broadcast", self.broadcast)
         await utils.answer(message, response)
-
-    @loader.command()
-    async def exportcmd(self, message: Message):
-        """Exports the current broadcast settings to a JSON string. Usage: `.export`"""
-        try:
-            exported_data = json.dumps(self.broadcast, indent=2)
-            await utils.answer(message, f"```json\n{exported_data}\n```")
-        except Exception as e:
-            await utils.answer(message, f"Error exporting settings: {e}")
-
-    @loader.command()
-    async def importcmd(self, message: Message):
-        """Imports broadcast settings from a JSON string. Reply to the message containing the settings. Usage: `.import`"""
-        reply = await message.get_reply_message()
-        if not reply:
-            return await utils.answer(
-                message,
-                "Please reply to a message containing the JSON settings you want to import.",
-            )
-        try:
-            imported_data = json.loads(reply.raw_text)
-            self.broadcast = imported_data
-            self.db.set("broadcast", "Broadcast", self.broadcast)
-            await self._load_messages()
-            await utils.answer(message, "Settings imported successfully.")
-        except json.JSONDecodeError:
-            return await utils.answer(
-                message, "Invalid JSON format. Please provide valid broadcast settings."
-            )
 
     @loader.command()
     async def intervalcmd(self, message: Message):
