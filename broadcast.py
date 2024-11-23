@@ -445,7 +445,6 @@ class BroadcastMod(loader.Module):
             logger.exception(e)
             await utils.answer(message, self.strings["error"].format(str(e)))
 
-    @loader.command
     async def addmsgcmd(self, message: Message):
         """Add a message to broadcast. Usage: .addmsg <code>"""
 
@@ -464,7 +463,6 @@ class BroadcastMod(loader.Module):
 
         await self._handle_command(message, action)
 
-    @loader.command
     async def chatcmd(self, message: Message):
         """Add or remove a chat from broadcast. Usage: .chat <code> <chat_id>"""
 
@@ -485,7 +483,6 @@ class BroadcastMod(loader.Module):
 
         await self._handle_command(message, action)
 
-    @loader.command
     async def delcodecmd(self, message: Message):
         """Delete a broadcast code. Usage: .delcode <code>"""
 
@@ -514,7 +511,6 @@ class BroadcastMod(loader.Module):
 
         await self._handle_command(message, action)
 
-    @loader.command
     async def delmsgcmd(self, message: Message):
         """Delete a message from broadcast. Usage: .delmsg <code> [index]"""
 
@@ -546,7 +542,6 @@ class BroadcastMod(loader.Module):
 
         await self._handle_command(message, action)
 
-    @loader.command
     async def intervalcmd(self, message: Message):
         """Set broadcast interval. Usage: .interval <code> <min> <max>"""
 
@@ -577,7 +572,6 @@ class BroadcastMod(loader.Module):
 
         await self._handle_command(message, action)
 
-    @loader.command
     async def listcmd(self, message: Message):
         """List all broadcast codes and settings. Usage: .list"""
 
@@ -604,7 +598,6 @@ class BroadcastMod(loader.Module):
 
         await self._handle_command(message, action)
 
-    @loader.command
     async def listmsgcmd(self, message: Message):
         """List messages in a broadcast code. Usage: .listmsg <code>"""
 
@@ -627,7 +620,6 @@ class BroadcastMod(loader.Module):
 
         await self._handle_command(message, action)
 
-    @loader.command
     async def watcmd(self, message: Message):
         """Toggle automatic chat management. Usage: .wat"""
         self.wat_mode = not self.wat_mode
