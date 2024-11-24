@@ -220,8 +220,6 @@ class BroadcastManager:
         grouped_id = getattr(message, "grouped_id", None)
 
         if grouped_id:
-            # Handle album message
-
             try:
                 album_messages = await self.client.get_messages(
                     message.chat_id,
@@ -244,8 +242,6 @@ class BroadcastManager:
                         album_ids=[msg.id for msg in album_messages],
                     )
 
-                    # Check if this album is already added
-
                     if not any(
                         m.grouped_id == grouped_id and m.chat_id == message.chat_id
                         for m in code.messages
@@ -258,8 +254,6 @@ class BroadcastManager:
                 logger.error(f"Failed to add album message: {e}")
                 return False
         else:
-            # Handle single message
-
             msg_data = BroadcastMessage(chat_id=message.chat_id, message_id=message.id)
             if not any(
                 m.chat_id == msg_data.chat_id and m.message_id == msg_data.message_id
@@ -402,7 +396,7 @@ class BroadcastManager:
 
     async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
         """Send a single message or album to a chat"""
-        if isinstance(message, list):  # Album case
+        if isinstance(message, list):
             media_list = [msg.media for msg in message if msg.media]
             if media_list:
                 return await self.client.send_file(
