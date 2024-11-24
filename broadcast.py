@@ -363,7 +363,6 @@ class BroadcastMod(loader.Module):
 
     strings = {
         "name": "Broadcast",
-        "invalid_args": "Invalid arguments. {}",
         "code_not_found": "Broadcast code '{}' not found",
         "success": "Operation completed successfully: {}",
     }
@@ -385,35 +384,36 @@ class BroadcastMod(loader.Module):
         reply = await message.get_reply_message()
 
         if len(args) != 1 or not reply:
-            return self.strings["invalid_args"].format(
-                "Reply to a message with .addmsg <code>"
-            )
+            return await utils.answer(message, "Reply to a message with .addmsg <code>")
         success = await self.manager.add_message(args[0], reply)
-        return self.strings["success"].format(
-            f"Message {'added to' if success else 'already in'} broadcast '{args[0]}'"
+        await utils.answer(
+            message,
+            f"Message {'added to' if success else 'already in'} broadcast '{args[0]}'",
         )
 
     async def chatcmd(self, message: Message):
         """Add or remove a chat from broadcast. Usage: .chat <code> <chat_id>"""
         args = utils.get_args(message)
         if len(args) != 2:
-            return self.strings["invalid_args"].format("Usage: .chat <code> <chat_id>")
+            return await utils.answer(message, "Usage: .chat <code> <chat_id>")
         try:
             code_name, chat_id = args[0], int(args[1])
         except ValueError:
-            return self.strings["invalid_args"].format("Chat ID must be a number")
+            return await utils.answer(message, "Chat ID must be a number")
         success, response = await self.manager.manage_chat(code_name, chat_id)
         if success:
-            return self.strings["success"].format(response)
+            await utils.answer(message, self.strings["success"].format(response))
 
     async def delcodecmd(self, message: Message):
         """Delete a broadcast code. Usage: .delcode <code>"""
         args = utils.get_args(message)
         if len(args) != 1:
-            return self.strings["invalid_args"].format("Usage: .delcode <code>")
+            return await utils.answer(message, "Usage: .delcode <code>")
         code_name = args[0]
         if code_name not in self.manager.config.codes:
-            return self.strings["code_not_found"].format(code_name)
+            return await utils.answer(
+                message, self.strings["code_not_found"].format(code_name)
+            )
         if task := self.manager.broadcast_tasks.pop(code_name, None):
             task.cancel()
             try:
@@ -426,22 +426,29 @@ class BroadcastMod(loader.Module):
         if code_name in self.manager.message_indices:
             del self.manager.message_indices[code_name]
         self.manager.save_config()
-        return self.strings["success"].format(f"Broadcast code '{code_name}' deleted")
+        await utils.answer(
+            message,
+            self.strings["success"].format(f"Broadcast code '{code_name}' deleted"),
+        )
 
     async def delmsgcmd(self, message: Message):
         """Delete a message from broadcast. Usage: .delmsg <code> [index]"""
         args = utils.get_args(message)
         if len(args) not in (1, 2):
-            return self.strings["invalid_args"].format(
-                "Usage: .delmsg <code> [index] or reply to message"
+            return await utils.answer(
+                message, "Usage: .delmsg <code> [index] or reply to message"
             )
         code_name = args[0]
         if code_name not in self.manager.config.codes:
-            return self.strings["code_not_found"].format(code_name)
+            return await utils.answer(
+                message, self.strings["code_not_found"].format(code_name)
+            )
         if len(args) == 1:
             reply = await message.get_reply_message()
             if not reply:
-                return "Reply to a message with this command"
+                return await utils.answer(
+                    message, "Reply to a message with this command"
+                )
             success = await self.manager.remove_message(code_name, message=reply)
             action_text = "removed from" if success else "not found in"
         else:
@@ -450,34 +457,38 @@ class BroadcastMod(loader.Module):
                 success = await self.manager.remove_message(code_name, index=index)
                 action_text = "removed from" if success else "invalid index for"
             except ValueError:
-                return self.strings["invalid_args"].format("Index must be a number")
-        return self.strings["success"].format(f"Message {action_text} '{code_name}'")
+                return await utils.answer(message, "Index must be a number")
+        await utils.answer(
+            message,
+            self.strings["success"].format(f"Message {action_text} '{code_name}'"),
+        )
 
     async def intervalcmd(self, message: Message):
         """Set broadcast interval. Usage: .interval <code> <min> <max>"""
         args = utils.get_args(message)
         if len(args) != 3:
-            return self.strings["invalid_args"].format(
-                "Usage: .interval <code> <min_minutes> <max_minutes>"
+            return await utils.answer(
+                message, "Usage: .interval <code> <min_minutes> <max_minutes>"
             )
         code_name, min_str, max_str = args
         try:
             min_minutes = int(min_str)
             max_minutes = int(max_str)
         except ValueError:
-            return self.strings["invalid_args"].format(
-                "Interval values must be numbers"
-            )
+            return await utils.answer(message, "Interval values must be numbers")
         success = await self.manager.set_interval(code_name, min_minutes, max_minutes)
         if success:
-            return self.strings["success"].format(
-                f"Interval for '{code_name}' set to {min_minutes}-{max_minutes} minutes"
+            await utils.answer(
+                message,
+                self.strings["success"].format(
+                    f"Interval for '{code_name}' set to {min_minutes}-{max_minutes} minutes"
+                ),
             )
 
     async def listcmd(self, message: Message):
         """List all broadcast codes and settings. Usage: .list"""
         if not self.manager.config.codes:
-            return "No broadcast codes configured"
+            return await utils.answer(message, "No broadcast codes configured")
         text = "**Broadcast Codes:**\n"
         for code_name, code in self.manager.config.codes.items():
             chat_list = ", ".join(str(chat_id) for chat_id in code.chats) or "(empty)"
@@ -485,23 +496,27 @@ class BroadcastMod(loader.Module):
             message_count = len(code.messages)
             running = code_name in self.manager.broadcast_tasks
             text += f"- `{code_name}`:\n  Chats: {chat_list}\n  Interval: {min_interval} - {max_interval} minutes\n  Messages: {message_count}\n  Status: {'Running' if running else 'Stopped'}\n\n"
-        return text
+        await utils.answer(message, text)
 
     async def listmsgcmd(self, message: Message):
         """List messages in a broadcast code. Usage: .listmsg <code>"""
         args = utils.get_args(message)
         if len(args) != 1:
-            return self.strings["invalid_args"].format("Usage: .listmsg <code>")
+            return await utils.answer(message, "Usage: .listmsg <code>")
         code_name = args[0]
         if code_name not in self.manager.config.codes:
-            return self.strings["code_not_found"].format(code_name)
+            return await utils.answer(
+                message, self.strings["code_not_found"].format(code_name)
+            )
         messages = self.manager.config.codes[code_name].messages
         if not messages:
-            return f"No messages in broadcast code '{code_name}'"
+            return await utils.answer(
+                message, f"No messages in broadcast code '{code_name}'"
+            )
         text = [f"**Messages in '{code_name}':**"]
         for i, msg in enumerate(messages, 1):
             text.append(f"{i}. Chat ID: {msg.chat_id} (Message ID: {msg.message_id})")
-        return "\n".join(text)
+        await utils.answer(message, "\n".join(text))
 
     async def watcmd(self, message: Message):
         """Toggle automatic chat management. Usage: .wat"""
