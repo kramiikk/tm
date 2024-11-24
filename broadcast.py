@@ -365,23 +365,10 @@ class BroadcastMod(loader.Module):
         "name": "Broadcast",
         "invalid_args": "Invalid arguments. {}",
         "code_not_found": "Broadcast code '{}' not found",
-        "need_reply": "Reply to a message with this command",
         "success": "Operation completed successfully: {}",
-        "error": "Error: {}",
     }
 
     def __init__(self):
-        self.config = loader.ModuleConfig(
-            "admin_id",
-            None,
-            "Admin user ID for error reporting",
-            "max_retries",
-            3,
-            "Maximum number of retries for failed broadcasts",
-            "cooldown",
-            5,
-            "Command cooldown in seconds",
-        )
         self.manager: Optional[BroadcastManager] = None
         self.wat_mode = False
         self._command_locks: Dict[int, float] = {}
@@ -391,10 +378,6 @@ class BroadcastMod(loader.Module):
         self.manager = BroadcastManager(client, db)
         await self.manager.initialize()
         self.me_id = self.manager.client.tg_id
-
-        if self.config["admin_id"] is None:
-            self.config["admin_id"] = self.me_id
-            self.db.set(__name__, "config", self.config)
 
     async def addmsgcmd(self, message: Message):
         """Add a message to broadcast. Usage: .addmsg <code>"""
@@ -422,7 +405,6 @@ class BroadcastMod(loader.Module):
         success, response = await self.manager.manage_chat(code_name, chat_id)
         if success:
             return self.strings["success"].format(response)
-        return self.strings["error"].format(response)
 
     async def delcodecmd(self, message: Message):
         """Delete a broadcast code. Usage: .delcode <code>"""
@@ -459,7 +441,7 @@ class BroadcastMod(loader.Module):
         if len(args) == 1:
             reply = await message.get_reply_message()
             if not reply:
-                return self.strings["need_reply"]
+                return "Reply to a message with this command"
             success = await self.manager.remove_message(code_name, message=reply)
             action_text = "removed from" if success else "not found in"
         else:
@@ -491,9 +473,6 @@ class BroadcastMod(loader.Module):
             return self.strings["success"].format(
                 f"Interval for '{code_name}' set to {min_minutes}-{max_minutes} minutes"
             )
-        return self.strings["error"].format(
-            f"Invalid interval values or code '{code_name}' not found"
-        )
 
     async def listcmd(self, message: Message):
         """List all broadcast codes and settings. Usage: .list"""
