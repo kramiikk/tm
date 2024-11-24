@@ -140,7 +140,7 @@ class BroadcastManager:
         while self._active:
             try:
                 await self._check_cache_lifetime()
-                await asyncio.sleep(300)  # Проверка каждые 5 минут
+                await asyncio.sleep(300)
             except Exception as e:
                 logger.error(f"Error in periodic cache check: {e}")
                 await asyncio.sleep(60)
@@ -167,7 +167,7 @@ class BroadcastManager:
                         )
                         if message:
                             new_cache[code_name].append(message)
-                        await asyncio.sleep(random.uniform(2, 4))
+                        await asyncio.sleep(random.uniform(1, 2))
                     except Exception as e:
                         logger.error(f"Failed to cache message for {code_name}: {e}")
             self.cached_messages = new_cache
@@ -269,7 +269,7 @@ class BroadcastManager:
                     messages = self.cached_messages.get(code_name, [])
 
                     if not messages or not code.chats:
-                        await asyncio.sleep(60)
+                        await asyncio.sleep(13)
                         continue
                     current_time = time.time()
                     last_broadcast = self._last_broadcast_time.get(code_name, 0)
@@ -292,9 +292,6 @@ class BroadcastManager:
                         try:
                             message = messages[i % len(messages)]
                             await self._send_message(message, chat_id)
-                            await asyncio.sleep(
-                                random.uniform(1, 3)
-                            )  # Небольшая задержка между отправками
                         except (ChatWriteForbiddenError, UserBannedInChannelError):
                             failed_chats.add(chat_id)
                             logger.info(
@@ -319,7 +316,7 @@ class BroadcastManager:
                 break
             except Exception as e:
                 logger.error(f"Broadcast loop error for {code_name}: {e}")
-                await asyncio.sleep(60)
+                await asyncio.sleep(13)
 
     async def _send_message(self, message: Message, chat_id: int):
         """Send a single message to a chat"""
