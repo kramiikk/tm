@@ -353,7 +353,7 @@ class BroadcastManager:
 
                     current_index = self.message_indices.get(code_name, 0)
                     delay = random.uniform(min_interval * 60, max_interval * 60)
-                    await asyncio.sleep(delay)
+                    await asyncio.sleep(random.uniform(min_interval - 13, delay))
 
                     failed_chats = set()
                     for i, chat_id in enumerate(chats):
