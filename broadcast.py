@@ -220,78 +220,67 @@ class BroadcastManager:
 
         if grouped_id:
             try:
-                # Проверяем существование альбома с тем же grouped_id и chat_id
+                # Получаем все сообщения альбома
+                album_messages = []
+                async for msg in self.client.iter_messages(
+                    message.chat_id,
+                    limit=10,
+                    filter=lambda m: getattr(m, "grouped_id", None) == grouped_id
+                ):
+                    album_messages.append(msg.id)
 
+                # Проверяем существование альбома
                 existing_album = next(
                     (
-                        m
-                        for m in code.messages
+                        m for m in code.messages
                         if m.grouped_id == grouped_id
                         and m.chat_id == message.chat_id
-                        and set(m.album_ids)
-                        == set(
-                            msg.id
-                            async for msg in self.client.iter_messages(
-                                message.chat_id,
-                                limit=10,
-                                filter=lambda m: getattr(m, "grouped_id", None)
-                                == grouped_id,
-                            )
-                        )
+                        and set(m.album_ids) == set(album_messages)
                     ),
-                    None,
+                    None
                 )
 
                 if existing_album:
                     return False
-                album_messages = await self.client.get_messages(
-                    message.chat_id,
-                    ids=[
-                        m.id
-                        async for m in self.client.iter_messages(
-                            message.chat_id,
-                            limit=10,
-                            filter=lambda m: getattr(m, "grouped_id", None)
-                            == grouped_id,
-                        )
-                    ],
-                )
 
-                if album_messages:
-                    msg_data = BroadcastMessage(
-                        chat_id=message.chat_id,
-                        message_id=message.id,
-                        grouped_id=grouped_id,
-                        album_ids=[msg.id for msg in album_messages],
-                    )
-                    code.messages.append(msg_data)
-                    self.save_config()
-                    await self._cache_messages()
-                    return True
+                msg_data = BroadcastMessage(
+                    chat_id=message.chat_id,
+                    message_id=message.id,
+                    grouped_id=grouped_id,
+                    album_ids=album_messages
+                )
+                code.messages.append(msg_data)
+                self.save_config()
+                await self._cache_messages()
+                return True
+                
             except Exception as e:
                 logger.error(f"Failed to add album message: {e}")
                 return False
         else:
             # Проверяем существование одиночного сообщения
-
             existing_message = next(
                 (
-                    m
-                    for m in code.messages
+                    m for m in code.messages
                     if m.chat_id == message.chat_id
                     and m.message_id == message.id
                     and not m.grouped_id
                 ),
-                None,
+                None
             )
 
             if existing_message:
                 return False
-            msg_data = BroadcastMessage(chat_id=message.chat_id, message_id=message.id)
+                
+            msg_data = BroadcastMessage(
+                chat_id=message.chat_id,
+                message_id=message.id
+            )
             code.messages.append(msg_data)
             self.save_config()
             await self._cache_messages()
             return True
+
         return False
 
     async def remove_message(
@@ -369,29 +358,21 @@ class BroadcastManager:
 
                     if not (messages or albums) or not code.chats:
                         continue
+                    
                     current_time = time.time()
                     last_broadcast = self._last_broadcast_time.get(code_name, 0)
                     if current_time - last_broadcast < self.MIN_BROADCAST_INTERVAL:
                         await asyncio.sleep(
-                            self.MIN_BROADCAST_INTERVAL
-                            - (current_time - last_broadcast)
+                            self.MIN_BROADCAST_INTERVAL - (current_time - last_broadcast)
                         )
                         continue
+
                     min_interval, max_interval = code.interval
                     chats = list(code.chats)
                     random.shuffle(chats)
 
-                    current_index = self.message_indices.get(code_name, 0)
-                    delay = random.uniform(min_interval * 60, max_interval * 60)
-                    await asyncio.sleep(random.uniform(min_interval - 13, delay))
-
-                    failed_chats = set()
-                    all_messages = (
-                        []
-                    )  # Список для всех сообщений (одиночных и альбомов)
-
-                    # Собираем все сообщения в один список
-
+                    # Собираем все сообщения
+                    all_messages = []
                     for msg_data in code.messages:
                         if msg_data.grouped_id is not None:
                             album_messages = albums.get(msg_data.grouped_id, [])
@@ -404,17 +385,18 @@ class BroadcastManager:
                             )
                             if msg:
                                 all_messages.append(msg)
+
                     if not all_messages:
                         continue
-                    for i, chat_id in enumerate(chats):
-                        try:
-                            # Используем циклический индекс для выбора сообщения
 
-                            message_to_send = all_messages[i % len(all_messages)]
-                            await self._send_message(message_to_send, chat_id)
-                            await asyncio.sleep(
-                                random.uniform(1, 3)
-                            )  # Небольшая задержка между отправками
+                    failed_chats = set()
+                    
+                    # Отправляем все сообщения в каждый чат
+                    for chat_id in chats:
+                        try:
+                            for message_to_send in all_messages:
+                                await self._send_message(message_to_send, chat_id)
+                                await asyncio.sleep(random.uniform(1, 3))
                         except (ChatWriteForbiddenError, UserBannedInChannelError):
                             failed_chats.add(chat_id)
                             logger.info(
@@ -425,15 +407,17 @@ class BroadcastManager:
                                 f"Error sending to {chat_id} in {code_name}: {str(e)}"
                             )
                             continue
+
                     if failed_chats:
                         code.chats -= failed_chats
                         self.save_config()
-                    total_messages = len(all_messages)
-                    if total_messages > 0:
-                        self.message_indices[code_name] = (
-                            current_index + len(chats)
-                        ) % total_messages
+                    
                     self._last_broadcast_time[code_name] = time.time()
+                    
+                    # Ждем следующего интервала
+                    delay = random.uniform(min_interval * 60, max_interval * 60)
+                    await asyncio.sleep(delay)
+                    
             except asyncio.CancelledError:
                 logger.info(f"Broadcast loop cancelled for {code_name}")
                 break
