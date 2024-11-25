@@ -220,6 +220,30 @@ class BroadcastManager:
 
         if grouped_id:
             try:
+                # Проверяем существование альбома с тем же grouped_id и chat_id
+
+                existing_album = next(
+                    (
+                        m
+                        for m in code.messages
+                        if m.grouped_id == grouped_id
+                        and m.chat_id == message.chat_id
+                        and set(m.album_ids)
+                        == set(
+                            msg.id
+                            async for msg in self.client.iter_messages(
+                                message.chat_id,
+                                limit=10,
+                                filter=lambda m: getattr(m, "grouped_id", None)
+                                == grouped_id,
+                            )
+                        )
+                    ),
+                    None,
+                )
+
+                if existing_album:
+                    return False
                 album_messages = await self.client.get_messages(
                     message.chat_id,
                     ids=[
@@ -240,28 +264,34 @@ class BroadcastManager:
                         grouped_id=grouped_id,
                         album_ids=[msg.id for msg in album_messages],
                     )
-
-                    if not any(
-                        m.grouped_id == grouped_id and m.chat_id == message.chat_id
-                        for m in code.messages
-                    ):
-                        code.messages.append(msg_data)
-                        self.save_config()
-                        await self._cache_messages()
-                        return True
+                    code.messages.append(msg_data)
+                    self.save_config()
+                    await self._cache_messages()
+                    return True
             except Exception as e:
                 logger.error(f"Failed to add album message: {e}")
                 return False
         else:
+            # Проверяем существование одиночного сообщения
+
+            existing_message = next(
+                (
+                    m
+                    for m in code.messages
+                    if m.chat_id == message.chat_id
+                    and m.message_id == message.id
+                    and not m.grouped_id
+                ),
+                None,
+            )
+
+            if existing_message:
+                return False
             msg_data = BroadcastMessage(chat_id=message.chat_id, message_id=message.id)
-            if not any(
-                m.chat_id == msg_data.chat_id and m.message_id == msg_data.message_id
-                for m in code.messages
-            ):
-                code.messages.append(msg_data)
-                self.save_config()
-                await self._cache_messages()
-                return True
+            code.messages.append(msg_data)
+            self.save_config()
+            await self._cache_messages()
+            return True
         return False
 
     async def remove_message(
@@ -356,16 +386,35 @@ class BroadcastManager:
                     await asyncio.sleep(random.uniform(min_interval - 13, delay))
 
                     failed_chats = set()
+                    all_messages = (
+                        []
+                    )  # Список для всех сообщений (одиночных и альбомов)
+
+                    # Собираем все сообщения в один список
+
+                    for msg_data in code.messages:
+                        if msg_data.grouped_id is not None:
+                            album_messages = albums.get(msg_data.grouped_id, [])
+                            if album_messages:
+                                all_messages.append(album_messages)
+                        else:
+                            msg = next(
+                                (m for m in messages if m.id == msg_data.message_id),
+                                None,
+                            )
+                            if msg:
+                                all_messages.append(msg)
+                    if not all_messages:
+                        continue
                     for i, chat_id in enumerate(chats):
                         try:
-                            msg_data = code.messages[i % len(code.messages)]
-                            if msg_data.grouped_id is not None:
-                                album_messages = albums.get(msg_data.grouped_id, [])
-                                if album_messages:
-                                    await self._send_message(album_messages, chat_id)
-                            else:
-                                message = messages[i % len(messages)]
-                                await self._send_message(message, chat_id)
+                            # Используем циклический индекс для выбора сообщения
+
+                            message_to_send = all_messages[i % len(all_messages)]
+                            await self._send_message(message_to_send, chat_id)
+                            await asyncio.sleep(
+                                random.uniform(1, 3)
+                            )  # Небольшая задержка между отправками
                         except (ChatWriteForbiddenError, UserBannedInChannelError):
                             failed_chats.add(chat_id)
                             logger.info(
@@ -379,7 +428,7 @@ class BroadcastManager:
                     if failed_chats:
                         code.chats -= failed_chats
                         self.save_config()
-                    total_messages = len(code.messages)
+                    total_messages = len(all_messages)
                     if total_messages > 0:
                         self.message_indices[code_name] = (
                             current_index + len(chats)
@@ -453,7 +502,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.1"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.2"""
 
     strings = {
         "name": "Broadcast",
@@ -591,14 +640,26 @@ class BroadcastMod(loader.Module):
         """List all broadcast codes and settings. Usage: .list"""
         if not self.manager.config.codes:
             return await utils.answer(message, "No broadcast codes configured")
-        text = "**Broadcast Codes:**\n"
+        text = [
+            "**Broadcast Settings:**",
+            f"🔄 Auto Chat Management (WAT): {'Enabled' if self.wat_mode else 'Disabled'}\n",
+            "**Broadcast Codes:**",
+        ]
+
         for code_name, code in self.manager.config.codes.items():
             chat_list = ", ".join(str(chat_id) for chat_id in code.chats) or "(empty)"
             min_interval, max_interval = code.interval
             message_count = len(code.messages)
             running = code_name in self.manager.broadcast_tasks
-            text += f"- `{code_name}`:\n  Chats: {chat_list}\n  Interval: {min_interval} - {max_interval} minutes\n  Messages: {message_count}\n  Status: {'Running' if running else 'Stopped'}\n\n"
-        await utils.answer(message, text)
+
+            text.append(
+                f"- `{code_name}`:\n"
+                f"  💬 Chats: {chat_list}\n"
+                f"  ⏱ Interval: {min_interval} - {max_interval} minutes\n"
+                f"  📨 Messages: {message_count}\n"
+                f"  📊 Status: {'🟢 Running' if running else '🔴 Stopped'}\n"
+            )
+        await utils.answer(message, "\n".join(text))
 
     async def listmsgcmd(self, message: Message):
         """List messages in a broadcast code. Usage: .listmsg code"""
@@ -617,8 +678,41 @@ class BroadcastMod(loader.Module):
             )
         text = [f"**Messages in '{code_name}':**"]
         for i, msg in enumerate(messages, 1):
-            text.append(f"{i}. Chat ID: {msg.chat_id} (Message ID: {msg.message_id})")
-        await utils.answer(message, "\n".join(text))
+            try:
+                if msg.grouped_id is not None:
+                    message_text = f"{i}. Album in chat {msg.chat_id}"
+                    if msg.album_ids:
+                        message_links = []
+                        for album_id in msg.album_ids:
+                            if msg.chat_id > 0:
+                                link = f"t.me/c/{msg.chat_id}/{album_id}"
+                            else:
+                                chat_entity = await self.manager.client.get_entity(
+                                    msg.chat_id
+                                )
+                                if (
+                                    hasattr(chat_entity, "username")
+                                    and chat_entity.username
+                                ):
+                                    link = f"t.me/{chat_entity.username}/{album_id}"
+                                else:
+                                    link = f"t.me/c/{abs(msg.chat_id)}/{album_id}"
+                            message_links.append(link)
+                        message_text += f"\nLinks: {' , '.join(message_links)}"
+                else:
+                    if msg.chat_id > 0:
+                        link = f"t.me/c/{msg.chat_id}/{msg.message_id}"
+                    else:
+                        chat_entity = await self.manager.client.get_entity(msg.chat_id)
+                        if hasattr(chat_entity, "username") and chat_entity.username:
+                            link = f"t.me/{chat_entity.username}/{msg.message_id}"
+                        else:
+                            link = f"t.me/c/{abs(msg.chat_id)}/{msg.message_id}"
+                    message_text = f"{i}. Message in chat {msg.chat_id}\nLink: {link}"
+                text.append(message_text)
+            except Exception as e:
+                text.append(f"{i}. Error getting message info: {str(e)}")
+        await utils.answer(message, "\n\n".join(text))
 
     async def watcmd(self, message: Message):
         """Toggle automatic chat management. Usage: .wat"""
