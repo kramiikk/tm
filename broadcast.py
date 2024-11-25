@@ -159,7 +159,6 @@ class BroadcastManager:
                 await asyncio.sleep(300)
             except Exception as e:
                 logger.error(f"Error in periodic cache check: {e}")
-                await asyncio.sleep(60)
 
     def save_config(self):
         """Save current configuration to database"""
@@ -199,7 +198,7 @@ class BroadcastManager:
                             )
                             if message:
                                 new_cache[code_name].append(message)
-                        await asyncio.sleep(random.uniform(1, 2))
+                        await asyncio.sleep(random.uniform(1, 3))
                     except Exception as e:
                         logger.error(f"Failed to cache message for {code_name}: {e}")
             self.cached_messages = new_cache
@@ -339,7 +338,6 @@ class BroadcastManager:
                     albums = self.cached_albums.get(code_name, {})
 
                     if not (messages or albums) or not code.chats:
-                        await asyncio.sleep(13)
                         continue
                     current_time = time.time()
                     last_broadcast = self._last_broadcast_time.get(code_name, 0)
@@ -392,7 +390,6 @@ class BroadcastManager:
                 break
             except Exception as e:
                 logger.error(f"Broadcast loop error for {code_name}: {e}")
-                await asyncio.sleep(13)
 
     async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
         """Send a single message or album to a chat"""
@@ -456,7 +453,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.0"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.1"""
 
     strings = {
         "name": "Broadcast",
