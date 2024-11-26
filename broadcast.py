@@ -138,6 +138,7 @@ class BroadcastManager:
         self._cache_lock = asyncio.Lock()
         self._broadcast_lock = asyncio.Lock()
         self._last_broadcast_time: Dict[str, float] = {}
+        self.message_indices = {}
         self._active = True
 
     async def initialize(self):
@@ -212,7 +213,7 @@ class BroadcastManager:
                 await self._cache_messages()
 
     async def add_message(self, code_name: str, message: Message) -> bool:
-        """Add a message to a broadcast code"""
+        """Add a message or album to broadcast"""
         if code_name not in self.config.codes:
             await self.config.add_code(code_name)
         code = self.config.codes[code_name]
@@ -227,6 +228,8 @@ class BroadcastManager:
                     filter=lambda m: getattr(m, "grouped_id", None) == grouped_id,
                 ):
                     album_messages.append(msg.id)
+                
+                # Проверяем, есть ли уже такой альбом
                 existing_album = next(
                     (
                         m
@@ -239,7 +242,9 @@ class BroadcastManager:
                 )
 
                 if existing_album:
-                    return False
+                    return False  # Альбом уже существует
+                
+                # Если альбом новый, добавляем
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
@@ -254,6 +259,7 @@ class BroadcastManager:
                 logger.error(f"Failed to add album message: {e}")
                 return False
         else:
+            # Для одиночных сообщений оставляем логику без изменений
             existing_message = next(
                 (
                     m
@@ -272,7 +278,6 @@ class BroadcastManager:
             self.save_config()
             await self._cache_messages()
             return True
-        return False
 
     async def remove_message(
         self,
@@ -337,7 +342,7 @@ class BroadcastManager:
         return True
 
     async def _broadcast_loop(self, code_name: str):
-        """Улучшенный метод рассылки с более надежной обработкой"""
+        """Улучшенный метод рассылки с чередованием сообщений"""
         while self._active:
             try:
                 async with self._broadcast_lock:
@@ -365,31 +370,23 @@ class BroadcastManager:
                     chats = list(code.chats)
                     random.shuffle(chats)
 
-                    all_messages = []
-                    for msg_data in code.messages:
-                        if msg_data.grouped_id is not None:
-                            album_messages = albums.get(msg_data.grouped_id, [])
-                            if album_messages:
-                                all_messages.append(album_messages)
-                        else:
-                            msg = next(
-                                (m for m in messages if m.id == msg_data.message_id),
-                                None,
-                            )
-                            if msg:
-                                all_messages.append(msg)
-                    if not all_messages:
-                        await asyncio.sleep(300)
-                        continue
+                    # Проверяем текущий индекс сообщения для этого кода
+                    message_index = self.message_indices.get(code_name, 0)
+                    messages_to_send = []
+
+                    # Выбираем следующее сообщение по круговому индексу
+                    if messages:
+                        messages_to_send.append(messages[message_index % len(messages)])
+                        # Обновляем индекс для следующей итерации
+                        self.message_indices[code_name] = (message_index + 1) % len(messages)
+
                     failed_chats = set()
                     successful_sends = 0
 
                     for chat_id in chats:
                         try:
-                            for message_to_send in all_messages:
-                                result = await self._send_message(
-                                    message_to_send, chat_id
-                                )
+                            for message_to_send in messages_to_send:
+                                result = await self._send_message(message_to_send, chat_id)
                                 if result is not None:
                                     successful_sends += 1
                                     await asyncio.sleep(random.uniform(1, 3))
@@ -397,6 +394,7 @@ class BroadcastManager:
                                     logger.warning(
                                         f"Не удалось отправить сообщение в чат {chat_id}"
                                     )
+
                         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
                             failed_chats.add(chat_id)
                             logger.info(
@@ -404,6 +402,7 @@ class BroadcastManager:
                             )
                         except Exception as e:
                             logger.error(f"Ошибка отправки в {chat_id}: {str(e)}")
+
                     if failed_chats:
                         code.chats -= failed_chats
                         self.save_config()
