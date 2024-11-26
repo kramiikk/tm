@@ -220,67 +220,58 @@ class BroadcastManager:
 
         if grouped_id:
             try:
-                # Получаем все сообщения альбома
                 album_messages = []
                 async for msg in self.client.iter_messages(
                     message.chat_id,
                     limit=10,
-                    filter=lambda m: getattr(m, "grouped_id", None) == grouped_id
+                    filter=lambda m: getattr(m, "grouped_id", None) == grouped_id,
                 ):
                     album_messages.append(msg.id)
-
-                # Проверяем существование альбома
                 existing_album = next(
                     (
-                        m for m in code.messages
+                        m
+                        for m in code.messages
                         if m.grouped_id == grouped_id
                         and m.chat_id == message.chat_id
                         and set(m.album_ids) == set(album_messages)
                     ),
-                    None
+                    None,
                 )
 
                 if existing_album:
                     return False
-
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
                     grouped_id=grouped_id,
-                    album_ids=album_messages
+                    album_ids=album_messages,
                 )
                 code.messages.append(msg_data)
                 self.save_config()
                 await self._cache_messages()
                 return True
-                
             except Exception as e:
                 logger.error(f"Failed to add album message: {e}")
                 return False
         else:
-            # Проверяем существование одиночного сообщения
             existing_message = next(
                 (
-                    m for m in code.messages
+                    m
+                    for m in code.messages
                     if m.chat_id == message.chat_id
                     and m.message_id == message.id
                     and not m.grouped_id
                 ),
-                None
+                None,
             )
 
             if existing_message:
                 return False
-                
-            msg_data = BroadcastMessage(
-                chat_id=message.chat_id,
-                message_id=message.id
-            )
+            msg_data = BroadcastMessage(chat_id=message.chat_id, message_id=message.id)
             code.messages.append(msg_data)
             self.save_config()
             await self._cache_messages()
             return True
-
         return False
 
     async def remove_message(
@@ -346,7 +337,7 @@ class BroadcastManager:
         return True
 
     async def _broadcast_loop(self, code_name: str):
-        """Main broadcasting loop for a code"""
+        """Улучшенный метод рассылки с более надежной обработкой"""
         while self._active:
             try:
                 async with self._broadcast_lock:
@@ -357,21 +348,23 @@ class BroadcastManager:
                     albums = self.cached_albums.get(code_name, {})
 
                     if not (messages or albums) or not code.chats:
+                        await asyncio.sleep(300)
                         continue
-                    
                     current_time = time.time()
                     last_broadcast = self._last_broadcast_time.get(code_name, 0)
-                    if current_time - last_broadcast < self.MIN_BROADCAST_INTERVAL:
-                        await asyncio.sleep(
-                            self.MIN_BROADCAST_INTERVAL - (current_time - last_broadcast)
-                        )
-                        continue
 
                     min_interval, max_interval = code.interval
+                    interval = max(
+                        self.MIN_BROADCAST_INTERVAL,
+                        random.uniform(min_interval * 60, max_interval * 60),
+                    )
+
+                    if current_time - last_broadcast < interval:
+                        await asyncio.sleep(interval - (current_time - last_broadcast))
+                        continue
                     chats = list(code.chats)
                     random.shuffle(chats)
 
-                    # Собираем все сообщения
                     all_messages = []
                     for msg_data in code.messages:
                         if msg_data.grouped_id is not None:
@@ -385,61 +378,89 @@ class BroadcastManager:
                             )
                             if msg:
                                 all_messages.append(msg)
-
                     if not all_messages:
+                        await asyncio.sleep(300)
                         continue
-
                     failed_chats = set()
-                    
-                    # Отправляем все сообщения в каждый чат
+                    successful_sends = 0
+
                     for chat_id in chats:
                         try:
                             for message_to_send in all_messages:
-                                await self._send_message(message_to_send, chat_id)
-                                await asyncio.sleep(random.uniform(1, 3))
-                        except (ChatWriteForbiddenError, UserBannedInChannelError):
+                                result = await self._send_message(
+                                    message_to_send, chat_id
+                                )
+                                if result is not None:
+                                    successful_sends += 1
+                                    await asyncio.sleep(random.uniform(1, 3))
+                                else:
+                                    logger.warning(
+                                        f"Не удалось отправить сообщение в чат {chat_id}"
+                                    )
+                        except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
                             failed_chats.add(chat_id)
                             logger.info(
-                                f"Removing chat {chat_id} from broadcast {code_name} due to permissions"
+                                f"Удаление чата {chat_id} из рассылки {code_name}: {e}"
                             )
                         except Exception as e:
-                            logger.error(
-                                f"Error sending to {chat_id} in {code_name}: {str(e)}"
-                            )
-                            continue
-
+                            logger.error(f"Ошибка отправки в {chat_id}: {str(e)}")
                     if failed_chats:
                         code.chats -= failed_chats
                         self.save_config()
-                    
+                    logger.info(
+                        f"Рассылка {code_name}: "
+                        f"Чатов: {len(chats)}, "
+                        f"Успешных отправок: {successful_sends}"
+                    )
+
                     self._last_broadcast_time[code_name] = time.time()
-                    
-                    # Ждем следующего интервала
-                    delay = random.uniform(min_interval * 60, max_interval * 60)
-                    await asyncio.sleep(delay)
-                    
+                    await asyncio.sleep(random.uniform(interval, interval * 1.5))
             except asyncio.CancelledError:
-                logger.info(f"Broadcast loop cancelled for {code_name}")
+                logger.info(f"Рассылка остановлена для {code_name}")
                 break
             except Exception as e:
-                logger.error(f"Broadcast loop error for {code_name}: {e}")
+                logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
 
     async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
-        """Send a single message or album to a chat"""
-        if isinstance(message, list):
-            media_list = [msg.media for msg in message if msg.media]
-            if media_list:
-                return await self.client.send_file(
-                    chat_id,
-                    media_list,
-                    caption=message[0].text if message[0].text else None,
+        """Улучшенный метод отправки сообщений с корректной обработкой медиа"""
+        try:
+            if isinstance(message, list):
+                media = []
+                caption = None
+                for msg in message:
+                    try:
+                        if msg.media:
+                            downloaded_media = await self.client.download_media(
+                                msg.media, file=bytes
+                            )
+                            media.append(downloaded_media)
+                            del downloaded_media
+                        if not caption and msg.text:
+                            caption = msg.text
+                    except Exception as e:
+                        logger.error(f"Ошибка обработки медиа в альбоме: {e}")
+                if media:
+                    result = await self.client.send_file(
+                        chat_id, media, caption=caption
+                    )
+                    media.clear()
+                    return result
+            if message.media:
+                downloaded_media = await self.client.download_media(
+                    message.media, file=bytes
                 )
-        elif message.media:
-            return await self.client.send_file(
-                chat_id, message.media, caption=message.text
-            )
-        else:
+                result = await self.client.send_file(
+                    chat_id, downloaded_media, caption=message.text
+                )
+                del downloaded_media
+                return result
             return await self.client.send_message(chat_id, message.text)
+        except (FileReferenceExpiredError, MessageIdInvalidError) as e:
+            logger.warning(f"Ошибка отправки медиа в чат {chat_id}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Критическая ошибка отправки в чат {chat_id}: {e}")
+            return None
 
     async def cleanup_tasks(self):
         """Clean up completed or failed tasks"""
