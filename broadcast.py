@@ -223,13 +223,13 @@ class BroadcastManager:
             try:
                 album_messages = await self.client.get_messages(
                     message.chat_id,
-                    ids=list(range(message.id - 9, message.id + 10)),
                     filter=lambda m: getattr(m, "grouped_id", None) == grouped_id,
                 )
 
                 if not album_messages:
                     logger.error(f"No album messages found for grouped_id {grouped_id}")
                     return False
+                album_messages.sort(key=lambda m: m.id)
                 album_message_ids = [msg.id for msg in album_messages]
 
                 msg_data = BroadcastMessage(
@@ -504,7 +504,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.4"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.5"""
 
     strings = {
         "name": "Broadcast",
@@ -682,35 +682,14 @@ class BroadcastMod(loader.Module):
         for i, msg in enumerate(messages, 1):
             try:
                 if msg.grouped_id is not None:
-                    message_text = f"{i}. Album in chat {msg.chat_id}"
-                    if msg.album_ids:
-                        message_links = []
-                        for album_id in msg.album_ids:
-                            if msg.chat_id > 0:
-                                link = f"t.me/c/{msg.chat_id}/{album_id}"
-                            else:
-                                chat_entity = await self.manager.client.get_entity(
-                                    msg.chat_id
-                                )
-                                if (
-                                    hasattr(chat_entity, "username")
-                                    and chat_entity.username
-                                ):
-                                    link = f"t.me/{chat_entity.username}/{album_id}"
-                                else:
-                                    link = f"t.me/c/{abs(msg.chat_id)}/{album_id}"
-                            message_links.append(link)
-                        message_text += f"\nLinks: {' , '.join(message_links)}"
+                    message_text = f"{i}. Album in chat {msg.chat_id} (Total images: {len(msg.album_ids)})"
+                    message_links = []
+                    for album_id in msg.album_ids:
+                        message_links.append(f"t.me/c/{abs(msg.chat_id)}/{album_id}")
+                    message_text += f"\nLinks: {' , '.join(message_links)}"
                 else:
-                    if msg.chat_id > 0:
-                        link = f"t.me/c/{msg.chat_id}/{msg.message_id}"
-                    else:
-                        chat_entity = await self.manager.client.get_entity(msg.chat_id)
-                        if hasattr(chat_entity, "username") and chat_entity.username:
-                            link = f"t.me/{chat_entity.username}/{msg.message_id}"
-                        else:
-                            link = f"t.me/c/{abs(msg.chat_id)}/{msg.message_id}"
-                    message_text = f"{i}. Message in chat {msg.chat_id}\nLink: {link}"
+                    message_text = f"{i}. Message in chat {msg.chat_id}\n"
+                    message_text += f"Link: t.me/c/{abs(msg.chat_id)}/{msg.message_id}"
                 text.append(message_text)
             except Exception as e:
                 text.append(f"{i}. Error getting message info: {str(e)}")
