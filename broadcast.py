@@ -540,7 +540,7 @@ class BroadcastMod(loader.Module):
                     message, self.strings["single_added"].format(args[0])
                 )
         else:
-            await utils.answer(message, f"Message already in broadcast '{args[0]}'")
+            await utils.answer(message, "Not success")
 
     async def chatcmd(self, message: Message):
         """Add or remove a chat from broadcast. Usage: .chat code <chat_id>"""
