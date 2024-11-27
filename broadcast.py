@@ -228,8 +228,6 @@ class BroadcastManager:
                     filter=lambda m: getattr(m, "grouped_id", None) == grouped_id,
                 ):
                     album_messages.append(msg.id)
-                
-                # Проверяем, есть ли уже такой альбом
                 existing_album = next(
                     (
                         m
@@ -242,9 +240,8 @@ class BroadcastManager:
                 )
 
                 if existing_album:
-                    return False  # Альбом уже существует
-                
-                # Если альбом новый, добавляем
+                    return False
+
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
@@ -259,7 +256,6 @@ class BroadcastManager:
                 logger.error(f"Failed to add album message: {e}")
                 return False
         else:
-            # Для одиночных сообщений оставляем логику без изменений
             existing_message = next(
                 (
                     m
@@ -370,14 +366,11 @@ class BroadcastManager:
                     chats = list(code.chats)
                     random.shuffle(chats)
 
-                    # Проверяем текущий индекс сообщения для этого кода
                     message_index = self.message_indices.get(code_name, 0)
                     messages_to_send = []
 
-                    # Выбираем следующее сообщение по круговому индексу
                     if messages:
                         messages_to_send.append(messages[message_index % len(messages)])
-                        # Обновляем индекс для следующей итерации
                         self.message_indices[code_name] = (message_index + 1) % len(messages)
 
                     failed_chats = set()
@@ -421,42 +414,65 @@ class BroadcastManager:
                 logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
 
     async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
-        """Улучшенный метод отправки сообщений с корректной обработкой медиа"""
+        """Улучшенный метод отправки сообщений с корректной обработкой медиа и обновлением ссылок"""
         try:
+            async def download_and_send_media(msg):
+                try:
+                    try:
+                        downloaded_media = await self.client.download_media(msg.media, file=bytes)
+                    except FileReferenceExpiredError:
+                        media = msg.media
+                        if hasattr(media, 'photo'):
+                            downloaded_media = await self.client.download_media(media.photo, file=bytes)
+                        elif hasattr(media, 'document'):
+                            downloaded_media = await self.client.download_media(media.document, file=bytes)
+                        else:
+                            logger.warning(f"Не удалось восстановить медиафайл в сообщении {msg.id}")
+                            return None
+
+                    return downloaded_media
+                except Exception as e:
+                    logger.error(f"Ошибка загрузки медиа: {e}")
+                    return None
+
             if isinstance(message, list):
                 media = []
                 caption = None
                 for msg in message:
                     try:
                         if msg.media:
-                            downloaded_media = await self.client.download_media(
-                                msg.media, file=bytes
-                            )
-                            media.append(downloaded_media)
-                            del downloaded_media
+                            downloaded_media = await download_and_send_media(msg)
+                            if downloaded_media:
+                                media.append(downloaded_media)
+                            else:
+                                logger.warning(f"Пропуск медиафайла в альбоме {msg.id}")
                         if not caption and msg.text:
                             caption = msg.text
                     except Exception as e:
                         logger.error(f"Ошибка обработки медиа в альбоме: {e}")
+                
                 if media:
-                    result = await self.client.send_file(
-                        chat_id, media, caption=caption
-                    )
-                    media.clear()
-                    return result
+                    try:
+                        result = await self.client.send_file(
+                            chat_id, media, caption=caption
+                        )
+                        media.clear()
+                        return result
+                    except Exception as e:
+                        logger.error(f"Ошибка отправки альбома: {e}")
+                        return None
+
             if message.media:
-                downloaded_media = await self.client.download_media(
-                    message.media, file=bytes
-                )
-                result = await self.client.send_file(
-                    chat_id, downloaded_media, caption=message.text
-                )
-                del downloaded_media
-                return result
+                downloaded_media = await download_and_send_media(message)
+                if downloaded_media:
+                    result = await self.client.send_file(
+                        chat_id, downloaded_media, caption=message.text
+                    )
+                    del downloaded_media
+                    return result
+                
             return await self.client.send_message(chat_id, message.text)
-        except (FileReferenceExpiredError, MessageIdInvalidError) as e:
-            logger.warning(f"Ошибка отправки медиа в чат {chat_id}: {e}")
-            return None
+        
         except Exception as e:
             logger.error(f"Критическая ошибка отправки в чат {chat_id}: {e}")
             return None
@@ -506,7 +522,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.2"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.3"""
 
     strings = {
         "name": "Broadcast",
