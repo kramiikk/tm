@@ -222,9 +222,16 @@ class BroadcastManager:
         if grouped_id:
             try:
                 album_messages = await self.client.get_messages(
-                    message.chat_id,
-                    filter=lambda m: getattr(m, "grouped_id", None) == grouped_id,
+                    message.chat_id, 
+                    filter=lambda m: getattr(m, 'grouped_id', None) == grouped_id
                 )
+
+                if not isinstance(album_messages, list):
+                    album_messages = [album_messages] if album_messages else []
+
+                if not album_messages:
+                    logger.error(f"No album messages found for grouped_id {grouped_id}")
+                    return False
 
                 album_messages.sort(key=lambda m: m.id)
                 album_message_ids = [msg.id for msg in album_messages]
