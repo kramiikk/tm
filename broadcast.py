@@ -226,9 +226,6 @@ class BroadcastManager:
                     filter=lambda m: getattr(m, "grouped_id", None) == grouped_id,
                 )
 
-                if not album_messages:
-                    logger.error(f"No album messages found for grouped_id {grouped_id}")
-                    return False
                 album_messages.sort(key=lambda m: m.id)
                 album_message_ids = [msg.id for msg in album_messages]
 
