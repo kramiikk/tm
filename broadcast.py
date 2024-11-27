@@ -221,21 +221,35 @@ class BroadcastManager:
 
         if grouped_id:
             try:
-                album_messages = await self.client.get_messages(
-                    message.chat_id, 
-                    filter=lambda m: getattr(m, 'grouped_id', None) == grouped_id
-                )
+                # Получаем все сообщения с тем же chat_id и message_id
+                try:
+                    full_album_info = await self.client.get_messages(
+                        message.chat_id, 
+                        ids=[message.id]
+                    )
+                except Exception:
+                    logger.error(f"Failed to get initial message {message.id}")
+                    return False
 
-                if not isinstance(album_messages, list):
-                    album_messages = [album_messages] if album_messages else []
+                # Получаем все сообщения альбома через другой метод
+                album_messages = []
+                async for msg in self.client.iter_messages(
+                    message.chat_id, 
+                    min_id=message.id - 10,  # Диапазон поиска
+                    max_id=message.id + 10
+                ):
+                    if getattr(msg, 'grouped_id', None) == grouped_id:
+                        album_messages.append(msg)
 
                 if not album_messages:
                     logger.error(f"No album messages found for grouped_id {grouped_id}")
                     return False
 
+                # Сортировка сообщений альбома по ID
                 album_messages.sort(key=lambda m: m.id)
                 album_message_ids = [msg.id for msg in album_messages]
 
+                # Используем первое сообщение как основное
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
@@ -247,9 +261,10 @@ class BroadcastManager:
                 await self._cache_messages()
                 return True
             except Exception as e:
-                logger.error(f"Failed to add album message: {e}")
+                logger.error(f"Failed to add album message: {str(e)}")
                 return False
         else:
+            # Для одиночных сообщений
             msg_data = BroadcastMessage(chat_id=message.chat_id, message_id=message.id)
             code.messages.append(msg_data)
             self.save_config()
