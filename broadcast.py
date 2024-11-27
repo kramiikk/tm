@@ -222,31 +222,19 @@ class BroadcastManager:
         if grouped_id:
             try:
                 album_messages = []
-                async for msg in self.client.iter_messages(
+                album_entity = await self.client.get_messages(
                     message.chat_id,
-                    limit=10,
+                    limit=None,
                     filter=lambda m: getattr(m, "grouped_id", None) == grouped_id,
-                ):
-                    album_messages.append(msg.id)
-                existing_album = next(
-                    (
-                        m
-                        for m in code.messages
-                        if m.grouped_id == grouped_id
-                        and m.chat_id == message.chat_id
-                        and set(m.album_ids) == set(album_messages)
-                    ),
-                    None,
                 )
 
-                if existing_album:
-                    return False
+                album_message_ids = [msg.id for msg in album_entity]
 
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
                     grouped_id=grouped_id,
-                    album_ids=album_messages,
+                    album_ids=album_message_ids,
                 )
                 code.messages.append(msg_data)
                 self.save_config()
@@ -256,19 +244,6 @@ class BroadcastManager:
                 logger.error(f"Failed to add album message: {e}")
                 return False
         else:
-            existing_message = next(
-                (
-                    m
-                    for m in code.messages
-                    if m.chat_id == message.chat_id
-                    and m.message_id == message.id
-                    and not m.grouped_id
-                ),
-                None,
-            )
-
-            if existing_message:
-                return False
             msg_data = BroadcastMessage(chat_id=message.chat_id, message_id=message.id)
             code.messages.append(msg_data)
             self.save_config()
@@ -371,15 +346,18 @@ class BroadcastManager:
 
                     if messages:
                         messages_to_send.append(messages[message_index % len(messages)])
-                        self.message_indices[code_name] = (message_index + 1) % len(messages)
-
+                        self.message_indices[code_name] = (message_index + 1) % len(
+                            messages
+                        )
                     failed_chats = set()
                     successful_sends = 0
 
                     for chat_id in chats:
                         try:
                             for message_to_send in messages_to_send:
-                                result = await self._send_message(message_to_send, chat_id)
+                                result = await self._send_message(
+                                    message_to_send, chat_id
+                                )
                                 if result is not None:
                                     successful_sends += 1
                                     await asyncio.sleep(random.uniform(1, 3))
@@ -387,7 +365,6 @@ class BroadcastManager:
                                     logger.warning(
                                         f"Не удалось отправить сообщение в чат {chat_id}"
                                     )
-
                         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
                             failed_chats.add(chat_id)
                             logger.info(
@@ -395,7 +372,6 @@ class BroadcastManager:
                             )
                         except Exception as e:
                             logger.error(f"Ошибка отправки в {chat_id}: {str(e)}")
-
                     if failed_chats:
                         code.chats -= failed_chats
                         self.save_config()
@@ -416,20 +392,28 @@ class BroadcastManager:
     async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
         """Улучшенный метод отправки сообщений с корректной обработкой медиа и обновлением ссылок"""
         try:
+
             async def download_and_send_media(msg):
                 try:
                     try:
-                        downloaded_media = await self.client.download_media(msg.media, file=bytes)
+                        downloaded_media = await self.client.download_media(
+                            msg.media, file=bytes
+                        )
                     except FileReferenceExpiredError:
                         media = msg.media
-                        if hasattr(media, 'photo'):
-                            downloaded_media = await self.client.download_media(media.photo, file=bytes)
-                        elif hasattr(media, 'document'):
-                            downloaded_media = await self.client.download_media(media.document, file=bytes)
+                        if hasattr(media, "photo"):
+                            downloaded_media = await self.client.download_media(
+                                media.photo, file=bytes
+                            )
+                        elif hasattr(media, "document"):
+                            downloaded_media = await self.client.download_media(
+                                media.document, file=bytes
+                            )
                         else:
-                            logger.warning(f"Не удалось восстановить медиафайл в сообщении {msg.id}")
+                            logger.warning(
+                                f"Не удалось восстановить медиафайл в сообщении {msg.id}"
+                            )
                             return None
-
                     return downloaded_media
                 except Exception as e:
                     logger.error(f"Ошибка загрузки медиа: {e}")
@@ -450,7 +434,6 @@ class BroadcastManager:
                             caption = msg.text
                     except Exception as e:
                         logger.error(f"Ошибка обработки медиа в альбоме: {e}")
-                
                 if media:
                     try:
                         result = await self.client.send_file(
@@ -461,7 +444,6 @@ class BroadcastManager:
                     except Exception as e:
                         logger.error(f"Ошибка отправки альбома: {e}")
                         return None
-
             if message.media:
                 downloaded_media = await download_and_send_media(message)
                 if downloaded_media:
@@ -470,9 +452,7 @@ class BroadcastManager:
                     )
                     del downloaded_media
                     return result
-                
             return await self.client.send_message(chat_id, message.text)
-        
         except Exception as e:
             logger.error(f"Критическая ошибка отправки в чат {chat_id}: {e}")
             return None
@@ -522,7 +502,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.3"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.4"""
 
     strings = {
         "name": "Broadcast",
