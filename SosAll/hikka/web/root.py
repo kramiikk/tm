@@ -10,7 +10,6 @@ import time
 
 import aiohttp_jinja2
 import requests
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiohttp import web
 from hikkatl.errors import (
     FloodWaitError,
@@ -59,10 +58,8 @@ class Web:
         self.app.router.add_put("/set_api", self.set_tg_api)
         self.app.router.add_post("/send_tg_code", self.send_tg_code)
         self.app.router.add_post("/check_session", self.check_session)
-        self.app.router.add_post("/web_auth", self.web_auth)
         self.app.router.add_post("/tg_code", self.tg_code)
         self.app.router.add_post("/finish_login", self.finish_login)
-        self.app.router.add_post("/custom_bot", self.custom_bot)
         self.app.router.add_post("/init_qr_login", self.init_qr_login)
         self.app.router.add_post("/get_qr_url", self.get_qr_url)
         self.app.router.add_post("/qr_2fa", self.qr_2fa)
@@ -78,15 +75,11 @@ class Web:
             "docker": "https://github.com/hikariatama/assets/raw/master/spouting-whale_1f433.png",
         }[
             (
-                "lavhost"
-                if "LAVHOST" in os.environ
-                else (
-                    "termux"
-                    if "com.termux" in os.environ.get("PREFIX", "")
-                    else "docker"
-                    if "DOCKER" in os.environ
-                    else "vds"
-                )
+                "termux"
+                if "com.termux" in os.environ.get("PREFIX", "")
+                else "docker"
+                if "DOCKER" in os.environ
+                else "vds"
             )
         ]
 
@@ -95,7 +88,6 @@ class Web:
         return {
             "skip_creds": self.api_token is not None,
             "tg_done": bool(self.client_data),
-            "lavhost": "LAVHOST" in os.environ,
             "platform_emoji": self._platform_emoji,
         }
 
@@ -114,67 +106,6 @@ class Web:
             if main.hikka.clients
             else True
         )
-
-    async def _check_bot(
-        self,
-        client: CustomTelegramClient,
-        username: str,
-    ) -> bool:
-        async with client.conversation("@BotFather", exclusive=False) as conv:
-            try:
-                m = await conv.send_message("/token")
-            except YouBlockedUserError:
-                await client(UnblockRequest(id="@BotFather"))
-                m = await conv.send_message("/token")
-
-            r = await conv.get_response()
-
-            await m.delete()
-            await r.delete()
-
-            if not hasattr(r, "reply_markup") or not hasattr(r.reply_markup, "rows"):
-                return False
-
-            for row in r.reply_markup.rows:
-                for button in row.buttons:
-                    if username != button.text.strip("@"):
-                        continue
-
-                    m = await conv.send_message("/cancel")
-                    r = await conv.get_response()
-
-                    await m.delete()
-                    await r.delete()
-
-                    return True
-
-    async def custom_bot(self, request: web.Request) -> web.Response:
-        if not self._check_session(request):
-            return web.Response(status=401)
-
-        text = await request.text()
-        client = self._pending_client
-        db = database.Database(client)
-        await db.init()
-
-        text = text.strip("@")
-
-        if any(
-            litera not in (string.ascii_letters + string.digits + "_")
-            for litera in text
-        ) or not text.lower().endswith("bot"):
-            return web.Response(body="OCCUPIED")
-
-        try:
-            await client.get_entity(f"@{text}")
-        except ValueError:
-            pass
-        else:
-            if not await self._check_bot(client, text):
-                return web.Response(body="OCCUPIED")
-
-        db.set("hikka.inline", "custom_bot", text)
-        return web.Response(body="OK")
 
     async def set_tg_api(self, request: web.Request) -> web.Response:
         if not self._check_session(request):
@@ -454,100 +385,3 @@ class Web:
             restart()
 
         return web.Response()
-
-    async def web_auth(self, request: web.Request) -> web.Response:
-        if self._check_session(request):
-            return web.Response(body=request.cookies.get("session", "unauthorized"))
-
-        token = utils.rand(8)
-
-        markup = InlineKeyboardMarkup()
-        markup.add(
-            InlineKeyboardButton(
-                "🔓 Authorize user",
-                callback_data=f"authorize_web_{token}",
-            )
-        )
-
-        ips = request.headers.get("X-FORWARDED-FOR", None) or request.remote
-        cities = []
-
-        for ip in re.findall(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", ips):
-            if ip not in self._ratelimit:
-                self._ratelimit[ip] = []
-
-            if (
-                len(
-                    list(
-                        filter(lambda x: time.time() - x < 3 * 60, self._ratelimit[ip])
-                    )
-                )
-                >= 3
-            ):
-                return web.Response(status=429)
-
-            self._ratelimit[ip] = list(
-                filter(lambda x: time.time() - x < 3 * 60, self._ratelimit[ip])
-            )
-
-            self._ratelimit[ip] += [time.time()]
-            try:
-                res = (
-                    await utils.run_sync(
-                        requests.get,
-                        f"https://freegeoip.app/json/{ip}",
-                    )
-                ).json()
-                cities += [
-                    f"<i>{utils.get_lang_flag(res['country_code'])} {res['country_name']} {res['region_name']} {res['city']} {res['zip_code']}</i>"
-                ]
-            except Exception:
-                pass
-
-        cities = (
-            ("<b>🏢 Possible cities:</b>\n\n" + "\n".join(cities) + "\n")
-            if cities
-            else ""
-        )
-
-        ops = []
-
-        for user in self.client_data.values():
-            try:
-                bot = user[0].inline.bot
-                msg = await bot.send_message(
-                    user[1].tg_id,
-                    (
-                        "🌘🔐 <b>Click button below to confirm web application"
-                        f" ops</b>\n\n<b>Client IP</b>: {ips}\n{cities}\n<i>If you did"
-                        " not request any codes, simply ignore this message</i>"
-                    ),
-                    disable_web_page_preview=True,
-                    reply_markup=markup,
-                )
-                ops += [
-                    functools.partial(
-                        bot.delete_message,
-                        chat_id=msg.chat.id,
-                        message_id=msg.message_id,
-                    )
-                ]
-            except Exception:
-                pass
-
-        session = f"hikka_{utils.rand(16)}"
-
-        if not ops:
-            return web.Response(body=session)
-
-        if not await main.hikka.wait_for_web_auth(token):
-            for op in ops:
-                await op()
-            return web.Response(body="TIMEOUT")
-
-        for op in ops:
-            await op()
-
-        self._sessions += [session]
-
-        return web.Response(body=session)
