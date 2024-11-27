@@ -221,14 +221,16 @@ class BroadcastManager:
 
         if grouped_id:
             try:
-                album_messages = []
-                album_entity = await self.client.get_messages(
+                album_messages = await self.client.get_messages(
                     message.chat_id,
-                    limit=None,
+                    ids=list(range(message.id - 9, message.id + 10)),
                     filter=lambda m: getattr(m, "grouped_id", None) == grouped_id,
                 )
 
-                album_message_ids = [msg.id for msg in album_entity]
+                if not album_messages:
+                    logger.error(f"No album messages found for grouped_id {grouped_id}")
+                    return False
+                album_message_ids = [msg.id for msg in album_messages]
 
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
