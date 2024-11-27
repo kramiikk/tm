@@ -689,8 +689,8 @@ class BroadcastMod(loader.Module):
         text = [f"**Messages in '{code_name}':**"]
         for i, msg in enumerate(messages, 1):
             try:
-                chat_id = abs(msg.chat_id)
-
+                chat_id = int(str(abs(msg.chat_id))[-9:])
+                
                 if msg.grouped_id is not None:
                     message_text = f"{i}. Album in chat {msg.chat_id} (Total images: {len(msg.album_ids)})"
                     message_links = []
