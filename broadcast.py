@@ -221,35 +221,25 @@ class BroadcastManager:
 
         if grouped_id:
             try:
-                # Получаем все сообщения с тем же chat_id и message_id
                 try:
                     full_album_info = await self.client.get_messages(
-                        message.chat_id, 
-                        ids=[message.id]
+                        message.chat_id, ids=[message.id]
                     )
                 except Exception:
                     logger.error(f"Failed to get initial message {message.id}")
                     return False
-
-                # Получаем все сообщения альбома через другой метод
                 album_messages = []
                 async for msg in self.client.iter_messages(
-                    message.chat_id, 
-                    min_id=message.id - 10,  # Диапазон поиска
-                    max_id=message.id + 10
+                    message.chat_id, min_id=message.id - 10, max_id=message.id + 10
                 ):
-                    if getattr(msg, 'grouped_id', None) == grouped_id:
+                    if getattr(msg, "grouped_id", None) == grouped_id:
                         album_messages.append(msg)
-
                 if not album_messages:
                     logger.error(f"No album messages found for grouped_id {grouped_id}")
                     return False
-
-                # Сортировка сообщений альбома по ID
                 album_messages.sort(key=lambda m: m.id)
                 album_message_ids = [msg.id for msg in album_messages]
 
-                # Используем первое сообщение как основное
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
@@ -264,7 +254,6 @@ class BroadcastManager:
                 logger.error(f"Failed to add album message: {str(e)}")
                 return False
         else:
-            # Для одиночных сообщений
             msg_data = BroadcastMessage(chat_id=message.chat_id, message_id=message.id)
             code.messages.append(msg_data)
             self.save_config()
@@ -700,15 +689,17 @@ class BroadcastMod(loader.Module):
         text = [f"**Messages in '{code_name}':**"]
         for i, msg in enumerate(messages, 1):
             try:
+                chat_id = abs(msg.chat_id)
+
                 if msg.grouped_id is not None:
                     message_text = f"{i}. Album in chat {msg.chat_id} (Total images: {len(msg.album_ids)})"
                     message_links = []
                     for album_id in msg.album_ids:
-                        message_links.append(f"t.me/c/{abs(msg.chat_id)}/{album_id}")
+                        message_links.append(f"t.me/c/{chat_id}/{album_id}")
                     message_text += f"\nLinks: {' , '.join(message_links)}"
                 else:
                     message_text = f"{i}. Message in chat {msg.chat_id}\n"
-                    message_text += f"Link: t.me/c/{abs(msg.chat_id)}/{msg.message_id}"
+                    message_text += f"Link: t.me/c/{chat_id}/{msg.message_id}"
                 text.append(message_text)
             except Exception as e:
                 text.append(f"{i}. Error getting message info: {str(e)}")
