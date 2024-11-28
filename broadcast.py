@@ -169,7 +169,7 @@ class BroadcastManager:
             logger.error(f"Failed to save config: {e}")
 
     async def _cache_messages(self):
-        """Cache all broadcast messages with error handling"""
+        """Кэширование сообщений с улучшенной поддержкой альбомов"""
         async with self._cache_lock:
             self.last_cache_cleanup = time.time()
             new_cache = {}
@@ -177,7 +177,7 @@ class BroadcastManager:
 
             for code_name, code in self.config.codes.items():
                 new_cache[code_name] = []
-                new_albums_cache[code_name] = {}
+                new_albums_cache[code_name] = []
 
                 for msg_data in code.messages:
                     try:
@@ -190,9 +190,7 @@ class BroadcastManager:
                                 if message:
                                     album_messages.append(message)
                             if album_messages:
-                                new_albums_cache[code_name][
-                                    msg_data.grouped_id
-                                ] = album_messages
+                                new_albums_cache[code_name].append(album_messages)
                         else:
                             message = await self.client.get_messages(
                                 msg_data.chat_id, ids=msg_data.message_id
@@ -323,7 +321,7 @@ class BroadcastManager:
         return True
 
     async def _broadcast_loop(self, code_name: str):
-        """Улучшенный метод рассылки с чередованием сообщений и поддержкой альбомов"""
+        """Улучшенный метод рассылки с поддержкой альбомов"""
         while self._active:
             try:
                 async with self._broadcast_lock:
@@ -331,7 +329,7 @@ class BroadcastManager:
                         break
                     code = self.config.codes[code_name]
                     messages = self.cached_messages.get(code_name, [])
-                    albums = self.cached_albums.get(code_name, {})
+                    albums = self.cached_albums.get(code_name, [])
 
                     if not (messages or albums) or not code.chats:
                         await asyncio.sleep(300)
@@ -351,17 +349,14 @@ class BroadcastManager:
                     chats = list(code.chats)
                     random.shuffle(chats)
 
+                    all_content = messages + albums
                     message_index = self.message_indices.get(code_name, 0)
-                    messages_to_send = []
 
-                    if messages:
-                        messages_to_send.append(messages[message_index % len(messages)])
-                    elif albums:
-                        grouped_ids = list(albums.keys())
-                        album_index = message_index % len(grouped_ids)
-                        messages_to_send.append(albums[grouped_ids[album_index]])
+                    messages_to_send = [all_content[message_index % len(all_content)]]
 
-                    self.message_indices[code_name] = (message_index + 1) % max(len(messages), len(albums) if albums else 1)
+                    self.message_indices[code_name] = (message_index + 1) % len(
+                        all_content
+                    )
 
                     failed_chats = set()
                     successful_sends = 0
@@ -404,72 +399,47 @@ class BroadcastManager:
                 logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
 
     async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
-        """Улучшенный метод отправки сообщений с корректной обработкой медиа и обновлением ссылок"""
+        """Отправка одиночных сообщений и альбомов"""
         try:
-
-            async def download_and_send_media(msg):
-                try:
-                    try:
-                        downloaded_media = await self.client.download_media(
-                            msg.media, file=bytes
-                        )
-                    except FileReferenceExpiredError:
-                        media = msg.media
-                        if hasattr(media, "photo"):
-                            downloaded_media = await self.client.download_media(
-                                media.photo, file=bytes
-                            )
-                        elif hasattr(media, "document"):
-                            downloaded_media = await self.client.download_media(
-                                media.document, file=bytes
-                            )
-                        else:
-                            logger.warning(
-                                f"Не удалось восстановить медиафайл в сообщении {msg.id}"
-                            )
-                            return None
-                    return downloaded_media
-                except Exception as e:
-                    logger.error(f"Ошибка загрузки медиа: {e}")
-                    return None
-
             if isinstance(message, list):
                 media = []
                 caption = None
                 for msg in message:
-                    try:
-                        if msg.media:
-                            downloaded_media = await download_and_send_media(msg)
+                    if msg.media:
+                        try:
+                            downloaded_media = await self.client.download_media(
+                                msg.media, file=bytes
+                            )
                             if downloaded_media:
                                 media.append(downloaded_media)
-                            else:
-                                logger.warning(f"Пропуск медиафайла в альбоме {msg.id}")
-                        if not caption and msg.text:
-                            caption = msg.text
-                    except Exception as e:
-                        logger.error(f"Ошибка обработки медиа в альбоме: {e}")
+                        except Exception as e:
+                            logger.error(f"Ошибка загрузки медиа: {e}")
+                    if not caption and msg.text:
+                        caption = msg.text
                 if media:
                     try:
                         result = await self.client.send_file(
                             chat_id, media, caption=caption
                         )
-                        media.clear()
                         return result
                     except Exception as e:
                         logger.error(f"Ошибка отправки альбома: {e}")
                         return None
             if message.media:
-                downloaded_media = await download_and_send_media(message)
-                if downloaded_media:
-                    result = await self.client.send_file(
-                        chat_id, downloaded_media, caption=message.text
+                try:
+                    downloaded_media = await self.client.download_media(
+                        message.media, file=bytes
                     )
-                    del downloaded_media
-                    return result
+                    if downloaded_media:
+                        result = await self.client.send_file(
+                            chat_id, downloaded_media, caption=message.text
+                        )
+                        return result
+                except Exception as e:
+                    logger.error(f"Ошибка отправки медиа: {e}")
             return await self.client.send_message(chat_id, message.text)
         except Exception as e:
             logger.error(f"Критическая ошибка отправки в чат {chat_id}: {e}")
-            return None
 
     async def cleanup_tasks(self):
         """Clean up completed or failed tasks"""
@@ -694,7 +664,7 @@ class BroadcastMod(loader.Module):
         for i, msg in enumerate(messages, 1):
             try:
                 chat_id = int(str(abs(msg.chat_id))[-10:])
-                
+
                 if msg.grouped_id is not None:
                     message_text = f"{i}. Album in chat {msg.chat_id} (Total images: {len(msg.album_ids)})"
                     message_links = []
