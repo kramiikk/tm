@@ -402,44 +402,60 @@ class BroadcastManager:
         """Отправка одиночных сообщений и альбомов"""
         try:
             if isinstance(message, list):
-                media = []
-                caption = None
-                for msg in message:
-                    if msg.media:
-                        try:
-                            downloaded_media = await self.client.download_media(
-                                msg.media, file=bytes
-                            )
-                            if downloaded_media:
-                                media.append(downloaded_media)
-                        except Exception as e:
-                            logger.error(f"Ошибка загрузки медиа: {e}")
-                    if not caption and msg.text:
-                        caption = msg.text
-                if media:
-                    try:
+                try:
+                    media = []
+                    caption = None
+
+                    # Загрузка всех медиафайлов из альбома
+                    for msg in message:
+                        if msg.media:
+                            try:
+                                # Загружаем медиа как файл, а не в байтах
+                                downloaded_media = await self.client.download_media(msg.media)
+                                if downloaded_media:
+                                    media.append(downloaded_media)
+                            except FileReferenceExpiredError:
+                                logger.warning(f"File reference expired for message {msg.id}")
+                            except Exception as e:
+                                logger.error(f"Ошибка загрузки медиа: {e}")
+                        
+                        # Используем первый непустой текст как caption
+                        if not caption and msg.text:
+                            caption = msg.text
+
+                    # Если есть медиафайлы, пытаемся отправить их альбомом
+                    if media:
                         result = await self.client.send_file(
-                            chat_id, media, caption=caption
+                            chat_id, 
+                            media, 
+                            caption=caption, 
+                            album=True  # Важный параметр для отправки альбома
                         )
                         return result
-                    except Exception as e:
-                        logger.error(f"Ошибка отправки альбома: {e}")
-                        return None
+
+                except Exception as e:
+                    logger.error(f"Ошибка отправки альбома: {e}")
+                    return None
+
+            # Обработка одиночного сообщения без изменений
             if message.media:
                 try:
-                    downloaded_media = await self.client.download_media(
-                        message.media, file=bytes
-                    )
+                    downloaded_media = await self.client.download_media(message.media)
                     if downloaded_media:
                         result = await self.client.send_file(
-                            chat_id, downloaded_media, caption=message.text
+                            chat_id, 
+                            downloaded_media, 
+                            caption=message.text
                         )
                         return result
                 except Exception as e:
                     logger.error(f"Ошибка отправки медиа: {e}")
+            
             return await self.client.send_message(chat_id, message.text)
+
         except Exception as e:
             logger.error(f"Критическая ошибка отправки в чат {chat_id}: {e}")
+            return None
 
     async def cleanup_tasks(self):
         """Clean up completed or failed tasks"""
@@ -486,7 +502,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.6"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.6t"""
 
     strings = {
         "name": "Broadcast",
