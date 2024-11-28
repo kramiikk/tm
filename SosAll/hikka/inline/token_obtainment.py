@@ -54,7 +54,7 @@ class TokenObtainment(InlineUnit):
             try:
                 from .. import main
                 await asyncio.sleep(random.uniform(13, 33))
-                m = await conv.send_file(main.BASE_PATH / "assets" / "bot_pfp.png")
+                m = await conv.send_file(main.BASE_PATH / "assets" / "ava_bot.png")
                 r = await conv.get_response()
 
                 logger.debug(">> <Photo>")
@@ -118,7 +118,7 @@ class TokenObtainment(InlineUnit):
                         "hikka.inline",
                         "custom_bot",
                         False,
-                    ) and not re.search(r"@hikka_[0-9a-zA-Z]{6}_bot", button.text):
+                    ):
                         continue
                     
                     await asyncio.sleep(random.uniform(13, 33))
@@ -151,7 +151,7 @@ class TokenObtainment(InlineUnit):
                     for msg in [
                         "/setinline",
                         button.text,
-                        "user@hikka:~$",
+                        "$",
                         "/setinlinefeedback",
                         button.text,
                         "Enabled",
@@ -170,7 +170,7 @@ class TokenObtainment(InlineUnit):
                         from .. import main
 
                         m = await conv.send_file(
-                            main.BASE_PATH / "assets" / "bot_pfp.png"
+                            main.BASE_PATH / "assets" / "ava_bot.png"
                         )
                         r = await conv.get_response()
 
