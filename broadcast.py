@@ -323,7 +323,7 @@ class BroadcastManager:
         return True
 
     async def _broadcast_loop(self, code_name: str):
-        """Улучшенный метод рассылки с чередованием сообщений"""
+        """Улучшенный метод рассылки с чередованием сообщений и поддержкой альбомов"""
         while self._active:
             try:
                 async with self._broadcast_lock:
@@ -356,9 +356,13 @@ class BroadcastManager:
 
                     if messages:
                         messages_to_send.append(messages[message_index % len(messages)])
-                        self.message_indices[code_name] = (message_index + 1) % len(
-                            messages
-                        )
+                    elif albums:
+                        grouped_ids = list(albums.keys())
+                        album_index = message_index % len(grouped_ids)
+                        messages_to_send.append(albums[grouped_ids[album_index]])
+
+                    self.message_indices[code_name] = (message_index + 1) % max(len(messages), len(albums) if albums else 1)
+
                     failed_chats = set()
                     successful_sends = 0
 
@@ -512,7 +516,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.5"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.6"""
 
     strings = {
         "name": "Broadcast",
