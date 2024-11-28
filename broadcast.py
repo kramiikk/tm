@@ -406,84 +406,37 @@ class BroadcastManager:
                     media = []
                     caption = None
 
-                    # Загрузка всех медиафайлов из альбома
                     for msg in message:
                         if msg.media:
                             try:
-                                # Загружаем медиа как файл, а не в байтах
-                                downloaded_media = await self.client.download_media(msg.media)
+                                downloaded_media = await self.client.download_media(
+                                    msg.media
+                                )
                                 if downloaded_media:
-                                    # Создаем InputMediaPhoto или InputMediaDocument
-                                    if msg.photo:
-                                        input_media = await self.client.upload_file(downloaded_media)
-                                        media_obj = await self.client.telethon.functions.messages.UploadMediaRequest(
-                                            peer=chat_id,
-                                            media=await self.client.telethon.upload_media(input_media)
-                                        )
-                                        media.append(media_obj)
-                                    else:
-                                        media.append(downloaded_media)
-                                    logger.info(f"1.Sending album to {chat_id}: {len(media)} media files")
-                            except FileReferenceExpiredError:
-                                logger.warning(f"File reference expired for message {msg.id}")
+                                    media.append(downloaded_media)
                             except Exception as e:
                                 logger.error(f"Ошибка загрузки медиа: {e}")
-                        
-                        # Используем первый непустой текст как caption
                         if not caption and msg.text:
                             caption = msg.text
-
-                    # Если есть медиафайлы, пытаемся отправить их альбомом
                     if media:
-                        # Используем низкоуровневый метод отправки
-                        from telethon.tl.functions.messages import SendMultiMediaRequest
-                        from telethon.tl.types import InputMediaPhoto, InputMediaDocument
-
-                        # Преобразуем медиафайлы в правильный формат
-                        media_inputs = []
-                        for m in media:
-                            if isinstance(m, bytes):
-                                uploaded = await self.client.upload_file(m)
-                                media_inputs.append(await self.client.telethon.upload_media(uploaded))
-                            else:
-                                media_inputs.append(m)
-                        
-                        logger.info(f"2.Sending album to {chat_id}: {len(media)} media files")
-
-                        # Отправляем без reply_to_msg_id
-                        result = await self.client.telethon(
-                            SendMultiMediaRequest(
-                                peer=chat_id,
-                                multi_media=[
-                                    await self.client.telethon.build_input_media(
-                                        media, caption=caption if i == 0 else None
-                                    ) 
-                                    for i, media in enumerate(media_inputs)
-                                ]
-                            )
+                        result = await self.client.send_file(
+                            chat_id, media, caption=caption
                         )
                         return result
-
                 except Exception as e:
                     logger.error(f"Ошибка отправки альбома: {e}")
                     return None
-
-            # Обработка одиночного сообщения без изменений
             if message.media:
                 try:
                     downloaded_media = await self.client.download_media(message.media)
                     if downloaded_media:
                         result = await self.client.send_file(
-                            chat_id, 
-                            downloaded_media, 
-                            caption=message.text
+                            chat_id, downloaded_media, caption=message.text
                         )
                         return result
                 except Exception as e:
                     logger.error(f"Ошибка отправки медиа: {e}")
-            
             return await self.client.send_message(chat_id, message.text)
-
         except Exception as e:
             logger.error(f"Критическая ошибка отправки в чат {chat_id}: {e}")
             return None
