@@ -399,11 +399,15 @@ class BroadcastManager:
                 logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
 
     async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
-        """Отправка одиночных сообщений и альбомов"""
+        """Improved message sending with better error handling and album support"""
         try:
             if isinstance(message, list):
                 try:
-                    media = []
+                    logger.info(
+                        f"Processing album for chat {chat_id}: {len(message)} messages"
+                    )
+
+                    media_files = []
                     caption = None
 
                     for msg in message:
@@ -413,18 +417,23 @@ class BroadcastManager:
                                     msg.media
                                 )
                                 if downloaded_media:
-                                    media.append(downloaded_media)
+                                    media_files.append(downloaded_media)
                             except Exception as e:
-                                logger.error(f"Ошибка загрузки медиа: {e}")
+                                logger.error(f"Album media download error: {e}")
                         if not caption and msg.text:
                             caption = msg.text
-                    if media:
-                        result = await self.client.send_file(
-                            chat_id, media, caption=caption
-                        )
-                        return result
+                    if media_files:
+                        try:
+                            result = await self.client.send_file(
+                                chat_id, media_files, caption=caption
+                            )
+                            logger.info(f"Successfully sent album to {chat_id}")
+                            return result
+                        except Exception as e:
+                            logger.error(f"Album sending error to {chat_id}: {e}")
+                            return None
                 except Exception as e:
-                    logger.error(f"Ошибка отправки альбома: {e}")
+                    logger.error(f"Album processing error for {chat_id}: {e}")
                     return None
             if message.media:
                 try:
@@ -435,10 +444,10 @@ class BroadcastManager:
                         )
                         return result
                 except Exception as e:
-                    logger.error(f"Ошибка отправки медиа: {e}")
+                    logger.error(f"Media sending error to {chat_id}: {e}")
             return await self.client.send_message(chat_id, message.text)
         except Exception as e:
-            logger.error(f"Критическая ошибка отправки в чат {chat_id}: {e}")
+            logger.error(f"Critical message sending error to {chat_id}: {e}")
             return None
 
     async def cleanup_tasks(self):
@@ -486,7 +495,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.6t"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.7t"""
 
     strings = {
         "name": "Broadcast",
