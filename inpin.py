@@ -52,11 +52,13 @@ class PingerMod(loader.Module):
                 message=query,
             )
 
-    def _get_ping_text(self):
-        """Generates the ping text"""
-        start = time.perf_counter_ns()
-        end = time.perf_counter_ns()
-        return self.strings("results_ping").format((end - start) / 10**6)
+    async def _get_ping_text(self):
+        """Generates the ping text (now actually measures ping)"""
+        start = time.perf_counter()
+        await self._client.get_me()
+        end = time.perf_counter()
+        return self.strings("results_ping").format((end - start) * 1000)
+
 
     async def _get_chat_stats_text(self, chat_id):
         """Generates the chat stats text"""
@@ -71,45 +73,47 @@ class PingerMod(loader.Module):
                 f"└ <emoji document_id=5778423822940114949>🛡</emoji> Администраторов: <b>{stats['admins']}</b>\n"
                 f"└ <emoji document_id=5872829476143894491>🚫</emoji> Удаленных аккаунтов: <b>{stats['deleted_accounts']}</b>\n\n"
                 f"<emoji document_id=5886436057091673541>💬</emoji> Всего сообщений: <b>{stats['total_messages']}</b>\n"
-                f"└ <emoji document_id=6048390817033228573>📷</emoji> Медиа сообщений: <b>{stats['media_messages']}</b>\n"
             )
+
+
         except ChatAdminRequiredError:
             return self.strings("no_admin_rights")
-        except Exception:
-            return self.strings("stats_error")
+        except Exception as e:
+            return self.strings(f"Error: {e}")
 
 
     async def _get_ping_and_stats_text(self, chat_id):
-        ping_text = self._get_ping_text()
+        ping_text = await self._get_ping_text()
         stats_text = await self._get_chat_stats_text(chat_id)
         return f"{ping_text}\n\n{stats_text}"
 
+
     async def _get_chat_stats(self, chat_id):
-        """Gets chat stats using standard Telethon methods"""
+        """Gets chat stats - improved error handling and logic"""
+
         try:
-            if isinstance(chat_id, int) and chat_id < 0:
-                full_chat = await self._client(GetFullChannelRequest(chat_id))
-                participants = await self._client(GetParticipantsRequest(
-                    channel=chat_id,
-                    filter=ChannelParticipantsSearch(''),
-                    offset=0,
-                    limit=0,
-                    hash=0
-                ))
-                total_members = participants.count
-                admins = len([p for p in participants.participants if p.admin_rights])
-                deleted_accounts = len([p for p in participants.participants if p.deleted])
-                total_messages = full_chat.full_chat.read_inbox_max_id
-                media_messages = full_chat.full_chat.read_outbox_max_id
-            else:
-                return {"total_messages": 0, "total_members": 0, "admins": 0, "deleted_accounts": 0, "media_messages": 0}
+            full_chat = await self._client(GetFullChannelRequest(chat_id))
+            participants = await self._client(GetParticipantsRequest(
+                channel=chat_id,
+                filter=ChannelParticipantsSearch(''),
+                offset=0,
+                limit=0,
+                hash=0
+            ))
+
+            total_members = participants.count
+            admins = sum(1 for p in participants.participants if p.admin_rights)
+            deleted_accounts = sum(1 for p in participants.participants if p.deleted)
+            total_messages = full_chat.full_chat.read_inbox_max_id
+
 
             return {
                 "total_messages": total_messages,
                 "total_members": total_members,
                 "admins": admins,
                 "deleted_accounts": deleted_accounts,
-                "media_messages": media_messages,
             }
+
+
         except Exception as e:
-            return {f"Error getting chat stats: {e}"}
+            return {f"Error getting stats: {e}"}
