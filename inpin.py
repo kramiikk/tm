@@ -2,10 +2,11 @@ import time
 import asyncio
 from telethon.tl.types import Message
 from telethon.errors import ChatAdminRequiredError
+from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
+from telethon.tl.types import ChannelParticipantsSearch
 
 from .. import loader, utils
 from ..inline.types import InlineCall, InlineQuery
-import hikkatl
 
 
 @loader.tds
@@ -16,6 +17,7 @@ class PingerMod(loader.Module):
         "name": "InlinePing",
         "results_ping": "✨ <b>Telegram ping:</b> <code>{:.3f}</code> <b>ms</b>",
         "stats_error": "**Ошибка получения статистики чата.**",
+        "no_admin_rights": "**Нет прав администратора для получения статистики.**"
     }
 
     async def client_ready(self, client, db):
@@ -61,7 +63,7 @@ class PingerMod(loader.Module):
         try:
             stats = await self._get_chat_stats(chat_id)
             chat = await self._client.get_entity(chat_id)
-            chat_title = getattr(chat, "title", None) or "this channel"
+            chat_title = getattr(chat, "title", None) or "this chat"
 
             return (
                 f"<emoji document_id=5931472654660800739>📊</emoji> Статистика чата <u>'{chat_title}'</u>:\n\n"
@@ -72,9 +74,10 @@ class PingerMod(loader.Module):
                 f"└ <emoji document_id=6048390817033228573>📷</emoji> Медиа сообщений: <b>{stats['media_messages']}</b>\n"
             )
         except ChatAdminRequiredError:
-            return "**Нет прав администратора для получения статистики.**"
+            return self.strings("no_admin_rights")
         except Exception:
             return self.strings("stats_error")
+
 
     async def _get_ping_and_stats_text(self, chat_id):
         ping_text = self._get_ping_text()
@@ -82,49 +85,31 @@ class PingerMod(loader.Module):
         return f"{ping_text}\n\n{stats_text}"
 
     async def _get_chat_stats(self, chat_id):
-        """Gets chat stats efficiently using a single gather call"""
-
-        async def get_participants():
-            return await self._client.get_participants(chat_id)
-
-        async def get_messages():
-            return await self._client(
-                hikkatl.functions.messages.SearchRequest(
-                    peer=chat_id,
-                    q="",
-                    filter=hikkatl.types.InputMessagesFilterEmpty(),
+        """Gets chat stats using standard Telethon methods"""
+        try:
+            if isinstance(chat_id, int) and chat_id < 0:
+                full_chat = await self._client(GetFullChannelRequest(chat_id))
+                participants = await self._client(GetParticipantsRequest(
+                    channel=chat_id,
+                    filter=ChannelParticipantsSearch(''),
+                    offset=0,
                     limit=0,
-                )
-            )
+                    hash=0
+                ))
+                total_members = participants.count
+                admins = len([p for p in participants.participants if p.admin_rights])
+                deleted_accounts = len([p for p in participants.participants if p.deleted])
+                total_messages = full_chat.full_chat.read_inbox_max_id
+                media_messages = full_chat.full_chat.read_outbox_max_id
+            else:
+                return {"total_messages": 0, "total_members": 0, "admins": 0, "deleted_accounts": 0, "media_messages": 0}
 
-        async def get_media():
-            return await self._client(
-                hikkatl.functions.messages.SearchRequest(
-                    peer=chat_id,
-                    q="",
-                    filter=hikkatl.types.InputMessagesFilterPhotoVideo(),
-                    limit=0,
-                )
-            )
-
-        participants, messages, media = await asyncio.gather(
-            get_participants(), get_messages(), get_media()
-        )
-
-        total_members = len(participants)
-        deleted_accounts = sum(1 for u in participants if u.deleted)
-        admins = sum(
-            1
-            for u in participants
-            if u.participant and getattr(u.participant, "admin_rights", None)
-        )
-        total_messages = messages.count
-        media_count = media.count
-
-        return {
-            "total_messages": total_messages,
-            "total_members": total_members,
-            "admins": admins,
-            "deleted_accounts": deleted_accounts,
-            "media_messages": media_count,
-        }
+            return {
+                "total_messages": total_messages,
+                "total_members": total_members,
+                "admins": admins,
+                "deleted_accounts": deleted_accounts,
+                "media_messages": media_messages,
+            }
+        except Exception as e:
+            return {f"Error getting chat stats: {e}"}
