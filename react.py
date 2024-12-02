@@ -87,7 +87,7 @@ class BroadMod(loader.Module):
     def __init__(self):
         self.config = loader.ModuleConfig(
             "firebase_credentials_path",
-            "/home/hikka/Hikka/loll-8a3bd-firebase-adminsdk-4pvtd-6b93a17b70.json",
+            "/root/Heroku/loll-8a3bd-firebase-adminsdk-4pvtd-18ca6920ec.json",
             lambda: self.strings("cfg_firebase_path"),
             "firebase_database_url",
             "https://loll-8a3bd-default-rtdb.firebaseio.com",
