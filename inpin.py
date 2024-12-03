@@ -1,7 +1,7 @@
 import time
-import asyncio
+import traceback
 from telethon.tl.types import Message
-from telethon.errors import ChatAdminRequiredError
+from telethon.errors import ChatAdminRequiredError, FloodWaitError
 from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
 
@@ -10,13 +10,13 @@ from ..inline.types import InlineCall, InlineQuery
 
 
 @loader.tds
-class PingeMod(loader.Module):
+class PingerMod(loader.Module):
     """Inline Pinger with Chat Stats"""
 
     strings = {
         "name": "InlinePing",
         "results_ping": "✨ <b>Telegram ping:</b> <code>{:.3f}</code> <b>ms</b>",
-        "stats_error": "**Ошибка получения статистики чата.**",
+        "stats_error": "**Ошибка получения статистики чата:**\n`{}`",
         "no_admin_rights": "**Нет прав администратора для получения статистики.**",
         "chat_stats": (
             "<emoji document_id=5931472654660800739>📊</emoji> Статистика чата <u>'{}'</u>:\n\n"
@@ -66,64 +66,100 @@ class PingeMod(loader.Module):
         end = time.perf_counter()
         return self.strings("results_ping").format((end - start) * 1000)
 
-    async def _get_chat_stats_text(self, chat_id):
+    async def _get_chat_stats_text(self, message, chat_id):
         """Generates the chat stats text"""
         try:
-            stats = await self._get_chat_stats(chat_id)
+            stats = await self._get_chat_stats(message, chat_id)
             
-            # Проверка, что stats это словарь и содержит все ожидаемые ключи
-            if not isinstance(stats, dict) or not all(key in stats for key in ['total_members', 'admins', 'deleted_accounts', 'total_messages', 'chat_title']):
-                return self.strings("stats_error")
+            # Отправка отладочной информации
+            if stats.get('debug_messages'):
+                for debug_msg in stats['debug_messages']:
+                    await message.reply(debug_msg)
 
             return self.strings("chat_stats").format(
-                stats['chat_title'],
-                stats['total_members'],
-                stats['admins'],
-                stats['deleted_accounts'],
-                stats['total_messages']
+                stats.get('chat_title', 'Unknown Chat'),
+                stats.get('total_members', 0),
+                stats.get('admins', 0),
+                stats.get('deleted_accounts', 0),
+                stats.get('total_messages', 0)
             )
 
-        except ChatAdminRequiredError:
-            return self.strings("no_admin_rights")
         except Exception as e:
-            return f"Error: {e}"
+            # Подробный вывод ошибки для диагностики
+            error_message = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+            await message.reply(f"Detailed error in stats retrieval:\n{error_message}")
+            return self.strings("stats_error").format(error_message)
 
-    async def _get_ping_and_stats_text(self, chat_id):
+    async def _get_ping_and_stats_text(self, message):
         ping_text = await self._get_ping_text()
-        stats_text = await self._get_chat_stats_text(chat_id)
+        stats_text = await self._get_chat_stats_text(message, message.peer_id)
         return f"{ping_text}\n\n{stats_text}"
 
-    async def _get_chat_stats(self, chat_id):
-        """Gets chat stats - improved error handling and logic"""
+    async def _get_chat_stats(self, message, chat_id):
+        """Gets chat stats with extensive error handling"""
+        debug_messages = []
+
         try:
+            # Отладочное сообщение о типе чата
+            chat = await self._client.get_entity(chat_id)
+            debug_messages.append(f"Chat type: {type(chat)}")
+            debug_messages.append(f"Chat title: {getattr(chat, 'title', 'No title')}")
+
             # Получаем полную информацию о чате
             full_chat = await self._client(GetFullChannelRequest(chat_id))
+            debug_messages.append(f"Full chat retrieved: {full_chat is not None}")
             
             # Получаем участников
-            participants = await self._client(GetParticipantsRequest(
-                channel=chat_id,
-                filter=ChannelParticipantsSearch(''),
-                offset=0,
-                limit=0,
-                hash=0
-            ))
+            try:
+                participants = await self._client(GetParticipantsRequest(
+                    channel=chat_id,
+                    filter=ChannelParticipantsSearch(''),
+                    offset=0,
+                    limit=0,  # Получаем только количество
+                    hash=0
+                ))
+                debug_messages.append(f"Total members count: {participants.count}")
+            except Exception as participants_error:
+                debug_messages.append(f"Participants error: {participants_error}")
+                participants = type('', (), {'count': 0, 'participants': []})()
 
-            # Получаем название чата
-            chat = await self._client.get_entity(chat_id)
-            chat_title = getattr(chat, 'title', 'Unknown Chat')
+            # Расчет администраторов и удаленных аккаунтов
+            try:
+                admins = sum(1 for p in participants.participants if hasattr(p, 'admin_rights') and p.admin_rights)
+                deleted_accounts = sum(1 for p in participants.participants if hasattr(p, 'deleted') and p.deleted)
+                debug_messages.append(f"Admins count: {admins}")
+                debug_messages.append(f"Deleted accounts: {deleted_accounts}")
+            except Exception as count_error:
+                debug_messages.append(f"Count calculation error: {count_error}")
+                admins = 0
+                deleted_accounts = 0
 
-            total_members = participants.count
-            admins = sum(1 for p in participants.participants if p.admin_rights)
-            deleted_accounts = sum(1 for p in participants.participants if p.deleted)
-            total_messages = full_chat.full_chat.read_inbox_max_id
+            total_messages = getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
+            debug_messages.append(f"Total messages: {total_messages}")
 
             return {
                 "total_messages": total_messages,
-                "total_members": total_members,
+                "total_members": participants.count,
                 "admins": admins,
                 "deleted_accounts": deleted_accounts,
-                "chat_title": chat_title
+                "chat_title": getattr(chat, 'title', 'Unknown Chat'),
+                "debug_messages": debug_messages
             }
 
+        except FloodWaitError as flood:
+            # Специфическая обработка FloodWaitError
+            debug_messages.append(f"Flood Wait: Wait for {flood.seconds} seconds")
+            return {
+                "error": f"Flood Wait: Wait for {flood.seconds} seconds",
+                "chat_title": "Error",
+                "debug_messages": debug_messages
+            }
         except Exception as e:
-            return {"error": f"Error getting stats: {e}"}
+            # Подробный вывод ошибки для диагностики
+            debug_messages.append(f"Full error in _get_chat_stats: {e}")
+            debug_messages.append(traceback.format_exc())
+            return {
+                "error": f"{type(e).__name__}: {str(e)}",
+                "chat_title": "Error",
+                "debug_messages": debug_messages
+            }
