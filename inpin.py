@@ -3,14 +3,13 @@ import time
 import traceback
 from telethon import types
 from telethon.tl.functions.channels import GetFullChannelRequest
-from telethon.tl.types import InputPeerChannel, InputPeerChat
 
 from .. import loader, utils
 from ..inline.types import InlineCall, InlineQuery
 
 @loader.tds
 class PingerMod(loader.Module):
-    """Точный инлайн пингер с статистикой чата"""
+    """Точный инлайн пингер"""
 
     strings = {
         "name": "InlinePing",
@@ -19,15 +18,7 @@ class PingerMod(loader.Module):
             "├ <code>{dc_ping:.2f} мс</code> • DC\n"
             "├ <code>{client_ping:.2f} мс</code> • Client\n"
             "└ <code>{overall_ping:.2f} мс</code> • Overall\n\n"
-        ),
-        "stats_text": (
-            "📊 <b>Статистика чата:</b>\n"
-            "├ <b>Название:</b> <code>{title}</code>\n"
-            "├ 👥 <b>Участников:</b> <code>{members}</code>\n"
-            "├ 🛡️ <b>Администраторов:</b> <code>{admins}</code>\n"
-            "└ 💬 <b>Сообщений:</b> <code>{messages}</code>\n"
-        ),
-        "error_text": "❌ <b>Ошибка:</b> <code>{error}</code>"
+        )
     }
 
     async def client_ready(self, client, db):
@@ -57,30 +48,16 @@ class PingerMod(loader.Module):
     async def _get_chat_stats(self, message):
         """Получение статистики чата"""
         try:
-            # Безопасное получение chat_id
-            if not message or not hasattr(message, 'chat'):
-                return {"error": "Не удалось определить чат"}
+            # Получаем chat_id напрямую
+            chat_id = message.chat_id if hasattr(message, 'chat_id') else None
 
-            chat = message.chat
-            if not chat:
-                return {"error": "Чат не найден"}
-
-            # Определение типа чата и получение ID
-            if isinstance(chat, types.Chat):
+            # Если chat_id не определен
+            if not chat_id:
+                chat = await message.get_chat()
                 chat_id = chat.id
-            elif isinstance(chat, types.Channel):
-                chat_id = chat.id
-            else:
-                return {"error": "Неподдерживаемый тип чата"}
 
             # Получаем полную информацию о чате
-            try:
-                full_chat = await self._client(GetFullChannelRequest(chat_id))
-            except TypeError:
-                # Fallback для обычных групп
-                full_chat = await self._client(GetFullChannelRequest(
-                    InputPeerChat(chat_id)
-                ))
+            full_chat = await self._client(GetFullChannelRequest(chat_id))
 
             # Получаем участников
             participants = await self._client.get_participants(chat_id)
@@ -93,7 +70,7 @@ class PingerMod(loader.Module):
             total_messages = getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
 
             return {
-                "title": getattr(chat, 'title', 'Unknown'),
+                "title": getattr(message.chat, 'title', 'Unknown'),
                 "members": total_members,
                 "admins": admins,
                 "messages": total_messages
@@ -103,26 +80,26 @@ class PingerMod(loader.Module):
 
     @loader.command()
     async def iping(self, message):
-        """Команда для получения пинга"""
+        """Команда для получения пинга и статистики"""
         ping_data = await self._measure_ping()
         chat_stats = await self._get_chat_stats(message)
 
         # Формирование текста
-        if "error" in chat_stats:
-            stats_text = self.strings["error_text"].format(error=chat_stats["error"])
-        else:
-            stats_text = self.strings["stats_text"].format(**chat_stats)
-
         ping_text = self.strings["ping_text"].format(**ping_data)
+        
+        stats_text = (
+            "📊 <b>Статистика чата:</b>\n"
+            "├ <b>Название:</b> <code>{title}</code>\n"
+            "├ 👥 <b>Участников:</b> <code>{members}</code>\n"
+            "├ 🛡️ <b>Администраторов:</b> <code>{admins}</code>\n"
+            "└ 💬 <b>Сообщений:</b> <code>{messages}</code>\n"
+        ).format(**chat_stats) if not "error" in chat_stats else ""
 
         await self.inline.form(
             f"{ping_text}{stats_text}",
             message=message,
             reply_markup=[
-                [
-                    {"text": "🔄 Пинг", "callback": self._refresh_ping},
-                    {"text": "📊 Статистика", "callback": self._refresh_stats}
-                ]
+                [{"text": "🔄 Пинг", "callback": self._refresh_ping}]
             ]
         )
 
@@ -131,39 +108,10 @@ class PingerMod(loader.Module):
         ping_data = await self._measure_ping()
         ping_text = self.strings["ping_text"].format(**ping_data)
 
-        # Сохраняем старый текст статистики
-        old_text = call.message.text.split("\n\n")[1] if "\n\n" in call.message.text else ""
-
         await call.edit(
-            f"{ping_text}{old_text}",
+            ping_text,
             reply_markup=[
-                [
-                    {"text": "🔄 Пинг", "callback": self._refresh_ping},
-                    {"text": "📊 Статистика", "callback": self._refresh_stats}
-                ]
-            ]
-        )
-
-    async def _refresh_stats(self, call: InlineCall):
-        """Обновление статистики"""
-        ping_data = await self._measure_ping()
-        chat_stats = await self._get_chat_stats(call.message)
-
-        # Формирование текста
-        ping_text = self.strings["ping_text"].format(**ping_data)
-        
-        if "error" in chat_stats:
-            stats_text = self.strings["error_text"].format(error=chat_stats["error"])
-        else:
-            stats_text = self.strings["stats_text"].format(**chat_stats)
-
-        await call.edit(
-            f"{ping_text}{stats_text}",
-            reply_markup=[
-                [
-                    {"text": "🔄 Пинг", "callback": self._refresh_ping},
-                    {"text": "📊 Статистика", "callback": self._refresh_stats}
-                ]
+                [{"text": "🔄 Пинг", "callback": self._refresh_ping}]
             ]
         )
 
@@ -172,7 +120,7 @@ class PingerMod(loader.Module):
         ping_data = await self._measure_ping()
         return {
             "title": f"Ping: {ping_data['overall_ping']:.2f} мс",
-            "description": "Статистика чата и пинг",
+            "description": "Пинг",
             "message": self.strings["ping_text"].format(**ping_data),
             "thumb": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg"
         }
