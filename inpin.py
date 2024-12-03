@@ -18,7 +18,15 @@ class PingerMod(loader.Module):
             "├ <code>{dc_ping:.2f} мс</code> • DC\n"
             "├ <code>{client_ping:.2f} мс</code> • Client\n"
             "└ <code>{overall_ping:.2f} мс</code> • Overall\n\n"
-        )
+        ),
+        "stats_text": (
+            "📊 <b>Статистика чата:</b>\n"
+            "├ <b>Название:</b> <code>{title}</code>\n"
+            "├ 👥 <b>Участников:</b> <code>{members}</code>\n"
+            "├ 🛡️ <b>Администраторов:</b> <code>{admins}</code>\n"
+            "└ 💬 <b>Сообщений:</b> <code>{messages}</code>\n"
+        ),
+        "error_text": "❌ <b>Ошибка статистики:</b> <code>{error}</code>\n"
     }
 
     async def client_ready(self, client, db):
@@ -48,19 +56,14 @@ class PingerMod(loader.Module):
     async def _get_chat_stats(self, message):
         """Получение статистики чата"""
         try:
-            # Получаем chat_id напрямую
-            chat_id = message.chat_id if hasattr(message, 'chat_id') else None
-
-            # Если chat_id не определен
-            if not chat_id:
-                chat = await message.get_chat()
-                chat_id = chat.id
-
+            # Получаем chat_id
+            chat = await message.get_chat()
+            
             # Получаем полную информацию о чате
-            full_chat = await self._client(GetFullChannelRequest(chat_id))
+            full_chat = await self._client(GetFullChannelRequest(chat.id))
 
             # Получаем участников
-            participants = await self._client.get_participants(chat_id)
+            participants = await self._client.get_participants(chat.id)
 
             # Подсчет статистики
             total_members = len(participants)
@@ -70,33 +73,36 @@ class PingerMod(loader.Module):
             total_messages = getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
 
             return {
-                "title": getattr(message.chat, 'title', 'Unknown'),
+                "title": getattr(chat, 'title', 'Unknown'),
                 "members": total_members,
                 "admins": admins,
                 "messages": total_messages
             }
         except Exception as e:
-            return {"error": f"Ошибка: {str(e)}"}
+            return {"error": str(e)}
 
     @loader.command()
     async def iping(self, message):
         """Команда для получения пинга и статистики"""
         ping_data = await self._measure_ping()
+        
+        # Получаем статистику
         chat_stats = await self._get_chat_stats(message)
 
-        # Формирование текста
+        # Формирование текста пинга
         ping_text = self.strings["ping_text"].format(**ping_data)
         
-        stats_text = (
-            "📊 <b>Статистика чата:</b>\n"
-            "├ <b>Название:</b> <code>{title}</code>\n"
-            "├ 👥 <b>Участников:</b> <code>{members}</code>\n"
-            "├ 🛡️ <b>Администраторов:</b> <code>{admins}</code>\n"
-            "└ 💬 <b>Сообщений:</b> <code>{messages}</code>\n"
-        ).format(**chat_stats) if not "error" in chat_stats else ""
+        # Формирование текста статистики
+        if "error" in chat_stats:
+            stats_text = self.strings["error_text"].format(error=chat_stats["error"])
+        else:
+            stats_text = self.strings["stats_text"].format(**chat_stats)
+
+        # Объединяем тексты
+        full_text = f"{ping_text}{stats_text}"
 
         await self.inline.form(
-            f"{ping_text}{stats_text}",
+            full_text,
             message=message,
             reply_markup=[
                 [{"text": "🔄 Пинг", "callback": self._refresh_ping}]
