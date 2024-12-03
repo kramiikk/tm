@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List
+import asyncio
+import time
+import logging
+from dataclasses import dataclass
+from typing import Optional, Dict, Any, List, Callable
 
 from telethon import TelegramClient, types
 from telethon.errors import (
@@ -12,10 +15,6 @@ from telethon.errors import (
 from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.tl.types import ChannelParticipantsAdmins
-
-import time
-import logging
-from functools import lru_cache, wraps
 
 from .. import loader, utils
 
@@ -186,26 +185,29 @@ class EnhancedInlinePingMod(loader.Module):
             chat = await self._client.get_entity(message.chat_id)
             stats = await self._fetch_chat_statistics(chat)
             
-            # Prepare refresh mechanism
+            # Create async refresh callback
             async def refresh_callback(call):
-                nonlocal ping_time, stats
-                start = time.perf_counter_ns()
-                await self._client.get_me()
-                ping_time = (time.perf_counter_ns() - start) / 1_000_000
-                
-                await call.edit(
-                    stats.to_formatted_string(ping_time), 
-                    reply_markup=self._create_refresh_button()
-                )
+                try:
+                    start = time.perf_counter_ns()
+                    await self._client.get_me()
+                    ping_time = (time.perf_counter_ns() - start) / 1_000_000
+                    
+                    await call.edit(
+                        stats.to_formatted_string(ping_time), 
+                        reply_markup=self._create_refresh_button(refresh_callback)
+                    )
+                except Exception as e:
+                    self._logger.error(f"Refresh callback error: {e}")
+                    await call.edit(f"Error refreshing: {e}")
 
-            text = stats.to_formatted_string(ping_time)
+            # Modify _create_refresh_button to directly pass the callback
             refresh_button = self._create_refresh_button(refresh_callback)
 
             if call:
-                await call.edit(text, reply_markup=refresh_button)
+                await call.edit(stats.to_formatted_string(ping_time), reply_markup=refresh_button)
             else:
                 await self.inline.form(
-                    text, 
+                    stats.to_formatted_string(ping_time), 
                     message=message, 
                     reply_markup=refresh_button
                 )
@@ -216,7 +218,7 @@ class EnhancedInlinePingMod(loader.Module):
 
     def _create_refresh_button(
         self, 
-        callback: Optional[callable] = None
+        callback: Optional[Callable] = None
     ) -> List[Dict[str, Any]]:
         """
         Create inline refresh button
@@ -227,7 +229,9 @@ class EnhancedInlinePingMod(loader.Module):
         Returns:
             List of button configurations
         """
-        return [{"text": "🔄 Refresh", "callback": callback or (lambda c: None)}]
+        # Ensure callback is always a callable
+        safe_callback = callback if callable(callback) else (lambda c: None)
+        return [{"text": "🔄 Refresh", "callback": safe_callback}]
 
     async def ping_inline_handler(self, query):
         """
