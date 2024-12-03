@@ -8,7 +8,6 @@ from typing import Union, Dict, Any
 
 from .. import loader, utils
 
-
 @loader.tds
 class InlinePingMod(loader.Module):
     """Compact inline pinger with detailed chat stats"""
@@ -30,51 +29,50 @@ class InlinePingMod(loader.Module):
     async def client_ready(self, client, db):
         self._client = client
 
-    async def _get_chat_stats(
-        self, chat: Union[types.Channel, types.Chat]
-    ) -> Dict[str, Any]:
+    async def _get_chat_stats(self, chat):
         try:
+            # Common data extraction
             chat_title = utils.escape_html(getattr(chat, "title", "Unknown"))
             chat_id = chat.id
+            chat_type = (
+                "Supergroup" if isinstance(chat, types.Channel) and chat.megagroup
+                else "Channel" if isinstance(chat, types.Channel)
+                else "Group" if isinstance(chat, types.Chat)
+                else "Unknown"
+            )
 
-            if isinstance(chat, types.Channel):
-                chat_type = "Supergroup" if chat.megagroup else "Channel"
-            elif isinstance(chat, types.Chat):
-                chat_type = "Group"
-            else:
-                raise TypeError("Unsupported chat type")
+            # Fetch full chat details
             try:
-                if isinstance(chat, types.Channel):
-                    full_chat = await self._client(GetFullChannelRequest(chat))
-
-                    members_count = full_chat.full_chat.participants_count or 0
-                    total_messages = full_chat.full_chat.read_outbox_max_id or 0
-                    admins_count = full_chat.full_chat.admins_count or 0
-                elif isinstance(chat, types.Chat):
-                    full_chat = await self._client(GetFullChatRequest(chat.id))
-                    members_count = full_chat.full_chat.participants_count or 0
-                    total_messages = getattr(
-                        full_chat.full_chat, "read_outbox_max_id", 0
-                    )
-                    admins_count = sum(
-                        1
-                        for p in full_chat.full_chat.participants
-                        if isinstance(
-                            p,
-                            (types.ChatParticipantAdmin, types.ChatParticipantCreator),
-                        )
-                    )
-                else:
-                    members_count = total_messages = admins_count = 0
+                full_chat = (
+                    await self._client(GetFullChannelRequest(chat)) 
+                    if isinstance(chat, types.Channel)
+                    else await self._client(GetFullChatRequest(chat.id))
+                )
             except Exception:
-                members_count = total_messages = admins_count = 0
-            try:
-                participants = await self._client.get_participants(chat, limit=None)
+                full_chat = None
 
+            # Participant details
+            try:
+                participants = await self._client.get_participants(chat)
+                
+                # Optimized admin counting
+                admins_count = sum(
+                    1 for p in participants 
+                    if p.admin or getattr(p, 'is_creator', False)
+                )
+                
                 bots_count = sum(1 for p in participants if p.bot)
                 deleted_accounts = sum(1 for p in participants if p.deleted)
+                members_count = len(participants)
             except Exception:
-                bots_count = deleted_accounts = 0
+                admins_count = bots_count = deleted_accounts = members_count = 0
+
+            # Total messages fallback
+            total_messages = (
+                getattr(full_chat.full_chat, 'read_outbox_max_id', 0) 
+                if full_chat else 0
+            )
+
             return {
                 "title": chat_title,
                 "chat_id": chat_id,
@@ -85,7 +83,8 @@ class InlinePingMod(loader.Module):
                 "bots": bots_count,
                 "total_messages": total_messages,
             }
-        except Exception as e:
+        except Exception:
+            # Graceful fallback with minimal error info
             return {
                 "title": "Error",
                 "chat_id": getattr(chat, "id", 0),
@@ -115,32 +114,31 @@ class InlinePingMod(loader.Module):
                 f"{self.strings['ping_text'].format(ping=ping)}\n\n"
                 f"{self.strings['stats_text'].format(**stats)}"
             )
-        except (ChatAdminRequiredError, TypeError, ValueError) as e:
-            text = self.strings["error_text"].format(error=str(e))
+            
+            # Create refresh button with closure
+            async def refresh_callback(call):
+                start = time.perf_counter_ns()
+                await self._client.get_me()
+                ping = (time.perf_counter_ns() - start) / 1_000_000
+
+                await call.edit(
+                    f"{self.strings['ping_text'].format(ping=ping)}\n\n"
+                    f"{self.strings['stats_text'].format(**stats)}",
+                    reply_markup=[refresh_button]
+                )
+
+            refresh_button = [{"text": "🔄 Refresh", "callback": refresh_callback}]
+
+            if call:
+                await call.edit(text, reply_markup=[refresh_button])
+            else:
+                await self.inline.form(text, message=message, reply_markup=[refresh_button])
+
         except Exception as e:
-            text = self.strings["error_text"].format(
-                error=f"An unexpected error occurred: {e}"
-            )
+            text = self.strings["error_text"].format(error=str(e))
+            await self.inline.form(text, message=message)
 
-        async def refresh_callback(call):
-            start = time.perf_counter_ns()
-            await self._client.get_me()
-            ping = (time.perf_counter_ns() - start) / 1_000_000
-
-            text_updated = (
-                f"{self.strings['ping_text'].format(ping=ping)}\n\n"
-                f"{self.strings['stats_text'].format(**stats)}"
-            )
-
-            await call.edit(text_updated, reply_markup=[refresh_button])
-
-        refresh_button = [{"text": "🔄 Refresh", "callback": refresh_callback}]
-
-        if call:
-            await call.edit(text, reply_markup=[refresh_button])
-        else:
-            await self.inline.form(text, message=message, reply_markup=[refresh_button])
-
+    # Inline handler remains mostly the same, with minor optimizations
     async def ping_inline_handler(self, query):
         start = time.perf_counter_ns()
         await self._client.get_me()
@@ -171,14 +169,13 @@ class InlinePingMod(loader.Module):
             else:
                 message_text = self.strings["ping_text"].format(ping=ping)
                 reply_markup = None
+            
             return [
                 {
                     "type": "article",
                     "id": "ping_result",
                     "title": f"Ping: {ping:.2f} ms",
-                    "description": (
-                        "Ping и статистика чата" if query.chat_id else "Ping"
-                    ),
+                    "description": ("Ping и статистика чата" if query.chat_id else "Ping"),
                     "input_message_content": {
                         "message_text": message_text,
                         "parse_mode": "HTML",
