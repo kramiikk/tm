@@ -73,7 +73,7 @@ class ChatStatistics:
 
 
 @loader.tds
-class EnhancedInlinePingMod(loader.Module):
+class InlinePongMod(loader.Module):
     """Advanced inline ping module with comprehensive chat statistics"""
 
     strings = {
@@ -150,7 +150,7 @@ class EnhancedInlinePingMod(loader.Module):
             return ChatStatistics()
 
     @loader.command()
-    async def iping(self, message):
+    async def pong(self, message):
         """Inline ping command"""
         await self._process_ping(message)
 
