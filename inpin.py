@@ -41,7 +41,7 @@ class PingerMod(loader.Module):
             "title": "Ping & Stats",
             "description": "Tap here",
             "thumb": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
-            "message": await self._get_ping_and_stats_text(query.peer),
+            "message": await self._get_ping_and_stats_text(message=query.peer),
             "reply_markup": [{"text": "⏱️ Ping & Stats", "callback": self._ping}],
         }
 
@@ -49,12 +49,12 @@ class PingerMod(loader.Module):
         """Handles both inline queries and callbacks"""
         if isinstance(query, InlineCall):
             await query.edit(
-                await self._get_ping_and_stats_text(query.chat),
+                await self._get_ping_and_stats_text(message=query.chat),
                 reply_markup=[{"text": "⏱️ Ping & Stats", "callback": self._ping}],
             )
         elif isinstance(query, Message):
             await self.inline.form(
-                await self._get_ping_and_stats_text(query.peer_id),
+                await self._get_ping_and_stats_text(message=query),
                 reply_markup=[{"text": "⏱️ Ping & Stats", "callback": self._ping}],
                 message=query,
             )
@@ -66,9 +66,13 @@ class PingerMod(loader.Module):
         end = time.perf_counter()
         return self.strings("results_ping").format((end - start) * 1000)
 
-    async def _get_chat_stats_text(self, message, chat_id):
+    async def _get_chat_stats_text(self, message, chat_id=None):
         """Generates the chat stats text"""
         try:
+            # Если chat_id не передан, используем из сообщения
+            if chat_id is None:
+                chat_id = utils.get_chat_id(message)
+            
             stats = await self._get_chat_stats(message, chat_id)
             
             # Отправка отладочной информации
@@ -90,9 +94,14 @@ class PingerMod(loader.Module):
             await message.reply(f"Detailed error in stats retrieval:\n{error_message}")
             return self.strings("stats_error").format(error_message)
 
-    async def _get_ping_and_stats_text(self, message):
+    async def _get_ping_and_stats_text(self, message, chat_id=None):
+        """Combines ping and chat stats text"""
+        # Если chat_id не передан, используем из сообщения
+        if chat_id is None:
+            chat_id = utils.get_chat_id(message)
+        
         ping_text = await self._get_ping_text()
-        stats_text = await self._get_chat_stats_text(message, message.peer_id)
+        stats_text = await self._get_chat_stats_text(message, chat_id)
         return f"{ping_text}\n\n{stats_text}"
 
     async def _get_chat_stats(self, message, chat_id):
@@ -101,13 +110,29 @@ class PingerMod(loader.Module):
 
         try:
             # Отладочное сообщение о типе чата
-            chat = await self._client.get_entity(chat_id)
-            debug_messages.append(f"Chat type: {type(chat)}")
-            debug_messages.append(f"Chat title: {getattr(chat, 'title', 'No title')}")
+            try:
+                chat = await self._client.get_entity(chat_id)
+                debug_messages.append(f"Chat type: {type(chat)}")
+                debug_messages.append(f"Chat title: {getattr(chat, 'title', 'No title')}")
+            except Exception as entity_error:
+                debug_messages.append(f"Error getting chat entity: {entity_error}")
+                return {
+                    "error": f"Cannot get chat entity: {entity_error}",
+                    "chat_title": "Error",
+                    "debug_messages": debug_messages
+                }
 
             # Получаем полную информацию о чате
-            full_chat = await self._client(GetFullChannelRequest(chat_id))
-            debug_messages.append(f"Full chat retrieved: {full_chat is not None}")
+            try:
+                full_chat = await self._client(GetFullChannelRequest(chat_id))
+                debug_messages.append(f"Full chat retrieved: {full_chat is not None}")
+            except Exception as full_chat_error:
+                debug_messages.append(f"Error getting full chat: {full_chat_error}")
+                return {
+                    "error": f"Cannot get full chat: {full_chat_error}",
+                    "chat_title": "Error",
+                    "debug_messages": debug_messages
+                }
             
             # Получаем участников
             try:
