@@ -124,23 +124,38 @@ class InlinePingMod(loader.Module):
         try:
             if query.chat_id:
                 message = Message(peer_id=query.chat_id, out=query.out)
-                stats_task = self._ping(message)
-                stats_text = await stats_task
+                stats_text = await self._ping(message)
 
                 message_text = (
                     f"{self.strings['ping_text'].format(ping=ping)}\n\n{stats_text}"
                 )
             else:
                 message_text = self.strings["ping_text"].format(ping=ping)
-            return {
-                "title": f"Ping: {ping:.2f} ms",
-                "description": "Ping",
-                "message": message_text,
-                "thumb": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
-            }
+
+            return [
+                {
+                    "type": "article",
+                    "id": "ping_result",
+                    "title": f"Ping: {ping:.2f} ms",
+                    "description": "Ping and Chat Stats" if query.chat_id else "Ping",
+                    "input_message_content": {
+                        "message_text": message_text,
+                        "parse_mode": "HTML",
+                    },
+                    "thumb_url": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
+                }
+            ]
+
         except Exception as e:
-            return {
-                "title": "Error",
-                "description": "An error occurred",
-                "message": self.strings["error_text"].format(error=str(e)),
-            }
+            return [
+                {
+                    "type": "article",
+                    "id": "error_result",
+                    "title": "Error",
+                    "description": "An error occurred",
+                    "input_message_content": {
+                        "message_text": self.strings["error_text"].format(error=str(e)),
+                        "parse_mode": "HTML",
+                    },
+                }
+            ]
