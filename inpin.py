@@ -1,16 +1,16 @@
 from telethon import TelegramClient, events, utils, functions, types
 import time
 import asyncio
-from telethon.tl.types import Message
+from telethon.tl.types import (
+    ChannelParticipantsSearch,
+    Chat,
+    Channel,
+    Message,
+    InputMessagesFilterPhotoVideo,
+)
 from telethon.errors import ChatAdminRequiredError
 from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
 from telethon.tl.functions.messages import GetFullChatRequest, SearchRequest
-from telethon.tl.types import (
-    ChannelParticipantsSearch,
-    InputMessagesFilterPhotoVideo,
-    Chat,
-    Channel,
-)
 from datetime import datetime
 
 from .. import loader, utils
@@ -41,6 +41,11 @@ class InlinePingMod(loader.Module):
     async def client_ready(self, client, db):
         self._client = client
 
+    @loader.command()
+    async def iping(self, message):
+        """Get ping and chat statistics"""
+        await self._ping(message)
+
     async def _ping(self, message, call=None):
         start = time.perf_counter()
         await self._client.get_me()
@@ -48,15 +53,20 @@ class InlinePingMod(loader.Module):
 
         try:
             chat = await self._client.get_entity(message.chat_id)
-            participants = await self._client.get_participants(chat)
 
             if isinstance(chat, Channel):
                 full_chat = await self._client(GetFullChannelRequest(chat))
+                participants = full_chat.users
+                if chat.megagroup:
+                    chat_type = "Supergroup"
+                else:
+                    chat_type = "Channel"
                 admins = full_chat.full_chat.admins_count or 0
                 total_messages = full_chat.full_chat.read_outbox_max_id
-                chat_type = "Channel"
             elif isinstance(chat, Chat):
                 full_chat = await self._client(GetFullChatRequest(chat.id))
+                participants = full_chat.users
+                chat_type = "Group"
                 admins = sum(
                     1
                     for p in participants
@@ -67,7 +77,6 @@ class InlinePingMod(loader.Module):
                     )
                 )
                 total_messages = getattr(full_chat.full_chat, "read_outbox_max_id", 0)
-                chat_type = "Group"
             else:
                 raise TypeError("Unsupported chat type")
             stats = {
@@ -88,6 +97,10 @@ class InlinePingMod(loader.Module):
                 "total_messages": total_messages,
             }
             text = f"{self.strings['ping_text'].format(ping=ping)}\n\n{self.strings['stats_text'].format(**stats)}"
+        except ChatAdminRequiredError:
+            text = self.strings["error_text"].format(
+                error="Admin rights required for this chat."
+            )
         except ValueError as e:
             text = self.strings["error_text"].format(
                 error=f"Date formatting error: {e}"
@@ -100,23 +113,43 @@ class InlinePingMod(loader.Module):
             )
         if call:
             await call.edit(
-                text, reply_markup=[[{"text": "🔄 Refresh", "callback": self._ping}]]
+                text,
+                reply_markup=[
+                    [
+                        {
+                            "text": "🔄 Refresh",
+                            "callback": lambda c: self._ping(message, c),
+                        }
+                    ]
+                ],
             )
         else:
             await self.inline.form(
                 text,
                 message=message,
-                reply_markup=[[{"text": "🔄 Refresh", "callback": self._ping}]],
+                reply_markup=[
+                    [
+                        {
+                            "text": "🔄 Refresh",
+                            "callback": lambda c: self._ping(message, c),
+                        }
+                    ]
+                ],
             )
         return text
 
-    @loader.command()
-    async def iping(self, message):
-        """Get ping and chat statistics"""
-        await self._ping(message)
-
     async def ping_inline_handler(self, query: InlineQuery):
         """Inline handler for ping"""
+
+        async def _update_ping(call: InlineCall):
+            start = time.perf_counter()
+            await self._client.get_me()
+            ping = (time.perf_counter() - start) * 1000
+            await call.edit(
+                self.strings["ping_text"].format(ping=ping),
+                reply_markup=[[{"text": "🔄 Refresh", "callback": _update_ping}]],
+            )
+
         start = time.perf_counter()
         await self._client.get_me()
         ping = (time.perf_counter() - start) * 1000
@@ -129,9 +162,10 @@ class InlinePingMod(loader.Module):
                 message_text = (
                     f"{self.strings['ping_text'].format(ping=ping)}\n\n{stats_text}"
                 )
+                reply_markup = [[{"text": "🔄 Refresh", "callback": _update_ping}]]
             else:
                 message_text = self.strings["ping_text"].format(ping=ping)
-
+                reply_markup = None
             return [
                 {
                     "type": "article",
@@ -142,10 +176,10 @@ class InlinePingMod(loader.Module):
                         "message_text": message_text,
                         "parse_mode": "HTML",
                     },
+                    "reply_markup": reply_markup,
                     "thumb_url": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
                 }
             ]
-
         except Exception as e:
             return [
                 {
