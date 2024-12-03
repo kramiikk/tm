@@ -178,20 +178,19 @@ class EnhancedInlinePingMod(loader.Module):
             message: Telegram message object
             call: Optional callback query
         """
-        start_time = time.perf_counter_ns()
-        await self._client.get_me()
-        ping_time = (time.perf_counter_ns() - start_time) / 1_000_000
-
         try:
+            start_time = time.monotonic()
+            await self._client.get_me()
+            ping_time = (time.monotonic() - start_time) * 1000
+
             chat = await self._client.get_entity(message.chat_id)
             stats = await self._fetch_chat_statistics(chat)
             
-            # Create async refresh callback
             async def refresh_callback(call):
                 try:
-                    start = time.perf_counter_ns()
+                    start = time.monotonic()
                     await self._client.get_me()
-                    ping_time = (time.perf_counter_ns() - start) / 1_000_000
+                    ping_time = (time.monotonic() - start) * 1000
                     
                     await call.edit(
                         stats.to_formatted_string(ping_time), 
@@ -201,7 +200,6 @@ class EnhancedInlinePingMod(loader.Module):
                     self._logger.error(f"Refresh callback error: {e}")
                     await call.edit(f"Error refreshing: {e}")
 
-            # Modify _create_refresh_button to directly pass the callback
             refresh_button = self._create_refresh_button(refresh_callback)
 
             if call:
@@ -244,9 +242,9 @@ class EnhancedInlinePingMod(loader.Module):
         Returns:
             List of inline query results
         """
-        start_time = time.perf_counter_ns()
+        start_time = time.monotonic()
         await self._client.get_me()
-        ping_time = (time.perf_counter_ns() - start_time) / 1_000_000
+        ping_time = (time.monotonic() - start_time) * 1000
 
         try:
             if query.chat_id:
