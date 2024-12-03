@@ -3,6 +3,7 @@ import time
 import traceback
 from telethon import types
 from telethon.tl.functions.channels import GetFullChannelRequest
+from telethon.tl.types import InputPeerChannel, InputPeerChat
 
 from .. import loader, utils
 from ..inline.types import InlineCall, InlineQuery
@@ -56,11 +57,30 @@ class PingerMod(loader.Module):
     async def _get_chat_stats(self, message):
         """Получение статистики чата"""
         try:
-            chat_id = utils.get_chat_id(message)
-            
+            # Безопасное получение chat_id
+            if not message or not hasattr(message, 'chat'):
+                return {"error": "Не удалось определить чат"}
+
+            chat = message.chat
+            if not chat:
+                return {"error": "Чат не найден"}
+
+            # Определение типа чата и получение ID
+            if isinstance(chat, types.Chat):
+                chat_id = chat.id
+            elif isinstance(chat, types.Channel):
+                chat_id = chat.id
+            else:
+                return {"error": "Неподдерживаемый тип чата"}
+
             # Получаем полную информацию о чате
-            full_chat = await self._client(GetFullChannelRequest(chat_id))
-            entity = await self._client.get_entity(chat_id)
+            try:
+                full_chat = await self._client(GetFullChannelRequest(chat_id))
+            except TypeError:
+                # Fallback для обычных групп
+                full_chat = await self._client(GetFullChannelRequest(
+                    InputPeerChat(chat_id)
+                ))
 
             # Получаем участников
             participants = await self._client.get_participants(chat_id)
@@ -73,13 +93,13 @@ class PingerMod(loader.Module):
             total_messages = getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
 
             return {
-                "title": getattr(entity, 'title', 'Unknown'),
+                "title": getattr(chat, 'title', 'Unknown'),
                 "members": total_members,
                 "admins": admins,
                 "messages": total_messages
             }
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": f"Ошибка: {str(e)}"}
 
     @loader.command()
     async def iping(self, message):
@@ -99,7 +119,28 @@ class PingerMod(loader.Module):
             f"{ping_text}{stats_text}",
             message=message,
             reply_markup=[
-                [{"text": "🔄 Обновить", "callback": self._refresh_stats}]
+                [
+                    {"text": "🔄 Пинг", "callback": self._refresh_ping},
+                    {"text": "📊 Статистика", "callback": self._refresh_stats}
+                ]
+            ]
+        )
+
+    async def _refresh_ping(self, call: InlineCall):
+        """Обновление только пинга"""
+        ping_data = await self._measure_ping()
+        ping_text = self.strings["ping_text"].format(**ping_data)
+
+        # Сохраняем старый текст статистики
+        old_text = call.message.text.split("\n\n")[1] if "\n\n" in call.message.text else ""
+
+        await call.edit(
+            f"{ping_text}{old_text}",
+            reply_markup=[
+                [
+                    {"text": "🔄 Пинг", "callback": self._refresh_ping},
+                    {"text": "📊 Статистика", "callback": self._refresh_stats}
+                ]
             ]
         )
 
@@ -109,17 +150,20 @@ class PingerMod(loader.Module):
         chat_stats = await self._get_chat_stats(call.message)
 
         # Формирование текста
+        ping_text = self.strings["ping_text"].format(**ping_data)
+        
         if "error" in chat_stats:
             stats_text = self.strings["error_text"].format(error=chat_stats["error"])
         else:
             stats_text = self.strings["stats_text"].format(**chat_stats)
 
-        ping_text = self.strings["ping_text"].format(**ping_data)
-
         await call.edit(
             f"{ping_text}{stats_text}",
             reply_markup=[
-                [{"text": "🔄 Обновить", "callback": self._refresh_stats}]
+                [
+                    {"text": "🔄 Пинг", "callback": self._refresh_ping},
+                    {"text": "📊 Статистика", "callback": self._refresh_stats}
+                ]
             ]
         )
 
