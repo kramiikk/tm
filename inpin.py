@@ -1,20 +1,12 @@
 from telethon import TelegramClient, events, utils, functions, types
 import time
 import asyncio
-from telethon.tl.types import (
-    ChannelParticipantsSearch,
-    Chat,
-    Channel,
-    Message,
-    InputMessagesFilterPhotoVideo,
-)
+from telethon.tl.types import Channel, Chat, Message
 from telethon.errors import ChatAdminRequiredError
-from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
-from telethon.tl.functions.messages import GetFullChatRequest, SearchRequest
-from datetime import datetime
+from telethon.tl.functions.channels import GetFullChannelRequest
+from telethon.tl.functions.messages import GetFullChatRequest
 
 from .. import loader, utils
-from ..inline.types import InlineCall, InlineQuery
 
 
 @loader.tds
@@ -24,17 +16,7 @@ class InlinePingMod(loader.Module):
     strings = {
         "name": "InlinePing",
         "ping_text": "🏓 <b>Ping:</b> {ping:.2f} ms",
-        "stats_text": (
-            "📊 <b>{title}:</b>\n"
-            "ID: <code>{chat_id}</code>\n"
-            "Type: {chat_type}\n"
-            "Created: {created_at}\n"
-            "Members: {members}\n"
-            "Online: ~{online_count}\n"
-            "Bots: {bots}\n"
-            "Admins: {admins}\n"
-            "Messages: {total_messages}\n"
-        ),
+        "stats_text": "📊 <b>{title}:</b>\nID: <code>{chat_id}</code>\nType: {chat_type}\nCreated: {created_at}\nMembers: {members}\nOnline: ~{online_count}\nBots: {bots}\nAdmins: {admins}\nMessages: {total_messages}\n",
         "error_text": "❌ <b>Error:</b> {error}",
     }
 
@@ -46,6 +28,48 @@ class InlinePingMod(loader.Module):
         """Get ping and chat statistics"""
         await self._ping(message)
 
+    async def _get_chat_stats(self, chat):
+        if isinstance(chat, Channel):
+            full_chat = await self._client(GetFullChannelRequest(chat))
+            participants = full_chat.users
+            chat_type = "Supergroup" if chat.megagroup else "Channel"
+            admins = full_chat.full_chat.admins_count or 0
+            messages = full_chat.full_chat.read_outbox_max_id
+        elif isinstance(chat, Chat):
+            full_chat = await self._client(GetFullChatRequest(chat.id))
+            participants = full_chat.users
+            chat_type = "Group"
+            admins = sum(
+                1
+                for p in participants
+                if p.participant
+                and isinstance(
+                    p.participant,
+                    (types.ChatParticipantAdmin, types.ChatParticipantCreator),
+                )
+            )
+            messages = getattr(full_chat.full_chat, "read_outbox_max_id", 0)
+        else:
+            raise TypeError("Unsupported chat type")
+        online = sum(
+            1
+            for p in participants
+            if p.status and isinstance(p.status, types.UserStatusOnline)
+        )
+        bots = sum(1 for p in participants if p.bot)
+
+        return {
+            "title": utils.escape_html(getattr(chat, "title", "Unknown")),
+            "chat_id": chat.id,
+            "chat_type": chat_type,
+            "created_at": chat.date.strftime("%Y-%m-%d") if chat.date else "Unknown",
+            "members": len(participants),
+            "online_count": online,
+            "bots": bots,
+            "admins": admins,
+            "total_messages": messages,
+        }
+
     async def _ping(self, message, call=None):
         start = time.perf_counter()
         await self._client.get_me()
@@ -53,95 +77,24 @@ class InlinePingMod(loader.Module):
 
         try:
             chat = await self._client.get_entity(message.chat_id)
-
-            if isinstance(chat, Channel):
-                full_chat = await self._client(GetFullChannelRequest(chat))
-                participants = full_chat.users
-                if chat.megagroup:
-                    chat_type = "Supergroup"
-                else:
-                    chat_type = "Channel"
-                admins = full_chat.full_chat.admins_count or 0
-                total_messages = full_chat.full_chat.read_outbox_max_id
-            elif isinstance(chat, Chat):
-                full_chat = await self._client(GetFullChatRequest(chat.id))
-                participants = full_chat.users
-                chat_type = "Group"
-                admins = sum(
-                    1
-                    for p in participants
-                    if p.participant
-                    and (
-                        isinstance(p.participant, types.ChatParticipantAdmin)
-                        or isinstance(p.participant, types.ChatParticipantCreator)
-                    )
-                )
-                total_messages = getattr(full_chat.full_chat, "read_outbox_max_id", 0)
-            else:
-                raise TypeError("Unsupported chat type")
-            stats = {
-                "title": utils.escape_html(getattr(chat, "title", "Unknown")),
-                "chat_id": chat.id,
-                "chat_type": chat_type,
-                "created_at": (
-                    chat.date.strftime("%Y-%m-%d") if chat.date else "Unknown"
-                ),
-                "members": len(participants),
-                "online_count": sum(
-                    1
-                    for p in participants
-                    if p.status and isinstance(p.status, types.UserStatusOnline)
-                ),
-                "bots": sum(1 for p in participants if p.bot),
-                "admins": admins,
-                "total_messages": total_messages,
-            }
+            stats = await self._get_chat_stats(chat)
             text = f"{self.strings['ping_text'].format(ping=ping)}\n\n{self.strings['stats_text'].format(**stats)}"
-        except ChatAdminRequiredError:
-            text = self.strings["error_text"].format(
-                error="Admin rights required for this chat."
-            )
-        except ValueError as e:
-            text = self.strings["error_text"].format(
-                error=f"Date formatting error: {e}"
-            )
-        except TypeError as e:
+        except (ChatAdminRequiredError, TypeError, ValueError) as e:
             text = self.strings["error_text"].format(error=str(e))
         except Exception as e:
             text = self.strings["error_text"].format(
                 error=f"An unexpected error occurred: {e}"
             )
+        refresh_button = [
+            {"text": "🔄 Refresh", "callback": lambda c: self._ping(message, c)}
+        ]
         if call:
-            await call.edit(
-                text,
-                reply_markup=[
-                    [
-                        {
-                            "text": "🔄 Refresh",
-                            "callback": lambda c: self._ping(message, c),
-                        }
-                    ]
-                ],
-            )
+            await call.edit(text, reply_markup=[refresh_button])
         else:
-            await self.inline.form(
-                text,
-                message=message,
-                reply_markup=[
-                    [
-                        {
-                            "text": "🔄 Refresh",
-                            "callback": lambda c: self._ping(message, c),
-                        }
-                    ]
-                ],
-            )
-        return text
+            await self.inline.form(text, message=message, reply_markup=[refresh_button])
 
-    async def ping_inline_handler(self, query: InlineQuery):
-        """Inline handler for ping"""
-
-        async def _update_ping(call: InlineCall):
+    async def ping_inline_handler(self, query):
+        async def _update_ping(call):
             start = time.perf_counter()
             await self._client.get_me()
             ping = (time.perf_counter() - start) * 1000
@@ -158,7 +111,6 @@ class InlinePingMod(loader.Module):
             if query.chat_id:
                 message = Message(peer_id=query.chat_id, out=query.out)
                 stats_text = await self._ping(message)
-
                 message_text = (
                     f"{self.strings['ping_text'].format(ping=ping)}\n\n{stats_text}"
                 )
