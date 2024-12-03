@@ -1,141 +1,134 @@
+import asyncio
 import time
 import traceback
-from telethon.tl.types import Message
-from telethon.errors import ChatAdminRequiredError, FloodWaitError
-from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch
+from telethon import types
+from telethon.tl.functions.channels import GetFullChannelRequest
 
 from .. import loader, utils
 from ..inline.types import InlineCall, InlineQuery
 
-
 @loader.tds
 class PingerMod(loader.Module):
-    """Inline Pinger with Chat Stats"""
+    """Точный инлайн пингер с статистикой чата"""
 
     strings = {
         "name": "InlinePing",
-        "results_ping": "✨ <b>Telegram ping:</b> <code>{:.3f}</code> <b>ms</b>",
-        "stats_error": "**Ошибка получения статистики чата:**\n`{}`",
-        "no_admin_rights": "**Нет прав администратора для получения статистики.**",
-        "chat_stats": (
-            "<emoji document_id=5931472654660800739>📊</emoji> Статистика чата <u>'{}'</u>:\n\n"
-            "<emoji document_id=5942877472163892475>👥</emoji> Участников: <b>{}</b>\n"
-            "└ <emoji document_id=5778423822940114949>🛡</emoji> Администраторов: <b>{}</b>\n"
-            "└ <emoji document_id=5872829476143894491>🚫</emoji> Удаленных аккаунтов: <b>{}</b>\n\n"
-            "<emoji document_id=5886436057091673541>💬</emoji> Всего сообщений: <b>{}</b>\n"
-        )
+        "ping_text": (
+            "🏓 <b>Ping:</b>\n"
+            "├ <code>{dc_ping:.2f} мс</code> • DC\n"
+            "├ <code>{client_ping:.2f} мс</code> • Client\n"
+            "└ <code>{overall_ping:.2f} мс</code> • Overall\n\n"
+        ),
+        "stats_text": (
+            "📊 <b>Статистика чата:</b>\n"
+            "├ <b>Название:</b> <code>{title}</code>\n"
+            "├ 👥 <b>Участников:</b> <code>{members}</code>\n"
+            "├ 🛡️ <b>Администраторов:</b> <code>{admins}</code>\n"
+            "└ 💬 <b>Сообщений:</b> <code>{messages}</code>\n"
+        ),
+        "error_text": "❌ <b>Ошибка:</b> <code>{error}</code>"
     }
 
     async def client_ready(self, client, db):
         self._client = client
 
-    @loader.command()
-    async def iping(self, message: Message):
-        """Test your userbot ping and get chat stats"""
-        await self._ping(message)
+    async def _measure_ping(self):
+        """Точное измерение пинга"""
+        # Измерение пинга до ДЦ
+        dc_start = time.perf_counter()
+        await self._client.get_me()
+        dc_ping = (time.perf_counter() - dc_start) * 1000
 
-    async def ping_inline_handler(self, query: InlineQuery):
-        """Test your userbot ping and get chat stats"""
+        # Измерение пинга клиента
+        client_start = time.perf_counter()
+        await asyncio.sleep(0.1)
+        client_ping = (time.perf_counter() - client_start) * 1000
+
+        # Общий пинг
+        overall_ping = (dc_ping + client_ping) / 2
+
         return {
-            "title": "Ping & Stats",
-            "description": "Tap here",
-            "thumb": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
-            "message": await self._get_ping_and_stats_text(message=query.peer),
-            "reply_markup": [{"text": "⏱️ Ping & Stats", "callback": self._ping_callback}],
+            "dc_ping": dc_ping,
+            "client_ping": client_ping,
+            "overall_ping": overall_ping
         }
 
-    async def _ping_callback(self, call: InlineCall):
-        """Специальный обработчик коллбэка для перезагрузки статистики"""
-        await call.edit(
-            await self._get_ping_and_stats_text(message=call.message),
-            reply_markup=[{"text": "⏱️ Ping & Stats", "callback": self._ping_callback}]
-        )
-
-    async def _ping(self, query):
-        """Handles both inline queries and manual command"""
-        if isinstance(query, Message):
-            # Для команды .iping отправляем форму
-            await self.inline.form(
-                await self._get_ping_and_stats_text(message=query),
-                reply_markup=[{"text": "⏱️ Ping & Stats", "callback": self._ping_callback}],
-                message=query,
-            )
-
-    async def _get_ping_text(self):
-        """Generates the ping text (now actually measures ping)"""
-        start = time.perf_counter()
-        await self._client.get_me()
-        end = time.perf_counter()
-        return self.strings("results_ping").format((end - start) * 1000)
-
-    async def _get_chat_stats_text(self, message, chat_id=None):
-        """Generates the chat stats text"""
+    async def _get_chat_stats(self, message):
+        """Получение статистики чата"""
         try:
-            # Если chat_id не передан, используем из сообщения
-            if chat_id is None:
-                chat_id = utils.get_chat_id(message)
-            
-            stats = await self._get_chat_stats(message, chat_id)
-
-            return self.strings("chat_stats").format(
-                stats.get('chat_title', 'Unknown Chat'),
-                stats.get('total_members', 0),
-                stats.get('admins', 0),
-                stats.get('deleted_accounts', 0),
-                stats.get('total_messages', 0)
-            )
-
-        except Exception as e:
-            # Подробный вывод ошибки для диагностики
-            error_message = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
-            return self.strings("stats_error").format(error_message)
-
-    async def _get_ping_and_stats_text(self, message, chat_id=None):
-        """Combines ping and chat stats text"""
-        # Если chat_id не передан, используем из сообщения
-        if chat_id is None:
             chat_id = utils.get_chat_id(message)
-        
-        ping_text = await self._get_ping_text()
-        stats_text = await self._get_chat_stats_text(message, chat_id)
-        return f"{ping_text}\n\n{stats_text}"
-
-    async def _get_chat_stats(self, message, chat_id):
-        """Gets chat stats with extensive error handling"""
-        try:
+            
             # Получаем полную информацию о чате
             full_chat = await self._client(GetFullChannelRequest(chat_id))
-            
+            entity = await self._client.get_entity(chat_id)
+
             # Получаем участников
-            participants = await self._client(GetParticipantsRequest(
-                channel=chat_id,
-                filter=ChannelParticipantsSearch(''),
-                offset=0,
-                limit=0,  # Получаем только количество
-                hash=0
-            ))
+            participants = await self._client.get_participants(chat_id)
 
-            # Получаем название чата
-            chat = await self._client.get_entity(chat_id)
-
-            # Расчет администраторов и удаленных аккаунтов
-            admins = sum(1 for p in participants.participants if hasattr(p, 'admin_rights') and p.admin_rights)
-            deleted_accounts = sum(1 for p in participants.participants if hasattr(p, 'deleted') and p.deleted)
-
+            # Подсчет статистики
+            total_members = len(participants)
+            admins = sum(1 for p in participants if p.admin_rights)
+            
+            # Максимальный ID сообщения как приблизительное количество сообщений
             total_messages = getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
 
             return {
-                "total_messages": total_messages,
-                "total_members": participants.count,
+                "title": getattr(entity, 'title', 'Unknown'),
+                "members": total_members,
                 "admins": admins,
-                "deleted_accounts": deleted_accounts,
-                "chat_title": getattr(chat, 'title', 'Unknown Chat')
+                "messages": total_messages
             }
-
         except Exception as e:
-            # Подробный вывод ошибки для диагностики
-            return {
-                "error": f"{type(e).__name__}: {str(e)}",
-                "chat_title": "Error"
-            }
+            return {"error": str(e)}
+
+    @loader.command()
+    async def iping(self, message):
+        """Команда для получения пинга"""
+        ping_data = await self._measure_ping()
+        chat_stats = await self._get_chat_stats(message)
+
+        # Формирование текста
+        if "error" in chat_stats:
+            stats_text = self.strings["error_text"].format(error=chat_stats["error"])
+        else:
+            stats_text = self.strings["stats_text"].format(**chat_stats)
+
+        ping_text = self.strings["ping_text"].format(**ping_data)
+
+        await self.inline.form(
+            f"{ping_text}{stats_text}",
+            message=message,
+            reply_markup=[
+                [{"text": "🔄 Обновить", "callback": self._refresh_stats}]
+            ]
+        )
+
+    async def _refresh_stats(self, call: InlineCall):
+        """Обновление статистики"""
+        ping_data = await self._measure_ping()
+        chat_stats = await self._get_chat_stats(call.message)
+
+        # Формирование текста
+        if "error" in chat_stats:
+            stats_text = self.strings["error_text"].format(error=chat_stats["error"])
+        else:
+            stats_text = self.strings["stats_text"].format(**chat_stats)
+
+        ping_text = self.strings["ping_text"].format(**ping_data)
+
+        await call.edit(
+            f"{ping_text}{stats_text}",
+            reply_markup=[
+                [{"text": "🔄 Обновить", "callback": self._refresh_stats}]
+            ]
+        )
+
+    async def ping_inline_handler(self, query: InlineQuery):
+        """Инлайн хэндлер для пинга"""
+        ping_data = await self._measure_ping()
+        return {
+            "title": f"Ping: {ping_data['overall_ping']:.2f} мс",
+            "description": "Статистика чата и пинг",
+            "message": self.strings["ping_text"].format(**ping_data),
+            "thumb": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg"
+        }
