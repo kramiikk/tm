@@ -24,12 +24,7 @@ class PingError(Exception):
     pass
 
 def safe_async_call(max_retries: int = 3):
-    """
-    Decorator for handling async method calls with retry logic
-    
-    Args:
-        max_retries (int): Maximum number of retry attempts
-    """
+    """Decorator for handling async method calls with retry logic"""
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -40,7 +35,7 @@ def safe_async_call(max_retries: int = 3):
                     if attempt == max_retries - 1:
                         logging.error(f"Async call failed: {e}")
                         raise PingError(f"Operation failed after {max_retries} attempts")
-                    await asyncio.sleep(1)  # Small delay between retries
+                    await asyncio.sleep(1)
         return wrapper
     return decorator
 
@@ -55,11 +50,6 @@ class ChatStatistics:
     admins: int = 0
     bots: int = 0
     total_messages: int = 0
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> ChatStatistics:
-        """Create ChatStatistics from dictionary"""
-        return cls(**{k: data.get(k, 0) for k in cls.__annotations__})
 
     def to_formatted_string(self, ping: float) -> str:
         """Generate formatted statistics string"""
@@ -92,19 +82,20 @@ class EnhancedInlinePingMod(loader.Module):
         """Initialize client on module load"""
         self._client = client
 
+    async def _measure_ping(self) -> float:
+        """Measure network ping"""
+        try:
+            start_time = time.monotonic()
+            await self._client.get_me()
+            return (time.monotonic() - start_time) * 1000
+        except Exception as e:
+            self._logger.error(f"Ping measurement error: {e}")
+            return 0.0
+
     @safe_async_call(max_retries=2)
     async def _fetch_chat_statistics(self, chat) -> ChatStatistics:
-        """
-        Comprehensive method to fetch chat statistics
-        
-        Args:
-            chat: Telegram chat object
-        
-        Returns:
-            ChatStatistics: Calculated chat statistics
-        """
+        """Fetch comprehensive chat statistics"""
         try:
-            # Determine chat type
             chat_type = (
                 "Supergroup" if isinstance(chat, types.Channel) and chat.megagroup
                 else "Channel" if isinstance(chat, types.Channel)
@@ -112,22 +103,18 @@ class EnhancedInlinePingMod(loader.Module):
                 else "Unknown"
             )
 
-            # Fetch full chat information
             full_chat = await (
                 self._client(GetFullChannelRequest(chat)) 
                 if isinstance(chat, types.Channel)
                 else self._client(GetFullChatRequest(chat.id))
             )
 
-            # Extract base statistics from full chat information
             members_count = getattr(full_chat.full_chat, 'participants_count', 0)
             total_messages = getattr(full_chat.full_chat, 'read_outbox_max_id', 0)
 
-            # Advanced participant analysis with safety checks
-            admins_count, bots_count, deleted_accounts = 0, 0, 0
+            admins_count = bots_count = deleted_accounts = 0
             try:
                 if isinstance(chat, types.Channel):
-                    # Safely fetch admins and participants
                     admins = await self._client.get_participants(
                         chat, 
                         filter=ChannelParticipantsAdmins, 
@@ -135,7 +122,6 @@ class EnhancedInlinePingMod(loader.Module):
                     )
                     admins_count = len(admins)
 
-                    # Sample participants to estimate bots and deleted accounts
                     participants = await self._client.get_participants(
                         chat, 
                         limit=200
@@ -171,29 +157,17 @@ class EnhancedInlinePingMod(loader.Module):
         message, 
         call: Optional[types.CallbackQuery] = None
     ):
-        """
-        Core ping processing method
-        
-        Args:
-            message: Telegram message object
-            call: Optional callback query
-        """
+        """Core ping processing method"""
         try:
-            start_time = time.monotonic()
-            await self._client.get_me()
-            ping_time = (time.monotonic() - start_time) * 1000
-
+            ping_time = await self._measure_ping()
             chat = await self._client.get_entity(message.chat_id)
             stats = await self._fetch_chat_statistics(chat)
             
             async def refresh_callback(call):
                 try:
-                    start = time.monotonic()
-                    await self._client.get_me()
-                    ping_time = (time.monotonic() - start) * 1000
-                    
+                    new_ping_time = await self._measure_ping()
                     await call.edit(
-                        stats.to_formatted_string(ping_time), 
+                        stats.to_formatted_string(new_ping_time), 
                         reply_markup=self._create_refresh_button(refresh_callback)
                     )
                 except Exception as e:
@@ -219,32 +193,13 @@ class EnhancedInlinePingMod(loader.Module):
         self, 
         callback: Optional[Callable] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Create inline refresh button
-        
-        Args:
-            callback: Optional custom refresh callback
-        
-        Returns:
-            List of button configurations
-        """
-        # Ensure callback is always a callable
+        """Create inline refresh button"""
         safe_callback = callback if callable(callback) else (lambda c: None)
         return [{"text": "🔄 Refresh", "callback": safe_callback}]
 
     async def ping_inline_handler(self, query):
-        """
-        Inline query handler for ping requests
-        
-        Args:
-            query: Inline query object
-        
-        Returns:
-            List of inline query results
-        """
-        start_time = time.monotonic()
-        await self._client.get_me()
-        ping_time = (time.monotonic() - start_time) * 1000
+        """Inline query handler for ping requests"""
+        ping_time = await self._measure_ping()
 
         try:
             if query.chat_id:
@@ -252,12 +207,9 @@ class EnhancedInlinePingMod(loader.Module):
                 stats = await self._fetch_chat_statistics(chat)
                 
                 async def _update_ping(call):
-                    start = time.perf_counter_ns()
-                    await self._client.get_me()
-                    ping_time = (time.perf_counter_ns() - start) / 1_000_000
-                    
+                    new_ping_time = await self._measure_ping()
                     await call.edit(
-                        stats.to_formatted_string(ping_time),
+                        stats.to_formatted_string(new_ping_time),
                         reply_markup=[[{"text": "🔄 Refresh", "callback": _update_ping}]]
                     )
 
