@@ -5,6 +5,7 @@ import time
 import logging
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List, Callable
+from functools import wraps
 
 from telethon import TelegramClient, types
 from telethon.errors import (
