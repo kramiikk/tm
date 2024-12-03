@@ -8,23 +8,23 @@ from typing import Optional, Dict, Any, List, Callable
 from functools import wraps
 
 from telethon import TelegramClient, types
-from telethon.errors import (
-    ChatAdminRequiredError, 
-    FloodWaitError, 
-    RPCError
-)
+from telethon.errors import ChatAdminRequiredError, FloodWaitError, RPCError
 from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.tl.types import ChannelParticipantsAdmins
 
 from .. import loader, utils
 
+
 class PingError(Exception):
     """Custom exception for ping-related errors"""
+
     pass
+
 
 def safe_async_call(max_retries: int = 3):
     """Decorator for handling async method calls with retry logic"""
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -34,14 +34,20 @@ def safe_async_call(max_retries: int = 3):
                 except (RPCError, FloodWaitError) as e:
                     if attempt == max_retries - 1:
                         logging.error(f"Async call failed: {e}")
-                        raise PingError(f"Operation failed after {max_retries} attempts")
+                        raise PingError(
+                            f"Operation failed after {max_retries} attempts"
+                        )
                     await asyncio.sleep(1)
+
         return wrapper
+
     return decorator
+
 
 @dataclass
 class ChatStatistics:
     """Immutable dataclass for storing chat statistics"""
+
     title: str = "Unknown"
     chat_id: int = 0
     chat_type: str = "Unknown"
@@ -65,13 +71,14 @@ class ChatStatistics:
             f"Messages: {self.total_messages}\n"
         )
 
+
 @loader.tds
 class EnhancedInlinePingMod(loader.Module):
     """Advanced inline ping module with comprehensive chat statistics"""
 
     strings = {
         "name": "EnhancedInlinePing",
-        "error_message": "❌ <b>Error:</b> {error}"
+        "error_message": "❌ <b>Error:</b> {error}",
     }
 
     def __init__(self):
@@ -97,41 +104,37 @@ class EnhancedInlinePingMod(loader.Module):
         """Fetch comprehensive chat statistics"""
         try:
             chat_type = (
-                "Supergroup" if isinstance(chat, types.Channel) and chat.megagroup
-                else "Channel" if isinstance(chat, types.Channel)
-                else "Group" if isinstance(chat, types.Chat)
-                else "Unknown"
+                "Supergroup"
+                if isinstance(chat, types.Channel) and chat.megagroup
+                else (
+                    "Channel"
+                    if isinstance(chat, types.Channel)
+                    else "Group" if isinstance(chat, types.Chat) else "Unknown"
+                )
             )
 
             full_chat = await (
-                self._client(GetFullChannelRequest(chat)) 
+                self._client(GetFullChannelRequest(chat))
                 if isinstance(chat, types.Channel)
                 else self._client(GetFullChatRequest(chat.id))
             )
 
-            members_count = getattr(full_chat.full_chat, 'participants_count', 0)
-            total_messages = getattr(full_chat.full_chat, 'read_outbox_max_id', 0)
+            members_count = getattr(full_chat.full_chat, "participants_count", 0)
+            total_messages = getattr(full_chat.full_chat, "read_outbox_max_id", 0)
 
             admins_count = bots_count = deleted_accounts = 0
             try:
                 if isinstance(chat, types.Channel):
                     admins = await self._client.get_participants(
-                        chat, 
-                        filter=ChannelParticipantsAdmins, 
-                        limit=None
+                        chat, filter=ChannelParticipantsAdmins, limit=None
                     )
                     admins_count = len(admins)
 
-                    participants = await self._client.get_participants(
-                        chat, 
-                        limit=200
-                    )
+                    participants = await self._client.get_participants(chat, limit=200)
                     bots_count = sum(1 for p in participants if p.bot)
                     deleted_accounts = sum(1 for p in participants if p.deleted)
-
             except (ChatAdminRequiredError, FloodWaitError) as e:
                 self._logger.warning(f"Participant fetch error: {e}")
-
             return ChatStatistics(
                 title=utils.escape_html(getattr(chat, "title", "Unknown")),
                 chat_id=chat.id,
@@ -140,9 +143,8 @@ class EnhancedInlinePingMod(loader.Module):
                 deleted_accounts=deleted_accounts,
                 admins=admins_count,
                 bots=bots_count,
-                total_messages=total_messages
+                total_messages=total_messages,
             )
-
         except Exception as e:
             self._logger.error(f"Chat statistics fetch failed: {e}")
             return ChatStatistics()
@@ -152,23 +154,19 @@ class EnhancedInlinePingMod(loader.Module):
         """Inline ping command"""
         await self._process_ping(message)
 
-    async def _process_ping(
-        self, 
-        message, 
-        call: Optional[types.CallbackQuery] = None
-    ):
+    async def _process_ping(self, message, call: Optional[types.CallbackQuery] = None):
         """Core ping processing method"""
         try:
             ping_time = await self._measure_ping()
             chat = await self._client.get_entity(message.chat_id)
             stats = await self._fetch_chat_statistics(chat)
-            
+
             async def refresh_callback(call):
                 try:
                     new_ping_time = await self._measure_ping()
                     await call.edit(
-                        stats.to_formatted_string(new_ping_time), 
-                        reply_markup=self._create_refresh_button(refresh_callback)
+                        stats.to_formatted_string(new_ping_time),
+                        reply_markup=self._create_refresh_button(refresh_callback),
                     )
                 except Exception as e:
                     self._logger.error(f"Refresh callback error: {e}")
@@ -177,21 +175,21 @@ class EnhancedInlinePingMod(loader.Module):
             refresh_button = self._create_refresh_button(refresh_callback)
 
             if call:
-                await call.edit(stats.to_formatted_string(ping_time), reply_markup=refresh_button)
+                await call.edit(
+                    stats.to_formatted_string(ping_time), reply_markup=refresh_button
+                )
             else:
                 await self.inline.form(
-                    stats.to_formatted_string(ping_time), 
-                    message=message, 
-                    reply_markup=refresh_button
+                    stats.to_formatted_string(ping_time),
+                    message=message,
+                    reply_markup=refresh_button,
                 )
-
         except Exception as e:
             error_text = self.strings["error_message"].format(error=str(e))
             await self.inline.form(error_text, message=message)
 
     def _create_refresh_button(
-        self, 
-        callback: Optional[Callable] = None
+        self, callback: Optional[Callable] = None
     ) -> List[Dict[str, Any]]:
         """Create inline refresh button"""
         safe_callback = callback if callable(callback) else (lambda c: None)
@@ -205,12 +203,14 @@ class EnhancedInlinePingMod(loader.Module):
             if query.chat_id:
                 chat = await self._client.get_entity(query.chat_id)
                 stats = await self._fetch_chat_statistics(chat)
-                
+
                 async def _update_ping(call):
                     new_ping_time = await self._measure_ping()
                     await call.edit(
                         stats.to_formatted_string(new_ping_time),
-                        reply_markup=[[{"text": "🔄 Refresh", "callback": _update_ping}]]
+                        reply_markup=[
+                            [{"text": "🔄 Refresh", "callback": _update_ping}]
+                        ],
                     )
 
                 reply_markup = [[{"text": "🔄 Refresh", "callback": _update_ping}]]
@@ -218,28 +218,34 @@ class EnhancedInlinePingMod(loader.Module):
             else:
                 message_text = f"🏓 <b>Ping:</b> {ping_time:.2f} ms"
                 reply_markup = None
-
-            return [{
-                "type": "article",
-                "id": "ping_result",
-                "title": f"Ping: {ping_time:.2f} ms",
-                "description": "Ping и статистика чата" if query.chat_id else "Ping",
-                "input_message_content": {
-                    "message_text": message_text,
-                    "parse_mode": "HTML",
-                },
-                "reply_markup": reply_markup,
-                "thumb_url": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
-            }]
-
+            return [
+                {
+                    "type": "article",
+                    "id": "ping_result",
+                    "title": f"Ping: {ping_time:.2f} ms",
+                    "description": (
+                        "Ping и статистика чата" if query.chat_id else "Ping"
+                    ),
+                    "input_message_content": {
+                        "message_text": message_text,
+                        "parse_mode": "HTML",
+                    },
+                    "reply_markup": reply_markup,
+                    "thumb_url": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
+                }
+            ]
         except Exception as e:
-            return [{
-                "type": "article",
-                "id": "error_result",
-                "title": "Ошибка",
-                "description": "Произошла ошибка",
-                "input_message_content": {
-                    "message_text": self.strings["error_message"].format(error=str(e)),
-                    "parse_mode": "HTML",
-                },
-            }]
+            return [
+                {
+                    "type": "article",
+                    "id": "error_result",
+                    "title": "Ошибка",
+                    "description": "Произошла ошибка",
+                    "input_message_content": {
+                        "message_text": self.strings["error_message"].format(
+                            error=str(e)
+                        ),
+                        "parse_mode": "HTML",
+                    },
+                }
+            ]
