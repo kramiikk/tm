@@ -1,11 +1,10 @@
-from telethon import TelegramClient, events, utils, functions, types
-import time
-import asyncio
-from telethon.tl.types import Channel, Chat, Message
-from telethon.tl.types import UserStatusOnline, UserStatusRecently
+from telethon import TelegramClient, types
 from telethon.errors import ChatAdminRequiredError
 from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.functions.messages import GetFullChatRequest
+
+import time
+from typing import Union, Dict, Any
 
 from .. import loader, utils
 
@@ -31,61 +30,67 @@ class InlinePingMod(loader.Module):
     async def client_ready(self, client, db):
         self._client = client
 
-    @loader.command()
-    async def iping(self, message):
-        """Get ping and chat statistics"""
-        await self._ping(message)
-
-    async def _get_chat_stats(self, chat):
+    async def _get_chat_stats(self, chat: Union[types.Channel, types.Chat]) -> Dict[str, Any]:
         try:
-            # Общие параметры
             chat_title = utils.escape_html(getattr(chat, 'title', 'Unknown'))
             chat_id = chat.id
             created_at = chat.date.strftime("%Y-%m-%d") if chat.date else "Unknown"
 
-            # Определение типа чата и получение участников
-            if isinstance(chat, Channel):
+            # Получение участников
+            try:
+                participants = await self._client.get_participants(chat)
+            except Exception:
+                participants = []
+
+            # Определение типа чата
+            if isinstance(chat, types.Channel):
                 try:
                     full_chat = await self._client(GetFullChannelRequest(chat))
-                    participants = await self._client.get_participants(chat)
                     chat_type = "Supergroup" if chat.megagroup else "Channel"
                     members_count = full_chat.full_chat.participants_count or len(participants)
                     admins_count = full_chat.full_chat.admins_count or 0
                     total_messages = full_chat.full_chat.read_outbox_max_id or 0
                 except Exception:
-                    participants = await self._client.get_participants(chat)
-                    members_count = len(participants)
                     chat_type = "Supergroup" if chat.megagroup else "Channel"
-                    admins_count = sum(1 for p in participants if p.participant and 
-                                       isinstance(p.participant, (types.ChannelParticipantAdmin, 
-                                                                  types.ChannelParticipantCreator)))
+                    members_count = len(participants)
+                    admins_count = sum(
+                        1 for p in participants 
+                        if p.participant and isinstance(p.participant, 
+                            (types.ChannelParticipantAdmin, types.ChannelParticipantCreator))
+                    )
                     total_messages = 0
 
-            elif isinstance(chat, Chat):
+            elif isinstance(chat, types.Chat):
                 try:
                     full_chat = await self._client(GetFullChatRequest(chat.id))
-                    participants = await self._client.get_participants(chat)
                     chat_type = "Group"
                     members_count = full_chat.full_chat.participants_count or len(participants)
                     total_messages = getattr(full_chat.full_chat, "read_outbox_max_id", 0)
-                    admins_count = sum(1 for p in participants if 
-                                       isinstance(p.participant, (types.ChatParticipantAdmin, 
-                                                                  types.ChatParticipantCreator)))
+                    admins_count = sum(
+                        1 for p in participants 
+                        if isinstance(p.participant, 
+                            (types.ChatParticipantAdmin, types.ChatParticipantCreator))
+                    )
                 except Exception:
-                    participants = await self._client.get_participants(chat)
-                    members_count = len(participants)
                     chat_type = "Group"
-                    admins_count = sum(1 for p in participants if 
-                                       isinstance(p.participant, (types.ChatParticipantAdmin, 
-                                                                  types.ChatParticipantCreator)))
+                    members_count = len(participants)
+                    admins_count = sum(
+                        1 for p in participants 
+                        if isinstance(p.participant, 
+                            (types.ChatParticipantAdmin, types.ChatParticipantCreator))
+                    )
                     total_messages = 0
             else:
                 raise TypeError("Unsupported chat type")
 
-            # Подсчет онлайн участников и ботов
-            online_count = sum(1 for p in participants if 
-                               (isinstance(p.status, UserStatusOnline) or 
-                                isinstance(p.status, UserStatusRecently)))
+            # Подсчет онлайн участников
+            online_count = sum(
+                1 for p in participants 
+                if hasattr(p, 'status') and isinstance(p.status, 
+                    (types.UserStatusOnline, types.UserStatusRecently))
+            )
+
+            # Подсчет ботов
             bots_count = sum(1 for p in participants if p.bot)
 
             return {
@@ -99,10 +104,10 @@ class InlinePingMod(loader.Module):
                 "admins": admins_count,
                 "total_messages": total_messages,
             }
-        except Exception as e:
+        except Exception:
             return {
                 "title": "Error",
-                "chat_id": chat.id,
+                "chat_id": getattr(chat, 'id', 0),
                 "chat_type": "Unknown",
                 "created_at": "Unknown",
                 "members": 0,
@@ -112,14 +117,23 @@ class InlinePingMod(loader.Module):
                 "total_messages": 0,
             }
 
+    @loader.command()
+    async def iping(self, message):
+        """Get ping and chat statistics"""
+        await self._ping(message)
+
     async def _ping(self, message, call=None):
+        # Замер пинга
         start = time.perf_counter()
         await self._client.get_me()
         ping = (time.perf_counter() - start) * 1000
 
         try:
+            # Получение статистики чата
             chat = await self._client.get_entity(message.chat_id)
             stats = await self._get_chat_stats(chat)
+            
+            # Формирование текста
             text = (f"{self.strings['ping_text'].format(ping=ping)}\n\n"
                     f"{self.strings['stats_text'].format(**stats)}")
         except (ChatAdminRequiredError, TypeError, ValueError) as e:
@@ -129,6 +143,7 @@ class InlinePingMod(loader.Module):
                 error=f"An unexpected error occurred: {e}"
             )
 
+        # Функция обновления пинга
         async def refresh_callback(call):
             start = time.perf_counter()
             await self._client.get_me()
@@ -139,27 +154,32 @@ class InlinePingMod(loader.Module):
             
             await call.edit(text_updated, reply_markup=[refresh_button])
 
+        # Кнопка обновления
         refresh_button = [
             {"text": "🔄 Refresh", "callback": refresh_callback}
         ]
 
+        # Отправка сообщения
         if call:
             await call.edit(text, reply_markup=[refresh_button])
         else:
             await self.inline.form(text, message=message, reply_markup=[refresh_button])
 
     async def ping_inline_handler(self, query):
+        # Замер пинга
         start = time.perf_counter()
         await self._client.get_me()
         ping = (time.perf_counter() - start) * 1000
 
         try:
+            # Обработка инлайн-запроса с chat_id
             if query.chat_id:
-                message = Message(peer_id=query.chat_id, out=query.out)
-                stats = await self._get_chat_stats(await self._client.get_entity(query.chat_id))
+                chat = await self._client.get_entity(query.chat_id)
+                stats = await self._get_chat_stats(chat)
                 message_text = (f"{self.strings['ping_text'].format(ping=ping)}\n\n"
                                 f"{self.strings['stats_text'].format(**stats)}")
                 
+                # Функция обновления
                 async def _update_ping(call):
                     start = time.perf_counter()
                     await self._client.get_me()
@@ -175,6 +195,7 @@ class InlinePingMod(loader.Module):
                 message_text = self.strings["ping_text"].format(ping=ping)
                 reply_markup = None
 
+            # Возврат результата инлайн-запроса
             return [
                 {
                     "type": "article",
