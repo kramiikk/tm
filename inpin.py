@@ -42,20 +42,23 @@ class PingerMod(loader.Module):
             "description": "Tap here",
             "thumb": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
             "message": await self._get_ping_and_stats_text(message=query.peer),
-            "reply_markup": [{"text": "⏱️ Ping & Stats", "callback": self._ping}],
+            "reply_markup": [{"text": "⏱️ Ping & Stats", "callback": self._ping_callback}],
         }
 
+    async def _ping_callback(self, call: InlineCall):
+        """Специальный обработчик коллбэка для перезагрузки статистики"""
+        await call.edit(
+            await self._get_ping_and_stats_text(message=call.message),
+            reply_markup=[{"text": "⏱️ Ping & Stats", "callback": self._ping_callback}]
+        )
+
     async def _ping(self, query):
-        """Handles both inline queries and callbacks"""
-        if isinstance(query, InlineCall):
-            await query.edit(
-                await self._get_ping_and_stats_text(message=query.chat),
-                reply_markup=[{"text": "⏱️ Ping & Stats", "callback": self._ping}],
-            )
-        elif isinstance(query, Message):
+        """Handles both inline queries and manual command"""
+        if isinstance(query, Message):
+            # Для команды .iping отправляем форму
             await self.inline.form(
                 await self._get_ping_and_stats_text(message=query),
-                reply_markup=[{"text": "⏱️ Ping & Stats", "callback": self._ping}],
+                reply_markup=[{"text": "⏱️ Ping & Stats", "callback": self._ping_callback}],
                 message=query,
             )
 
@@ -74,11 +77,6 @@ class PingerMod(loader.Module):
                 chat_id = utils.get_chat_id(message)
             
             stats = await self._get_chat_stats(message, chat_id)
-            
-            # Отправка отладочной информации
-            if stats.get('debug_messages'):
-                for debug_msg in stats['debug_messages']:
-                    await message.reply(debug_msg)
 
             return self.strings("chat_stats").format(
                 stats.get('chat_title', 'Unknown Chat'),
@@ -91,7 +89,6 @@ class PingerMod(loader.Module):
         except Exception as e:
             # Подробный вывод ошибки для диагностики
             error_message = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
-            await message.reply(f"Detailed error in stats retrieval:\n{error_message}")
             return self.strings("stats_error").format(error_message)
 
     async def _get_ping_and_stats_text(self, message, chat_id=None):
@@ -106,85 +103,39 @@ class PingerMod(loader.Module):
 
     async def _get_chat_stats(self, message, chat_id):
         """Gets chat stats with extensive error handling"""
-        debug_messages = []
-
         try:
-            # Отладочное сообщение о типе чата
-            try:
-                chat = await self._client.get_entity(chat_id)
-                debug_messages.append(f"Chat type: {type(chat)}")
-                debug_messages.append(f"Chat title: {getattr(chat, 'title', 'No title')}")
-            except Exception as entity_error:
-                debug_messages.append(f"Error getting chat entity: {entity_error}")
-                return {
-                    "error": f"Cannot get chat entity: {entity_error}",
-                    "chat_title": "Error",
-                    "debug_messages": debug_messages
-                }
-
             # Получаем полную информацию о чате
-            try:
-                full_chat = await self._client(GetFullChannelRequest(chat_id))
-                debug_messages.append(f"Full chat retrieved: {full_chat is not None}")
-            except Exception as full_chat_error:
-                debug_messages.append(f"Error getting full chat: {full_chat_error}")
-                return {
-                    "error": f"Cannot get full chat: {full_chat_error}",
-                    "chat_title": "Error",
-                    "debug_messages": debug_messages
-                }
+            full_chat = await self._client(GetFullChannelRequest(chat_id))
             
             # Получаем участников
-            try:
-                participants = await self._client(GetParticipantsRequest(
-                    channel=chat_id,
-                    filter=ChannelParticipantsSearch(''),
-                    offset=0,
-                    limit=0,  # Получаем только количество
-                    hash=0
-                ))
-                debug_messages.append(f"Total members count: {participants.count}")
-            except Exception as participants_error:
-                debug_messages.append(f"Participants error: {participants_error}")
-                participants = type('', (), {'count': 0, 'participants': []})()
+            participants = await self._client(GetParticipantsRequest(
+                channel=chat_id,
+                filter=ChannelParticipantsSearch(''),
+                offset=0,
+                limit=0,  # Получаем только количество
+                hash=0
+            ))
+
+            # Получаем название чата
+            chat = await self._client.get_entity(chat_id)
 
             # Расчет администраторов и удаленных аккаунтов
-            try:
-                admins = sum(1 for p in participants.participants if hasattr(p, 'admin_rights') and p.admin_rights)
-                deleted_accounts = sum(1 for p in participants.participants if hasattr(p, 'deleted') and p.deleted)
-                debug_messages.append(f"Admins count: {admins}")
-                debug_messages.append(f"Deleted accounts: {deleted_accounts}")
-            except Exception as count_error:
-                debug_messages.append(f"Count calculation error: {count_error}")
-                admins = 0
-                deleted_accounts = 0
+            admins = sum(1 for p in participants.participants if hasattr(p, 'admin_rights') and p.admin_rights)
+            deleted_accounts = sum(1 for p in participants.participants if hasattr(p, 'deleted') and p.deleted)
 
             total_messages = getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
-            debug_messages.append(f"Total messages: {total_messages}")
 
             return {
                 "total_messages": total_messages,
                 "total_members": participants.count,
                 "admins": admins,
                 "deleted_accounts": deleted_accounts,
-                "chat_title": getattr(chat, 'title', 'Unknown Chat'),
-                "debug_messages": debug_messages
+                "chat_title": getattr(chat, 'title', 'Unknown Chat')
             }
 
-        except FloodWaitError as flood:
-            # Специфическая обработка FloodWaitError
-            debug_messages.append(f"Flood Wait: Wait for {flood.seconds} seconds")
-            return {
-                "error": f"Flood Wait: Wait for {flood.seconds} seconds",
-                "chat_title": "Error",
-                "debug_messages": debug_messages
-            }
         except Exception as e:
             # Подробный вывод ошибки для диагностики
-            debug_messages.append(f"Full error in _get_chat_stats: {e}")
-            debug_messages.append(traceback.format_exc())
             return {
                 "error": f"{type(e).__name__}: {str(e)}",
-                "chat_title": "Error",
-                "debug_messages": debug_messages
+                "chat_title": "Error"
             }
