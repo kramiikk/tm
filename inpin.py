@@ -7,6 +7,7 @@ from telethon.tl.functions.channels import GetFullChannelRequest
 from .. import loader, utils
 from ..inline.types import InlineCall, InlineQuery
 
+
 @loader.tds
 class PingerMod(loader.Module):
     """Точный инлайн пингер"""
@@ -26,57 +27,74 @@ class PingerMod(loader.Module):
             "├ 🛡️ <b>Администраторов:</b> <code>{admins}</code>\n"
             "└ 💬 <b>Сообщений:</b> <code>{messages}</code>\n"
         ),
-        "error_text": "❌ <b>Ошибка статистики:</b> <code>{error}</code>\n"
+        "error_text": "❌ <b>Ошибка статистики:</b> <code>{error}</code>\n",
     }
 
     async def client_ready(self, client, db):
         self._client = client
 
-    async def _measure_ping(self):
-        """Точное измерение пинга"""
-        # Измерение пинга до ДЦ
-        dc_start = time.perf_counter()
-        await self._client.get_me()
-        dc_ping = (time.perf_counter() - dc_start) * 1000
+    async def _measure_ping(self, num_samples=5):
+        """Точное измерение пинга с несколькими выборками"""
+        dc_pings = []
+        client_pings = []
 
-        # Измерение пинга клиента
-        client_start = time.perf_counter()
-        await asyncio.sleep(0.1)
-        client_ping = (time.perf_counter() - client_start) * 1000
+        for _ in range(num_samples):
+            # Измерение пинга до ДЦ
 
-        # Общий пинг
+            dc_start = time.perf_counter()
+            await self._client.get_me()
+            dc_pings.append((time.perf_counter() - dc_start) * 1000)
+
+            # Измерение пинга клиента
+
+            client_start = time.perf_counter()
+            await asyncio.sleep(0.1)
+            client_pings.append((time.perf_counter() - client_start) * 1000)
+        dc_ping = sum(dc_pings) / num_samples
+        client_ping = sum(client_pings) / num_samples
         overall_ping = (dc_ping + client_ping) / 2
 
         return {
             "dc_ping": dc_ping,
             "client_ping": client_ping,
-            "overall_ping": overall_ping
+            "overall_ping": overall_ping,
         }
 
     async def _get_chat_stats(self, message):
         """Получение статистики чата"""
         try:
             # Получаем chat_id
+
             chat = await message.get_chat()
-            
+
             # Получаем полную информацию о чате
+
             full_chat = await self._client(GetFullChannelRequest(chat.id))
 
             # Получаем участников
+
             participants = await self._client.get_participants(chat.id)
 
             # Подсчет статистики
+
             total_members = len(participants)
-            admins = sum(1 for p in participants if p.admin_rights)
-            
+            admins = sum(
+                1
+                for p in participants
+                if isinstance(
+                    p, (types.ChannelParticipantAdmin, types.ChannelParticipantCreator)
+                )
+            )
+
             # Максимальный ID сообщения как приблизительное количество сообщений
-            total_messages = getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
+
+            total_messages = getattr(full_chat.full_chat, "read_inbox_max_id", 0)
 
             return {
-                "title": getattr(chat, 'title', 'Unknown'),
+                "title": getattr(chat, "title", "Unknown"),
                 "members": total_members,
                 "admins": admins,
-                "messages": total_messages
+                "messages": total_messages,
             }
         except Exception as e:
             return {"error": str(e)}
@@ -85,28 +103,29 @@ class PingerMod(loader.Module):
     async def iping(self, message):
         """Команда для получения пинга и статистики"""
         ping_data = await self._measure_ping()
-        
+
         # Получаем статистику
+
         chat_stats = await self._get_chat_stats(message)
 
         # Формирование текста пинга
+
         ping_text = self.strings["ping_text"].format(**ping_data)
-        
+
         # Формирование текста статистики
+
         if "error" in chat_stats:
             stats_text = self.strings["error_text"].format(error=chat_stats["error"])
         else:
             stats_text = self.strings["stats_text"].format(**chat_stats)
-
         # Объединяем тексты
+
         full_text = f"{ping_text}{stats_text}"
 
         await self.inline.form(
             full_text,
             message=message,
-            reply_markup=[
-                [{"text": "🔄 Пинг", "callback": self._refresh_ping}]
-            ]
+            reply_markup=[[{"text": "🔄 Пинг", "callback": self._refresh_ping}]],
         )
 
     async def _refresh_ping(self, call: InlineCall):
@@ -116,9 +135,7 @@ class PingerMod(loader.Module):
 
         await call.edit(
             ping_text,
-            reply_markup=[
-                [{"text": "🔄 Пинг", "callback": self._refresh_ping}]
-            ]
+            reply_markup=[[{"text": "🔄 Пинг", "callback": self._refresh_ping}]],
         )
 
     async def ping_inline_handler(self, query: InlineQuery):
@@ -128,5 +145,5 @@ class PingerMod(loader.Module):
             "title": f"Ping: {ping_data['overall_ping']:.2f} мс",
             "description": "Пинг",
             "message": self.strings["ping_text"].format(**ping_data),
-            "thumb": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg"
+            "thumb": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
         }
