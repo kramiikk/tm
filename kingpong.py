@@ -7,6 +7,7 @@ from typing import Optional, Union, List
 from telethon import TelegramClient
 from telethon.tl.types import (
     Chat, Channel, 
+    Message,
     ChannelParticipantAdmin, 
     ChannelParticipantCreator
 )
@@ -66,7 +67,7 @@ class ChatStatistics:
 
 @loader.tds
 class EnhancedPingModule(loader.Module):
-    """Расширенный модуль пинга с точной статистикой lol"""
+    """Расширенный модуль пинга с точной статистикой"""
 
     strings = {
         "name": "EnhancedPing",
@@ -87,41 +88,35 @@ class EnhancedPingModule(loader.Module):
         await self._client.get_me()
         return (asyncio.get_event_loop().time() - start) * 1000
 
-    async def _count_messages(self, chat: Union[Chat, Channel], limit: int = None) -> int:
+    async def _count_real_messages(self, chat: Union[Chat, Channel], limit: Optional[int] = None) -> int:
         """
-        Подсчет сообщений с расширенной логикой
+        Подсчет только реальных пользовательских сообщений
         
         :param chat: Объект чата
         :param limit: Ограничение на количество сообщений (None - все)
-        :return: Количество сообщений
+        :return: Количество сообщений от пользователей
         """
         try:
-            # Пытаемся получить сообщения с фильтрацией
+            messages_filter = lambda m: (
+                isinstance(m, Message) and 
+                not getattr(m, 'service', False) and 
+                not getattr(m, 'action', None) and 
+                not m.empty
+            )
+            
             messages = await self._client.get_messages(
                 chat, 
-                limit=limit,
-                filter=lambda m: not (
-                    getattr(m, 'service', False) or 
-                    getattr(m, 'action', None)
-                )
+                limit=limit, 
+                filter=messages_filter
             )
             return len(messages)
         except Exception as e:
-            # Fallback: используем полную информацию о чате
-            self._logger.warning(f"Не удалось получить сообщения: {e}")
-            try:
-                if isinstance(chat, Channel):
-                    full_chat = await self._client(GetFullChannelRequest(chat))
-                else:
-                    full_chat = await self._client(GetFullChatRequest(chat.id))
-                
-                return getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
-            except Exception:
-                return 0
+            self._logger.warning(f"Ошибка подсчета сообщений: {e}")
+            return 0
 
     async def _analyze_chat_comprehensive(self, chat: Union[Chat, Channel]) -> ChatStatistics:
         """
-        Комплексный анализ статистики чата с расширенной обработкой
+        Комплексный анализ статистики чата с точным подсчетом
         
         :param chat: Объект чата
         :return: Объект статистики чата
@@ -146,32 +141,31 @@ class EnhancedPingModule(loader.Module):
             except Exception:
                 total_members = 0
 
-            # Подсчет сообщений
-            total_messages = await self._count_messages(chat)
+            # Подсчет сообщений с фильтрацией
+            total_messages = await self._count_real_messages(chat)
 
-            # Получение участников с альтернативными стратегиями
+            # Получение участников с точной фильтрацией
             try:
-                # Попытка получить участников с ограничением
+                # Получаем всех участников с расширенной фильтрацией
                 participants = await self._client.get_participants(
                     chat, 
-                    limit=200,  # Ограничиваем для больших чатов
                     aggressive=False  # Более мягкий режим
                 )
                 
-                active_members = sum(1 for p in participants if not p.deleted and not p.bot)
+                active_members = sum(1 for p in participants 
+                                     if not p.deleted and 
+                                     not p.bot and 
+                                     not isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)))
+                
                 bots = sum(1 for p in participants if p.bot)
                 
-                # Подсчет администраторов с обработкой ограничений
-                try:
-                    admin_participants = await self._client.get_participants(
-                        chat, 
-                        filter=lambda p: isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)),
-                        limit=None
-                    )
-                    admins = len(admin_participants)
-                except Exception:
-                    # Fallback: если не удалось получить список администраторов
-                    admins = sum(1 for p in participants if isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)))
+                # Точный подсчет администраторов
+                admin_participants = [
+                    p for p in participants 
+                    if isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator))
+                ]
+                
+                admins = len(admin_participants)
 
             except (ChatAdminRequiredError, FloodWaitError):
                 # Крайний fallback при невозможности получить участников
