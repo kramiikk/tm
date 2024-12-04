@@ -9,9 +9,12 @@ from telethon.tl.types import (
     Chat, Channel, 
     Message,
     ChannelParticipantAdmin, 
-    ChannelParticipantCreator
+    ChannelParticipantCreator,
+    ChannelParticipant,
+    ChannelParticipantBanned,
+    ChannelParticipantLeft
 )
-from telethon.tl.functions.channels import GetFullChannelRequest
+from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.errors import (
     ChatAdminRequiredError, 
@@ -88,30 +91,61 @@ class EnhancedPingModule(loader.Module):
         await self._client.get_me()
         return (asyncio.get_event_loop().time() - start) * 1000
 
-    async def _count_real_messages(self, chat: Union[Chat, Channel], limit: Optional[int] = None) -> int:
+    async def _count_total_messages(self, chat: Union[Chat, Channel]) -> int:
         """
-        Подсчет только реальных пользовательских сообщений
+        Подсчет всех сообщений с учетом ограничений Telegram
         
         :param chat: Объект чата
-        :param limit: Ограничение на количество сообщений (None - все)
-        :return: Количество сообщений от пользователей
+        :return: Количество сообщений
         """
         try:
-            messages_filter = lambda m: (
-                isinstance(m, Message) and 
-                not getattr(m, 'service', False) and 
-                not getattr(m, 'action', None) and 
-                not m.empty
-            )
-            
-            messages = await self._client.get_messages(
-                chat, 
-                limit=limit, 
-                filter=messages_filter
-            )
-            return len(messages)
+            # Пытаемся получить точное количество сообщений
+            messages = await self._client.get_messages(chat, limit=0)
+            return messages.total
         except Exception as e:
             self._logger.warning(f"Ошибка подсчета сообщений: {e}")
+            
+            # Fallback: используем информацию о чате
+            try:
+                if isinstance(chat, Channel):
+                    full_chat = await self._client(GetFullChannelRequest(chat))
+                else:
+                    full_chat = await self._client(GetFullChatRequest(chat.id))
+                
+                # Используем доступную статистику
+                return getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
+            except Exception:
+                return 0
+
+    async def _get_admin_count(self, chat: Union[Chat, Channel]) -> int:
+        """
+        Точный подсчет администраторов
+        
+        :param chat: Объект чата
+        :return: Количество администраторов
+        """
+        try:
+            if isinstance(chat, Channel):
+                # Для каналов и супергрупп используем специальный метод
+                participants = await self._client(
+                    GetParticipantsRequest(
+                        channel=chat,
+                        filter=ChannelParticipantAdmin(),
+                        offset=0,
+                        limit=200,  # Можно увеличить, если нужно
+                        hash=0
+                    )
+                )
+                return len(participants.participants)
+            else:
+                # Для обычных групп используем предыдущий метод
+                participants = await self._client.get_participants(
+                    chat, 
+                    filter=lambda p: isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator))
+                )
+                return len(participants)
+        except Exception as e:
+            self._logger.warning(f"Ошибка подсчета администраторов: {e}")
             return 0
 
     async def _analyze_chat_comprehensive(self, chat: Union[Chat, Channel]) -> ChatStatistics:
@@ -141,36 +175,28 @@ class EnhancedPingModule(loader.Module):
             except Exception:
                 total_members = 0
 
-            # Подсчет сообщений с фильтрацией
-            total_messages = await self._count_real_messages(chat)
+            # Подсчет сообщений
+            total_messages = await self._count_total_messages(chat)
 
-            # Получение участников с точной фильтрацией
+            # Получение количества администраторов
+            admins = await self._get_admin_count(chat)
+
+            # Получение участников с расширенной фильтрацией
             try:
-                # Получаем всех участников с расширенной фильтрацией
-                participants = await self._client.get_participants(
-                    chat, 
-                    aggressive=False  # Более мягкий режим
-                )
+                participants = await self._client.get_participants(chat, aggressive=False)
                 
                 active_members = sum(1 for p in participants 
                                      if not p.deleted and 
                                      not p.bot and 
-                                     not isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)))
+                                     not isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator, 
+                                                       ChannelParticipantBanned, ChannelParticipantLeft)))
                 
                 bots = sum(1 for p in participants if p.bot)
-                
-                # Точный подсчет администраторов
-                admin_participants = [
-                    p for p in participants 
-                    if isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator))
-                ]
-                
-                admins = len(admin_participants)
 
             except (ChatAdminRequiredError, FloodWaitError):
                 # Крайний fallback при невозможности получить участников
                 active_members = total_members
-                admins = bots = 0
+                bots = 0
 
             return ChatStatistics(
                 title=utils.escape_html(getattr(chat, 'title', 'Неизвестно')),
