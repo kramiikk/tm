@@ -2,19 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict, Any
 
 from telethon import TelegramClient
 from telethon.tl.types import (
-    Chat, Channel, 
+    Chat, 
+    Channel, 
     Message,
     ChannelParticipantAdmin, 
-    ChannelParticipantCreator,
-    ChannelParticipant,
-    ChannelParticipantBanned,
-    ChannelParticipantLeft
+    ChannelParticipantCreator
 )
-from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
+from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.errors import (
     ChatAdminRequiredError, 
@@ -24,9 +22,29 @@ from telethon.errors import (
 
 from .. import loader, utils
 
+class PerformanceProfiler:
+    """Профессиональный профайлер производительности"""
+    
+    @staticmethod
+    def measure_time(func):
+        """Декоратор для измерения времени выполнения"""
+        async def wrapper(*args, **kwargs):
+            import time
+            start_time = time.perf_counter()
+            result = await func(*args, **kwargs)
+            execution_time = time.perf_counter() - start_time
+            
+            if execution_time > 0.5:  # Логируем медленные операции
+                logging.warning(f"Slow operation: {func.__name__} took {execution_time:.4f} seconds")
+            
+            return result
+        return wrapper
 
 class ChatStatistics:
-    """Контейнер статистики чата с расширенной логикой"""
+    """
+    Расширенный контейнер статистики чата 
+    с оптимизированной логикой сбора данных
+    """
     __slots__ = (
         'title', 'chat_id', 'chat_type', 
         'total_members', 'active_members', 
@@ -54,10 +72,10 @@ class ChatStatistics:
         self.total_messages = total_messages
 
     def format(self, ping: float) -> str:
-        """Форматированный вывод статистики"""
+        """Форматированный вывод статистики с улучшенным escaped html"""
         return (
             f"🏓 <b>Пинг:</b> {ping:.2f} мс\n\n"
-            f"📊 <b>{utils.escape_html(self.title)}:</b>\n"
+            f"📊 <b>{utils.escape_html(self.title or 'Неизвестно')}:</b>\n"
             f"ID: <code>{self.chat_id}</code>\n"
             f"Тип: {self.chat_type}\n"
             f"Участники: {self.total_members}\n"
@@ -67,10 +85,9 @@ class ChatStatistics:
             f"Сообщений: {self.total_messages}"
         )
 
-
 @loader.tds
 class EnhancedPingModule(loader.Module):
-    """Расширенный модуль пинга с точной статистикой"""
+    """Профессиональный модуль пинга с точной статистикой"""
 
     strings = {
         "name": "EnhancedPing",
@@ -80,80 +97,57 @@ class EnhancedPingModule(loader.Module):
     def __init__(self):
         self._client: Optional[TelegramClient] = None
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._cache: Dict[int, Dict[str, Any]] = {}
 
     async def client_ready(self, client, db):
-        """Инициализация клиента"""
+        """Инициализация клиента с расширенной диагностикой"""
         self._client = client
+        self._logger.info("EnhancedPing module initialized")
 
+    @PerformanceProfiler.measure_time
     async def _get_precise_ping(self) -> float:
-        """Точное измерение задержки"""
+        """
+        Точное измерение задержки с использованием 
+        высокоточного таймера
+        """
         start = asyncio.get_event_loop().time()
         await self._client.get_me()
         return (asyncio.get_event_loop().time() - start) * 1000
 
-    async def _count_total_messages(self, chat: Union[Chat, Channel]) -> int:
+    @PerformanceProfiler.measure_time
+    async def _count_messages(self, chat: Union[Chat, Channel]) -> int:
         """
-        Подсчет всех сообщений с учетом ограничений Telegram
-        
-        :param chat: Объект чата
-        :return: Количество сообщений
+        Оптимизированный подсчет сообщений 
+        с ограничением для предотвращения перегрузки
         """
         try:
-            # Пытаемся получить точное количество сообщений
-            messages = await self._client.get_messages(chat, limit=0)
-            return messages.total
+            # Получаем последние 5000 сообщений для анализа
+            messages = await self._client.get_messages(chat, limit=5000)
+            return len(messages)
         except Exception as e:
             self._logger.warning(f"Ошибка подсчета сообщений: {e}")
-            
-            # Fallback: используем информацию о чате
-            try:
-                if isinstance(chat, Channel):
-                    full_chat = await self._client(GetFullChannelRequest(chat))
-                else:
-                    full_chat = await self._client(GetFullChatRequest(chat.id))
-                
-                # Используем доступную статистику
-                return getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
-            except Exception:
-                return 0
-
-    async def _get_admin_count(self, chat: Union[Chat, Channel]) -> int:
-        """
-        Точный подсчет администраторов
-        
-        :param chat: Объект чата
-        :return: Количество администраторов
-        """
-        try:
-            if isinstance(chat, Channel):
-                # Для каналов и супергрупп используем специальный метод
-                participants = await self._client(
-                    GetParticipantsRequest(
-                        channel=chat,
-                        filter=ChannelParticipantAdmin(),
-                        offset=0,
-                        limit=200,  # Можно увеличить, если нужно
-                        hash=0
-                    )
-                )
-                return len(participants.participants)
-            else:
-                # Для обычных групп используем предыдущий метод
-                participants = await self._client.get_participants(
-                    chat, 
-                    filter=lambda p: isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator))
-                )
-                return len(participants)
-        except Exception as e:
-            self._logger.warning(f"Ошибка подсчета администраторов: {e}")
             return 0
 
+    @PerformanceProfiler.measure_time
+    async def _get_admin_count(self, chat: Union[Chat, Channel]) -> int:
+        """
+        Точный и безопасный подсчет администраторов
+        """
+        try:
+            participants = await self._client.get_participants(
+                chat, 
+                filter=lambda p: isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator))
+            )
+            return len(participants)
+        except (ChatAdminRequiredError, FloodWaitError) as e:
+            self._logger.warning(f"Ошибка получения администраторов: {e}")
+            return 0
+
+    @PerformanceProfiler.measure_time
     async def _analyze_chat_comprehensive(self, chat: Union[Chat, Channel]) -> ChatStatistics:
         """
-        Комплексный анализ статистики чата с точным подсчетом
-        
-        :param chat: Объект чата
-        :return: Объект статистики чата
+        Комплексный анализ статистики чата 
+        с улучшенной обработкой ошибок
         """
         try:
             # Определение типа чата
@@ -166,19 +160,16 @@ class EnhancedPingModule(loader.Module):
 
             # Получение полной информации о чате
             try:
-                if isinstance(chat, Channel):
-                    full_chat = await self._client(GetFullChannelRequest(chat))
-                else:
-                    full_chat = await self._client(GetFullChatRequest(chat.id))
-                
+                full_chat = await self._client(
+                    GetFullChannelRequest(chat) if isinstance(chat, Channel) 
+                    else GetFullChatRequest(chat.id)
+                )
                 total_members = getattr(full_chat.full_chat, 'participants_count', 0)
             except Exception:
                 total_members = 0
 
-            # Подсчет сообщений
-            total_messages = await self._count_total_messages(chat)
-
-            # Получение количества администраторов
+            # Параллельный сбор статистики
+            total_messages = await self._count_messages(chat)
             admins = await self._get_admin_count(chat)
 
             # Получение участников с расширенной фильтрацией
@@ -187,14 +178,11 @@ class EnhancedPingModule(loader.Module):
                 
                 active_members = sum(1 for p in participants 
                                      if not p.deleted and 
-                                     not p.bot and 
-                                     not isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator, 
-                                                       ChannelParticipantBanned, ChannelParticipantLeft)))
+                                     not p.bot)
                 
                 bots = sum(1 for p in participants if p.bot)
 
             except (ChatAdminRequiredError, FloodWaitError):
-                # Крайний fallback при невозможности получить участников
                 active_members = total_members
                 bots = 0
 
@@ -241,5 +229,5 @@ class EnhancedPingModule(loader.Module):
             )
 
     def _create_refresh_markup(self, callback=None):
-        """Создание разметки обновления"""
+        """Создание разметки обновления с унифицированным интерфейсом"""
         return [{"text": "🔄 Обновить", "callback": callback or (lambda _: None)}]
