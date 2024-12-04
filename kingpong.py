@@ -166,7 +166,7 @@ class EnhancedPingModule(loader.Module):
             return ChatStatistics()
 
     @loader.command()
-    async def ping(self, message):
+    async def pong(self, message):
         """Команда для получения статистики чата"""
         try:
             ping_time = await self._get_precise_ping()
