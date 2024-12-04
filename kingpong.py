@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Union, Optional, List, Dict, Any, Callable
+from dataclasses import dataclass
+from typing import Union, Optional, Callable
 
 from telethon import TelegramClient
 from telethon.tl.types import (
@@ -13,68 +14,60 @@ from telethon.tl.types import (
     ChannelParticipantAdmin,
     ChannelParticipantCreator
 )
-from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
+from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.errors import (
     ChatAdminRequiredError, 
     FloodWaitError, 
     RPCError, 
-    ChatForbiddenError
+    ChatForbiddenError,
+    UserNotParticipantError
 )
 from telethon.tl.types import InputPeerChannel, InputPeerChat
 
 from .. import loader, utils
 
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 class PerformanceProfiler:
     """Профессиональный замер производительности"""
     
     @staticmethod
-    def measure_time(func: Callable) -> Callable:
-        """Декоратор точного измерения времени выполнения"""
-        async def wrapper(*args, **kwargs):
-            start = asyncio.get_event_loop().time()
-            try:
-                return await func(*args, **kwargs)
-            finally:
-                execution_time = (asyncio.get_event_loop().time() - start) * 1000
-                if execution_time > 0.5:
-                    logging.warning(
-                        f"Slow operation: {func.__name__} "
-                        f"took {execution_time:.4f} ms"
-                    )
-        return wrapper
+    def measure_time(threshold_ms: float = 500) -> Callable:
+        """Декоратор точного измерения времени выполнения с настраиваемым порогом"""
+        def decorator(func):
+            async def wrapper(*args, **kwargs):
+                start_time = asyncio.get_event_loop().time()
+                try:
+                    return await func(*args, **kwargs)
+                finally:
+                    execution_time = (asyncio.get_event_loop().time() - start_time) * 1000
+                    if execution_time > threshold_ms:
+                        logging.warning(
+                            f"Slow operation: {func.__name__} "
+                            f"took {execution_time:.2f} ms"
+                        )
+            return wrapper
+        return decorator
 
-
+@dataclass(frozen=True)
 class ChatStatistics:
-    """Оптимизированный контейнер статистики чата"""
-    __slots__ = (
-        'title', 'chat_id', 'chat_type', 'total_members', 
-        'active_members', 'admins', 'bots', 'total_messages'
-    )
-
-    def __init__(
-        self, 
-        title: str = 'Неизвестно',
-        chat_id: int = 0,
-        chat_type: str = 'Неизвестно',
-        total_members: int = 0,
-        active_members: int = 0,
-        admins: int = 0,
-        bots: int = 0,
-        total_messages: int = 0
-    ):
-        self.title = title
-        self.chat_id = chat_id
-        self.chat_type = chat_type
-        self.total_members = total_members
-        self.active_members = active_members
-        self.admins = admins
-        self.bots = bots
-        self.total_messages = total_messages
-
+    """Неизменяемый контейнер статистики чата с эффективным хранением"""
+    title: str = 'Неизвестно'
+    chat_id: int = 0
+    chat_type: str = 'Неизвестно'
+    total_members: int = 0
+    active_members: int = 0
+    admins: int = 0
+    bots: int = 0
+    total_messages: int = 0
+    
     def format(self, ping: float) -> str:
-        """Безопасное форматирование статистики"""
+        """Безопасное форматирование статистики с HTML-экранированием"""
         return (
             f"🏓 <b>Пинг:</b> {ping:.2f} мс\n\n"
             f"📊 <b>{utils.escape_html(self.title)}:</b>\n"
@@ -86,7 +79,6 @@ class ChatStatistics:
             f"Боты: {self.bots}\n"
             f"Сообщений: {self.total_messages}"
         )
-
 
 @loader.tds
 class PingKongModule(loader.Module):
@@ -106,72 +98,68 @@ class PingKongModule(loader.Module):
         self._client = client
         self._logger.info("EnhancedPing module initialized")
 
-    @PerformanceProfiler.measure_time
+    @PerformanceProfiler.measure_time()
     async def _get_precise_ping(self) -> float:
-        """Точное измерение задержки"""
-        start = asyncio.get_event_loop().time()
+        """Точное измерение задержки с расширенной обработкой ошибок"""
         try:
+            start = asyncio.get_event_loop().time()
             await self._client.get_me()
             return (asyncio.get_event_loop().time() - start) * 1000
         except Exception as e:
-            self._logger.error(f"Ping error: {e}")
+            self._logger.error(f"Ping measurement error: {e}")
             return -1.0
 
-    @PerformanceProfiler.measure_time
+    @PerformanceProfiler.measure_time()
     async def _count_user_messages(
         self, 
         chat: Union[Chat, Channel, InputPeerChannel, InputPeerChat], 
         limit: int = 5000
     ) -> int:
-        """Точный подсчет сообщений от пользователей"""
+        """Оптимизированный подсчет сообщений с обработкой ограничений"""
         try:
-            messages = await self._client(
-                GetParticipantsRequest(
-                    channel=chat,
-                    limit=limit,
-                    filter=lambda m: isinstance(m, Message) and not m.service
-                )
-            )
+            messages = await self._client.get_messages(chat, limit=limit)
             return len(messages)
-        except Exception as e:
-            self._logger.warning(f"Message counting error: {e}")
+        except (FloodWaitError, RPCError) as e:
+            self._logger.warning(f"Message counting limited: {e}")
             return 0
 
-    @PerformanceProfiler.measure_time
+    @PerformanceProfiler.measure_time()
     async def _get_admin_count(
         self, 
         chat: Union[Chat, Channel, InputPeerChannel, InputPeerChat]
     ) -> int:
-        """Безопасное определение количества администраторов"""
+        """Многоуровневое определение количества администраторов"""
         try:
-            # Получаем список администраторов
+            # Попытка получить администраторов напрямую
             participants = await self._client.get_participants(
                 chat, 
                 filter=lambda p: isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator))
             )
             return len(participants)
-        except Exception as e:
-            self._logger.warning(f"Admin count error: {e}")
+        except (UserNotParticipantError, ChatAdminRequiredError):
+            # Резервный метод получения информации о чате
             try:
-                # Альтернативный метод для чатов, где нет доступа к участникам
                 if isinstance(chat, Channel):
-                    full_channel = await self._client(GetFullChannelRequest(chat))
-                    return getattr(full_channel.full_chat, 'admins_count', 0)
+                    full_chat = await self._client(GetFullChannelRequest(chat))
+                    return getattr(full_chat.full_chat, 'admin_count', 0)
                 elif isinstance(chat, Chat):
                     full_chat = await self._client(GetFullChatRequest(chat.id))
-                    return getattr(full_chat.full_chat, 'admins_count', 0)
+                    return getattr(full_chat.full_chat, 'admin_count', 0)
             except Exception as inner_e:
                 self._logger.error(f"Detailed admin count error: {inner_e}")
                 return 0
+        except Exception as e:
+            self._logger.error(f"Admin counting error: {e}")
+            return 0
 
-    @PerformanceProfiler.measure_time
+    @PerformanceProfiler.measure_time()
     async def _analyze_chat_comprehensive(
         self, 
         chat: Union[Chat, Channel, InputPeerChannel, InputPeerChat]
     ) -> ChatStatistics:
         """Комплексный анализ чата с расширенной диагностикой"""
         try:
-            # Определение типа чата
+            # Определение типа чата с использованием match-like подхода
             chat_type = (
                 "Супер-группа" if getattr(chat, 'megagroup', False) 
                 else "Канал" if isinstance(chat, Channel) 
@@ -180,9 +168,9 @@ class PingKongModule(loader.Module):
             )
 
             chat_id = getattr(chat, 'id', 0)
-            title = utils.escape_html(getattr(chat, 'title', 'Неизвестно'))
+            title = getattr(chat, 'title', 'Неизвестно')
 
-            # Получение полной информации о чате
+            # Безопасное получение количества участников
             try:
                 if isinstance(chat, Channel):
                     full_chat = await self._client(GetFullChannelRequest(chat))
@@ -193,7 +181,7 @@ class PingKongModule(loader.Module):
                 else:
                     total_members = 0
             except Exception as e:
-                self._logger.warning(f"Full chat info error: {e}")
+                self._logger.warning(f"Total members counting error: {e}")
                 total_members = 0
 
             # Подсчет администраторов
@@ -201,7 +189,7 @@ class PingKongModule(loader.Module):
 
             # Расширенный подсчет участников
             try:
-                all_participants = await self._client.get_participants(chat)
+                all_participants = await self._client.get_participants(chat, aggressive=True)
                 total_participants = len(all_participants)
                 active_members = sum(
                     1 for p in all_participants 
@@ -230,7 +218,6 @@ class PingKongModule(loader.Module):
                 bots=bots,
                 total_messages=total_messages
             )
-
         except Exception as e:
             self._logger.error(f"Comprehensive chat analysis failed: {e}")
             return ChatStatistics(chat_id=chat_id)
