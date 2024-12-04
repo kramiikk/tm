@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, Union, List
 
-from telethon import TelegramClient, events
+from telethon import TelegramClient
 from telethon.tl.types import (
-    User, Chat, Channel, 
-    ChannelParticipantAdmin, ChannelParticipantCreator
+    Chat, Channel, 
+    ChannelParticipantAdmin, 
+    ChannelParticipantCreator
 )
+from telethon.tl.functions.channels import GetFullChannelRequest
+from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.errors import (
     ChatAdminRequiredError, 
     FloodWaitError, 
@@ -18,36 +21,8 @@ from telethon.errors import (
 from .. import loader, utils
 
 
-class EnhancedPingError(Exception):
-    """Специализированное исключение для модуля"""
-    pass
-
-
-def retry_decorator(max_retries: int = 3, delay: float = 1.0):
-    """
-    Декоратор для асинхронных повторных попыток с экспоненциальной задержкой
-    
-    :param max_retries: Максимальное число попыток
-    :param delay: Начальная задержка между попытками
-    """
-    def decorator(func):
-        async def wrapper(*args, **kwargs):
-            attempt = 0
-            while attempt < max_retries:
-                try:
-                    return await func(*args, **kwargs)
-                except Exception as e:
-                    attempt += 1
-                    if attempt == max_retries:
-                        logging.error(f"Ошибка после {max_retries} попыток: {e}")
-                        raise
-                    await asyncio.sleep(delay * (2 ** attempt))
-        return wrapper
-    return decorator
-
-
 class ChatStatistics:
-    """Легковесный контейнер статистики чата"""
+    """Контейнер статистики чата с fallback механизмом"""
     __slots__ = (
         'title', 'chat_id', 'chat_type', 
         'total_members', 'active_members', 
@@ -91,7 +66,7 @@ class ChatStatistics:
 
 @loader.tds
 class EnhancedPingModule(loader.Module):
-    """Расширенный модуль пинга с детальной статистикой"""
+    """Расширенный модуль пинга с адаптивной статистикой"""
 
     strings = {
         "name": "EnhancedPing",
@@ -106,20 +81,47 @@ class EnhancedPingModule(loader.Module):
         """Инициализация клиента"""
         self._client = client
 
-    @retry_decorator(max_retries=2)
     async def _get_precise_ping(self) -> float:
         """Точное измерение задержки"""
         start = asyncio.get_event_loop().time()
         await self._client.get_me()
         return (asyncio.get_event_loop().time() - start) * 1000
 
-    @retry_decorator(max_retries=2)
-    async def _analyze_chat(self, chat: Union[Chat, Channel]) -> ChatStatistics:
+    async def _get_chat_full_info(self, chat: Union[Chat, Channel]):
+        """Получение полной информации о чате с обработкой ошибок"""
+        try:
+            if isinstance(chat, Channel):
+                return await self._client(GetFullChannelRequest(chat))
+            return await self._client(GetFullChatRequest(chat.id))
+        except Exception:
+            return None
+
+    async def _count_messages(self, chat: Union[Chat, Channel]) -> int:
         """
-        Комплексный анализ статистики чата
-        
-        :param chat: Объект чата Telegram
-        :return: Объект со статистикой
+        Безопасный подсчет сообщений с fallback механизмом
+        """
+        try:
+            # Получаем последние сообщения с фильтрацией системных
+            messages = await self._client.get_messages(
+                chat, 
+                limit=None,
+                filter=lambda m: not (
+                    getattr(m, 'service', False) or 
+                    getattr(m, 'action', None)
+                )
+            )
+            return len(messages)
+        except Exception:
+            # Fallback: пытаемся получить хотя бы базовую информацию
+            try:
+                full_chat = await self._get_chat_full_info(chat)
+                return getattr(full_chat, 'messages', 0)
+            except Exception:
+                return 0
+
+    async def _analyze_chat_flexible(self, chat: Union[Chat, Channel]) -> ChatStatistics:
+        """
+        Гибкий анализ статистики чата с множественными fallback механизмами
         """
         try:
             # Определение типа чата
@@ -130,25 +132,27 @@ class EnhancedPingModule(loader.Module):
             else:
                 chat_type = "Неизвестно"
 
-            # Получение участников
+            # Получение полной информации о чате
+            full_chat_info = await self._get_chat_full_info(chat)
+            total_members = getattr(full_chat_info.full_chat, 'participants_count', 0)
+
+            # Безопасный подсчет сообщений
+            total_messages = await self._count_messages(chat)
+
+            # Попытка получения участников
             try:
-                participants = await self._client.get_participants(chat, limit=None)
+                participants = await self._client.get_participants(
+                    chat, 
+                    limit=200,  # Ограничиваем для больших чатов
+                    aggressive=False  # Более мягкий режим
+                )
+                
+                active_members = sum(1 for p in participants if not p.deleted and not p.bot)
+                admins = sum(1 for p in participants if isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)))
+                bots = sum(1 for p in participants if p.bot)
             except (ChatAdminRequiredError, FloodWaitError):
-                participants = await self._client.get_participants(chat, limit=200)
-
-            # Подсчет статистики
-            total_members = len(participants)
-            active_members = sum(1 for p in participants if not p.deleted and not p.bot)
-            admins = sum(1 for p in participants if isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)))
-            bots = sum(1 for p in participants if p.bot)
-
-            # Подсчет сообщений
-            messages = await self._client.get_messages(
-                chat, 
-                limit=None, 
-                filter=lambda m: not (m.service or getattr(m, 'action', None))
-            )
-            total_messages = len(messages)
+                # Fallback если не удалось получить участников
+                active_members = admins = bots = 0
 
             return ChatStatistics(
                 title=utils.escape_html(getattr(chat, 'title', 'Неизвестно')),
@@ -162,8 +166,8 @@ class EnhancedPingModule(loader.Module):
             )
 
         except Exception as e:
-            self._logger.error(f"Ошибка анализа чата: {e}")
-            return ChatStatistics()
+            self._logger.error(f"Критическая ошибка анализа: {e}")
+            return ChatStatistics(chat_id=getattr(chat, 'id', 0))
 
     @loader.command()
     async def pong(self, message):
@@ -171,7 +175,7 @@ class EnhancedPingModule(loader.Module):
         try:
             ping_time = await self._get_precise_ping()
             chat = await self._client.get_entity(message.chat_id)
-            chat_stats = await self._analyze_chat(chat)
+            chat_stats = await self._analyze_chat_flexible(chat)
 
             async def refresh_callback(call):
                 new_ping = await self._get_precise_ping()
