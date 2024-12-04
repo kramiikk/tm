@@ -22,7 +22,7 @@ from .. import loader, utils
 
 
 class ChatStatistics:
-    """Контейнер статистики чата с fallback механизмом"""
+    """Контейнер статистики чата с расширенной логикой"""
     __slots__ = (
         'title', 'chat_id', 'chat_type', 
         'total_members', 'active_members', 
@@ -66,7 +66,7 @@ class ChatStatistics:
 
 @loader.tds
 class EnhancedPingModule(loader.Module):
-    """Расширенный модуль пинга с адаптивной статистикой"""
+    """Расширенный модуль пинга с точной статистикой lol"""
 
     strings = {
         "name": "EnhancedPing",
@@ -87,41 +87,44 @@ class EnhancedPingModule(loader.Module):
         await self._client.get_me()
         return (asyncio.get_event_loop().time() - start) * 1000
 
-    async def _get_chat_full_info(self, chat: Union[Chat, Channel]):
-        """Получение полной информации о чате с обработкой ошибок"""
-        try:
-            if isinstance(chat, Channel):
-                return await self._client(GetFullChannelRequest(chat))
-            return await self._client(GetFullChatRequest(chat.id))
-        except Exception:
-            return None
-
-    async def _count_messages(self, chat: Union[Chat, Channel]) -> int:
+    async def _count_messages(self, chat: Union[Chat, Channel], limit: int = None) -> int:
         """
-        Безопасный подсчет сообщений с fallback механизмом
+        Подсчет сообщений с расширенной логикой
+        
+        :param chat: Объект чата
+        :param limit: Ограничение на количество сообщений (None - все)
+        :return: Количество сообщений
         """
         try:
-            # Получаем последние сообщения с фильтрацией системных
+            # Пытаемся получить сообщения с фильтрацией
             messages = await self._client.get_messages(
                 chat, 
-                limit=None,
+                limit=limit,
                 filter=lambda m: not (
                     getattr(m, 'service', False) or 
                     getattr(m, 'action', None)
                 )
             )
             return len(messages)
-        except Exception:
-            # Fallback: пытаемся получить хотя бы базовую информацию
+        except Exception as e:
+            # Fallback: используем полную информацию о чате
+            self._logger.warning(f"Не удалось получить сообщения: {e}")
             try:
-                full_chat = await self._get_chat_full_info(chat)
-                return getattr(full_chat, 'messages', 0)
+                if isinstance(chat, Channel):
+                    full_chat = await self._client(GetFullChannelRequest(chat))
+                else:
+                    full_chat = await self._client(GetFullChatRequest(chat.id))
+                
+                return getattr(full_chat.full_chat, 'read_inbox_max_id', 0)
             except Exception:
                 return 0
 
-    async def _analyze_chat_flexible(self, chat: Union[Chat, Channel]) -> ChatStatistics:
+    async def _analyze_chat_comprehensive(self, chat: Union[Chat, Channel]) -> ChatStatistics:
         """
-        Гибкий анализ статистики чата с множественными fallback механизмами
+        Комплексный анализ статистики чата с расширенной обработкой
+        
+        :param chat: Объект чата
+        :return: Объект статистики чата
         """
         try:
             # Определение типа чата
@@ -133,14 +136,22 @@ class EnhancedPingModule(loader.Module):
                 chat_type = "Неизвестно"
 
             # Получение полной информации о чате
-            full_chat_info = await self._get_chat_full_info(chat)
-            total_members = getattr(full_chat_info.full_chat, 'participants_count', 0)
+            try:
+                if isinstance(chat, Channel):
+                    full_chat = await self._client(GetFullChannelRequest(chat))
+                else:
+                    full_chat = await self._client(GetFullChatRequest(chat.id))
+                
+                total_members = getattr(full_chat.full_chat, 'participants_count', 0)
+            except Exception:
+                total_members = 0
 
-            # Безопасный подсчет сообщений
+            # Подсчет сообщений
             total_messages = await self._count_messages(chat)
 
-            # Попытка получения участников
+            # Получение участников с альтернативными стратегиями
             try:
+                # Попытка получить участников с ограничением
                 participants = await self._client.get_participants(
                     chat, 
                     limit=200,  # Ограничиваем для больших чатов
@@ -148,11 +159,24 @@ class EnhancedPingModule(loader.Module):
                 )
                 
                 active_members = sum(1 for p in participants if not p.deleted and not p.bot)
-                admins = sum(1 for p in participants if isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)))
                 bots = sum(1 for p in participants if p.bot)
+                
+                # Подсчет администраторов с обработкой ограничений
+                try:
+                    admin_participants = await self._client.get_participants(
+                        chat, 
+                        filter=lambda p: isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)),
+                        limit=None
+                    )
+                    admins = len(admin_participants)
+                except Exception:
+                    # Fallback: если не удалось получить список администраторов
+                    admins = sum(1 for p in participants if isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator)))
+
             except (ChatAdminRequiredError, FloodWaitError):
-                # Fallback если не удалось получить участников
-                active_members = admins = bots = 0
+                # Крайний fallback при невозможности получить участников
+                active_members = total_members
+                admins = bots = 0
 
             return ChatStatistics(
                 title=utils.escape_html(getattr(chat, 'title', 'Неизвестно')),
@@ -175,7 +199,7 @@ class EnhancedPingModule(loader.Module):
         try:
             ping_time = await self._get_precise_ping()
             chat = await self._client.get_entity(message.chat_id)
-            chat_stats = await self._analyze_chat_flexible(chat)
+            chat_stats = await self._analyze_chat_comprehensive(chat)
 
             async def refresh_callback(call):
                 new_ping = await self._get_precise_ping()
