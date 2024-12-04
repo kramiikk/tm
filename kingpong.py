@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Union, Dict, Optional
+from typing import Union, Dict, Optional, List
 
 from telethon import TelegramClient
 from telethon.tl.types import (
     Chat, 
     Channel, 
-    User
+    User, 
+    Message
 )
+from telethon.tl.functions.channels import GetParticipantsRequest
+from telethon.tl.types import ChannelParticipantsFilter
 from telethon.errors import (
     ChatAdminRequiredError, 
     FloodWaitError, 
@@ -110,12 +113,33 @@ class AdvancedTelegramAnalyzer:
             Dict[str, int]: Статистика участников
         """
         try:
-            participants = await self._client.get_participants(chat)
+            # Специальный метод для получения участников с проверкой прав администратора
+            if isinstance(chat, Channel) and chat.megagroup:
+                try:
+                    participants = await self._client(
+                        GetParticipantsRequest(
+                            channel=chat, 
+                            filter=ChannelParticipantsFilter(), 
+                            offset=0, 
+                            limit=10000, 
+                            hash=0
+                        )
+                    )
+                    all_participants = participants.participants
+                except Exception:
+                    # Откат к стандартному методу если нет прав администратора
+                    all_participants = await self._client.get_participants(chat)
+            else:
+                all_participants = await self._client.get_participants(chat)
+
             return {
-                'total': len(participants),
-                'active': sum(1 for p in participants if not p.deleted and not p.bot and not p.is_self),
-                'admins': sum(1 for p in participants if p.is_admin or p.is_creator),
-                'bots': sum(1 for p in participants if p.bot)
+                'total': len(all_participants),
+                'active': sum(1 for p in all_participants if not hasattr(p, 'deleted') or not p.deleted),
+                'admins': sum(1 for p in all_participants 
+                               if hasattr(p, 'admin') and p.admin or 
+                               hasattr(p, 'creator') and p.creator),
+                'bots': sum(1 for p in all_participants 
+                             if hasattr(p, 'bot') and p.bot)
             }
         except Exception as e:
             self._logger.warning(f"Participants analysis error: {e}")
@@ -139,15 +163,18 @@ class AdvancedTelegramAnalyzer:
         try:
             messages = await self._client.get_messages(
                 chat, 
-                limit=limit, 
-                filter=lambda msg: (
-                    not msg.service and 
-                    not msg.media and 
-                    msg.text and 
-                    len(msg.text.strip()) > 0
-                )
+                limit=limit
             )
-            return len(messages)
+            
+            # Безопасная фильтрация сообщений с проверкой атрибутов
+            meaningful_messages = [
+                msg for msg in messages 
+                if (hasattr(msg, 'text') and msg.text and len(msg.text.strip()) > 0) and
+                   (not hasattr(msg, 'service') or not msg.service) and
+                   (not hasattr(msg, 'media') or not msg.media)
+            ]
+            
+            return len(meaningful_messages)
         except Exception as e:
             self._logger.warning(f"Message counting error: {e}")
             return 0
