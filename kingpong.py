@@ -9,10 +9,11 @@ from telethon.tl.types import (
     Chat, 
     Channel, 
     User, 
+    Message,
     ChannelParticipantAdmin,
     ChannelParticipantCreator
 )
-from telethon.tl.functions.channels import GetFullChannelRequest
+from telethon.tl.functions.channels import GetFullChannelRequest, GetParticipantsRequest
 from telethon.tl.functions.messages import GetFullChatRequest
 from telethon.errors import (
     ChatAdminRequiredError, 
@@ -20,6 +21,7 @@ from telethon.errors import (
     RPCError, 
     ChatForbiddenError
 )
+from telethon.tl.types import InputPeerChannel, InputPeerChat
 
 from .. import loader, utils
 
@@ -87,7 +89,7 @@ class ChatStatistics:
 
 
 @loader.tds
-class EnhancedPingModule(loader.Module):
+class PingKongModule(loader.Module):
     """Профессиональный модуль статистики чата"""
 
     strings = {
@@ -118,18 +120,16 @@ class EnhancedPingModule(loader.Module):
     @PerformanceProfiler.measure_time
     async def _count_user_messages(
         self, 
-        chat: Union[Chat, Channel], 
+        chat: Union[Chat, Channel, InputPeerChannel, InputPeerChat], 
         limit: int = 5000
     ) -> int:
         """Точный подсчет сообщений от пользователей"""
         try:
-            messages = await self._client.get_messages(
-                chat, 
-                limit=limit,
-                filter=lambda m: (
-                    not m.service and 
-                    not m.empty and 
-                    isinstance(m.sender, User)
+            messages = await self._client(
+                GetParticipantsRequest(
+                    channel=chat,
+                    limit=limit,
+                    filter=lambda m: isinstance(m, Message) and not m.service
                 )
             )
             return len(messages)
@@ -138,9 +138,36 @@ class EnhancedPingModule(loader.Module):
             return 0
 
     @PerformanceProfiler.measure_time
+    async def _get_admin_count(
+        self, 
+        chat: Union[Chat, Channel, InputPeerChannel, InputPeerChat]
+    ) -> int:
+        """Безопасное определение количества администраторов"""
+        try:
+            # Получаем список администраторов
+            participants = await self._client.get_participants(
+                chat, 
+                filter=lambda p: isinstance(p, (ChannelParticipantAdmin, ChannelParticipantCreator))
+            )
+            return len(participants)
+        except Exception as e:
+            self._logger.warning(f"Admin count error: {e}")
+            try:
+                # Альтернативный метод для чатов, где нет доступа к участникам
+                if isinstance(chat, Channel):
+                    full_channel = await self._client(GetFullChannelRequest(chat))
+                    return getattr(full_channel.full_chat, 'admins_count', 0)
+                elif isinstance(chat, Chat):
+                    full_chat = await self._client(GetFullChatRequest(chat.id))
+                    return getattr(full_chat.full_chat, 'admins_count', 0)
+            except Exception as inner_e:
+                self._logger.error(f"Detailed admin count error: {inner_e}")
+                return 0
+
+    @PerformanceProfiler.measure_time
     async def _analyze_chat_comprehensive(
         self, 
-        chat: Union[Chat, Channel]
+        chat: Union[Chat, Channel, InputPeerChannel, InputPeerChat]
     ) -> ChatStatistics:
         """Комплексный анализ чата с расширенной диагностикой"""
         try:
@@ -157,23 +184,24 @@ class EnhancedPingModule(loader.Module):
 
             # Получение полной информации о чате
             try:
-                full_chat = (
-                    await self._client(GetFullChannelRequest(chat)) 
-                    if isinstance(chat, Channel) 
-                    else await self._client(GetFullChatRequest(chat.id))
-                )
-                total_members = getattr(full_chat.full_chat, 'participants_count', 0)
+                if isinstance(chat, Channel):
+                    full_chat = await self._client(GetFullChannelRequest(chat))
+                    total_members = getattr(full_chat.full_chat, 'participants_count', 0)
+                elif isinstance(chat, Chat):
+                    full_chat = await self._client(GetFullChatRequest(chat.id))
+                    total_members = getattr(full_chat.full_chat, 'participants_count', 0)
+                else:
+                    total_members = 0
             except Exception as e:
                 self._logger.warning(f"Full chat info error: {e}")
                 total_members = 0
 
+            # Подсчет администраторов
+            admins = await self._get_admin_count(chat)
+
             # Расширенный подсчет участников
             try:
-                all_participants = await self._client.get_participants(
-                    chat_id, 
-                    aggressive=True
-                )
-
+                all_participants = await self._client.get_participants(chat)
                 total_participants = len(all_participants)
                 active_members = sum(
                     1 for p in all_participants 
@@ -191,14 +219,6 @@ class EnhancedPingModule(loader.Module):
 
             # Подсчет сообщений
             total_messages = await self._count_user_messages(chat)
-
-            # Подсчет администраторов
-            try:
-                full_chat_info = await self._client(GetFullChannelRequest(chat))
-                admins = getattr(full_chat_info.full_chat, 'admins_count', 0)
-            except Exception as e:
-                self._logger.warning(f"Admin count error: {e}")
-                admins = 0
 
             return ChatStatistics(
                 title=title,
