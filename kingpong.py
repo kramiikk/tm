@@ -7,12 +7,9 @@ from typing import Union, Dict, Optional, List
 from telethon import TelegramClient
 from telethon.tl.types import (
     Chat, 
-    Channel, 
     User, 
     Message
 )
-from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsFilter
 from telethon.errors import (
     ChatAdminRequiredError, 
     FloodWaitError, 
@@ -24,7 +21,7 @@ from .. import loader, utils
 logger = logging.getLogger(__name__)
 
 class AdvancedTelegramAnalyzer:
-    """Профессиональный класс для глубокого анализа Telegram-чатов"""
+    """Профессиональный класс для анализа групповых чатов"""
 
     def __init__(self, client: TelegramClient):
         """
@@ -60,21 +57,21 @@ class AdvancedTelegramAnalyzer:
 
     async def analyze_chat_comprehensive(
         self, 
-        chat: Union[Chat, Channel], 
+        chat: Chat, 
         detailed: bool = False
     ) -> Dict[str, Union[str, int]]:
         """
-        Комплексный анализ чата с расширенными возможностями
+        Комплексный анализ группового чата
 
         Args:
-            chat (Union[Chat, Channel]): Объект чата для анализа
+            chat (Chat): Объект чата для анализа
             detailed (bool): Флаг для получения детальной информации
 
         Returns:
             Dict[str, Union[str, int]]: Словарь с аналитикой чата
         """
         try:
-            chat_type = self._determine_chat_type(chat)
+            chat_type = "Группа"
             
             participants = await self._get_participants_info(chat)
             messages_count = await self._count_meaningful_messages(chat)
@@ -99,13 +96,7 @@ class AdvancedTelegramAnalyzer:
             self._logger.error(f"Chat analysis error: {e}")
             return {}
 
-    def _determine_chat_type(self, chat: Union[Chat, Channel]) -> str:
-        """Определение типа чата с высокой точностью"""
-        if isinstance(chat, Channel):
-            return "Супер-группа" if chat.megagroup else "Канал"
-        return "Группа"
-
-    async def _get_participants_info(self, chat: Union[Chat, Channel]) -> Dict[str, int]:
+    async def _get_participants_info(self, chat: Chat) -> Dict[str, int]:
         """
         Получение детальной информации об участниках чата
 
@@ -113,24 +104,7 @@ class AdvancedTelegramAnalyzer:
             Dict[str, int]: Статистика участников
         """
         try:
-            # Специальный метод для получения участников с проверкой прав администратора
-            if isinstance(chat, Channel) and chat.megagroup:
-                try:
-                    participants = await self._client(
-                        GetParticipantsRequest(
-                            channel=chat, 
-                            filter=ChannelParticipantsFilter(), 
-                            offset=0, 
-                            limit=10000, 
-                            hash=0
-                        )
-                    )
-                    all_participants = participants.participants
-                except Exception:
-                    # Откат к стандартному методу если нет прав администратора
-                    all_participants = await self._client.get_participants(chat)
-            else:
-                all_participants = await self._client.get_participants(chat)
+            all_participants = await self._client.get_participants(chat)
 
             return {
                 'total': len(all_participants),
@@ -147,14 +121,14 @@ class AdvancedTelegramAnalyzer:
 
     async def _count_meaningful_messages(
         self, 
-        chat: Union[Chat, Channel], 
+        chat: Chat, 
         limit: int = 10000
     ) -> int:
         """
         Подсчет релевантных сообщений с продвинутой фильтрацией
 
         Args:
-            chat (Union[Chat, Channel]): Чат для анализа
+            chat (Chat): Чат для анализа
             limit (int): Максимальное количество сообщений для анализа
 
         Returns:
@@ -179,7 +153,7 @@ class AdvancedTelegramAnalyzer:
             self._logger.warning(f"Message counting error: {e}")
             return 0
 
-    def _get_detailed_chat_metadata(self, chat: Union[Chat, Channel]) -> Dict[str, str]:
+    def _get_detailed_chat_metadata(self, chat: Chat) -> Dict[str, str]:
         """
         Получение дополнительной метаинформации о чате
 
@@ -187,14 +161,13 @@ class AdvancedTelegramAnalyzer:
             Dict[str, str]: Расширенные метаданные
         """
         return {
-            'description': getattr(chat, 'about', 'Нет описания'),
-            'username': getattr(chat, 'username', 'Отсутствует'),
+            'description': getattr(chat, 'description', 'Нет описания'),
             'creation_date': str(getattr(chat, 'date', 'Неизвестно'))
         }
 
 @loader.tds
 class PrecisionChatModule(loader.Module):
-    """Профессиональный модуль аналитики Telegram-чатов"""
+    """Профессиональный модуль аналитики групповых чатов"""
 
     strings = {
         "name": "ChatPrecision",
