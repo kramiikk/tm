@@ -110,20 +110,98 @@ class AnalDestrModule(loader.Module):
     async def client_ready(self, client, db):
         """Инициализация модуля"""
         self.analyzer = ProfessionalChatAnalyzer(client)
+        self.last_stats = None
 
     def _generate_stats_text(self, ping_time: float, stats: Dict) -> str:
         """Генерация текста статистики"""
+        loading_emoji = "🔄" if stats.get('active_members') == '...' else "📊"
         return (
             f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
-            f"📊 <b>{utils.escape_html(stats.get('title', 'Неизвестно'))}:</b>\n"
+            f"{loading_emoji} <b>{utils.escape_html(stats.get('title', 'Неизвестно'))}:</b>\n"
             f"ID: <code>{stats.get('chat_id', 'N/A')}</code>\n"
             f"Активные участники: {stats.get('active_members', 0)}\n"
             f"Боты: {stats.get('bots', 0)}\n"
             f"Сообщений: {stats.get('total_messages', 0)}"
         )
 
+    async def _refresh_ping(self, call):
+        """Обновление только пинга"""
+        try:
+            # Быстрый пинг
+            ping_time = await self.analyzer.measure_network_latency()
+            
+            # Если статистика еще не собрана, используем текущие данные
+            current_stats = self.last_stats.get('stats') if self.last_stats else None
+            
+            # Если статистика еще не собрана, используем начальные данные
+            if not current_stats or current_stats.get('active_members') == '...':
+                stats_to_display = {
+                    'title': getattr(call.message.chat, 'title', 'Неизвестно'),
+                    'chat_id': call.message.chat.id,
+                    'active_members': '🕒 Подсчет активных участников...',
+                    'bots': '🤖 Поиск ботов...',
+                    'total_messages': '📝 Анализ сообщений...'
+                }
+            else:
+                # Если статистика уже собрана, используем её
+                stats_to_display = current_stats
+
+            # Обновляем сообщение с новым пингом
+            await call.message.edit(
+                self._generate_stats_text(ping_time, stats_to_display), 
+                reply_markup=[
+                    [{"text": "🔄 Обновить пинг", "callback": self._refresh_ping}]
+                ]
+            )
+
+        except Exception as e:
+            await call.answer(f"Ошибка обновления: {str(e)}", show_alert=True)
+
+    async def _update_stats_async(self, response_message, chat):
+        """Асинхронное обновление статистики"""
+        try:
+            # Сбор статистики с индикацией процесса
+            await response_message.edit(
+                self._generate_stats_text(
+                    await self.analyzer.measure_network_latency(), 
+                    {
+                        'title': getattr(chat, 'title', 'Неизвестно'),
+                        'chat_id': chat.id,
+                        'active_members': '🕒 Подсчет активных участников...',
+                        'bots': '🤖 Поиск ботов...',
+                        'total_messages': '📝 Анализ сообщений...'
+                    }
+                ), 
+                reply_markup=[
+                    [{"text": "🔄 Обновить пинг", "callback": self._refresh_ping}]
+                ]
+            )
+
+            # Одновременный сбор пинга и статистики
+            ping_task = asyncio.create_task(self.analyzer.measure_network_latency())
+            stats_task = asyncio.create_task(self.analyzer.analyze_group_comprehensive(chat))
+            
+            ping_time, stats = await asyncio.gather(ping_task, stats_task)
+
+            # Обновляем last_stats полной статистикой
+            self.last_stats = {
+                'chat': chat,
+                'message': response_message,
+                'stats': stats
+            }
+
+            # Редактирование сообщения с полной статистикой
+            await response_message.edit(
+                self._generate_stats_text(ping_time, stats), 
+                reply_markup=[
+                    [{"text": "🔄 Обновить пинг", "callback": self._refresh_ping}]
+                ]
+            )
+        except Exception as e:
+            self._logger.error(f"Async stats update error: {e}")
+
     @loader.command()
-    async def groupstat(self, message):
+    async def pstat(self, message):
         """Команда получения расширенной статистики группы"""
         try:
             # Моментальный ответ с текущим пингом
@@ -139,11 +217,14 @@ class AnalDestrModule(loader.Module):
                 'total_messages': '...'
             }
 
+            # Сбрасываем последние статистические данные
+            self.last_stats = None
+
             response_message = await self.inline.form(
                 self._generate_stats_text(initial_ping_time, initial_stats), 
                 message=message,
                 reply_markup=[
-                    [{"text": "🔄 Обновить статистику", "callback": self._refresh_stats}]
+                    [{"text": "🔄 Обновить пинг", "callback": self._refresh_ping}]
                 ]
             )
 
@@ -155,51 +236,3 @@ class AnalDestrModule(loader.Module):
                 self.strings["error"].format(str(e)), 
                 message=message
             )
-
-    async def _update_stats_async(self, response_message, chat):
-        """Асинхронное обновление статистики"""
-        try:
-            # Одновременный сбор пинга и статистики
-            ping_task = asyncio.create_task(self.analyzer.measure_network_latency())
-            stats_task = asyncio.create_task(self.analyzer.analyze_group_comprehensive(chat))
-            
-            ping_time, stats = await asyncio.gather(ping_task, stats_task)
-
-            # Редактирование сообщения с полной статистикой
-            await response_message.edit(
-                self._generate_stats_text(ping_time, stats), 
-                reply_markup=[
-                    [{"text": "🔄 Обновить статистику", "callback": self._refresh_stats}]
-                ]
-            )
-        except Exception as e:
-            self._logger.error(f"Async stats update error: {e}")
-
-    async def _refresh_stats(self, call):
-        """Обновление статистики по кнопке"""
-        try:
-            # Быстрый пинг
-            ping_time = await self.analyzer.measure_network_latency()
-            chat = await call.message.get_chat()
-
-            # Моментальный ответ с текущим пингом
-            initial_stats = {
-                'title': getattr(chat, 'title', 'Неизвестно'),
-                'chat_id': chat.id,
-                'active_members': '...',
-                'bots': '...',
-                'total_messages': '...'
-            }
-
-            await call.message.edit(
-                self._generate_stats_text(ping_time, initial_stats), 
-                reply_markup=[
-                    [{"text": "🔄 Обновить статистику", "callback": self._refresh_stats}]
-                ]
-            )
-
-            # Асинхронный сбор полной статистики
-            asyncio.create_task(self._update_stats_async(call.message, chat))
-
-        except Exception as e:
-            await call.answer(f"Ошибка обновления: {str(e)}", show_alert=True)
