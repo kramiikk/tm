@@ -20,16 +20,14 @@ class ProfessionalChatAnalyzer:
         timeout: float = 3.0
     ) -> Dict[str, float]:
         """
-        Комплексное измерение сетевой задержки
-        
-        :return: Словарь с результатами пинга по разным методам
+        Комплексное измерение сетевой задержки с улучшенным RTT
         """
         results = {
             'telethon': -1.0,
             'rtt': -1.0,
             'comprehensive': -1.0
         }
-
+    
         try:
             # Метод 1: Telethon get_me()
             telethon_latencies = []
@@ -44,25 +42,51 @@ class ProfessionalChatAnalyzer:
             
             if telethon_latencies:
                 results['telethon'] = sum(telethon_latencies) / len(telethon_latencies)
-
-            # Метод 2: RTT через центр обработки данных
+    
+            # Метод 2: Улучшенный RTT с использованием сетевых замеров
+            rtt_latencies = []
             try:
-                dc_options = self._client.session.dc_options
-                if dc_options:
-                    dc = dc_options[0]
-                    start = asyncio.get_event_loop().time()
-                    await asyncio.wait_for(
-                        self._client._connection.connect(
-                            dc.ip_address, 
-                            dc.port, 
-                            dc.id
-                        ), 
-                        timeout=timeout/3
-                    )
-                    results['rtt'] = (asyncio.get_event_loop().time() - start) * 1000
+                # Попытка использовать прямое измерение через socket
+                import socket
+                import time
+    
+                def measure_rtt(host='8.8.8.8', port=53):
+                    try:
+                        start = time.time()
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                            s.settimeout(timeout/3)
+                            s.connect((host, port))
+                        return (time.time() - start) * 1000
+                    except Exception:
+                        return -1.0
+    
+                # Несколько попыток измерения
+                for _ in range(attempts):
+                    rtt = measure_rtt()
+                    if rtt > 0:
+                        rtt_latencies.append(rtt)
+                
+                if rtt_latencies:
+                    results['rtt'] = sum(rtt_latencies) / len(rtt_latencies)
             except Exception:
-                pass
-
+                # Резервный метод через Telegram DC
+                try:
+                    dc_options = self._client.session.dc_options
+                    if dc_options:
+                        dc = dc_options[0]
+                        start = asyncio.get_event_loop().time()
+                        await asyncio.wait_for(
+                            self._client._connection.connect(
+                                dc.ip_address, 
+                                dc.port, 
+                                dc.id
+                            ), 
+                            timeout=timeout/3
+                        )
+                        results['rtt'] = (asyncio.get_event_loop().time() - start) * 1000
+                except Exception:
+                    pass
+    
             # Метод 3: Комплексное измерение
             comprehensive_latencies = []
             
@@ -95,10 +119,10 @@ class ProfessionalChatAnalyzer:
             
             if comprehensive_latencies:
                 results['comprehensive'] = sum(comprehensive_latencies) / len(comprehensive_latencies)
-
+    
         except Exception as e:
             self._logger.error(f"Ошибка измерения пинга: {e}")
-
+    
         return results
 
     async def analyze_group_comprehensive(
