@@ -8,7 +8,9 @@ from telethon import TelegramClient
 from telethon.tl.types import (
     Chat, 
     User, 
-    Message
+    Message,
+    ChatParticipant,
+    ChatAdminRights
 )
 from telethon.errors import (
     ChatAdminRequiredError, 
@@ -76,14 +78,17 @@ class ProfessionalChatAnalyzer:
             Dict[str, Union[str, int]]: Словарь с аналитикой чата
         """
         try:
-            # Получение участников с расширенной диагностикой
-            participants = await self._get_participants_comprehensive(chat)
+            # Получение всех участников с расширенной диагностикой
+            all_participants = await self._get_participants(chat)
+            
+            # Комплексный анализ участников
+            participants = self._get_participants_comprehensive(all_participants)
             
             # Подсчет сообщений с продвинутой фильтрацией
             messages_count = await self._count_meaningful_messages(chat)
 
             # Подсчет администраторов с детальной обработкой
-            admin_count = await self._count_group_admins(chat)
+            admin_count = self._count_group_admins(all_participants)
 
             result = {
                 'title': getattr(chat, 'title', 'Unknown'),
@@ -105,9 +110,25 @@ class ProfessionalChatAnalyzer:
             self._logger.error(f"Group analysis error: {e}")
             return {}
 
-    async def _get_participants_comprehensive(
+    async def _get_participants(
         self, 
         chat: Chat
+    ) -> List[User]:
+        """
+        Получение всех участников группы
+
+        Returns:
+            List[User]: Список участников
+        """
+        try:
+            return await self._client.get_participants(chat)
+        except Exception as e:
+            self._logger.error(f"Participants retrieval error: {e}")
+            return []
+
+    def _get_participants_comprehensive(
+        self, 
+        all_participants: List[User]
     ) -> Dict[str, int]:
         """
         Расширенный анализ участников группы с точной диагностикой
@@ -115,53 +136,32 @@ class ProfessionalChatAnalyzer:
         Returns:
             Dict[str, int]: Статистика участников
         """
-        try:
-            # Получение всех участников группы
-            all_participants = await self._client.get_participants(chat)
+        stats = {
+            'total': len(all_participants),
+            'active': sum(1 for p in all_participants if not hasattr(p, 'deleted') or not p.deleted),
+            'bots': sum(1 for p in all_participants if hasattr(p, 'bot') and p.bot)
+        }
 
-            stats = {
-                'total': len(all_participants),
-                'active': sum(1 for p in all_participants 
-                               if not hasattr(p, 'deleted') or not p.deleted),
-                'bots': sum(1 for p in all_participants 
-                             if hasattr(p, 'bot') and p.bot)
-            }
+        self._logger.info(f"Participants analysis complete", extra=stats)
+        return stats
 
-            self._logger.info(
-                f"Participants analysis complete for {chat.id}", 
-                extra=stats
-            )
-            return stats
-
-        except Exception as e:
-            self._logger.error(f"Participants analysis error: {e}")
-            return {'total': 0, 'active': 0, 'bots': 0}
-
-    async def _count_group_admins(
+    def _count_group_admins(
         self, 
-        chat: Chat
+        all_participants: List[User]
     ) -> int:
         """
         Надёжный подсчёт администраторов группы с расширенной диагностикой
-    
+
         Returns:
             int: Количество администраторов
         """
         try:
-            # Получение всех участников
-            all_participants = await self._client.get_participants(chat)
-            
-            # Фильтрация участников по административным правам
-            admin_participants = [p for p in all_participants if isinstance(p, User) and p.admin_rights]
-            
+            admin_participants = [p for p in all_participants if isinstance(p, User) and hasattr(p, 'admin_rights') and p.admin_rights]
             admin_count = len(admin_participants)
-            
-            self._logger.info(
-                f"Admin count retrieved for group {chat.id}: {admin_count}"
-            )
-            
+
+            self._logger.info(f"Admin count retrieved: {admin_count}")
             return admin_count
-    
+
         except Exception as e:
             self._logger.error(f"Admin counting failed: {e}")
             return 0
@@ -182,19 +182,12 @@ class ProfessionalChatAnalyzer:
             int: Количество значимых сообщений
         """
         try:
-            # Получение сообщений с ограничением
-            messages = await self._client.get_messages(
-                chat, 
-                limit=limit
-            )
-            
-            # Безопасная фильтрация сообщений
+            messages = await self._client.get_messages(chat, limit=limit)
             meaningful_messages = [
                 msg for msg in messages 
                 if (hasattr(msg, 'text') and msg.text and len(msg.text.strip()) > 0) and
                    (not hasattr(msg, 'service') or not msg.service)
             ]
-            
             return len(meaningful_messages)
         except Exception as e:
             self._logger.warning(f"Message counting error: {e}")
@@ -241,7 +234,6 @@ class PrecisionGroupModule(loader.Module):
             # Получение статистики
             stats = await self.analyzer.analyze_group_comprehensive(chat)
 
-            # Форматирование ответа с HTML-разметкой
             response = (
                 f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
                 f"📊 <b>{utils.escape_html(stats.get('title', 'Неизвестно'))}:</b>\n"
@@ -254,7 +246,6 @@ class PrecisionGroupModule(loader.Module):
                 f"Сообщений: {stats.get('total_messages', 0)}"
             )
 
-            # Интерактивное обновление статистики
             async def refresh_stats(call):
                 new_ping = await self.analyzer.measure_network_latency()
                 new_response = response.replace(
