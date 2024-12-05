@@ -203,16 +203,34 @@ class PrecisionGroupModule(loader.Module):
     async def groupstat(self, message):
         """Команда получения расширенной статистики группы"""
         try:
-            # Замер задержки
-            ping_time = await self.analyzer.measure_network_latency()
+            # Асинхронный замер задержки
+            ping_time_task = asyncio.create_task(self.analyzer.measure_network_latency())
             
             # Получение текущей группы
             chat = await message.get_chat()
             
-            # Получение статистики
-            stats = await self.analyzer.analyze_group_comprehensive(chat)
+            # Инициальный ответ с пингом
+            ping_time = await ping_time_task
+            initial_response = (
+                f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
+                f"⏳ Сбор статистики..."
+            )
 
-            response = (
+            # Отправка первоначального сообщения
+            bot_message = await self.inline.form(
+                initial_response, 
+                message=message,
+                reply_markup=[{"text": "🔄 Обновить", "callback": self._refresh_ping}]
+            )
+
+            # Асинхронный сбор статистики
+            stats_task = asyncio.create_task(self.analyzer.analyze_group_comprehensive(chat))
+            
+            # Ожидание статистики
+            stats = await stats_task
+
+            # Формирование полного ответа
+            full_response = (
                 f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
                 f"📊 <b>{utils.escape_html(stats.get('title', 'Неизвестно'))}:</b>\n"
                 f"ID: <code>{stats.get('chat_id', 'N/A')}</code>\n"
@@ -222,22 +240,28 @@ class PrecisionGroupModule(loader.Module):
                 f"Сообщений: {stats.get('total_messages', 0)}"
             )
 
-            async def refresh_stats(call):
-                new_ping = await self.analyzer.measure_network_latency()
-                new_response = response.replace(
-                    f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс", 
-                    f"🌐 <b>Сетевая задержка:</b> {new_ping:.2f} мс"
-                )
-                await call.edit(new_response)
-
-            await self.inline.form(
-                response, 
-                message=message,
-                reply_markup=[{"text": "🔄 Обновить", "callback": refresh_stats}]
-            )
+            # Редактирование сообщения с полной статистикой
+            await bot_message.edit(full_response)
 
         except Exception as e:
             await self.inline.form(
                 self.strings["error"].format(str(e)), 
                 message=message
             )
+
+    async def _refresh_ping(self, call):
+        """Обновление только пинга без полной перезагрузки статистики"""
+        try:
+            ping_time = await self.analyzer.measure_network_latency()
+            current_text = call.message.text
+            
+            # Регулярное обновление пинга в существующем сообщении
+            updated_text = current_text.split('\n\n', 1)
+            updated_text = (
+                f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n" + 
+                updated_text[1]
+            )
+            
+            await call.edit(updated_text)
+        except Exception as e:
+            await call.answer(str(e), show_alert=True)
