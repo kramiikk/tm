@@ -1,251 +1,332 @@
 from __future__ import annotations
 
 import asyncio
-import time
 import logging
-from dataclasses import dataclass
-from typing import Optional, Dict, Any, List, Callable
-from functools import wraps
+from typing import Union, Dict, Optional, List, Any
 
-from telethon import TelegramClient, types
-from telethon.errors import ChatAdminRequiredError, FloodWaitError, RPCError
+from telethon import TelegramClient
+from telethon.tl.types import (
+    Chat, 
+    User, 
+    Channel,
+    ChatFull,
+    ChannelParticipantAdmin,
+    ChannelParticipants
+)
 from telethon.tl.functions.channels import GetFullChannelRequest
-from telethon.tl.functions.messages import GetFullChatRequest
-from telethon.tl.types import ChannelParticipantsAdmins
+from telethon.errors import (
+    ChatAdminRequiredError, 
+    FloodWaitError, 
+    RPCError,
+    UserNotParticipantError
+)
 
-from .. import loader, utils
+from pyrogram import Client as PyrogramClient
+from pyrogram.types import ChatMember, ChatMemberStatus
 
+import structlog
+import traceback
 
-class PingError(Exception):
-    """Custom exception for ping-related errors"""
+class TelegramChatAnalyzer:
+    """Профессиональный анализатор групповых чатов с расширенной диагностикой"""
 
-    pass
+    def __init__(
+        self, 
+        telethon_client: TelegramClient, 
+        pyrogram_client: Optional[PyrogramClient] = None
+    ):
+        """
+        Инициализация анализатора с поддержкой мультиклиентности
 
-
-def safe_async_call(max_retries: int = 3):
-    """Decorator for handling async method calls with retry logic"""
-
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            for attempt in range(max_retries):
-                try:
-                    return await func(*args, **kwargs)
-                except (RPCError, FloodWaitError) as e:
-                    if attempt == max_retries - 1:
-                        logging.error(f"Async call failed: {e}")
-                        raise PingError(
-                            f"Operation failed after {max_retries} attempts"
-                        )
-                    await asyncio.sleep(1)
-
-        return wrapper
-
-    return decorator
-
-
-@dataclass
-class ChatStatistics:
-    """Immutable dataclass for storing chat statistics"""
-
-    title: str = "Unknown"
-    chat_id: int = 0
-    chat_type: str = "Unknown"
-    members: int = 0
-    deleted_accounts: int = 0
-    admins: int = 0
-    bots: int = 0
-    total_messages: int = 0
-
-    def to_formatted_string(self, ping: float) -> str:
-        """Generate formatted statistics string"""
-        return (
-            f"🏓 <b>Ping:</b> {ping:.2f} ms\n\n"
-            f"📊 <b>{utils.escape_html(self.title)}:</b>\n"
-            f"ID: <code>{self.chat_id}</code>\n"
-            f"Type: {self.chat_type}\n"
-            f"Members: {self.members}\n"
-            f"Deleted: {self.deleted_accounts}\n"
-            f"Admins: {self.admins}\n"
-            f"Bots: {self.bots}\n"
-            f"Messages: {self.total_messages}\n"
+        Args:
+            telethon_client (TelegramClient): Основной Telethon клиент
+            pyrogram_client (Optional[PyrogramClient]): Дополнительный Pyrogram клиент
+        """
+        self._telethon_client = telethon_client
+        self._pyrogram_client = pyrogram_client
+        
+        # Использование структурированного логирования
+        self._logger = structlog.get_logger(self.__class__.__name__)
+        
+        # Настройка уровня логирования
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
 
+    async def measure_network_latency(
+        self, 
+        attempts: int = 3, 
+        timeout: float = 5.0
+    ) -> float:
+        """
+        Точное измерение сетевой задержки с повышенной надёжностью
 
-@loader.tds
-class InlinePongMod(loader.Module):
-    """Advanced inline ping module with comprehensive chat statistics"""
+        Args:
+            attempts (int): Количество попыток измерения
+            timeout (float): Максимальное время ожидания
 
-    strings = {
-        "name": "EnhancedInlinePing",
-        "error_message": "❌ <b>Error:</b> {error}",
-    }
-
-    def __init__(self):
-        self._client: Optional[TelegramClient] = None
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-    async def client_ready(self, client, db):
-        """Initialize client on module load"""
-        self._client = client
-
-    async def _measure_ping(self) -> float:
-        """Measure network ping"""
-        try:
-            start_time = time.monotonic()
-            await self._client.get_me()
-            return (time.monotonic() - start_time) * 1000
-        except Exception as e:
-            self._logger.error(f"Ping measurement error: {e}")
-            return 0.0
-
-    @safe_async_call(max_retries=2)
-    async def _fetch_chat_statistics(self, chat) -> ChatStatistics:
-        """Fetch comprehensive chat statistics"""
-        try:
-            chat_type = (
-                "Supergroup"
-                if isinstance(chat, types.Channel) and chat.megagroup
-                else (
-                    "Channel"
-                    if isinstance(chat, types.Channel)
-                    else "Group" if isinstance(chat, types.Chat) else "Unknown"
-                )
-            )
-
-            full_chat = await (
-                self._client(GetFullChannelRequest(chat))
-                if isinstance(chat, types.Channel)
-                else self._client(GetFullChatRequest(chat.id))
-            )
-
-            members_count = getattr(full_chat.full_chat, "participants_count", 0)
-            total_messages = getattr(full_chat.full_chat, "read_outbox_max_id", 0)
-
-            admins_count = bots_count = deleted_accounts = 0
+        Returns:
+            float: Средняя задержка в миллисекундах
+        """
+        latencies = []
+        for attempt in range(attempts):
             try:
-                if isinstance(chat, types.Channel):
-                    admins = await self._client.get_participants(
-                        chat, filter=ChannelParticipantsAdmins, limit=None
-                    )
-                    admins_count = len(admins)
+                start = asyncio.get_event_loop().time()
+                async with asyncio.timeout(timeout):
+                    await self._telethon_client.get_me()
+                latency = (asyncio.get_event_loop().time() - start) * 1000
+                latencies.append(latency)
+            except asyncio.TimeoutError:
+                self._logger.warning(f"Timeout in latency measurement, attempt {attempt + 1}")
+            except Exception as e:
+                self._logger.error(f"Ping measurement error: {e}")
+        
+        return sum(latencies) / len(latencies) if latencies else -1.0
 
-                    participants = await self._client.get_participants(chat, limit=200)
-                    bots_count = sum(1 for p in participants if p.bot)
-                    deleted_accounts = sum(1 for p in participants if p.deleted)
-            except (ChatAdminRequiredError, FloodWaitError) as e:
-                self._logger.warning(f"Participant fetch error: {e}")
-            return ChatStatistics(
-                title=utils.escape_html(getattr(chat, "title", "Unknown")),
-                chat_id=chat.id,
-                chat_type=chat_type,
-                members=members_count,
-                deleted_accounts=deleted_accounts,
-                admins=admins_count,
-                bots=bots_count,
-                total_messages=total_messages,
+    async def analyze_chat_comprehensive(
+        self, 
+        chat: Union[Chat, Channel],
+        detailed: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Расширенный комплексный анализ группового чата
+
+        Args:
+            chat (Union[Chat, Channel]): Объект чата для анализа
+            detailed (bool): Флаг для получения детальной информации
+
+        Returns:
+            Dict[str, Any]: Словарь с расширенной аналитикой чата
+        """
+        try:
+            # Определение типа чата с точной классификацией
+            chat_type = self._classify_chat_type(chat)
+            
+            # Получение полной информации о чате
+            full_chat_info = await self._get_full_chat_info(chat)
+            
+            # Получение участников с расширенной диагностикой
+            participants = await self._get_participants_comprehensive(chat)
+            
+            # Подсчет сообщений с продвинутой фильтрацией
+            messages_stats = await self._analyze_messages(chat)
+
+            result = {
+                'title': getattr(chat, 'title', 'Unknown'),
+                'chat_id': chat.id,
+                'type': chat_type,
+                'total_members': participants['total'],
+                'active_members': participants['active'],
+                'verified_admins': participants['admins'],
+                'bots': participants['bots'],
+                'messages_stats': messages_stats
+            }
+
+            if detailed:
+                result.update(full_chat_info)
+
+            return result
+
+        except Exception as e:
+            self._logger.error(
+                "Comprehensive chat analysis failed",
+                chat_id=getattr(chat, 'id', 'unknown'),
+                error=str(e),
+                trace=traceback.format_exc()
             )
-        except Exception as e:
-            self._logger.error(f"Chat statistics fetch failed: {e}")
-            return ChatStatistics()
+            return {}
 
-    @loader.command()
-    async def pong(self, message):
-        """Inline ping command"""
-        await self._process_ping(message)
+    def _classify_chat_type(
+        self, 
+        chat: Union[Chat, Channel]
+    ) -> str:
+        """
+        Точная классификация типа чата
 
-    async def _process_ping(self, message, call: Optional[types.CallbackQuery] = None):
-        """Core ping processing method"""
+        Returns:
+            str: Классифицированный тип чата
+        """
+        if isinstance(chat, Channel):
+            return "Канал" if chat.broadcast else "Супергруппа"
+        return "Группа"
+
+    async def _get_full_chat_info(
+        self, 
+        chat: Union[Chat, Channel]
+    ) -> Dict[str, Any]:
+        """
+        Получение полной расширенной информации о чате
+
+        Returns:
+            Dict[str, Any]: Расширенные метаданные
+        """
         try:
-            ping_time = await self._measure_ping()
-            chat = await self._client.get_entity(message.chat_id)
-            stats = await self._fetch_chat_statistics(chat)
-
-            async def refresh_callback(call):
-                try:
-                    new_ping_time = await self._measure_ping()
-                    await call.edit(
-                        stats.to_formatted_string(new_ping_time),
-                        reply_markup=self._create_refresh_button(refresh_callback),
-                    )
-                except Exception as e:
-                    self._logger.error(f"Refresh callback error: {e}")
-                    await call.edit(f"Error refreshing: {e}")
-
-            refresh_button = self._create_refresh_button(refresh_callback)
-
-            if call:
-                await call.edit(
-                    stats.to_formatted_string(ping_time), reply_markup=refresh_button
-                )
-            else:
-                await self.inline.form(
-                    stats.to_formatted_string(ping_time),
-                    message=message,
-                    reply_markup=refresh_button,
-                )
+            if isinstance(chat, Channel):
+                full_chat = await self._telethon_client(GetFullChannelRequest(chat))
+                return {
+                    'username': chat.username or 'N/A',
+                    'description': full_chat.full_chat.about or 'Нет описания',
+                    'creation_date': str(chat.date),
+                    'participants_count': full_chat.full_chat.participants_count
+                }
+            return {}
         except Exception as e:
-            error_text = self.strings["error_message"].format(error=str(e))
-            await self.inline.form(error_text, message=message)
+            self._logger.warning(f"Full chat info retrieval error: {e}")
+            return {}
 
-    def _create_refresh_button(
-        self, callback: Optional[Callable] = None
-    ) -> List[Dict[str, Any]]:
-        """Create inline refresh button"""
-        safe_callback = callback if callable(callback) else (lambda c: None)
-        return [{"text": "🔄 Refresh", "callback": safe_callback}]
+    async def _get_participants_comprehensive(
+        self, 
+        chat: Union[Chat, Channel]
+    ) -> Dict[str, int]:
+        """
+        Расширенный анализ участников чата с мультиклиентным подходом
 
-    async def ping_inline_handler(self, query):
-        """Inline query handler for ping requests"""
-        ping_time = await self._measure_ping()
-
+        Returns:
+            Dict[str, int]: Статистика участников
+        """
         try:
-            if query.chat_id:
-                chat = await self._client.get_entity(query.chat_id)
-                stats = await self._fetch_chat_statistics(chat)
+            # Попытка получения через Telethon
+            participants: ChannelParticipants = await self._telethon_client.get_participants(chat)
+            
+            stats = {
+                'total': len(participants),
+                'active': sum(1 for p in participants if not hasattr(p, 'deleted') or not p.deleted),
+                'admins': await self._count_admins(chat),
+                'bots': sum(1 for p in participants if hasattr(p, 'bot') and p.bot)
+            }
 
-                async def _update_ping(call):
-                    new_ping_time = await self._measure_ping()
-                    await call.edit(
-                        stats.to_formatted_string(new_ping_time),
-                        reply_markup=[
-                            [{"text": "🔄 Refresh", "callback": _update_ping}]
-                        ],
-                    )
+            self._logger.info(
+                "Participants analysis complete", 
+                total_members=stats['total'], 
+                active_members=stats['active']
+            )
+            return stats
 
-                reply_markup = [[{"text": "🔄 Refresh", "callback": _update_ping}]]
-                message_text = stats.to_formatted_string(ping_time)
-            else:
-                message_text = f"🏓 <b>Ping:</b> {ping_time:.2f} ms"
-                reply_markup = None
-            return [
-                {
-                    "type": "article",
-                    "id": "ping_result",
-                    "title": f"Ping: {ping_time:.2f} ms",
-                    "description": (
-                        "Ping и статистика чата" if query.chat_id else "Ping"
-                    ),
-                    "input_message_content": {
-                        "message_text": message_text,
-                        "parse_mode": "HTML",
-                    },
-                    "reply_markup": reply_markup,
-                    "thumb_url": "https://te.legra.ph/file/5d8c7f1960a3e126d916a.jpg",
-                }
-            ]
         except Exception as e:
-            return [
-                {
-                    "type": "article",
-                    "id": "error_result",
-                    "title": "Ошибка",
-                    "description": "Произошла ошибка",
-                    "input_message_content": {
-                        "message_text": self.strings["error_message"].format(
-                            error=str(e)
-                        ),
-                        "parse_mode": "HTML",
-                    },
-                }
-            ]
+            self._logger.error(
+                "Participants analysis error",
+                error=str(e),
+                trace=traceback.format_exc()
+            )
+            return {'total': 0, 'active': 0, 'admins': 0, 'bots': 0}
+
+    async def _count_admins(
+        self, 
+        chat: Union[Chat, Channel]
+    ) -> int:
+        """
+        Надёжный подсчёт администраторов с расширенной диагностикой
+
+        Returns:
+            int: Количество администраторов
+        """
+        try:
+            # Попытка получения администраторов через Telethon
+            participants = await self._telethon_client.get_participants(
+                chat, 
+                filter=ChannelParticipantAdmin
+            )
+            
+            admin_count = len(participants)
+            
+            self._logger.info(
+                "Admin count retrieved", 
+                chat_id=chat.id, 
+                admin_count=admin_count
+            )
+            
+            return admin_count
+
+        except ChatAdminRequiredError:
+            self._logger.warning(
+                "No admin permissions to retrieve admin list", 
+                chat_id=chat.id
+            )
+            return 0
+        except Exception as e:
+            self._logger.error(
+                "Admin counting failed",
+                error=str(e),
+                trace=traceback.format_exc()
+            )
+            return 0
+
+    async def _analyze_messages(
+        self, 
+        chat: Union[Chat, Channel], 
+        limit: int = 10000
+    ) -> Dict[str, int]:
+        """
+        Продвинутый анализ сообщений с многоуровневой фильтрацией
+
+        Returns:
+            Dict[str, int]: Статистика сообщений
+        """
+        try:
+            messages = await self._telethon_client.get_messages(chat, limit=limit)
+            
+            message_types = {
+                'total': len(messages),
+                'text_messages': sum(1 for msg in messages if msg.text),
+                'media_messages': sum(1 for msg in messages if msg.media),
+                'service_messages': sum(1 for msg in messages if msg.service)
+            }
+
+            return message_types
+
+        except Exception as e:
+            self._logger.warning(f"Message analysis error: {e}")
+            return {'total': 0, 'text_messages': 0, 'media_messages': 0, 'service_messages': 0}
+
+class PrecisionChatModule:
+    """Модуль прецизионного анализа чатов"""
+
+    def __init__(self, client: TelegramClient):
+        """
+        Инициализация модуля с расширенным анализатором
+        
+        Args:
+            client (TelegramClient): Клиент Telegram
+        """
+        self.analyzer = TelegramChatAnalyzer(client)
+        self.logger = structlog.get_logger(self.__class__.__name__)
+
+    async def get_chat_stats(
+        self, 
+        message: Any
+    ) -> Dict[str, Any]:
+        """
+        Получение расширенной статистики чата с диагностикой
+
+        Args:
+            message (Any): Объект сообщения
+
+        Returns:
+            Dict[str, Any]: Статистика чата
+        """
+        try:
+            # Замер задержки с повышенной точностью
+            ping_time = await self.analyzer.measure_network_latency()
+            
+            # Получение текущего чата
+            chat = await message.get_chat()
+            
+            # Получение статистики
+            stats = await self.analyzer.analyze_chat_comprehensive(chat, detailed=True)
+
+            self.logger.info(
+                "Chat stats retrieved successfully", 
+                chat_id=chat.id, 
+                ping_time=ping_time
+            )
+
+            return {**stats, 'ping_time': ping_time}
+
+        except Exception as e:
+            self.logger.error(
+                "Chat stats retrieval failed",
+                error=str(e),
+                trace=traceback.format_exc()
+            )
+            return {}
