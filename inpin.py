@@ -2,19 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Union, Dict, Optional, List, Any
+from typing import Dict, Optional, Any
 
 from telethon import TelegramClient
-from telethon.tl.types import Chat, ChatFull
+from telethon.tl.types import Chat
 from telethon.errors import (
     ChatAdminRequiredError, 
     FloodWaitError, 
     RPCError,
     UserNotParticipantError
 )
-
-from pyrogram import Client as PyrogramClient
-from pyrogram.types import ChatMember, ChatMemberStatus
 
 import structlog
 import traceback
@@ -24,18 +21,15 @@ class TelegramGroupAnalyzer:
 
     def __init__(
         self, 
-        telethon_client: TelegramClient, 
-        pyrogram_client: Optional[PyrogramClient] = None
+        telethon_client: TelegramClient
     ):
         """
-        Инициализация анализатора с поддержкой мультиклиентности
+        Инициализация анализатора с Telethon клиентом
 
         Args:
             telethon_client (TelegramClient): Основной Telethon клиент
-            pyrogram_client (Optional[PyrogramClient]): Дополнительный Pyrogram клиент
         """
         self._telethon_client = telethon_client
-        self._pyrogram_client = pyrogram_client
         
         # Использование структурированного логирования
         self._logger = structlog.get_logger(self.__class__.__name__)
@@ -124,7 +118,7 @@ class TelegramGroupAnalyzer:
         chat: Chat
     ) -> Dict[str, int]:
         """
-        Расширенный анализ участников чата с мультиклиентным подходом
+        Расширенный анализ участников чата
 
         Returns:
             Dict[str, int]: Статистика участников
