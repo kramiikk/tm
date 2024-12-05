@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Union, Dict, Optional
+from typing import Union, Dict, List
 
 from telethon import TelegramClient
 from telethon.tl.types import Chat
@@ -18,20 +18,88 @@ class ProfessionalChatAnalyzer:
         self, 
         attempts: int = 3, 
         timeout: float = 3.0
-    ) -> float:
-        """Измерение сетевой задержки"""
+    ) -> Dict[str, float]:
+        """
+        Комплексное измерение сетевой задержки
+        
+        :return: Словарь с результатами пинга по разным методам
+        """
+        results = {
+            'telethon': -1.0,
+            'rtt': -1.0,
+            'comprehensive': -1.0
+        }
+
         try:
-            latencies = [
-                (asyncio.get_event_loop().time() - 
-                 (start := asyncio.get_event_loop().time())) * 1000 
-                for _ in range(attempts) 
-                if await asyncio.wait_for(self._client.get_me(), timeout=timeout)
-            ]
+            # Метод 1: Telethon get_me()
+            telethon_latencies = []
+            for _ in range(attempts):
+                start = asyncio.get_event_loop().time()
+                try:
+                    await asyncio.wait_for(self._client.get_me(), timeout=timeout/3)
+                    latency = (asyncio.get_event_loop().time() - start) * 1000
+                    telethon_latencies.append(latency)
+                except Exception:
+                    pass
             
-            return sum(latencies) / len(latencies) if latencies else -1.0
+            if telethon_latencies:
+                results['telethon'] = sum(telethon_latencies) / len(telethon_latencies)
+
+            # Метод 2: RTT через центр обработки данных
+            try:
+                dc_options = self._client.session.dc_options
+                if dc_options:
+                    dc = dc_options[0]
+                    start = asyncio.get_event_loop().time()
+                    await asyncio.wait_for(
+                        self._client._connection.connect(
+                            dc.ip_address, 
+                            dc.port, 
+                            dc.id
+                        ), 
+                        timeout=timeout/3
+                    )
+                    results['rtt'] = (asyncio.get_event_loop().time() - start) * 1000
+            except Exception:
+                pass
+
+            # Метод 3: Комплексное измерение
+            comprehensive_latencies = []
+            
+            # Замер через получение диалогов
+            try:
+                start = asyncio.get_event_loop().time()
+                await asyncio.wait_for(
+                    self._client.get_dialogs(limit=1), 
+                    timeout=timeout/3
+                )
+                comprehensive_latencies.append(
+                    (asyncio.get_event_loop().time() - start) * 1000
+                )
+            except Exception:
+                pass
+            
+            # Замер через отправку служебного сообщения самому себе
+            try:
+                start = asyncio.get_event_loop().time()
+                me = await self._client.get_me()
+                await asyncio.wait_for(
+                    self._client.send_message(me.id, "ping"),
+                    timeout=timeout/3
+                )
+                comprehensive_latencies.append(
+                    (asyncio.get_event_loop().time() - start) * 1000
+                )
+            except Exception:
+                pass
+            
+            if comprehensive_latencies:
+                results['comprehensive'] = sum(comprehensive_latencies) / len(comprehensive_latencies)
+
         except Exception as e:
-            self._logger.error(f"Ping measurement error: {e}")
-            return -1.0
+            self._logger.error(f"Ошибка измерения пинга: {e}")
+
+        return results
 
     async def analyze_group_comprehensive(
         self, 
@@ -40,13 +108,11 @@ class ProfessionalChatAnalyzer:
     ) -> Dict[str, Union[str, int]]:
         """Комплексный анализ группового чата"""
         try:
-            # Параллельное получение данных
             participants, messages = await asyncio.gather(
                 self._client.get_participants(chat),
                 self._client.get_messages(chat, limit=message_limit)
             )
 
-            # Определение ботов и активных пользователей
             bots = {p.id for p in participants if getattr(p, 'bot', False)}
             meaningful_messages = [
                 msg for msg in messages 
@@ -66,7 +132,7 @@ class ProfessionalChatAnalyzer:
                 'bots': len(bots)
             }
         except Exception as e:
-            self._logger.error(f"Comprehensive analysis error: {e}")
+            self._logger.error(f"Ошибка анализа чата: {e}")
             return {}
 
 @loader.tds
@@ -76,7 +142,12 @@ class AnalDestrModule(loader.Module):
     strings = {
         "name": "AnalDestroy",
         "error": "❌ <b>Ошибка:</b> {}",
-        "ping_template": "🌐 <b>Ping:</b> {ping_time:.2f} мс",
+        "ping_template": (
+            "🌐 <b>Ping:</b>\n"
+            "• Telethon: {telethon:.2f} мс\n"
+            "• RTT: {rtt:.2f} мс\n"
+            "• Comprehensive: {comprehensive:.2f} мс"
+        ),
         "stats_template": (
             "\n\n📊 <b>Статистика чата:</b>\n"
             "🏷️ <b>Название:</b> {title}\n"
@@ -92,38 +163,31 @@ class AnalDestrModule(loader.Module):
         self._last_context = {
             'chat': None,
             'stats': None,
-            'message': None
+            'ping': None
         }
 
     async def client_ready(self, client, db):
         """Инициализация модуля"""
         self.analyzer = ProfessionalChatAnalyzer(client)
 
-    def _format_stats_message(self, ping_time: float, stats: Dict) -> str:
-        """Форматирование сообщения со статистикой"""
-        full_text = self.strings["ping_template"].format(ping_time=ping_time)
-        if stats:
-            full_text += self.strings["stats_template"].format(
-                title=utils.escape_html(stats.get('title', 'Неизвестно')),
-                chat_id=stats.get('chat_id', 'N/A'),
-                total_messages=stats.get('total_messages', '🔄'),
-                active_members=stats.get('active_members', '🔄'),
-                bots=stats.get('bots', '🔄')
-            )
-        return full_text
-
     async def _update_ping(self, call):
         """Обновление пинга с сохранением статистики"""
         try:
-            # Измеряем новый пинг
-            ping_time = await self.analyzer.measure_network_latency()
+            # Измеряем пинг всеми методами
+            ping_results = await self.analyzer.measure_network_latency()
             
-            # Формируем полный текст с пингом и статистикой
-            full_text = self._format_stats_message(ping_time, self._last_context['stats'])
+            # Формируем текст
+            ping_text = self.strings["ping_template"].format(**ping_results)
+            
+            # Добавляем статистику, если была
+            if self._last_context['stats']:
+                ping_text += self.strings["stats_template"].format(
+                    **self._last_context['stats']
+                )
 
             # Обновляем сообщение
             await call.edit(
-                full_text, 
+                ping_text, 
                 reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
             )
         except Exception as e:
@@ -131,22 +195,22 @@ class AnalDestrModule(loader.Module):
 
     @loader.command()
     async def pstat(self, message):
-        """Команда получения расширенной статистики группы"""
+        """Команда получения расширенной статистики"""
         try:
             # Получаем текущий чат
             chat = await message.get_chat()
             
-            # Измеряем первоначальный пинг
-            ping_time = await self.analyzer.measure_network_latency()
+            # Измеряем пинг
+            ping_results = await self.analyzer.measure_network_latency()
 
-            # Отправляем первичное сообщение только с пингом
+            # Отправляем первичное сообщение с пингом
             response_message = await self.inline.form(
-                self.strings["ping_template"].format(ping_time=ping_time),
+                self.strings["ping_template"].format(**ping_results),
                 message=message,
                 reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
             )
 
-            # Асинхронный сбор полной статистики
+            # Асинхронный сбор статистики
             async def update_stats():
                 try:
                     # Собираем статистику
@@ -155,17 +219,21 @@ class AnalDestrModule(loader.Module):
                     # Сохраняем контекст
                     self._last_context['chat'] = chat
                     self._last_context['stats'] = stats
+                    self._last_context['ping'] = ping_results
 
                     # Формируем полный текст
-                    full_text = self._format_stats_message(ping_time, stats)
+                    full_text = (
+                        self.strings["ping_template"].format(**ping_results) +
+                        self.strings["stats_template"].format(**stats)
+                    )
 
-                    # Обновляем сообщение с пингом и статистикой
+                    # Обновляем сообщение
                     await response_message.edit(
                         full_text,
                         reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
                     )
                 except Exception as e:
-                    logging.error(f"Stats update error: {e}")
+                    logging.error(f"Ошибка обновления статистики: {e}")
 
             # Запускаем сбор статистики в фоне
             asyncio.create_task(update_stats())
