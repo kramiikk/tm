@@ -218,21 +218,57 @@ class AnalDestrModule(loader.Module):
 
     @loader.command()
     async def pstat(self, message):
-        """Команда получения расширенной статистики"""
+        """Команда получения расширенной статистики чата"""
         try:
-            # Получаем текущий чат
-            chat = await message.get_chat()
+            # Проверяем, передан ли ID чата в аргументе
+            chat_id_arg = utils.get_args_raw(message)
             
+            if chat_id_arg:
+                # Пытаемся получить чат по переданному ID
+                try:
+                    chat = await self._client.get_entity(int(chat_id_arg))
+                except (ValueError, TypeError):
+                    try:
+                        # Пробуем как username
+                        chat = await self._client.get_entity(chat_id_arg)
+                    except Exception:
+                        await self.inline.form(
+                            self.strings["error"].format("Не удалось найти чат по указанному ID/Username"), 
+                            message=message
+                        )
+                        return
+            else:
+                # Если ID не передан, берем текущий чат
+                chat = await message.get_chat()
+    
+            # Проверяем, что это группа или супергруппа
+            from telethon.tl.types import ChatForbidden, ChatFull
+            from telethon.tl.types import ChatParticipantsForbidden
+    
+            if not (
+                isinstance(chat, Chat) or 
+                getattr(chat, 'megagroup', False) or 
+                (
+                    hasattr(chat, 'chat_type') and 
+                    chat.chat_type in ['group', 'supergroup']
+                )
+            ):
+                await self.inline.form(
+                    self.strings["error"].format("Статистика доступна только для групп и супергрупп"), 
+                    message=message
+                )
+                return
+    
             # Измеряем пинг
             ping_results = await self.analyzer.measure_network_latency()
-
+    
             # Отправляем первичное сообщение с пингом
             response_message = await self.inline.form(
                 self.strings["ping_template"].format(**ping_results),
                 message=message,
                 reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
             )
-
+    
             # Асинхронный сбор статистики
             async def update_stats():
                 try:
@@ -243,13 +279,13 @@ class AnalDestrModule(loader.Module):
                     self._last_context['chat'] = chat
                     self._last_context['stats'] = stats
                     self._last_context['ping'] = ping_results
-
+    
                     # Формируем полный текст
                     full_text = (
                         self.strings["ping_template"].format(**ping_results) +
                         self.strings["stats_template"].format(**stats)
                     )
-
+    
                     # Обновляем сообщение
                     await response_message.edit(
                         full_text,
@@ -257,10 +293,10 @@ class AnalDestrModule(loader.Module):
                     )
                 except Exception as e:
                     logging.error(f"Ошибка обновления статистики: {e}")
-
+    
             # Запускаем сбор статистики в фоне
             asyncio.create_task(update_stats())
-
+    
         except Exception as e:
             await self.inline.form(
                 self.strings["error"].format(str(e)), 
