@@ -172,8 +172,8 @@ class AnalDestrModule(loader.Module):
             "• RTT: {rtt:.2f} мс\n"
         ),
         "stats_template": (
-            "\n\n<b>Статистика чата:</b>\n"
-            "🏷️ <b>Название:</b> {title}\n"
+            "\n<b>Статистика чата:</b>\n"
+            "🏷️ Название: {title}\n"
             "🆔 ID: <code>{chat_id}</code>\n"
             "💬 Сообщений: {total_messages}\n"
             "👥 Активные участники: {active_members}\n"
