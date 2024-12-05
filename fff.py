@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Union, Dict, Set, Tuple, Optional
+from typing import Union, Dict, Optional
 
 from telethon import TelegramClient
 from telethon.tl.types import Chat
@@ -13,20 +13,6 @@ class ProfessionalChatAnalyzer:
     def __init__(self, client: TelegramClient):
         self._client = client
         self._logger = logging.getLogger(self.__class__.__name__)
-
-    async def _safe_network_call(
-        self, 
-        coro, 
-        default_return=None, 
-        log_error: Optional[str] = None
-    ):
-        """Универсальный обработчик сетевых вызовов"""
-        try:
-            return await coro
-        except Exception as e:
-            if log_error:
-                self._logger.error(f"{log_error}: {e}")
-            return default_return
 
     async def measure_network_latency(
         self, 
@@ -56,16 +42,8 @@ class ProfessionalChatAnalyzer:
         try:
             # Параллельное получение участников и сообщений
             participants, messages = await asyncio.gather(
-                self._safe_network_call(
-                    self._client.get_participants(chat), 
-                    default_return=[], 
-                    log_error="Participants retrieval error"
-                ),
-                self._safe_network_call(
-                    self._client.get_messages(chat, limit=message_limit), 
-                    default_return=[], 
-                    log_error="Messages retrieval error"
-                )
+                self._client.get_participants(chat),
+                self._client.get_messages(chat, limit=message_limit)
             )
 
             # Определение ботов
@@ -97,52 +75,54 @@ class ProfessionalChatAnalyzer:
 
 @loader.tds
 class AnalDestrModule(loader.Module):
-    """Анализатор Дестройер"""
+    """Расширенный анализатор чата"""
 
     strings = {
-        "name": "Analdestr",
+        "name": "AnalDestroy",
         "error": "❌ <b>Ошибка:</b> {}",
+        "ping_template": "🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс",
+        "stats_template": (
+            "\n\n📊 <b>Статистика чата:</b>\n"
+            "🏷️ <b>Название:</b> {title}\n"
+            "🆔 ID: <code>{chat_id}</code>\n"
+            "👥 Активные участники: {active_members}\n"
+            "🤖 Боты: {bots}\n"
+            "💬 Сообщений: {total_messages}"
+        )
     }
 
     def __init__(self):
         self.analyzer = None
+        self.last_chat = None
+        self.last_stats = None
         self.last_message = None
 
     async def client_ready(self, client, db):
         """Инициализация модуля"""
         self.analyzer = ProfessionalChatAnalyzer(client)
 
-    def _generate_stats_text(self, ping_time: float, chat, stats: Dict) -> str:
-        """Генерация текста статистики"""
-        return (
-            f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
-            f"<b>{utils.escape_html(getattr(chat, 'title', 'Неизвестно'))}:</b>\n"
-            f"ID: <code>{chat.id}</code>\n"
-            f"Активные участники: {stats.get('active_members', 'Не определено')}\n"
-            f"Боты: {stats.get('bots', 'Не определено')}\n"
-            f"Сообщений: {stats.get('total_messages', 'Не определено')}"
-        )
-
     async def _update_ping(self, call):
-        """Обновление пинга"""
+        """Обновление пинга с сохранением статистики"""
         try:
-            # Извлекаем сохраненное сообщение и последнюю использованную статистику
-            if not hasattr(self, 'last_message') or not self.last_message:
-                await call.answer("Нет данных для обновления", show_alert=True)
-                return
-
+            # Измеряем новый пинг
             ping_time = await self.analyzer.measure_network_latency()
             
-            # Обновляем только пинг в существующем сообщении
-            await self.last_message.edit(
-                self._generate_stats_text(
-                    ping_time, 
-                    self.last_message.chat, 
-                    self.last_message.stats
-                ),
+            # Формируем полный текст - пинг + прошлая статистика
+            full_text = self.strings["ping_template"].format(ping_time=ping_time)
+            if self.last_stats:
+                full_text += self.strings["stats_template"].format(
+                    title=utils.escape_html(self.last_stats.get('title', 'Неизвестно')),
+                    chat_id=self.last_stats.get('chat_id', 'N/A'),
+                    active_members=self.last_stats.get('active_members', '🔄'),
+                    bots=self.last_stats.get('bots', '🔄'),
+                    total_messages=self.last_stats.get('total_messages', '🔄')
+                )
+
+            # Обновляем сообщение
+            await call.edit(
+                full_text, 
                 reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
             )
-
         except Exception as e:
             await call.answer(f"Ошибка обновления: {str(e)}", show_alert=True)
 
@@ -150,35 +130,50 @@ class AnalDestrModule(loader.Module):
     async def pstat(self, message):
         """Команда получения расширенной статистики группы"""
         try:
+            # Получаем текущий чат
             chat = await message.get_chat()
+            
+            # Измеряем первоначальный пинг
             ping_time = await self.analyzer.measure_network_latency()
 
-            # Первичное сообщение с заглушкой
+            # Отправляем первичное сообщение только с пингом
             response_message = await self.inline.form(
-                self._generate_stats_text(ping_time, chat, {
-                    'active_members': 'Подсчет...',
-                    'bots': 'Поиск...',
-                    'total_messages': 'Анализ...'
-                }),
+                self.strings["ping_template"].format(ping_time=ping_time),
                 message=message,
                 reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
             )
 
             # Асинхронный сбор полной статистики
             async def update_stats():
-                stats = await self.analyzer.analyze_group_comprehensive(chat)
-                new_ping_time = await self.analyzer.measure_network_latency()
-                
-                # Сохраняем сообщение с полной статистикой для последующих обновлений
-                self.last_message = response_message
-                self.last_message.chat = chat
-                self.last_message.stats = stats
+                try:
+                    # Собираем статистику
+                    stats = await self.analyzer.analyze_group_comprehensive(chat)
+                    
+                    # Сохраняем статистику для последующих обновлений
+                    self.last_stats = stats
+                    self.last_chat = chat
 
-                await response_message.edit(
-                    self._generate_stats_text(new_ping_time, chat, stats),
-                    reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
-                )
+                    # Формируем полный текст - пинг + статистика
+                    full_text = (
+                        self.strings["ping_template"].format(ping_time=ping_time) +
+                        self.strings["stats_template"].format(
+                            title=utils.escape_html(stats.get('title', 'Неизвестно')),
+                            chat_id=stats.get('chat_id', 'N/A'),
+                            active_members=stats.get('active_members', '🔄'),
+                            bots=stats.get('bots', '🔄'),
+                            total_messages=stats.get('total_messages', '🔄')
+                        )
+                    )
 
+                    # Обновляем сообщение с пингом и статистикой
+                    await response_message.edit(
+                        full_text,
+                        reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
+                    )
+                except Exception as e:
+                    self._logger.error(f"Stats update error: {e}")
+
+            # Запускаем сбор статистики в фоне
             asyncio.create_task(update_stats())
 
         except Exception as e:
