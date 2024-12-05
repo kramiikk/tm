@@ -106,41 +106,40 @@ class AnalDestrModule(loader.Module):
 
     def __init__(self):
         self.analyzer = None
-        self.last_stats = None
+        self.last_message = None
 
     async def client_ready(self, client, db):
         """Инициализация модуля"""
         self.analyzer = ProfessionalChatAnalyzer(client)
 
-    def _generate_stats_text(self, ping_time: float, stats: Dict) -> str:
+    def _generate_stats_text(self, ping_time: float, chat, stats: Dict) -> str:
         """Генерация текста статистики"""
         return (
             f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
-            f"<b>{utils.escape_html(stats.get('title', 'Неизвестно'))}:</b>\n"
-            f"ID: <code>{stats.get('chat_id', 'N/A')}</code>\n"
-            f"Активные участники: {stats.get('active_members', 0)}\n"
-            f"Боты: {stats.get('bots', 0)}\n"
-            f"Сообщений: {stats.get('total_messages', 0)}"
+            f"<b>{utils.escape_html(getattr(chat, 'title', 'Неизвестно'))}:</b>\n"
+            f"ID: <code>{chat.id}</code>\n"
+            f"Активные участники: {stats.get('active_members', 'Не определено')}\n"
+            f"Боты: {stats.get('bots', 'Не определено')}\n"
+            f"Сообщений: {stats.get('total_messages', 'Не определено')}"
         )
 
     async def _update_ping(self, call):
         """Обновление пинга"""
         try:
-            # Проверка существования объекта last_stats
-            if not hasattr(self, 'last_stats') or not self.last_stats:
-                await call.answer("Нет предыдущих статистических данных", show_alert=True)
+            # Извлекаем сохраненное сообщение и последнюю использованную статистику
+            if not hasattr(self, 'last_message') or not self.last_message:
+                await call.answer("Нет данных для обновления", show_alert=True)
                 return
 
             ping_time = await self.analyzer.measure_network_latency()
-            stats = self.last_stats.get('stats', {})
-
-            # Проверка наличия stats
-            if not stats:
-                await call.answer("Статистика еще не собрана", show_alert=True)
-                return
-
-            await call.message.edit(
-                self._generate_stats_text(ping_time, stats),
+            
+            # Обновляем только пинг в существующем сообщении
+            await self.last_message.edit(
+                self._generate_stats_text(
+                    ping_time, 
+                    self.last_message.chat, 
+                    self.last_message.stats
+                ),
                 reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
             )
 
@@ -156,9 +155,7 @@ class AnalDestrModule(loader.Module):
 
             # Первичное сообщение с заглушкой
             response_message = await self.inline.form(
-                self._generate_stats_text(ping_time, {
-                    'title': getattr(chat, 'title', 'Неизвестно'),
-                    'chat_id': chat.id,
+                self._generate_stats_text(ping_time, chat, {
                     'active_members': 'Подсчет...',
                     'bots': 'Поиск...',
                     'total_messages': 'Анализ...'
@@ -172,14 +169,13 @@ class AnalDestrModule(loader.Module):
                 stats = await self.analyzer.analyze_group_comprehensive(chat)
                 new_ping_time = await self.analyzer.measure_network_latency()
                 
-                # Сохраняем последние статистические данные
-                self.last_stats = {
-                    'chat': chat,
-                    'stats': stats
-                }
+                # Сохраняем сообщение с полной статистикой для последующих обновлений
+                self.last_message = response_message
+                self.last_message.chat = chat
+                self.last_message.stats = stats
 
                 await response_message.edit(
-                    self._generate_stats_text(new_ping_time, stats),
+                    self._generate_stats_text(new_ping_time, chat, stats),
                     reply_markup=[[{"text": "🔄 Обновить пинг", "callback": self._update_ping}]]
                 )
 
