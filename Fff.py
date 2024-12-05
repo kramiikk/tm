@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Union, Dict, Optional, List
+from typing import Union, Dict, Optional, List, Set, Tuple
 
 from telethon import TelegramClient
 from telethon.tl.types import (
     Chat, 
     User, 
-    Message,
-    ChatParticipant
+    Message
 )
 
 from .. import loader, utils
@@ -17,7 +16,7 @@ from .. import loader, utils
 logger = logging.getLogger(__name__)
 
 class ProfessionalChatAnalyzer:
-    """Профессиональный класс для анализа групповых чатов"""
+    """Профессиональный класс для анализа групповых чатов по активности сообщений"""
 
     def __init__(self, client: TelegramClient):
         """
@@ -59,40 +58,34 @@ class ProfessionalChatAnalyzer:
     async def analyze_group_comprehensive(
         self, 
         chat: Chat, 
-        detailed: bool = False
+        detailed: bool = False,
+        message_limit: int = 5000
     ) -> Dict[str, Union[str, int]]:
         """
-        Комплексный анализ группового чата с расширенной диагностикой
+        Комплексный анализ группового чата с определением активности по сообщениям
 
         Args:
             chat (Chat): Объект чата для анализа
             detailed (bool): Флаг для получения детальной информации
+            message_limit (int): Лимит сообщений для анализа
 
         Returns:
             Dict[str, Union[str, int]]: Словарь с аналитикой чата
         """
         try:
-            # Получение всех участников с расширенной диагностикой
-            all_participants = await self._get_participants(chat)
+            # Получение сообщений и анализ активности
+            active_users, total_messages = await self._analyze_message_activity(chat, message_limit)
             
-            # Комплексный анализ участников
-            participants = self._get_participants_comprehensive(all_participants)
-            
-            # Подсчет сообщений с продвинутой фильтрацией
-            messages_count = await self._count_meaningful_messages(chat)
-
-            # Подсчет администраторов с детальной обработкой
-            admin_count = self._count_group_admins(all_participants)
+            # Получение статистики ботов
+            bots_count = await self._count_bots(chat)
 
             result = {
                 'title': getattr(chat, 'title', 'Unknown'),
                 'chat_id': chat.id,
                 'type': 'Группа',
-                'total_members': participants['total'],
-                'active_members': participants['active'],
-                'admins': admin_count,
-                'bots': participants['bots'],
-                'total_messages': messages_count
+                'active_members': len(active_users),
+                'bots': bots_count,
+                'total_messages': total_messages
             }
 
             if detailed:
@@ -104,89 +97,78 @@ class ProfessionalChatAnalyzer:
             self._logger.error(f"Group analysis error: {e}")
             return {}
 
-    async def _get_participants(
-        self, 
-        chat: Chat
-    ) -> List[User]:
-        """
-        Получение всех участников группы
-
-        Returns:
-            List[User]: Список участников
-        """
-        try:
-            return await self._client.get_participants(chat)
-        except Exception as e:
-            self._logger.error(f"Participants retrieval error: {e}")
-            return []
-
-    def _get_participants_comprehensive(
-        self, 
-        all_participants: List[User]
-    ) -> Dict[str, int]:
-        """
-        Расширенный анализ участников группы с точной диагностикой
-
-        Returns:
-            Dict[str, int]: Статистика участников
-        """
-        stats = {
-            'total': len(all_participants),
-            'active': sum(1 for p in all_participants if not hasattr(p, 'deleted') or not p.deleted),
-            'bots': sum(1 for p in all_participants if hasattr(p, 'bot') and p.bot)
-        }
-
-        self._logger.info(f"Participants analysis complete", extra=stats)
-        return stats
-
-    def _count_group_admins(
-        self, 
-        all_participants: List[User]
-    ) -> int:
-        """
-        Надёжный подсчёт администраторов группы с расширенной диагностикой
-        
-        Returns:
-            int: Количество администраторов
-        """
-        try:
-            admin_count = len([
-                u for u in all_participants 
-                if u.participant and getattr(u.participant, 'admin_rights', None)
-            ])
-    
-            self._logger.info(f"Admin count retrieved: {admin_count}")
-            return admin_count
-    
-        except Exception as e:
-            self._logger.error(f"Admin counting failed: {e}")
-            return 0
-
-    async def _count_meaningful_messages(
+    async def _analyze_message_activity(
         self, 
         chat: Chat, 
-        limit: int = 10000
-    ) -> int:
+        message_limit: int = 5000
+    ) -> Tuple[Set[int], int]:
         """
-        Подсчет релевантных сообщений с продвинутой фильтрацией
+        Анализ активности пользователей по сообщениям
 
         Args:
             chat (Chat): Группа для анализа
-            limit (int): Максимальное количество сообщений
+            message_limit (int): Максимальное количество сообщений
 
         Returns:
-            int: Количество значимых сообщений
+            Tuple[Set[int], int]: Множество активных пользователей и общее число сообщений
         """
         try:
-            messages = await self._client.get_messages(chat, limit=limit)
+            # Получаем список всех ботов в группе
+            bots = await self._get_bot_ids(chat)
+
+            messages = await self._client.get_messages(chat, limit=message_limit)
+            
+            # Фильтрация значимых сообщений
             meaningful_messages = [
                 msg for msg in messages 
                 if (hasattr(msg, 'text') and msg.text and len(msg.text.strip()) > 0) and
                    (not hasattr(msg, 'service') or not msg.service)
             ]
-            return len(meaningful_messages)
+
+            # Определение уникальных активных пользователей (исключая ботов)
+            active_users = {
+                msg.sender_id for msg in meaningful_messages 
+                if msg.sender_id is not None and msg.sender_id not in bots
+            }
+
+            return active_users, len(meaningful_messages)
+
         except Exception as e:
-            self._logger.warning(f"Message counting error: {e}")
+            self._logger.warning(f"Message activity analysis error: {e}")
+            return set(), 0
+
+    async def _get_bot_ids(self, chat: Chat) -> Set[int]:
+        """
+        Получение ID ботов в группе
+
+        Args:
+            chat (Chat): Группа для анализа
+
+        Returns:
+            Set[int]: Множество ID ботов
+        """
+        try:
+            participants = await self._client.get_participants(chat)
+            return {p.id for p in participants if hasattr(p, 'bot') and p.bot}
+        except Exception as e:
+            self._logger.error(f"Bot ID retrieval error: {e}")
+            return set()
+
+    async def _count_bots(self, chat: Chat) -> int:
+        """
+        Подсчет количества ботов в группе
+
+        Args:
+            chat (Chat): Группа для анализа
+
+        Returns:
+            int: Количество ботов
+        """
+        try:
+            participants = await self._client.get_participants(chat)
+            return sum(1 for p in participants if hasattr(p, 'bot') and p.bot)
+        except Exception as e:
+            self._logger.error(f"Bot counting error: {e}")
             return 0
 
     def _get_detailed_group_metadata(
@@ -235,9 +217,7 @@ class PrecisionGroupModule(loader.Module):
                 f"📊 <b>{utils.escape_html(stats.get('title', 'Неизвестно'))}:</b>\n"
                 f"ID: <code>{stats.get('chat_id', 'N/A')}</code>\n"
                 f"Тип: {stats.get('type', 'Неизвестно')}\n"
-                f"Всего участников: {stats.get('total_members', 0)}\n"
                 f"Активные участники: {stats.get('active_members', 0)}\n"
-                f"Администраторы: {stats.get('admins', 0)}\n"
                 f"Боты: {stats.get('bots', 0)}\n"
                 f"Сообщений: {stats.get('total_messages', 0)}"
             )
