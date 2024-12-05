@@ -5,15 +5,7 @@ import logging
 from typing import Union, Dict, Optional, List, Any
 
 from telethon import TelegramClient
-from telethon.tl.types import (
-    Chat, 
-    User, 
-    Channel,
-    ChatFull,
-    ChannelParticipantAdmin,
-    ChannelParticipants
-)
-from telethon.tl.functions.channels import GetFullChannelRequest
+from telethon.tl.types import Chat, ChatFull
 from telethon.errors import (
     ChatAdminRequiredError, 
     FloodWaitError, 
@@ -27,7 +19,7 @@ from pyrogram.types import ChatMember, ChatMemberStatus
 import structlog
 import traceback
 
-class TelegramChatAnalyzer:
+class TelegramGroupAnalyzer:
     """Профессиональный анализатор групповых чатов с расширенной диагностикой"""
 
     def __init__(
@@ -84,28 +76,22 @@ class TelegramChatAnalyzer:
         
         return sum(latencies) / len(latencies) if latencies else -1.0
 
-    async def analyze_chat_comprehensive(
+    async def analyze_group_comprehensive(
         self, 
-        chat: Union[Chat, Channel],
+        chat: Chat,
         detailed: bool = False
     ) -> Dict[str, Any]:
         """
         Расширенный комплексный анализ группового чата
 
         Args:
-            chat (Union[Chat, Channel]): Объект чата для анализа
+            chat (Chat): Объект чата для анализа
             detailed (bool): Флаг для получения детальной информации
 
         Returns:
             Dict[str, Any]: Словарь с расширенной аналитикой чата
         """
         try:
-            # Определение типа чата с точной классификацией
-            chat_type = self._classify_chat_type(chat)
-            
-            # Получение полной информации о чате
-            full_chat_info = await self._get_full_chat_info(chat)
-            
             # Получение участников с расширенной диагностикой
             participants = await self._get_participants_comprehensive(chat)
             
@@ -115,7 +101,6 @@ class TelegramChatAnalyzer:
             result = {
                 'title': getattr(chat, 'title', 'Unknown'),
                 'chat_id': chat.id,
-                'type': chat_type,
                 'total_members': participants['total'],
                 'active_members': participants['active'],
                 'verified_admins': participants['admins'],
@@ -123,61 +108,20 @@ class TelegramChatAnalyzer:
                 'messages_stats': messages_stats
             }
 
-            if detailed:
-                result.update(full_chat_info)
-
             return result
 
         except Exception as e:
             self._logger.error(
-                "Comprehensive chat analysis failed",
+                "Comprehensive group analysis failed",
                 chat_id=getattr(chat, 'id', 'unknown'),
                 error=str(e),
                 trace=traceback.format_exc()
             )
             return {}
 
-    def _classify_chat_type(
-        self, 
-        chat: Union[Chat, Channel]
-    ) -> str:
-        """
-        Точная классификация типа чата
-
-        Returns:
-            str: Классифицированный тип чата
-        """
-        if isinstance(chat, Channel):
-            return "Канал" if chat.broadcast else "Супергруппа"
-        return "Группа"
-
-    async def _get_full_chat_info(
-        self, 
-        chat: Union[Chat, Channel]
-    ) -> Dict[str, Any]:
-        """
-        Получение полной расширенной информации о чате
-
-        Returns:
-            Dict[str, Any]: Расширенные метаданные
-        """
-        try:
-            if isinstance(chat, Channel):
-                full_chat = await self._telethon_client(GetFullChannelRequest(chat))
-                return {
-                    'username': chat.username or 'N/A',
-                    'description': full_chat.full_chat.about or 'Нет описания',
-                    'creation_date': str(chat.date),
-                    'participants_count': full_chat.full_chat.participants_count
-                }
-            return {}
-        except Exception as e:
-            self._logger.warning(f"Full chat info retrieval error: {e}")
-            return {}
-
     async def _get_participants_comprehensive(
         self, 
-        chat: Union[Chat, Channel]
+        chat: Chat
     ) -> Dict[str, int]:
         """
         Расширенный анализ участников чата с мультиклиентным подходом
@@ -187,7 +131,7 @@ class TelegramChatAnalyzer:
         """
         try:
             # Попытка получения через Telethon
-            participants: ChannelParticipants = await self._telethon_client.get_participants(chat)
+            participants = await self._telethon_client.get_participants(chat)
             
             stats = {
                 'total': len(participants),
@@ -213,7 +157,7 @@ class TelegramChatAnalyzer:
 
     async def _count_admins(
         self, 
-        chat: Union[Chat, Channel]
+        chat: Chat
     ) -> int:
         """
         Надёжный подсчёт администраторов с расширенной диагностикой
@@ -225,7 +169,7 @@ class TelegramChatAnalyzer:
             # Попытка получения администраторов через Telethon
             participants = await self._telethon_client.get_participants(
                 chat, 
-                filter=ChannelParticipantAdmin
+                filter=lambda p: hasattr(p, 'admin') and p.admin
             )
             
             admin_count = len(participants)
@@ -254,7 +198,7 @@ class TelegramChatAnalyzer:
 
     async def _analyze_messages(
         self, 
-        chat: Union[Chat, Channel], 
+        chat: Chat, 
         limit: int = 10000
     ) -> Dict[str, int]:
         """
@@ -279,8 +223,8 @@ class TelegramChatAnalyzer:
             self._logger.warning(f"Message analysis error: {e}")
             return {'total': 0, 'text_messages': 0, 'media_messages': 0, 'service_messages': 0}
 
-class PrecisionChatModule:
-    """Модуль прецизионного анализа чатов"""
+class PrecisionGroupModule:
+    """Модуль прецизионного анализа групп"""
 
     def __init__(self, client: TelegramClient):
         """
@@ -289,34 +233,34 @@ class PrecisionChatModule:
         Args:
             client (TelegramClient): Клиент Telegram
         """
-        self.analyzer = TelegramChatAnalyzer(client)
+        self.analyzer = TelegramGroupAnalyzer(client)
         self.logger = structlog.get_logger(self.__class__.__name__)
 
-    async def get_chat_stats(
+    async def get_group_stats(
         self, 
         message: Any
     ) -> Dict[str, Any]:
         """
-        Получение расширенной статистики чата с диагностикой
+        Получение расширенной статистики группы с диагностикой
 
         Args:
             message (Any): Объект сообщения
 
         Returns:
-            Dict[str, Any]: Статистика чата
+            Dict[str, Any]: Статистика группы
         """
         try:
             # Замер задержки с повышенной точностью
             ping_time = await self.analyzer.measure_network_latency()
             
-            # Получение текущего чата
+            # Получение текущей группы
             chat = await message.get_chat()
             
             # Получение статистики
-            stats = await self.analyzer.analyze_chat_comprehensive(chat, detailed=True)
+            stats = await self.analyzer.analyze_group_comprehensive(chat)
 
             self.logger.info(
-                "Chat stats retrieved successfully", 
+                "Group stats retrieved successfully", 
                 chat_id=chat.id, 
                 ping_time=ping_time
             )
@@ -325,7 +269,7 @@ class PrecisionChatModule:
 
         except Exception as e:
             self.logger.error(
-                "Chat stats retrieval failed",
+                "Group stats retrieval failed",
                 error=str(e),
                 trace=traceback.format_exc()
             )
