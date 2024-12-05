@@ -145,15 +145,15 @@ class ProfessionalChatAnalyzer:
     ) -> int:
         """
         Надёжный подсчёт администраторов группы с расширенной диагностикой
-    
+        
         Returns:
             int: Количество администраторов
         """
         try:
-            admin_count = sum(
-                1 for participant in all_participants 
-                if isinstance(participant, (ChatParticipant, User)) and hasattr(participant, 'status') and participant.status == 'administrator'
-            )
+            admin_count = len([
+                u for u in all_participants 
+                if u.participant and getattr(u.participant, 'admin_rights', None)
+            ])
     
             self._logger.info(f"Admin count retrieved: {admin_count}")
             return admin_count
