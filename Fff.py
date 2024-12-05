@@ -9,8 +9,7 @@ from telethon.tl.types import (
     Chat, 
     User, 
     Message,
-    ChatParticipant,
-    ChatAdminRights
+    ChatParticipant
 )
 
 from .. import loader, utils
@@ -146,17 +145,19 @@ class ProfessionalChatAnalyzer:
     ) -> int:
         """
         Надёжный подсчёт администраторов группы с расширенной диагностикой
-
+    
         Returns:
             int: Количество администраторов
         """
         try:
-            admin_participants = [p for p in all_participants if isinstance(p, User) and hasattr(p, 'admin_rights') and p.admin_rights]
-            admin_count = len(admin_participants)
-
+            admin_count = sum(
+                1 for participant in all_participants 
+                if isinstance(participant, (ChatParticipant, User)) and hasattr(participant, 'status') and participant.status == 'administrator'
+            )
+    
             self._logger.info(f"Admin count retrieved: {admin_count}")
             return admin_count
-
+    
         except Exception as e:
             self._logger.error(f"Admin counting failed: {e}")
             return 0
