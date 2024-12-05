@@ -143,16 +143,16 @@ class ProfessionalChatAnalyzer:
     ) -> int:
         """
         Надёжный подсчёт администраторов группы с расширенной диагностикой
-
+    
         Returns:
             int: Количество администраторов
         """
         try:
-            # Получение участников с фильтром по администраторам
-            admin_participants = await self._client.get_participants(
-                chat, 
-                filter=lambda p: hasattr(p, 'admin') and p.admin
-            )
+            # Получение всех участников
+            all_participants = await self._client.get_participants(chat)
+            
+            # Фильтрация участников по административным правам
+            admin_participants = [p for p in all_participants if isinstance(p, User) and p.admin_rights]
             
             admin_count = len(admin_participants)
             
@@ -161,10 +161,7 @@ class ProfessionalChatAnalyzer:
             )
             
             return admin_count
-
-        except ChatAdminRequiredError:
-            self._logger.warning(f"No admin permissions in group {chat.id}")
-            return 0
+    
         except Exception as e:
             self._logger.error(f"Admin counting failed: {e}")
             return 0
