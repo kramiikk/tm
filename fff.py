@@ -65,9 +65,9 @@ class ProfessionalChatAnalyzer:
             return {
                 'title': getattr(chat, 'title', 'Неизвестно'),
                 'chat_id': chat.id,
+                'total_messages': len(meaningful_messages),
                 'active_members': len(active_users),
-                'bots': len(bots),
-                'total_messages': len(meaningful_messages)
+                'bots': len(bots)
             }
         except Exception as e:
             self._logger.error(f"Comprehensive analysis error: {e}")
@@ -80,14 +80,14 @@ class AnalDestrModule(loader.Module):
     strings = {
         "name": "AnalDestroy",
         "error": "❌ <b>Ошибка:</b> {}",
-        "ping_template": "🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс",
+        "ping_template": "🌐 <b>Ping:</b> {ping_time:.2f} мс",
         "stats_template": (
             "\n\n📊 <b>Статистика чата:</b>\n"
             "🏷️ <b>Название:</b> {title}\n"
             "🆔 ID: <code>{chat_id}</code>\n"
+            "💬 Сообщений: {total_messages}"
             "👥 Активные участники: {active_members}\n"
             "🤖 Боты: {bots}\n"
-            "💬 Сообщений: {total_messages}"
         )
     }
 
@@ -113,9 +113,9 @@ class AnalDestrModule(loader.Module):
                 full_text += self.strings["stats_template"].format(
                     title=utils.escape_html(self.last_stats.get('title', 'Неизвестно')),
                     chat_id=self.last_stats.get('chat_id', 'N/A'),
+                    total_messages=self.last_stats.get('total_messages', '🔄'),
                     active_members=self.last_stats.get('active_members', '🔄'),
-                    bots=self.last_stats.get('bots', '🔄'),
-                    total_messages=self.last_stats.get('total_messages', '🔄')
+                    bots=self.last_stats.get('bots', '🔄')
                 )
 
             # Обновляем сообщение
@@ -159,9 +159,9 @@ class AnalDestrModule(loader.Module):
                         self.strings["stats_template"].format(
                             title=utils.escape_html(stats.get('title', 'Неизвестно')),
                             chat_id=stats.get('chat_id', 'N/A'),
+                            total_messages=stats.get('total_messages', '🔄'),
                             active_members=stats.get('active_members', '🔄'),
-                            bots=stats.get('bots', '🔄'),
-                            total_messages=stats.get('total_messages', '🔄')
+                            bots=stats.get('bots', '🔄')
                         )
                     )
 
