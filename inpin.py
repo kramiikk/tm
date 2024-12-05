@@ -43,6 +43,11 @@ class GroupStatsMod(loader.Module):
     async def groupstatscmd(self, message):
         """Retrieve comprehensive group statistics"""
         try:
+            # Проверяем, что это чат
+            if not message.is_group and not message.is_channel:
+                await message.edit("❌ Эта команда работает только в группах и каналах")
+                return
+
             await message.edit(self.strings["stats_header"].format(title="Загрузка..."))
             
             # Получаем текущий чат
@@ -79,7 +84,7 @@ class GroupStatsMod(loader.Module):
             
         except Exception as e:
             logger.error(f"Group stats error: {e}")
-            await message.edit(f"❌ Ошибка: {e}")
+            await message.edit(f"❌ Ошибка: {traceback.format_exc()}")
 
     async def _measure_network_latency(self, attempts: int = 3) -> float:
         """Точное измерение сетевой задержки"""
@@ -94,12 +99,17 @@ class GroupStatsMod(loader.Module):
             except Exception:
                 pass
         
-        return sum(latencies) / len(latencies) if latencies else -1.0
+        return sum(latencies) / len(latencies) if latencies else 0.0
 
     async def _get_participants(self, chat: Chat) -> Dict[str, int]:
         """Расширенный анализ участников чата"""
         try:
-            participants = await self.client.get_participants(chat)
+            # Безопасное получение участников с обработкой исключений
+            try:
+                participants = await self.client.get_participants(chat)
+            except FloodWaitError as e:
+                logger.warning(f"Flood wait: {e}")
+                return {'total': 0, 'active': 0, 'admins': 0, 'bots': 0}
             
             stats = {
                 'total': len(participants),
@@ -117,11 +127,9 @@ class GroupStatsMod(loader.Module):
     async def _count_admins(self, chat: Chat) -> int:
         """Надёжный подсчёт администраторов"""
         try:
-            participants = await self.client.get_participants(
-                chat, 
-                filter=lambda p: hasattr(p, 'admin') and p.admin
-            )
-            return len(participants)
+            # Используем более надежный метод получения администраторов
+            admins = await self.client.get_participants(chat, filter='admin')
+            return len(admins)
 
         except (ChatAdminRequiredError, RPCError):
             return 0
@@ -129,16 +137,21 @@ class GroupStatsMod(loader.Module):
     async def _analyze_messages(self, chat: Chat) -> Dict[str, int]:
         """Продвинутый анализ сообщений"""
         try:
-            messages = await self.client.get_messages(
-                chat, 
-                limit=self.config['max_messages_analyze']
-            )
+            # Безопасное получение сообщений с обработкой исключений
+            try:
+                messages = await self.client.get_messages(
+                    chat, 
+                    limit=self.config['max_messages_analyze']
+                )
+            except FloodWaitError as e:
+                logger.warning(f"Flood wait: {e}")
+                return {'total': 0, 'text_messages': 0, 'media_messages': 0, 'service_messages': 0}
             
             return {
                 'total': len(messages),
-                'text_messages': sum(1 for msg in messages if msg.text),
-                'media_messages': sum(1 for msg in messages if msg.media),
-                'service_messages': sum(1 for msg in messages if msg.service)
+                'text_messages': sum(1 for msg in messages if hasattr(msg, 'text') and msg.text),
+                'media_messages': sum(1 for msg in messages if hasattr(msg, 'media') and msg.media),
+                'service_messages': sum(1 for msg in messages if hasattr(msg, 'service') and msg.service)
             }
 
         except Exception as e:
