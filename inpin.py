@@ -167,13 +167,12 @@ class AnalDestrModule(loader.Module):
         "name": "AnalDestroy",
         "error": "❌ <b>Ошибка:</b> {}",
         "ping_template": (
-            "🌐 <b>Ping:</b>\n"
+            "🌐 <b>Ping: {comprehensive:.2f} мс</b>\n"
             "• Telethon: {telethon:.2f} мс\n"
             "• RTT: {rtt:.2f} мс\n"
-            "• Comprehensive: {comprehensive:.2f} мс"
         ),
         "stats_template": (
-            "\n\n📊 <b>Статистика чата:</b>\n\n"
+            "\n\n<b>Статистика чата:</b>\n"
             "🏷️ <b>Название:</b> {title}\n"
             "🆔 ID: <code>{chat_id}</code>\n"
             "💬 Сообщений: {total_messages}\n"
