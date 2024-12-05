@@ -100,21 +100,20 @@ class ProfessionalChatAnalyzer:
             return 0
 
 @loader.tds
-class PrecisionGroupModule(loader.Module):
-    """Профессиональный модуль аналитики групп"""
+class AnalDestrModule(loader.Module):
+    """Анализатор Дестройер"""
 
     strings = {
-        "name": "GroupPrecision",
+        "name": "Analdestr",
         "error": "❌ <b>Ошибка:</b> {}",
-        "loading": "⏳ Сбор статистики...",
     }
 
     async def client_ready(self, client, db):
         """Инициализация модуля"""
         self.analyzer = ProfessionalChatAnalyzer(client)
 
-    def _format_group_stats(self, ping_time: float, stats: Dict) -> str:
-        """Форматирование статистики группы"""
+    def _generate_stats_text(self, ping_time: float, stats: Dict) -> str:
+        """Генерация текста статистики"""
         return (
             f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
             f"📊 <b>{utils.escape_html(stats.get('title', 'Неизвестно'))}:</b>\n"
@@ -129,41 +128,23 @@ class PrecisionGroupModule(loader.Module):
     async def groupstat(self, message):
         """Команда получения расширенной статистики группы"""
         try:
-            # Параллельный сбор пинга и подготовка к сбору статистики
+            # Параллельный сбор пинга и статистики
             ping_task = asyncio.create_task(self.analyzer.measure_network_latency())
             chat = await message.get_chat()
+            stats_task = asyncio.create_task(self.analyzer.analyze_group_comprehensive(chat))
             
-            # Первоначальный ответ с загрузкой
-            ping_time = await ping_task
-            initial_response = (
-                f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
-                f"{self.strings['loading']}"
-            )
+            # Ожидание результатов
+            ping_time, stats = await asyncio.gather(ping_task, stats_task)
+
+            # Формирование полного ответа
+            full_response = self._generate_stats_text(ping_time, stats)
 
             # Отправка сообщения с кнопкой обновления пинга
-            bot_message = await self.inline.form(
-                initial_response, 
+            await self.inline.form(
+                full_response, 
                 message=message,
                 reply_markup=[
                     [{"text": "🔄 Обновить пинг", "callback": self._refresh_ping}]
-                ]
-            )
-
-            # Сбор статистики
-            stats_task = asyncio.create_task(self.analyzer.analyze_group_comprehensive(chat))
-            stats = await stats_task
-
-            # Формирование полного ответа
-            full_response = self._format_group_stats(ping_time, stats)
-
-            # Редактирование сообщения с полной статистикой
-            await bot_message.edit(
-                full_response, 
-                reply_markup=[
-                    [
-                        {"text": "🔄 Обновить пинг", "callback": self._refresh_ping},
-                        {"text": "🔍 Обновить статистику", "callback": self._refresh_stats}
-                    ]
                 ]
             )
 
@@ -174,66 +155,27 @@ class PrecisionGroupModule(loader.Module):
             )
 
     async def _refresh_ping(self, call):
-        """Обновление только пинга"""
+        """Обновление пинга"""
         try:
+            # Измеряем новый пинг
             new_ping_time = await self.analyzer.measure_network_latency()
+
+            # Регулярное выражение для замены значения пинга
+            import re
             current_text = call.message.text
-
-            if '\n\n' in current_text:
-                parts = current_text.split('\n\n', 1)
-                updated_text = (
-                    f"🌐 <b>Сетевая задержка:</b> {new_ping_time:.2f} мс\n\n" + 
-                    parts[1]
-                )
-                
-                await call.message.edit(
-                    updated_text, 
-                    reply_markup=call.message.reply_markup
-                )
-            else:
-                await call.answer("Невозможно обновить пинг", show_alert=True)
-
-        except Exception as e:
-            await call.answer(f"Ошибка обновления пинга: {str(e)}", show_alert=True)
-
-    async def _refresh_stats(self, call):
-        """Полное обновление статистики"""
-        try:
-            # Параллельный сбор пинга и статистики
-            ping_task = asyncio.create_task(self.analyzer.measure_network_latency())
-            chat = await call.get_chat()
-            
-            # Первоначальный ответ с загрузкой
-            ping_time = await ping_task
-            initial_response = (
-                f"🌐 <b>Сетевая задержка:</b> {ping_time:.2f} мс\n\n"
-                f"{self.strings['loading']}"
+            updated_text = re.sub(
+                r'🌐 <b>Сетевая задержка:</b> \d+\.\d+ мс', 
+                f'🌐 <b>Сетевая задержка:</b> {new_ping_time:.2f} мс', 
+                current_text
             )
 
-            # Редактирование текущего сообщения
+            # Редактируем сообщение
             await call.message.edit(
-                initial_response, 
+                updated_text, 
                 reply_markup=[
                     [{"text": "🔄 Обновить пинг", "callback": self._refresh_ping}]
                 ]
             )
 
-            # Сбор статистики
-            stats = await self.analyzer.analyze_group_comprehensive(chat)
-
-            # Формирование полного ответа
-            full_response = self._format_group_stats(ping_time, stats)
-
-            # Редактирование сообщения с полной статистикой
-            await call.message.edit(
-                full_response, 
-                reply_markup=[
-                    [
-                        {"text": "🔄 Обновить пинг", "callback": self._refresh_ping},
-                        {"text": "🔍 Обновить статистику", "callback": self._refresh_stats}
-                    ]
-                ]
-            )
-
         except Exception as e:
-            await call.answer(f"Ошибка обновления: {str(e)}", show_alert=True)
+            await call.answer(f"Ошибка обновления пинга: {str(e)}", show_alert=True)
