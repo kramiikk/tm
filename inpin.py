@@ -1,131 +1,105 @@
-from __future__ import annotations
-
-import asyncio
-import logging
-from typing import Dict, Optional, Any
-
 from telethon import TelegramClient
 from telethon.tl.types import Chat
 from telethon.errors import (
     ChatAdminRequiredError, 
     FloodWaitError, 
-    RPCError,
-    UserNotParticipantError
+    RPCError
 )
 
-import structlog
+from hikka import loader, utils
+from hikka.version import __version__
+
+import logging
+import asyncio
 import traceback
+import structlog
+from typing import Dict, Any, Optional
 
-class TelegramGroupAnalyzer:
-    """Профессиональный анализатор групповых чатов с расширенной диагностикой"""
+logger = structlog.get_logger(__name__)
 
-    def __init__(
-        self, 
-        telethon_client: TelegramClient
-    ):
-        """
-        Инициализация анализатора с Telethon клиентом
+@loader.tds
+class GroupStatsMod(loader.Module):
+    """Профессиональный модуль анализа групповых чатов Telegram"""
+    
+    strings = {
+        "name": "GroupStats",
+        "no_chat": "❌ Чат не найден",
+        "stats_header": "📊 Статистика группы: {title}",
+        "ping_info": "🏓 Задержка: {ping:.2f} мс",
+        "members_info": "👥 Участники: {total} (Активных: {active})",
+        "admin_info": "👮 Администраторы: {admins}",
+        "bots_info": "🤖 Боты: {bots}",
+        "messages_info": "💬 Сообщения: Всего {total} (Текст: {text}, Медиа: {media}, Служебные: {service})"
+    }
 
-        Args:
-            telethon_client (TelegramClient): Основной Telethon клиент
-        """
-        self._telethon_client = telethon_client
-        
-        # Использование структурированного логирования
-        self._logger = structlog.get_logger(self.__class__.__name__)
-        
-        # Настройка уровня логирования
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    def __init__(self):
+        self.config = loader.ModuleConfig(
+            "max_messages_analyze", 
+            5000, 
+            "Максимальное количество сообщений для анализа"
         )
 
-    async def measure_network_latency(
-        self, 
-        attempts: int = 3, 
-        timeout: float = 5.0
-    ) -> float:
-        """
-        Точное измерение сетевой задержки с повышенной надёжностью
+    @loader.command(ru_doc="Получить статистику текущей группы")
+    async def groupstatscmd(self, message):
+        """Retrieve comprehensive group statistics"""
+        try:
+            await message.edit(self.strings["stats_header"].format(title="Загрузка..."))
+            
+            # Получаем текущий чат
+            chat = await message.get_chat()
+            
+            # Измеряем задержку
+            ping = await self._measure_network_latency()
+            
+            # Анализируем участников
+            participants = await self._get_participants(chat)
+            
+            # Анализируем сообщения
+            messages_stats = await self._analyze_messages(chat)
+            
+            # Формируем отчет
+            stats_text = "\n".join([
+                self.strings["stats_header"].format(title=getattr(chat, 'title', 'Unknown')),
+                self.strings["ping_info"].format(ping=ping),
+                self.strings["members_info"].format(
+                    total=participants['total'], 
+                    active=participants['active']
+                ),
+                self.strings["admin_info"].format(admins=participants['admins']),
+                self.strings["bots_info"].format(bots=participants['bots']),
+                self.strings["messages_info"].format(
+                    total=messages_stats['total'],
+                    text=messages_stats['text_messages'],
+                    media=messages_stats['media_messages'],
+                    service=messages_stats['service_messages']
+                )
+            ])
+            
+            await message.edit(stats_text)
+            
+        except Exception as e:
+            logger.error(f"Group stats error: {e}")
+            await message.edit(f"❌ Ошибка: {e}")
 
-        Args:
-            attempts (int): Количество попыток измерения
-            timeout (float): Максимальное время ожидания
-
-        Returns:
-            float: Средняя задержка в миллисекундах
-        """
+    async def _measure_network_latency(self, attempts: int = 3) -> float:
+        """Точное измерение сетевой задержки"""
         latencies = []
-        for attempt in range(attempts):
+        for _ in range(attempts):
             try:
                 start = asyncio.get_event_loop().time()
-                async with asyncio.timeout(timeout):
-                    await self._telethon_client.get_me()
+                async with asyncio.timeout(5.0):
+                    await self.client.get_me()
                 latency = (asyncio.get_event_loop().time() - start) * 1000
                 latencies.append(latency)
-            except asyncio.TimeoutError:
-                self._logger.warning(f"Timeout in latency measurement, attempt {attempt + 1}")
-            except Exception as e:
-                self._logger.error(f"Ping measurement error: {e}")
+            except Exception:
+                pass
         
         return sum(latencies) / len(latencies) if latencies else -1.0
 
-    async def analyze_group_comprehensive(
-        self, 
-        chat: Chat,
-        detailed: bool = False
-    ) -> Dict[str, Any]:
-        """
-        Расширенный комплексный анализ группового чата
-
-        Args:
-            chat (Chat): Объект чата для анализа
-            detailed (bool): Флаг для получения детальной информации
-
-        Returns:
-            Dict[str, Any]: Словарь с расширенной аналитикой чата
-        """
+    async def _get_participants(self, chat: Chat) -> Dict[str, int]:
+        """Расширенный анализ участников чата"""
         try:
-            # Получение участников с расширенной диагностикой
-            participants = await self._get_participants_comprehensive(chat)
-            
-            # Подсчет сообщений с продвинутой фильтрацией
-            messages_stats = await self._analyze_messages(chat)
-
-            result = {
-                'title': getattr(chat, 'title', 'Unknown'),
-                'chat_id': chat.id,
-                'total_members': participants['total'],
-                'active_members': participants['active'],
-                'verified_admins': participants['admins'],
-                'bots': participants['bots'],
-                'messages_stats': messages_stats
-            }
-
-            return result
-
-        except Exception as e:
-            self._logger.error(
-                "Comprehensive group analysis failed",
-                chat_id=getattr(chat, 'id', 'unknown'),
-                error=str(e),
-                trace=traceback.format_exc()
-            )
-            return {}
-
-    async def _get_participants_comprehensive(
-        self, 
-        chat: Chat
-    ) -> Dict[str, int]:
-        """
-        Расширенный анализ участников чата
-
-        Returns:
-            Dict[str, int]: Статистика участников
-        """
-        try:
-            # Попытка получения через Telethon
-            participants = await self._telethon_client.get_participants(chat)
+            participants = await self.client.get_participants(chat)
             
             stats = {
                 'total': len(participants),
@@ -133,138 +107,40 @@ class TelegramGroupAnalyzer:
                 'admins': await self._count_admins(chat),
                 'bots': sum(1 for p in participants if hasattr(p, 'bot') and p.bot)
             }
-
-            self._logger.info(
-                "Participants analysis complete", 
-                total_members=stats['total'], 
-                active_members=stats['active']
-            )
+            
             return stats
 
         except Exception as e:
-            self._logger.error(
-                "Participants analysis error",
-                error=str(e),
-                trace=traceback.format_exc()
-            )
+            logger.error(f"Participants analysis error: {e}")
             return {'total': 0, 'active': 0, 'admins': 0, 'bots': 0}
 
-    async def _count_admins(
-        self, 
-        chat: Chat
-    ) -> int:
-        """
-        Надёжный подсчёт администраторов с расширенной диагностикой
-
-        Returns:
-            int: Количество администраторов
-        """
+    async def _count_admins(self, chat: Chat) -> int:
+        """Надёжный подсчёт администраторов"""
         try:
-            # Попытка получения администраторов через Telethon
-            participants = await self._telethon_client.get_participants(
+            participants = await self.client.get_participants(
                 chat, 
                 filter=lambda p: hasattr(p, 'admin') and p.admin
             )
-            
-            admin_count = len(participants)
-            
-            self._logger.info(
-                "Admin count retrieved", 
-                chat_id=chat.id, 
-                admin_count=admin_count
-            )
-            
-            return admin_count
+            return len(participants)
 
-        except ChatAdminRequiredError:
-            self._logger.warning(
-                "No admin permissions to retrieve admin list", 
-                chat_id=chat.id
-            )
-            return 0
-        except Exception as e:
-            self._logger.error(
-                "Admin counting failed",
-                error=str(e),
-                trace=traceback.format_exc()
-            )
+        except (ChatAdminRequiredError, RPCError):
             return 0
 
-    async def _analyze_messages(
-        self, 
-        chat: Chat, 
-        limit: int = 10000
-    ) -> Dict[str, int]:
-        """
-        Продвинутый анализ сообщений с многоуровневой фильтрацией
-
-        Returns:
-            Dict[str, int]: Статистика сообщений
-        """
+    async def _analyze_messages(self, chat: Chat) -> Dict[str, int]:
+        """Продвинутый анализ сообщений"""
         try:
-            messages = await self._telethon_client.get_messages(chat, limit=limit)
+            messages = await self.client.get_messages(
+                chat, 
+                limit=self.config['max_messages_analyze']
+            )
             
-            message_types = {
+            return {
                 'total': len(messages),
                 'text_messages': sum(1 for msg in messages if msg.text),
                 'media_messages': sum(1 for msg in messages if msg.media),
                 'service_messages': sum(1 for msg in messages if msg.service)
             }
 
-            return message_types
-
         except Exception as e:
-            self._logger.warning(f"Message analysis error: {e}")
+            logger.warning(f"Message analysis error: {e}")
             return {'total': 0, 'text_messages': 0, 'media_messages': 0, 'service_messages': 0}
-
-class PrecisionGroupModule:
-    """Модуль прецизионного анализа групп"""
-
-    def __init__(self, client: TelegramClient):
-        """
-        Инициализация модуля с расширенным анализатором
-        
-        Args:
-            client (TelegramClient): Клиент Telegram
-        """
-        self.analyzer = TelegramGroupAnalyzer(client)
-        self.logger = structlog.get_logger(self.__class__.__name__)
-
-    async def get_group_stats(
-        self, 
-        message: Any
-    ) -> Dict[str, Any]:
-        """
-        Получение расширенной статистики группы с диагностикой
-
-        Args:
-            message (Any): Объект сообщения
-
-        Returns:
-            Dict[str, Any]: Статистика группы
-        """
-        try:
-            # Замер задержки с повышенной точностью
-            ping_time = await self.analyzer.measure_network_latency()
-            
-            # Получение текущей группы
-            chat = await message.get_chat()
-            
-            # Получение статистики
-            stats = await self.analyzer.analyze_group_comprehensive(chat)
-
-            self.logger.info(
-                "Group stats retrieved successfully", 
-                chat_id=chat.id, 
-                ping_time=ping_time
-            )
-
-            return {**stats, 'ping_time': ping_time}
-
-        except Exception as e:
-            self.logger.error(
-                "Group stats retrieval failed",
-                error=str(e),
-                trace=traceback.format_exc()
-            )
-            return {}
