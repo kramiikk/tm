@@ -12,10 +12,6 @@ from telethon.tl.types import (
     ChatParticipant,
     ChatAdminRights
 )
-from telethon.errors import (
-    FloodWaitError, 
-    RPCError
-)
 
 from .. import loader, utils
 
