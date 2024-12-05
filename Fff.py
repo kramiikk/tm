@@ -13,7 +13,6 @@ from telethon.tl.types import (
     ChatAdminRights
 )
 from telethon.errors import (
-    ChatAdminRequiredError, 
     FloodWaitError, 
     RPCError
 )
