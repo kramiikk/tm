@@ -149,7 +149,7 @@ class AnalDestrModule(loader.Module):
             "• Comprehensive: {comprehensive:.2f} мс"
         ),
         "stats_template": (
-            "\n\n📊 <b>Статистика чата:</b>\n"
+            "\n\n📊 <b>Статистика чата:</b>\n\n"
             "🏷️ <b>Название:</b> {title}\n"
             "🆔 ID: <code>{chat_id}</code>\n"
             "💬 Сообщений: {total_messages}\n"
