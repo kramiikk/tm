@@ -59,24 +59,19 @@ class MediaProcessor:
                 if not msg.media:
                     continue
     
-                # Извлечение caption
+                # Извлечение caption только из первого сообщения
                 if not caption and msg.text:
                     caption = msg.text
     
                 try:
-                    # Расширенная диагностика типов медиа
-                    logger.info(f"Media type: {type(msg.media)}")
-                    logger.info(f"Media attributes: {dir(msg.media)}")
-    
-                    # Определение типа медиа и его загрузка
+                    file_bytes = await msg.download_media(bytes)
+                    
+                    # Более точное определение типа медиа
                     if hasattr(msg.media, 'photo'):
-                        logger.info(f"Photo media: {type(msg.media.photo)}")
-                        file_bytes = await msg.download_media(bytes)
                         uploaded_media = await client.upload_file(file_bytes)
                         input_media = InputMediaUploadedPhoto(file=uploaded_media)
+                    
                     elif hasattr(msg.media, 'document'):
-                        logger.info(f"Document media: {type(msg.media.document)}")
-                        file_bytes = await msg.download_media(bytes)
                         uploaded_media = await client.upload_file(file_bytes)
                         input_media = InputMediaUploadedDocument(
                             file=uploaded_media,
@@ -96,8 +91,7 @@ class MediaProcessor:
                     )
     
                 except Exception as upload_error:
-                    logger.error(f"Error uploading media: {upload_error}")
-                    logger.error(f"Error details: {type(upload_error)}, {upload_error}")
+                    logger.error(f"Error processing media: {upload_error}")
                     continue
     
             return media_inputs if media_inputs else None
@@ -364,23 +358,23 @@ class BroadcastManager:
                     return None
     
                 try:
-                    # Отладочная информация о входящих медиа
-                    logger.info(f"Sending media group to {chat_id}. Media count: {len(media_inputs)}")
-                    for idx, media in enumerate(media_inputs):
-                        logger.info(f"Media {idx+1}: {type(media.media)}, Caption: '{media.message}'")
-    
                     return await self.client(
                         SendMultiMediaRequest(
                             peer=chat_id,
                             multi_media=media_inputs
                         )
                     )
-                except Exception as e:
-                    logger.error(f"Detailed error sending media group to {chat_id}: {e}")
-                    # Попытка отправить по одному файлу
+                except Exception as group_send_error:
+                    logger.error(f"Error sending media group to {chat_id}: {group_send_error}")
+                    
+                    # Fallback: попытка отправить по одному файлу с корректной обработкой
                     for media_input in media_inputs:
                         try:
-                            await self.client.send_file(chat_id, media_input.media, caption=media_input.message)
+                            await self.client.send_file(
+                                chat_id, 
+                                media_input.media, 
+                                caption=media_input.message if media_input.message else None
+                            )
                         except Exception as single_media_error:
                             logger.error(f"Error sending single media to {chat_id}: {single_media_error}")
                     return None
@@ -391,6 +385,7 @@ class BroadcastManager:
                     chat_id, message.media, caption=message.text
                 )
             return await self.client.send_message(chat_id, message.text)
+        
         except Exception as e:
             logger.error(f"Critical message sending error to {chat_id}: {e}")
             return None
