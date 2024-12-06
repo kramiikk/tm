@@ -64,14 +64,16 @@ class MediaProcessor:
                     caption = msg.text
     
                 try:
-                    # Переупаковка медиафайла для надежной загрузки
+                    # Определение типа медиа и его загрузка
                     if hasattr(msg.media, 'photo'):
                         # Для фото
-                        uploaded_media = await client.upload_file(msg.media.photo)
+                        file_bytes = await msg.download_media(bytes)
+                        uploaded_media = await client.upload_file(file_bytes)
                         input_media = InputMediaUploadedPhoto(file=uploaded_media)
                     elif hasattr(msg.media, 'document'):
                         # Для документов
-                        uploaded_media = await client.upload_file(msg.media.document)
+                        file_bytes = await msg.download_media(bytes)
+                        uploaded_media = await client.upload_file(file_bytes)
                         input_media = InputMediaUploadedDocument(
                             file=uploaded_media,
                             mime_type=msg.media.document.mime_type,
@@ -496,7 +498,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.2"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.1"""
 
     strings = {
         "name": "Broadcast",
