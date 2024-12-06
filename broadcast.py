@@ -59,32 +59,41 @@ class MediaProcessor:
                 if not msg.media:
                     continue
     
+                # Извлечение caption
                 if not caption and msg.text:
                     caption = msg.text
     
-                if hasattr(msg.media, 'photo'):
-                    input_media = InputMediaUploadedPhoto(file=msg.media)
-                    media_inputs.append(
-                        InputSingleMedia(
-                            media=input_media,
-                            message=caption if media_inputs == [] else ""
+                try:
+                    # Переупаковка медиафайла для надежной загрузки
+                    if hasattr(msg.media, 'photo'):
+                        # Для фото
+                        uploaded_media = await client.upload_file(msg.media.photo)
+                        input_media = InputMediaUploadedPhoto(file=uploaded_media)
+                    elif hasattr(msg.media, 'document'):
+                        # Для документов
+                        uploaded_media = await client.upload_file(msg.media.document)
+                        input_media = InputMediaUploadedDocument(
+                            file=uploaded_media,
+                            mime_type=msg.media.document.mime_type,
+                            attributes=msg.media.document.attributes
                         )
-                    )
-                elif hasattr(msg.media, 'document'):
-                    doc_attributes = msg.media.document.attributes
-                    input_media = InputMediaUploadedDocument(
-                        file=msg.media,
-                        mime_type=msg.media.document.mime_type,
-                        attributes=doc_attributes
-                    )
+                    else:
+                        logger.warning(f"Unsupported media type: {type(msg.media)}")
+                        continue
+    
+                    # Добавление медиа с caption только для первого элемента
                     media_inputs.append(
                         InputSingleMedia(
                             media=input_media,
-                            message=caption if media_inputs == [] else ""
+                            message=caption if len(media_inputs) == 0 else ""
                         )
                     )
     
-            return media_inputs
+                except Exception as upload_error:
+                    logger.error(f"Error uploading media: {upload_error}")
+                    continue
+    
+            return media_inputs if media_inputs else None
     
         except Exception as e:
             logger.error(f"Media group processing error: {e}")
@@ -348,6 +357,11 @@ class BroadcastManager:
                     return None
     
                 try:
+                    # Отладочная информация о входящих медиа
+                    logger.info(f"Sending media group to {chat_id}. Media count: {len(media_inputs)}")
+                    for idx, media in enumerate(media_inputs):
+                        logger.info(f"Media {idx+1}: {type(media.media)}, Caption: '{media.message}'")
+    
                     return await self.client(
                         SendMultiMediaRequest(
                             peer=chat_id,
@@ -355,9 +369,16 @@ class BroadcastManager:
                         )
                     )
                 except Exception as e:
-                    logger.error(f"Error sending media group to {chat_id}: {e}")
+                    logger.error(f"Detailed error sending media group to {chat_id}: {e}")
+                    # Попытка отправить по одному файлу
+                    for media_input in media_inputs:
+                        try:
+                            await self.client.send_file(chat_id, media_input.media, caption=media_input.message)
+                        except Exception as single_media_error:
+                            logger.error(f"Error sending single media to {chat_id}: {single_media_error}")
                     return None
     
+            # Остальной код без изменений
             if message.media:
                 return await self.client.send_file(
                     chat_id, message.media, caption=message.text
@@ -475,7 +496,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.1"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.2"""
 
     strings = {
         "name": "Broadcast",
