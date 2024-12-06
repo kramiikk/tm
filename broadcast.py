@@ -407,38 +407,71 @@ class BroadcastManager:
     
                     media_files = []
                     caption = None
-                    media_group = []
+                    media_attributes = []
     
                     for msg in message:
                         if msg.media:
                             try:
-                                downloaded_media = await self.client.download_media(msg.media)
-                                if downloaded_media:
-                                    media_files.append(downloaded_media)
-                                    media_group.append(
-                                        await self.client.upload_file(downloaded_media)
-                                    )
-                                logger.info(f"Successfully downloaded media: {downloaded_media}")
+                                # Directly use media attribute instead of downloading
+                                media_files.append(msg.media)
+                                
+                                # Attempt to get file attributes
+                                if hasattr(msg.media, 'document'):
+                                    media_attributes.append(msg.media.document)
+                                elif hasattr(msg.media, 'photo'):
+                                    media_attributes.append(msg.media.photo)
+                                
+                                logger.info(f"Successfully processed media from message {msg.id}")
                             except Exception as e:
-                                logger.error(f"Album media download error: {e}")
+                                logger.error(f"Album media processing error: {e}")
+                        
                         if not caption and msg.text:
                             caption = msg.text
                             logger.info(f"Album caption found: {caption}")
     
-                    if media_group:
+                    if media_files:
                         try:
                             logger.info(f"Attempting to send album to {chat_id}")
-                            result = await self.client.send_file(
-                                chat_id, 
-                                media_group, 
-                                caption=caption or None,
-                                supports_streaming=True
-                            )
-                            logger.info(f"Successfully sent album to {chat_id}")
-                            return result
+                            
+                            # Use alternative method for sending media group
+                            from telethon.tl.functions.messages import SendMultiMediaRequest
+                            from telethon.tl.types import InputMediaUploadedDocument, InputMediaUploadedPhoto
+    
+                            # Prepare media input
+                            media_inputs = []
+                            for media, attr in zip(media_files, media_attributes):
+                                if hasattr(media, 'photo'):
+                                    input_media = InputMediaUploadedPhoto(file=media)
+                                elif hasattr(media, 'document'):
+                                    input_media = InputMediaUploadedDocument(
+                                        file=media,
+                                        mime_type=attr.mime_type if hasattr(attr, 'mime_type') else 'application/octet-stream',
+                                        attributes=attr.attributes if hasattr(attr, 'attributes') else []
+                                    )
+                                else:
+                                    logger.warning(f"Unsupported media type: {type(media)}")
+                                    continue
+                                
+                                media_inputs.append(input_media)
+    
+                            if media_inputs:
+                                # Send media group without reply_to_msg_id
+                                result = await self.client(
+                                    SendMultiMediaRequest(
+                                        peer=chat_id,
+                                        multi_media=media_inputs,
+                                        message=caption
+                                    )
+                                )
+                                logger.info(f"Successfully sent album to {chat_id}")
+                                return result
+                            else:
+                                logger.warning("No valid media inputs for album")
+                                return None
+    
                         except Exception as e:
                             logger.error(f"Album sending error to {chat_id}: {e}")
-                            logger.error(f"Media group details: {len(media_group)} files")
+                            logger.error(f"Media group details: {len(media_files)} files")
                             return None
                     
                     logger.warning(f"No media files to send in album for {chat_id}")
@@ -451,12 +484,10 @@ class BroadcastManager:
             # Existing single message logic remains the same
             if message.media:
                 try:
-                    downloaded_media = await self.client.download_media(message.media)
-                    if downloaded_media:
-                        result = await self.client.send_file(
-                            chat_id, downloaded_media, caption=message.text
-                        )
-                        return result
+                    result = await self.client.send_file(
+                        chat_id, message.media, caption=message.text
+                    )
+                    return result
                 except Exception as e:
                     logger.error(f"Media sending error to {chat_id}: {e}")
             return await self.client.send_message(chat_id, message.text)
