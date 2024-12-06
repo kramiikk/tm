@@ -12,8 +12,7 @@ from telethon.errors import (
     MessageIdInvalidError,
     FileReferenceExpiredError
 )
-from telethon.tl.types import Message, DocumentAttributeFilename
-from telethon.tl.functions.messages import SendMultiMediaRequest
+from telethon.tl.types import Message
 from telethon.tl.types import (
     InputMediaUploadedDocument, 
     InputMediaUploadedPhoto, 
@@ -516,7 +515,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.3"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v0.1.3"""
 
     strings = {
         "name": "Broadcast",
