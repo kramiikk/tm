@@ -412,8 +412,9 @@ class BroadcastManager:
                     for msg in message:
                         if msg.media:
                             try:
-                                # Directly use media attribute instead of downloading
-                                media_files.append(msg.media)
+                                # Directly download media
+                                media = await self.client.download_media(msg, file=bytes)
+                                media_files.append(media)
                                 
                                 # Attempt to get file attributes
                                 if hasattr(msg.media, 'document'):
@@ -423,7 +424,7 @@ class BroadcastManager:
                                 
                                 logger.info(f"Successfully processed media from message {msg.id}")
                             except Exception as e:
-                                logger.error(f"Album media processing error: {e}")
+                                logger.error(f"Album media download error: {e}")
                         
                         if not caption and msg.text:
                             caption = msg.text
@@ -433,51 +434,18 @@ class BroadcastManager:
                         try:
                             logger.info(f"Attempting to send album to {chat_id}")
                             
-                            from telethon.tl.functions.messages import SendMultiMediaRequest
-                            from telethon.tl.types import InputMediaUploadedDocument, InputMediaUploadedPhoto, InputSingleMedia
-    
-                            # Prepare media input
-                            media_inputs = []
-                            for media, attr in zip(media_files, media_attributes):
-                                if hasattr(media, 'photo'):
-                                    input_media = InputSingleMedia(
-                                        media=InputMediaUploadedPhoto(file=media)
-                                    )
-                                elif hasattr(media, 'document'):
-                                    input_media = InputSingleMedia(
-                                        media=InputMediaUploadedDocument(
-                                            file=media,
-                                            mime_type=attr.mime_type if hasattr(attr, 'mime_type') else 'application/octet-stream',
-                                            attributes=attr.attributes if hasattr(attr, 'attributes') else []
-                                        )
-                                    )
-                                else:
-                                    logger.warning(f"Unsupported media type: {type(media)}")
-                                    continue
-                                
-                                media_inputs.append(input_media)
-    
-                            if media_inputs:
-                                # Send media group with caption for first media if exists
-                                if caption:
-                                    media_inputs[0].message = caption
-    
-                                # Send media group
-                                result = await self.client(
-                                    SendMultiMediaRequest(
-                                        peer=chat_id,
-                                        multi_media=media_inputs
-                                    )
-                                )
-                                logger.info(f"Successfully sent album to {chat_id}")
-                                return result
-                            else:
-                                logger.warning("No valid media inputs for album")
-                                return None
-    
+                            result = await self.client.send_file(
+                                chat_id, 
+                                media_files, 
+                                caption=caption, 
+                                album=True
+                            )
+                            
+                            logger.info(f"Successfully sent album to {chat_id}")
+                            return result
+                        
                         except Exception as e:
                             logger.error(f"Album sending error to {chat_id}: {e}")
-                            logger.error(f"Media group details: {len(media_files)} files")
                             return None
                     
                     logger.warning(f"No media files to send in album for {chat_id}")
