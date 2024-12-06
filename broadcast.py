@@ -378,7 +378,7 @@ class BroadcastManager:
                     result = await self.client.send_message(
                         chat_id, 
                         file=media_files, 
-                        caption=caption  # Caption будет применен к первому файлу
+                        message=caption  # Caption будет применен к первому файлу
                     )
                     return result
                 
