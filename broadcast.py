@@ -54,37 +54,38 @@ class MediaProcessor:
         try:
             media_inputs = []
             caption = None
-
+    
             for msg in sorted(messages, key=lambda m: m.id):
                 if not msg.media:
                     continue
-
+    
                 if not caption and msg.text:
                     caption = msg.text
-
+    
                 if hasattr(msg.media, 'photo'):
+                    input_media = InputMediaUploadedPhoto(file=msg.media)
                     media_inputs.append(
                         InputSingleMedia(
-                            media=InputMediaUploadedPhoto(file=msg.media)
+                            media=input_media,
+                            message=caption if media_inputs == [] else ""
                         )
                     )
                 elif hasattr(msg.media, 'document'):
                     doc_attributes = msg.media.document.attributes
+                    input_media = InputMediaUploadedDocument(
+                        file=msg.media,
+                        mime_type=msg.media.document.mime_type,
+                        attributes=doc_attributes
+                    )
                     media_inputs.append(
                         InputSingleMedia(
-                            media=InputMediaUploadedDocument(
-                                file=msg.media,
-                                mime_type=msg.media.document.mime_type,
-                                attributes=doc_attributes
-                            )
+                            media=input_media,
+                            message=caption if media_inputs == [] else ""
                         )
                     )
-
-            if media_inputs and caption:
-                media_inputs[0].message = caption
-
+    
             return media_inputs
-
+    
         except Exception as e:
             logger.error(f"Media group processing error: {e}")
             return None
@@ -343,15 +344,20 @@ class BroadcastManager:
                 media_inputs = await MediaProcessor.process_media_group(self.client, message)
                 
                 if not media_inputs:
+                    logger.warning(f"No media inputs for chat {chat_id}")
                     return None
-
-                return await self.client(
-                    SendMultiMediaRequest(
-                        peer=chat_id,
-                        multi_media=media_inputs
+    
+                try:
+                    return await self.client(
+                        SendMultiMediaRequest(
+                            peer=chat_id,
+                            multi_media=media_inputs
+                        )
                     )
-                )
-
+                except Exception as e:
+                    logger.error(f"Error sending media group to {chat_id}: {e}")
+                    return None
+    
             if message.media:
                 return await self.client.send_file(
                     chat_id, message.media, caption=message.text
