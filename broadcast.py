@@ -357,7 +357,7 @@ class BroadcastManager:
                     if not msg.media:
                         continue
                     
-                    # Извлекаем caption только из первого сообщения
+                    # Extract caption from the first message
                     if not caption and msg.text:
                         caption = msg.text
                     
@@ -373,30 +373,34 @@ class BroadcastManager:
                     return None
                 
                 try:
-                    # Используем прямой метод send_album
+                    # Use send_file with multiple files
                     result = await self.client.send_file(
                         chat_id, 
                         file=media_files, 
-                        caption=caption  # Caption будет применен к первому файлу
+                        caption=caption,  # Caption will be applied to the first file
+                        album=True  # Explicitly specify album=True
                     )
                     return result
                 
                 except Exception as album_send_error:
                     logger.error(f"Error sending album to {chat_id}: {album_send_error}")
                     
-                    # Fallback - отправка по одному файлу
-                    for file_bytes in media_files:
+                    # Fallback - send files individually
+                    sent_files = []
+                    for i, file_bytes in enumerate(media_files):
                         try:
-                            await self.client.send_file(
+                            sent_file = await self.client.send_file(
                                 chat_id, 
                                 file_bytes, 
-                                caption=caption if media_files.index(file_bytes) == 0 else None
+                                caption=caption if i == 0 else None
                             )
+                            sent_files.append(sent_file)
                         except Exception as single_file_error:
                             logger.error(f"Error sending single file to {chat_id}: {single_file_error}")
-                    return None
+                    
+                    return sent_files[0] if sent_files else None
     
-            # Логика для одиночного сообщения остается прежней
+            # Single message logic remains the same
             if message.media:
                 return await self.client.send_file(
                     chat_id, message.media, caption=message.text
