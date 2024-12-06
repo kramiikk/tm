@@ -122,7 +122,7 @@ class BroadcastConfig:
 
 
 class BroadcastManager:
-    """Manages message broadcasting operations and state"""
+    """Manages message broadcasting operations and state v0.0.1"""
 
     CACHE_LIFETIME = 1800
     MIN_BROADCAST_INTERVAL = 60
@@ -433,20 +433,23 @@ class BroadcastManager:
                         try:
                             logger.info(f"Attempting to send album to {chat_id}")
                             
-                            # Use alternative method for sending media group
                             from telethon.tl.functions.messages import SendMultiMediaRequest
-                            from telethon.tl.types import InputMediaUploadedDocument, InputMediaUploadedPhoto
+                            from telethon.tl.types import InputMediaUploadedDocument, InputMediaUploadedPhoto, InputSingleMedia
     
                             # Prepare media input
                             media_inputs = []
                             for media, attr in zip(media_files, media_attributes):
                                 if hasattr(media, 'photo'):
-                                    input_media = InputMediaUploadedPhoto(file=media)
+                                    input_media = InputSingleMedia(
+                                        media=InputMediaUploadedPhoto(file=media)
+                                    )
                                 elif hasattr(media, 'document'):
-                                    input_media = InputMediaUploadedDocument(
-                                        file=media,
-                                        mime_type=attr.mime_type if hasattr(attr, 'mime_type') else 'application/octet-stream',
-                                        attributes=attr.attributes if hasattr(attr, 'attributes') else []
+                                    input_media = InputSingleMedia(
+                                        media=InputMediaUploadedDocument(
+                                            file=media,
+                                            mime_type=attr.mime_type if hasattr(attr, 'mime_type') else 'application/octet-stream',
+                                            attributes=attr.attributes if hasattr(attr, 'attributes') else []
+                                        )
                                     )
                                 else:
                                     logger.warning(f"Unsupported media type: {type(media)}")
@@ -455,12 +458,15 @@ class BroadcastManager:
                                 media_inputs.append(input_media)
     
                             if media_inputs:
-                                # Send media group without reply_to_msg_id
+                                # Send media group with caption for first media if exists
+                                if caption:
+                                    media_inputs[0].message = caption
+    
+                                # Send media group
                                 result = await self.client(
                                     SendMultiMediaRequest(
                                         peer=chat_id,
-                                        multi_media=media_inputs,
-                                        message=caption
+                                        multi_media=media_inputs
                                     )
                                 )
                                 logger.info(f"Successfully sent album to {chat_id}")
