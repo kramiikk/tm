@@ -498,7 +498,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.1"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.2"""
 
     strings = {
         "name": "Broadcast",
