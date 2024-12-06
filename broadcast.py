@@ -351,35 +351,53 @@ class BroadcastManager:
     async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
         try:
             if isinstance(message, list):
-                media_inputs = await MediaProcessor.process_media_group(self.client, message)
+                media_files = []
+                caption = None
                 
-                if not media_inputs:
-                    logger.warning(f"No media inputs for chat {chat_id}")
-                    return None
-    
-                try:
-                    return await self.client(
-                        SendMultiMediaRequest(
-                            peer=chat_id,
-                            multi_media=media_inputs
-                        )
-                    )
-                except Exception as group_send_error:
-                    logger.error(f"Error sending media group to {chat_id}: {group_send_error}")
+                for msg in sorted(message, key=lambda m: m.id):
+                    if not msg.media:
+                        continue
                     
-                    # Fallback: попытка отправить по одному файлу с корректной обработкой
-                    for media_input in media_inputs:
+                    # Извлекаем caption только из первого сообщения
+                    if not caption and msg.text:
+                        caption = msg.text
+                    
+                    try:
+                        file_bytes = await msg.download_media(bytes)
+                        media_files.append(file_bytes)
+                    except Exception as e:
+                        logger.error(f"Error downloading media: {e}")
+                        continue
+                
+                if not media_files:
+                    logger.warning(f"No media files for chat {chat_id}")
+                    return None
+                
+                try:
+                    # Используем прямой метод send_album
+                    result = await self.client.send_message(
+                        chat_id, 
+                        file=media_files, 
+                        caption=caption  # Caption будет применен к первому файлу
+                    )
+                    return result
+                
+                except Exception as album_send_error:
+                    logger.error(f"Error sending album to {chat_id}: {album_send_error}")
+                    
+                    # Fallback - отправка по одному файлу
+                    for file_bytes in media_files:
                         try:
                             await self.client.send_file(
                                 chat_id, 
-                                media_input.media, 
-                                caption=media_input.message if media_input.message else None
+                                file_bytes, 
+                                caption=caption if media_files.index(file_bytes) == 0 else None
                             )
-                        except Exception as single_media_error:
-                            logger.error(f"Error sending single media to {chat_id}: {single_media_error}")
+                        except Exception as single_file_error:
+                            logger.error(f"Error sending single file to {chat_id}: {single_file_error}")
                     return None
     
-            # Остальной код без изменений
+            # Логика для одиночного сообщения остается прежней
             if message.media:
                 return await self.client.send_file(
                     chat_id, message.media, caption=message.text
