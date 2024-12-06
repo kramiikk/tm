@@ -64,14 +64,18 @@ class MediaProcessor:
                     caption = msg.text
     
                 try:
+                    # Расширенная диагностика типов медиа
+                    logger.info(f"Media type: {type(msg.media)}")
+                    logger.info(f"Media attributes: {dir(msg.media)}")
+    
                     # Определение типа медиа и его загрузка
                     if hasattr(msg.media, 'photo'):
-                        # Для фото
+                        logger.info(f"Photo media: {type(msg.media.photo)}")
                         file_bytes = await msg.download_media(bytes)
                         uploaded_media = await client.upload_file(file_bytes)
                         input_media = InputMediaUploadedPhoto(file=uploaded_media)
                     elif hasattr(msg.media, 'document'):
-                        # Для документов
+                        logger.info(f"Document media: {type(msg.media.document)}")
                         file_bytes = await msg.download_media(bytes)
                         uploaded_media = await client.upload_file(file_bytes)
                         input_media = InputMediaUploadedDocument(
@@ -93,6 +97,7 @@ class MediaProcessor:
     
                 except Exception as upload_error:
                     logger.error(f"Error uploading media: {upload_error}")
+                    logger.error(f"Error details: {type(upload_error)}, {upload_error}")
                     continue
     
             return media_inputs if media_inputs else None
@@ -498,7 +503,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.2"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v0.0.3"""
 
     strings = {
         "name": "Broadcast",
