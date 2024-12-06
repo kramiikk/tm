@@ -374,10 +374,10 @@ class BroadcastManager:
                 
                 try:
                     # Используем прямой метод send_album
-                    result = await self.client.send_message(
+                    result = await self.client.send_file(
                         chat_id, 
                         file=media_files, 
-                        message=caption  # Caption будет применен к первому файлу
+                        caption=caption  # Caption будет применен к первому файлу
                     )
                     return result
                 
