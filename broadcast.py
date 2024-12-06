@@ -403,38 +403,52 @@ class BroadcastManager:
         try:
             if isinstance(message, list):
                 try:
-                    logger.info(
-                        f"Processing album for chat {chat_id}: {len(message)} messages"
-                    )
-
+                    logger.info(f"Processing album for chat {chat_id}: {len(message)} messages")
+    
                     media_files = []
                     caption = None
-
+                    media_group = []
+    
                     for msg in message:
                         if msg.media:
                             try:
-                                downloaded_media = await self.client.download_media(
-                                    msg.media
-                                )
+                                downloaded_media = await self.client.download_media(msg.media)
                                 if downloaded_media:
                                     media_files.append(downloaded_media)
+                                    media_group.append(
+                                        await self.client.upload_file(downloaded_media)
+                                    )
+                                logger.info(f"Successfully downloaded media: {downloaded_media}")
                             except Exception as e:
                                 logger.error(f"Album media download error: {e}")
                         if not caption and msg.text:
                             caption = msg.text
-                    if media_files:
+                            logger.info(f"Album caption found: {caption}")
+    
+                    if media_group:
                         try:
+                            logger.info(f"Attempting to send album to {chat_id}")
                             result = await self.client.send_file(
-                                chat_id, media_files, caption=caption
+                                chat_id, 
+                                media_group, 
+                                caption=caption or None,
+                                supports_streaming=True
                             )
                             logger.info(f"Successfully sent album to {chat_id}")
                             return result
                         except Exception as e:
                             logger.error(f"Album sending error to {chat_id}: {e}")
+                            logger.error(f"Media group details: {len(media_group)} files")
                             return None
+                    
+                    logger.warning(f"No media files to send in album for {chat_id}")
+                    return None
+    
                 except Exception as e:
                     logger.error(f"Album processing error for {chat_id}: {e}")
                     return None
+    
+            # Existing single message logic remains the same
             if message.media:
                 try:
                     downloaded_media = await self.client.download_media(message.media)
@@ -446,6 +460,7 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Media sending error to {chat_id}: {e}")
             return await self.client.send_message(chat_id, message.text)
+    
         except Exception as e:
             logger.error(f"Critical message sending error to {chat_id}: {e}")
             return None
