@@ -122,7 +122,7 @@ class BroadcastConfig:
 
 
 class BroadcastManager:
-    """Manages message broadcasting operations and state v0.0.1"""
+    """Manages message broadcasting operations and state"""
 
     CACHE_LIFETIME = 1800
     MIN_BROADCAST_INTERVAL = 60
@@ -547,7 +547,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.7t"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v 2.5.8t"""
 
     strings = {
         "name": "Broadcast",
