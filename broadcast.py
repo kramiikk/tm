@@ -5,7 +5,7 @@ import random
 import time
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union, Any
 
 from telethon import TelegramClient
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
