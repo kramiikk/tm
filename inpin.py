@@ -7,6 +7,10 @@ from typing import Dict, List, Optional, Union
 
 import socket
 import time
+import threading
+
+import webview
+import json
 
 from telethon import TelegramClient
 from telethon.tl.types import Chat, Message
@@ -132,6 +136,54 @@ class ChatAnalyzer:
         except Exception as e:
             logging.error(f"Ошибка анализа чата: {e}")
             return {}
+
+class HikkaWebApp:
+    def __init__(self, module):
+        self.module = module
+    
+    async def measure_latency(self):
+        return await self.module.measure_latency()
+    
+    async def analyze_chat(self, chat_id):
+        return await self.module.analyze_chat(chat_id)
+
+def start_webview(module):
+    """Запуск веб-интерфейса с React-компонентом"""
+    web_app = HikkaWebApp(module)
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Hikka Chat Stats</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+        <style>
+            body {{ font-family: Arial, sans-serif; }}
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+        
+        <script type="text/babel">
+        {module.react_component}
+        
+        const App = () => {{
+            return <ChatStatistics 
+                client={{{{ /* mock client data */ }}}} 
+                chatId={2396215373} 
+            />;
+        }};
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+        </script>
+    </body>
+    </html>
+    """
+    
+    webview.create_window('Hikka Chat Stats', html=html)
+    webview.start()
 
 @loader.tds
 class AnalyzerModule(loader.Module):
@@ -296,6 +348,13 @@ export default ChatStatistics;
             
         except Exception as e:
             await message.reply(f"❌ Ошибка: {str(e)}")
+
+    @loader.command()
+    async def openchatstats(self, message):
+        """Открыть статистику чата в веб-интерфейсе"""
+        # Запуск в отдельном потоке, чтобы не блокировать основной
+        threading.Thread(target=start_webview, args=(self,)).start()
+        await message.reply("🌐 Открываю веб-интерфейс статистики...")
 
     async def measure_latency(self):
         """API-метод для React-компонента"""
