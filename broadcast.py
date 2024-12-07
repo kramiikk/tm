@@ -183,47 +183,57 @@ class BroadcastManager:
                 if not code or not code.chats:
                     await asyncio.sleep(300)
                     continue
-
+    
                 messages = self.cached_messages.get(code_name, [])
                 if not messages:
                     await asyncio.sleep(300)
                     continue
-
+    
                 current_time = time.time()
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
-
+    
                 interval = max(
                     self.MIN_BROADCAST_INTERVAL,
                     random.uniform(code.interval[0] * 60, code.interval[1] * 60),
                 )
-
+    
                 if current_time - last_broadcast < interval:
                     await asyncio.sleep(interval)
                     continue
-
+    
                 chats = list(code.chats)
                 random.shuffle(chats)
-
+    
                 message_index = self.message_indices.get(code_name, 0)
                 messages_to_send = [messages[message_index % len(messages)]]
                 self.message_indices[code_name] = (message_index + 1) % len(messages)
-
+    
                 failed_chats = set()
                 for chat_id in chats:
                     try:
                         for message_to_send in messages_to_send:
                             if isinstance(message_to_send, list):
+                                # Альбомы отправляются форвардом
                                 await self.client.forward_messages(
                                     entity=chat_id, 
                                     messages=[m.id for m in message_to_send],
                                     from_peer=message_to_send[0].chat_id
                                 )
                             else:
-                                await self.client.forward_messages(
-                                    entity=chat_id, 
-                                    messages=[message_to_send.id],
-                                    from_peer=message_to_send.chat_id
-                                )
+                                # Обычные сообщения отправляются как новые
+                                if message_to_send.media:
+                                    # Если есть медиа, используем send_file
+                                    await self.client.send_file(
+                                        entity=chat_id, 
+                                        file=message_to_send.media, 
+                                        caption=message_to_send.text
+                                    )
+                                else:
+                                    # Текстовые сообщения
+                                    await self.client.send_message(
+                                        entity=chat_id, 
+                                        message=message_to_send.text
+                                    )
                             await asyncio.sleep(random.uniform(1, 3))
                     except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
                         failed_chats.add(chat_id)
@@ -234,7 +244,7 @@ class BroadcastManager:
                 if failed_chats:
                     code.chats -= failed_chats
                     self.save_config()
-
+    
                 self._last_broadcast_time[code_name] = time.time()
                 await asyncio.sleep(random.uniform(interval, interval * 1.5))
             except asyncio.CancelledError:
