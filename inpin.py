@@ -25,8 +25,6 @@ class ProfessionalChatAnalyzer:
         results = {"telethon": -1.0, "rtt": -1.0, "comprehensive": -1.0}
 
         try:
-            # Метод 1: Telethon get_me()
-
             telethon_latencies = []
             for _ in range(attempts):
                 start = asyncio.get_event_loop().time()
@@ -38,12 +36,9 @@ class ProfessionalChatAnalyzer:
                     pass
             if telethon_latencies:
                 results["telethon"] = sum(telethon_latencies) / len(telethon_latencies)
-            # Метод 2: Улучшенный RTT с использованием сетевых замеров
 
             rtt_latencies = []
             try:
-                # Попытка использовать прямое измерение через socket
-
                 import socket
                 import time
 
@@ -57,8 +52,6 @@ class ProfessionalChatAnalyzer:
                     except Exception:
                         return -1.0
 
-                # Несколько попыток измерения
-
                 for _ in range(attempts):
                     rtt = measure_rtt()
                     if rtt > 0:
@@ -66,8 +59,6 @@ class ProfessionalChatAnalyzer:
                 if rtt_latencies:
                     results["rtt"] = sum(rtt_latencies) / len(rtt_latencies)
             except Exception:
-                # Резервный метод через Telegram DC
-
                 try:
                     dc_options = self._client.session.dc_options
                     if dc_options:
@@ -84,11 +75,8 @@ class ProfessionalChatAnalyzer:
                         ) * 1000
                 except Exception:
                     pass
-            # Метод 3: Комплексное измерение
 
             comprehensive_latencies = []
-
-            # Замер через получение диалогов
 
             try:
                 start = asyncio.get_event_loop().time()
@@ -100,7 +88,6 @@ class ProfessionalChatAnalyzer:
                 )
             except Exception:
                 pass
-            # Замер через отправку служебного сообщения самому себе
 
             try:
                 start = asyncio.get_event_loop().time()
@@ -122,16 +109,14 @@ class ProfessionalChatAnalyzer:
         return results
 
     async def analyze_group_comprehensive(
-        self, chat: Chat, message_limit: int = 5000, pattern: str = None
+        self, chat: Chat, pattern: str = None
     ) -> Dict[str, Union[str, int]]:
         """Комплексный анализ группового чата"""
         try:
             participants, messages = await asyncio.gather(
                 self._client.get_participants(chat),
-                self._client.get_messages(chat, limit=message_limit),
+                self._client.get_messages(chat),
             )
-
-            # Словарь для подсчета сообщений каждого пользователя
 
             user_message_count = {}
 
@@ -142,8 +127,6 @@ class ProfessionalChatAnalyzer:
                 and msg.text.strip()
                 and (not hasattr(msg, "service") or not msg.service)
             ]
-
-            # Фильтрация по регулярному выражению, если передано
 
             if pattern:
                 meaningful_messages = [
@@ -156,7 +139,6 @@ class ProfessionalChatAnalyzer:
                     user_message_count[msg.sender_id] = (
                         user_message_count.get(msg.sender_id, 0) + 1
                     )
-            # Определение топ-3 самых активных пользователей
 
             top_users = []
             for user_id, msg_count in sorted(
@@ -165,7 +147,8 @@ class ProfessionalChatAnalyzer:
                 try:
                     user = await self._client.get_entity(user_id)
                     username = user.username or user.first_name or "Unknown"
-                    user_link = f"[{username}](tg://user?id={user_id})"
+
+                    user_link = f'<a href="tg://user?id={user_id}">{username}</a>'
                     top_users.append({"name": user_link, "messages": msg_count})
                 except Exception:
                     pass
@@ -228,24 +211,35 @@ class AnalDestrModule(loader.Module):
     async def _update_ping(self, call):
         """Обновление пинга с сохранением статистики"""
         try:
-            # Измеряем пинг всеми методами
-
             ping_results = await self.analyzer.measure_network_latency()
 
-            # Формируем текст
-
-            ping_text = self.strings["ping_template"].format(**ping_results)
-
-            # Добавляем статистику, если была
-
+            full_text = self.strings["ping_template"].format(**ping_results)
+            
             if self._last_context["stats"]:
-                ping_text += self.strings["stats_template"].format(
-                    **self._last_context["stats"]
-                )
-            # Обновляем сообщение
+                stats = self._last_context["stats"]
 
+                top_users_section = "• Нет данных"
+                if stats.get("top_users"):
+                    top_users_section = "".join(
+                        self.strings["top_users_template"].format(**user)
+                        for user in stats["top_users"]
+                    )
+
+                pattern_section = ""
+                if "pattern" in stats:
+                    pattern_section = self.strings["pattern_section"].format(
+                        pattern=stats.get("pattern", ""),
+                        pattern_count=stats.get("pattern_count", 0)
+                    )
+
+                full_text += self.strings["stats_template"].format(
+                    **stats,
+                    pattern_section=pattern_section,
+                    top_users_section=top_users_section
+                )
+            
             await call.edit(
-                ping_text,
+                full_text,
                 reply_markup=[
                     [{"text": "🔄 Обновить пинг", "callback": self._update_ping}]
                 ],
@@ -257,13 +251,10 @@ class AnalDestrModule(loader.Module):
     async def pstat(self, message):
         """Команда получения расширенной статистики чата"""
         try:
-            # Разбор аргументов
-
             args = utils.get_args(message)
             chat_id_arg = args[0] if args else None
             pattern = None
 
-            # Поиск регулярного выражения в аргументах
 
             for arg in args:
                 if arg.startswith("r'") and arg.endswith("'"):
@@ -287,7 +278,6 @@ class AnalDestrModule(loader.Module):
                         return
             else:
                 chat = await message.get_chat()
-            # Проверяем, что это группа или супергруппа
 
             from telethon.tl.types import ChatForbidden, ChatFull
             from telethon.tl.types import ChatParticipantsForbidden
@@ -307,11 +297,8 @@ class AnalDestrModule(loader.Module):
                     message=message,
                 )
                 return
-            # Измеряем пинг
 
             ping_results = await self.analyzer.measure_network_latency()
-
-            # Отправляем первичное сообщение с пингом
 
             response_message = await self.inline.form(
                 self.strings["ping_template"].format(**ping_results),
@@ -321,17 +308,12 @@ class AnalDestrModule(loader.Module):
                 ],
             )
 
-            # Асинхронный сбор статистики
 
             async def update_stats():
                 try:
-                    # Собираем статистику
-
                     stats = await self.analyzer.analyze_group_comprehensive(
                         chat, pattern=pattern
                     )
-
-                    # Подготовка секции топ-3 пользователей
 
                     top_users_section = "• Нет данных"
                     if stats.get("top_users"):
@@ -339,14 +321,12 @@ class AnalDestrModule(loader.Module):
                             self.strings["top_users_template"].format(**user)
                             for user in stats["top_users"]
                         )
-                    # Подготовка секции регулярного выражения
 
                     pattern_section = ""
                     if pattern:
                         pattern_section = self.strings["pattern_section"].format(
                             pattern=pattern, pattern_count=stats.get("pattern_count", 0)
                         )
-                    # Формирование полного текста
 
                     full_text = self.strings["ping_template"].format(
                         **ping_results
@@ -355,8 +335,6 @@ class AnalDestrModule(loader.Module):
                         pattern_section=pattern_section,
                         top_users_section=top_users_section,
                     )
-
-                    # Обновляем сообщение
 
                     await response_message.edit(
                         full_text,
@@ -371,8 +349,6 @@ class AnalDestrModule(loader.Module):
                     )
                 except Exception as e:
                     logging.error(f"Ошибка обновления статистики: {e}")
-
-            # Запускаем сбор статистики в фоне
 
             asyncio.create_task(update_stats())
         except Exception as e:
