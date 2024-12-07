@@ -362,10 +362,10 @@ class BroadcastManager:
                         caption = msg.text
                     
                     try:
-                        # Напрямую используем media из сообщения
-                        media_files.append(msg.media)
+                        file_bytes = await msg.download_media(bytes)
+                        media_files.append(file_bytes)
                     except Exception as e:
-                        logger.error(f"Error processing media: {e}")
+                        logger.error(f"Error downloading media: {e}")
                         continue
                 
                 if not media_files:
@@ -373,11 +373,14 @@ class BroadcastManager:
                     return None
                 
                 try:
-                    # Отправка альбома используя медиа напрямую из сообщений
-                    result = await self.client.send_message(
+                    # Используем более простой метод отправки альбома
+                    result = await self.client.send_file(
                         chat_id, 
-                        file=media_files,
-                        message=caption
+                        file=media_files, 
+                        caption=caption,
+                        # Добавляем специфические параметры для групповой отправки
+                        supports_streaming=True,
+                        force_document=False
                     )
                     return result
                 
@@ -386,11 +389,11 @@ class BroadcastManager:
                     
                     # Отправка по одному файлу
                     sent_files = []
-                    for i, media in enumerate(media_files):
+                    for i, file_bytes in enumerate(media_files):
                         try:
                             sent_file = await self.client.send_file(
                                 chat_id, 
-                                media, 
+                                file_bytes, 
                                 caption=caption if i == 0 else None
                             )
                             sent_files.append(sent_file)
@@ -518,7 +521,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v0.1.3"""
+    """Professional broadcast module for managing message broadcasts across multiple chats. v0.1.4"""
 
     strings = {
         "name": "Broadcast",
