@@ -1,23 +1,14 @@
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple, Union
 import asyncio
+import bisect
 import logging
 import random
 import time
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Set, Tuple
 
 from telethon import TelegramClient
-from telethon.errors import (
-    ChatWriteForbiddenError,
-    UserBannedInChannelError,
-    MessageIdInvalidError,
-    FileReferenceExpiredError
-)
+from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
 from telethon.tl.types import Message
-from telethon.tl.types import (
-    InputMediaUploadedDocument, 
-    InputMediaUploadedPhoto, 
-    InputSingleMedia
-)
 
 from .. import loader, utils
 
@@ -38,66 +29,7 @@ class BroadcastCode:
 
     def validate_interval(self) -> bool:
         min_interval, max_interval = self.interval
-        return (
-            isinstance(min_interval, int)
-            and isinstance(max_interval, int)
-            and 0 < min_interval < max_interval <= 1440
-        )
-
-class MediaProcessor:
-    @staticmethod
-    async def process_media_group(
-        client: TelegramClient, 
-        messages: List[Message]
-    ) -> Optional[List[InputSingleMedia]]:
-        try:
-            media_inputs = []
-            caption = None
-    
-            for msg in sorted(messages, key=lambda m: m.id):
-                if not msg.media:
-                    continue
-    
-                # Извлечение caption только из первого сообщения
-                if not caption and msg.text:
-                    caption = msg.text
-    
-                try:
-                    file_bytes = await msg.download_media(bytes)
-                    
-                    # Более точное определение типа медиа
-                    if hasattr(msg.media, 'photo'):
-                        uploaded_media = await client.upload_file(file_bytes)
-                        input_media = InputMediaUploadedPhoto(file=uploaded_media)
-                    
-                    elif hasattr(msg.media, 'document'):
-                        uploaded_media = await client.upload_file(file_bytes)
-                        input_media = InputMediaUploadedDocument(
-                            file=uploaded_media,
-                            mime_type=msg.media.document.mime_type,
-                            attributes=msg.media.document.attributes
-                        )
-                    else:
-                        logger.warning(f"Unsupported media type: {type(msg.media)}")
-                        continue
-    
-                    # Добавление медиа с caption только для первого элемента
-                    media_inputs.append(
-                        InputSingleMedia(
-                            media=input_media,
-                            message=caption if len(media_inputs) == 0 else ""
-                        )
-                    )
-    
-                except Exception as upload_error:
-                    logger.error(f"Error processing media: {upload_error}")
-                    continue
-    
-            return media_inputs if media_inputs else None
-    
-        except Exception as e:
-            logger.error(f"Media group processing error: {e}")
-            return None
+        return isinstance(min_interval, int) and isinstance(max_interval, int) and 0 < min_interval < max_interval <= 1440
 
 class BroadcastConfig:
     def __init__(self):
@@ -113,11 +45,30 @@ class BroadcastConfig:
         async with self._lock:
             return bool(self.codes.pop(code_name, None))
 
-    @classmethod
-    def from_dict(cls, data: dict) -> "BroadcastConfig":
-        config = cls()
-        code_chats = data.get("code_chats", {})
+class BroadcastManager:
+    MIN_BROADCAST_INTERVAL = 60
+    CACHE_LIFETIME = 1800
 
+    def __init__(self, client, db):
+        self.client = client
+        self.db = db
+        self.config = BroadcastConfig()
+        self.cached_messages: Dict[str, List[Message]] = {}
+        self.broadcast_tasks: Dict[str, asyncio.Task] = {}
+        self.message_indices: Dict[str, int] = {}
+        self._active = True
+        self._last_broadcast_time: Dict[str, float] = {}
+
+    async def initialize(self):
+        try:
+            stored_data = self.db.get("broadcast", "Broadcast", {})
+            self._load_config_from_dict(stored_data)
+            await self._cache_messages()
+        except Exception as e:
+            logger.error(f"Failed to initialize broadcast manager: {e}")
+
+    def _load_config_from_dict(self, data: dict):
+        code_chats = data.get("code_chats", {})
         for code_name, code_data in code_chats.items():
             try:
                 chats = set(int(chat_id) for chat_id in code_data.get("chats", []))
@@ -131,137 +82,88 @@ class BroadcastConfig:
                     for msg_data in code_data.get("messages", [])
                 ]
                 interval = tuple(code_data.get("interval", (9, 13)))
-                interval = interval if 0 < interval[0] < interval[1] <= 1440 else (9, 13)
                 
                 broadcast_code = BroadcastCode(
-                    chats=chats, messages=messages, interval=interval
+                    chats=chats, 
+                    messages=messages, 
+                    interval=interval if 0 < interval[0] < interval[1] <= 1440 else (9, 13)
                 )
-                config.codes[code_name] = broadcast_code
+                self.config.codes[code_name] = broadcast_code
             except Exception as e:
                 logger.error(f"Error loading broadcast code {code_name}: {e}")
-        return config
-
-    def to_dict(self) -> dict:
-        return {
-            "code_chats": {
-                code_name: {
-                    "chats": list(code.chats),
-                    "messages": [
-                        {
-                            "chat_id": msg.chat_id,
-                            "message_id": msg.message_id,
-                            "grouped_id": msg.grouped_id,
-                            "album_ids": msg.album_ids,
-                        }
-                        for msg in code.messages
-                    ],
-                    "interval": list(code.interval),
-                }
-                for code_name, code in self.codes.items()
-            }
-        }
-
-class BroadcastManager:
-    CACHE_LIFETIME = 1800
-    MIN_BROADCAST_INTERVAL = 60
-
-    def __init__(self, client, db):
-        self.client = client
-        self.db = db
-        self.config = BroadcastConfig()
-        self.cached_messages: Dict[str, List[Message]] = {}
-        self.broadcast_tasks: Dict[str, asyncio.Task] = {}
-        self.message_indices: Dict[str, int] = {}
-        self.last_cache_cleanup = 0
-        self._cache_lock = asyncio.Lock()
-        self._broadcast_lock = asyncio.Lock()
-        self._last_broadcast_time: Dict[str, float] = {}
-        self._active = True
-
-    async def initialize(self):
-        try:
-            stored_data = self.db.get("broadcast", "Broadcast", {})
-            self.config = BroadcastConfig.from_dict(stored_data)
-            await self._cache_messages()
-            asyncio.create_task(self._periodic_cache_check())
-        except Exception as e:
-            logger.error(f"Failed to initialize broadcast manager: {e}")
-            self.config = BroadcastConfig()
-
-    async def _periodic_cache_check(self):
-        while self._active:
-            try:
-                await self._check_cache_lifetime()
-                await asyncio.sleep(300)
-            except Exception as e:
-                logger.error(f"Error in periodic cache check: {e}")
 
     def save_config(self):
         try:
-            self.db.set("broadcast", "Broadcast", self.config.to_dict())
+            config_dict = {
+                "code_chats": {
+                    code_name: {
+                        "chats": list(code.chats),
+                        "messages": [
+                            {
+                                "chat_id": msg.chat_id,
+                                "message_id": msg.message_id,
+                                "grouped_id": msg.grouped_id,
+                                "album_ids": msg.album_ids,
+                            }
+                            for msg in code.messages
+                        ],
+                        "interval": list(code.interval),
+                    }
+                    for code_name, code in self.config.codes.items()
+                }
+            }
+            self.db.set("broadcast", "Broadcast", config_dict)
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
 
     async def _cache_messages(self):
-        async with self._cache_lock:
-            self.last_cache_cleanup = time.time()
-            new_cache = {}
-            new_albums_cache = {}
-
-            for code_name, code in self.config.codes.items():
-                new_cache[code_name], new_albums_cache[code_name] = [], []
-
-                for msg_data in code.messages:
-                    try:
-                        if msg_data.grouped_id is not None:
-                            album_messages = [
-                                await self.client.get_messages(msg_data.chat_id, ids=msg_id)
-                                for msg_id in msg_data.album_ids
-                            ]
-                            if album_messages:
-                                new_albums_cache[code_name].append(album_messages)
-                        else:
-                            message = await self.client.get_messages(
-                                msg_data.chat_id, ids=msg_data.message_id
-                            )
-                            if message:
-                                new_cache[code_name].append(message)
-                        await asyncio.sleep(random.uniform(1, 3))
-                    except Exception as e:
-                        logger.error(f"Failed to cache message for {code_name}: {e}")
-            
-            self.cached_messages = new_cache
-            self.cached_albums = new_albums_cache
-
-    async def _check_cache_lifetime(self):
-        async with self._cache_lock:
-            current_time = time.time()
-            if current_time - self.last_cache_cleanup >= self.CACHE_LIFETIME:
-                await self._cache_messages()
+        new_cache = {}
+        for code_name, code in self.config.codes.items():
+            new_cache[code_name] = []
+            for msg_data in code.messages:
+                try:
+                    if msg_data.grouped_id is not None:
+                        messages = []
+                        for msg_id in msg_data.album_ids:
+                            msg = await self.client.get_messages(msg_data.chat_id, ids=msg_id)
+                            if not msg:
+                                logger.info(f"Message {msg_id} not found, skipping")
+                                continue
+                            messages.append(msg)
+                        if messages:
+                            new_cache[code_name].append(messages)
+                    else:
+                        message = await self.client.get_messages(msg_data.chat_id, ids=msg_data.message_id)
+                        if message:
+                            new_cache[code_name].append(message)
+                    await asyncio.sleep(random.uniform(1, 3))
+                except Exception as e:
+                    logger.error(f"Failed to cache message for {code_name}: {e}")
+        
+        self.cached_messages = new_cache
 
     async def add_message(self, code_name: str, message: Message) -> bool:
-        if code_name not in self.config.codes:
-            await self.config.add_code(code_name)
-        code = self.config.codes[code_name]
-        grouped_id = getattr(message, "grouped_id", None)
-
         try:
+            if code_name not in self.config.codes:
+                await self.config.add_code(code_name)
+            
+            code = self.config.codes[code_name]
+            grouped_id = getattr(message, "grouped_id", None)
+
             if grouped_id:
-                album_messages = [
-                    msg async for msg in self.client.iter_messages(
-                        message.chat_id, 
-                        min_id=message.id - 10, 
-                        max_id=message.id + 10
-                    ) if getattr(msg, "grouped_id", None) == grouped_id
-                ]
-                album_messages.sort(key=lambda m: m.id)
-                album_message_ids = [msg.id for msg in album_messages]
+                async for album_msg in self.client.iter_messages(
+                    message.chat_id, 
+                    limit=10, 
+                    offset_date=message.date
+                ):
+                    if hasattr(album_msg, "grouped_id") and album_msg.grouped_id == message.grouped_id:
+                        bisect.insort(album_messages, album_msg, key=lambda m: m.id)
 
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
                     grouped_id=grouped_id,
-                    album_ids=album_message_ids,
+                    album_ids=[msg.id for msg in album_messages],
                 )
             else:
                 msg_data = BroadcastMessage(chat_id=message.chat_id, message_id=message.id)
@@ -277,251 +179,90 @@ class BroadcastManager:
     async def _broadcast_loop(self, code_name: str):
         while self._active:
             try:
-                async with self._broadcast_lock:
-                    if code_name not in self.config.codes:
-                        break
+                code = self.config.codes.get(code_name)
+                if not code or not code.chats:
+                    await asyncio.sleep(300)
+                    continue
 
-                    code = self.config.codes[code_name]
-                    messages = self.cached_messages.get(code_name, [])
-                    albums = self.cached_albums.get(code_name, [])
-                    
-                    if not (messages or albums) or not code.chats:
-                        await asyncio.sleep(300)
-                        continue
+                messages = self.cached_messages.get(code_name, [])
+                if not messages:
+                    await asyncio.sleep(300)
+                    continue
 
-                    current_time = time.time()
-                    last_broadcast = self._last_broadcast_time.get(code_name, 0)
+                current_time = time.time()
+                last_broadcast = self._last_broadcast_time.get(code_name, 0)
 
-                    min_interval, max_interval = code.interval
-                    interval = max(
-                        self.MIN_BROADCAST_INTERVAL,
-                        random.uniform(min_interval * 60, max_interval * 60),
-                    )
+                interval = max(
+                    self.MIN_BROADCAST_INTERVAL,
+                    random.uniform(code.interval[0] * 60, code.interval[1] * 60),
+                )
 
-                    if current_time - last_broadcast < interval:
-                        await asyncio.sleep(interval - (current_time - last_broadcast))
-                        continue
+                if current_time - last_broadcast < interval:
+                    await asyncio.sleep(interval)
+                    continue
 
-                    chats = list(code.chats)
-                    random.shuffle(chats)
+                chats = list(code.chats)
+                random.shuffle(chats)
 
-                    all_content = messages + albums
-                    message_index = self.message_indices.get(code_name, 0)
-                    messages_to_send = [all_content[message_index % len(all_content)]]
+                message_index = self.message_indices.get(code_name, 0)
+                messages_to_send = [messages[message_index % len(messages)]]
+                self.message_indices[code_name] = (message_index + 1) % len(messages)
 
-                    self.message_indices[code_name] = (message_index + 1) % len(all_content)
+                failed_chats = set()
+                for chat_id in chats:
+                    try:
+                        for message_to_send in messages_to_send:
+                            if isinstance(message_to_send, list):
+                                await self.client.forward_messages(
+                                    entity=chat_id, 
+                                    messages=[m.id for m in message_to_send],
+                                    from_peer=message_to_send[0].chat_id
+                                )
+                            else:
+                                await self.client.forward_messages(
+                                    entity=chat_id, 
+                                    messages=[message_to_send.id],
+                                    from_peer=message_to_send.chat_id
+                                )
+                            await asyncio.sleep(random.uniform(1, 3))
+                    except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
+                        failed_chats.add(chat_id)
+                        logger.info(f"Removing chat {chat_id} from broadcast {code_name}: {e}")
+                    except Exception as e:
+                        logger.error(f"Sending error to {chat_id}: {str(e)}")
+                
+                if failed_chats:
+                    code.chats -= failed_chats
+                    self.save_config()
 
-                    failed_chats = set()
-                    successful_sends = 0
-
-                    for chat_id in chats:
-                        try:
-                            for message_to_send in messages_to_send:
-                                result = await self._send_message(message_to_send, chat_id)
-                                if result is not None:
-                                    successful_sends += 1
-                                    await asyncio.sleep(random.uniform(1, 3))
-                                else:
-                                    logger.warning(f"Failed to send message to {chat_id}")
-                        except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
-                            failed_chats.add(chat_id)
-                            logger.info(f"Removing chat {chat_id} from broadcast {code_name}: {e}")
-                        except Exception as e:
-                            logger.error(f"Sending error to {chat_id}: {str(e)}")
-                    
-                    if failed_chats:
-                        code.chats -= failed_chats
-                        self.save_config()
-
-                    logger.info(
-                        f"Broadcast {code_name}: "
-                        f"Chats: {len(chats)}, "
-                        f"Successful sends: {successful_sends}"
-                    )
-
-                    self._last_broadcast_time[code_name] = time.time()
-                    await asyncio.sleep(random.uniform(interval, interval * 1.5))
+                self._last_broadcast_time[code_name] = time.time()
+                await asyncio.sleep(random.uniform(interval, interval * 1.5))
             except asyncio.CancelledError:
-                logger.info(f"Broadcast stopped for {code_name}")
                 break
             except Exception as e:
                 logger.error(f"Critical error in broadcast loop {code_name}: {e}")
 
-    async def _send_message(self, message: Union[Message, List[Message]], chat_id: int):
-        try:
-            if isinstance(message, list):
-                media_files = []
-                caption = None
-                
-                for msg in sorted(message, key=lambda m: m.id):
-                    if not msg.media:
-                        continue
-                    
-                    # Извлечение caption только из первого сообщения
-                    if not caption and msg.text:
-                        caption = msg.text
-                    
-                    try:
-                        file_bytes = await msg.download_media(bytes)
-                        media_files.append(file_bytes)
-                    except Exception as e:
-                        logger.error(f"Error downloading media: {e}")
-                        continue
-                
-                if not media_files:
-                    logger.warning(f"No media files for chat {chat_id}")
-                    return None
-                
-                try:
-                    # Используем более простой метод отправки альбома
-                    result = await self.client.send_file(
-                        chat_id, 
-                        file=media_files, 
-                        caption=caption,
-                        # Добавляем специфические параметры для групповой отправки
-                        supports_streaming=True,
-                        force_document=False
-                    )
-                    return result
-                
-                except Exception as album_send_error:
-                    logger.error(f"Error sending album to {chat_id}: {album_send_error}")
-                    
-                    # Отправка по одному файлу
-                    sent_files = []
-                    for i, file_bytes in enumerate(media_files):
-                        try:
-                            sent_file = await self.client.send_file(
-                                chat_id, 
-                                file_bytes, 
-                                caption=caption if i == 0 else None
-                            )
-                            sent_files.append(sent_file)
-                        except Exception as single_file_error:
-                            logger.error(f"Error sending single file to {chat_id}: {single_file_error}")
-                    
-                    return sent_files[0] if sent_files else None
-    
-            # Логика для одиночного сообщения
-            if message.media:
-                return await self.client.send_file(
-                    chat_id, message.media, caption=message.text
-                )
-            return await self.client.send_message(chat_id, message.text)
-        
-        except Exception as e:
-            logger.error(f"Critical message sending error to {chat_id}: {e}")
-            return None
-
-    async def remove_message(
-        self,
-        code_name: str,
-        message: Optional[Message] = None,
-        index: Optional[int] = None,
-    ) -> bool:
-        """Remove a message from a broadcast code"""
-        if code_name not in self.config.codes:
-            return False
-        code = self.config.codes[code_name]
-        removed = False
-
-        if message:
-            msg_data = BroadcastMessage(message.chat_id, message.id)
-            if msg_data in code.messages:
-                code.messages.remove(msg_data)
-                removed = True
-        elif index is not None and 0 <= index < len(code.messages):
-            code.messages.pop(index)
-            removed = True
-        if removed:
-            if not code.messages:
-                await self.config.remove_code(code_name)
-            self.save_config()
-            await self._cache_messages()
-        return removed
-
-    async def manage_chat(self, code_name: str, chat_id: int) -> Tuple[bool, str]:
-        """Add or remove a chat from a broadcast code"""
-        try:
-            chat_id = int(chat_id)
-            if chat_id == 0:
-                return False, "Invalid chat ID"
-        except ValueError:
-            return False, "Chat ID must be a number"
-        if code_name not in self.config.codes:
-            return False, "Code not found"
-        code = self.config.codes[code_name]
-        if chat_id in code.chats:
-            code.chats.remove(chat_id)
-            action = "removed from"
-        else:
-            code.chats.add(chat_id)
-            action = "added to"
-        self.save_config()
-        return True, f"Chat {chat_id} {action} broadcast code '{code_name}'"
-
-    async def set_interval(
-        self, code_name: str, min_interval: int, max_interval: int
-    ) -> bool:
-        """Set broadcast interval for a code"""
-        if code_name not in self.config.codes:
-            return False
-        code = self.config.codes[code_name]
-        code.interval = (min_interval, max_interval)
-
-        if not code.validate_interval():
-            code.interval = (9, 13)
-            return False
-        self.save_config()
-        return True
-
-    async def cleanup_tasks(self):
-        """Clean up completed or failed tasks"""
-        for code_name, task in list(self.broadcast_tasks.items()):
-            if task.done():
-                try:
-                    await task
-                except Exception as e:
-                    logger.error(f"Task cleanup error for {code_name}: {e}")
-                finally:
-                    del self.broadcast_tasks[code_name]
-
     async def start_broadcasts(self):
-        """Start broadcast tasks for all codes"""
-        await self.cleanup_tasks()
         for code_name in self.config.codes:
-            if (
-                code_name not in self.broadcast_tasks
-                and self.cached_messages.get(code_name)
-                and not (
-                    self.broadcast_tasks.get(code_name)
-                    and not self.broadcast_tasks[code_name].done()
-                )
-            ):
+            if code_name not in self.broadcast_tasks:
                 try:
-                    self.broadcast_tasks[code_name] = asyncio.create_task(
-                        self._broadcast_loop(code_name)
-                    )
+                    self.broadcast_tasks[code_name] = asyncio.create_task(self._broadcast_loop(code_name))
                 except Exception as e:
                     logger.error(f"Failed to start broadcast loop for {code_name}: {e}")
 
     async def stop_broadcasts(self):
-        """Stop all broadcast tasks"""
         self._active = False
-        for code_name, task in list(self.broadcast_tasks.items()):
-            if not task.done():
-                task.cancel()
-                try:
-                    await task
-                except asyncio.CancelledError:
-                    pass
-            del self.broadcast_tasks[code_name]
-
-
+        for task in self.broadcast_tasks.values():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        self.broadcast_tasks.clear()
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats. v0.1.4"""
+    """Professional broadcast module for managing message broadcasts across multiple chats"""
 
     strings = {
         "name": "Broadcast",
@@ -534,32 +275,29 @@ class BroadcastMod(loader.Module):
     def __init__(self):
         self.manager: Optional[BroadcastManager] = None
         self.wat_mode = False
-        self._command_locks: Dict[int, float] = {}
 
     async def client_ready(self, client, db):
-        """Initialize the module"""
         self.manager = BroadcastManager(client, db)
         await self.manager.initialize()
         self.me_id = self.manager.client.tg_id
 
-    async def addmsgcmd(self, message: Message):
-        """Add a message or album to broadcast. Usage: .addmsg code"""
+    async def addmsgcmd(self, message):
+        """Add a message or album to broadcast"""
         args = utils.get_args(message)
         reply = await message.get_reply_message()
 
         if len(args) != 1 or not reply:
             return await utils.answer(message, "Reply to a message with .addmsg code")
+        
         success = await self.manager.add_message(args[0], reply)
-
         if success:
-            if getattr(reply, "grouped_id", None):
-                await utils.answer(message, self.strings["album_added"].format(args[0]))
-            else:
-                await utils.answer(
-                    message, self.strings["single_added"].format(args[0])
-                )
+            await utils.answer(
+                message, 
+                self.strings["album_added"].format(args[0]) if getattr(reply, "grouped_id", None) 
+                else self.strings["single_added"].format(args[0])
+            )
         else:
-            await utils.answer(message, "Not success")
+            await utils.answer(message, "Failed to add message")
 
     async def chatcmd(self, message: Message):
         """Add or remove a chat from broadcast. Usage: .chat code <chat_id>"""
