@@ -59,7 +59,7 @@ class ChatAnalyzer:
     async def analyze_chat(
         client: TelegramClient, 
         chat: Union[Chat, int], 
-        message_limit: int = 5000, 
+        message_limit: int = 100000, 
         pattern: Optional[str] = None
     ) -> Dict[str, Union[str, int, List[Dict]]]:
         """Комплексный анализ чата"""
@@ -99,7 +99,7 @@ class ChatAnalyzer:
                 try:
                     user = await client.get_entity(user_id)
                     return {
-                        'name': f"[{user.username or user.first_name or 'Unknown'}](tg://user?id={user_id})",
+                        'name': f"<a href='tg://user?id={user_id}'>{user.username or user.first_name or 'Unknown'}</a>"
                         'messages': user_message_count.get(user_id, 0)
                     }
                 except Exception:
