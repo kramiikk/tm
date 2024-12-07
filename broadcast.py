@@ -232,7 +232,7 @@ class BroadcastManager:
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
 
                 interval = max(
-                    13, random.uniform(code.interval[0] * 33, code.interval[1] * 42)
+                    13, random.uniform(code.interval[0] * 13, code.interval[1] * 33)
                 )
 
                 if current_time - last_broadcast < interval:
