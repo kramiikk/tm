@@ -60,7 +60,6 @@ class BroadcastManager:
         self.client = client
         self.db = db
         self.config = BroadcastConfig()
-        self.cached_messages: Dict[str, List[Union[Message, List[Message]]]] = {}
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
         self.message_indices: Dict[str, int] = {}
         self._active = True
@@ -70,7 +69,6 @@ class BroadcastManager:
         try:
             stored_data = self.db.get("broadcast", "Broadcast", {})
             self._load_config_from_dict(stored_data)
-            await self._cache_messages()
             await self.start_broadcasts()
         except Exception as e:
             logger.error(f"Failed to initialize broadcast manager: {e}")
@@ -137,23 +135,26 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Failed to cache message for {code_name}: {e}")
                 await asyncio.sleep(random.uniform(1, 3))
-
         self.cached_messages = new_cache
 
     async def _fetch_messages(
         self, msg_data: BroadcastMessage
-    ) -> Union[Message, List[Message]]:
-        if msg_data.grouped_id is not None:
-            messages = []
-            for msg_id in msg_data.album_ids:
-                msg = await self.client.get_messages(msg_data.chat_id, ids=msg_id)
-                if msg:
-                    messages.append(msg)
-            return messages if messages else None
-        else:
-            return await self.client.get_messages(
-                msg_data.chat_id, ids=msg_data.message_id
-            )
+    ) -> Union[Message, List[Message], None]:
+        try:
+            if msg_data.grouped_id is not None:
+                messages = []
+                for msg_id in msg_data.album_ids:
+                    msg = await self.client.get_messages(msg_data.chat_id, ids=msg_id)
+                    if msg:
+                        messages.append(msg)
+                return messages if messages else None
+            else:
+                return await self.client.get_messages(
+                    msg_data.chat_id, ids=msg_data.message_id
+                )
+        except Exception as e:
+            logger.error(f"Failed to fetch message: {e}")
+            return None
 
     async def add_message(self, code_name: str, message: Message) -> bool:
         try:
@@ -171,7 +172,6 @@ class BroadcastManager:
                         and album_msg.grouped_id == message.grouped_id
                     ):
                         album_messages.append(album_msg)
-
                 bisect.insort(album_messages, key=lambda m: m.id)
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
@@ -183,10 +183,8 @@ class BroadcastManager:
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id, message_id=message.id
                 )
-
             code.messages.append(msg_data)
             self.save_config()
-            await self._cache_messages()
             return True
         except Exception as e:
             logger.error(f"Failed to add message: {str(e)}")
@@ -224,12 +222,14 @@ class BroadcastManager:
                 if not code or not code.chats:
                     await asyncio.sleep(300)
                     continue
-
-                messages = self.cached_messages.get(code_name, [])
+                messages = []
+                for msg_data in code.messages[:]:
+                    message = await self._fetch_messages(msg_data)
+                    if message:
+                        messages.append(message)
                 if not messages:
                     await asyncio.sleep(300)
                     continue
-
                 current_time = time.time()
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
 
@@ -241,7 +241,6 @@ class BroadcastManager:
                 if current_time - last_broadcast < interval:
                     await asyncio.sleep(interval)
                     continue
-
                 chats = list(code.chats)
                 random.shuffle(chats)
 
@@ -259,11 +258,9 @@ class BroadcastManager:
                         failed_chats.add(chat_id)
                     except Exception as e:
                         logger.error(f"Sending error to {chat_id}: {str(e)}")
-
                 if failed_chats:
                     code.chats -= failed_chats
                     self.save_config()
-
                 self._last_broadcast_time[code_name] = time.time()
                 await asyncio.sleep(random.uniform(interval, interval * 1.5))
             except asyncio.CancelledError:
@@ -323,13 +320,11 @@ class BroadcastMod(loader.Module):
                 await utils.answer(message, "Укажите код рассылки")
                 return None
             code_name = args[0]
-
         if code_name not in self._manager.config.codes:
             await utils.answer(
                 message, self.strings["code_not_found"].format(code_name)
             )
             return None
-
         return code_name
 
     async def addmsgcmd(self, message: Message):
@@ -339,11 +334,9 @@ class BroadcastMod(loader.Module):
             return await utils.answer(
                 message, "Ответьте на сообщение командой .addmsg <код>"
             )
-
         args = utils.get_args(message)
         if len(args) != 1:
             return await utils.answer(message, "Использование: .addmsg <код>")
-
         code_name = args[0]
         success = await self._manager.add_message(code_name, reply)
 
@@ -364,16 +357,13 @@ class BroadcastMod(loader.Module):
         args = utils.get_args(message)
         if len(args) != 2:
             return await utils.answer(message, "Использование: .chat <код> <id_чата>")
-
         try:
             code_name, chat_id = args[0], int(args[1])
         except ValueError:
             return await utils.answer(message, "ID чата должен быть числом")
-
         code_name = await self._validate_broadcast_code(message, code_name)
         if not code_name:
             return
-
         try:
             code = self._manager.config.codes[code_name]
 
@@ -383,7 +373,6 @@ class BroadcastMod(loader.Module):
             else:
                 code.chats.add(chat_id)
                 action = "добавлен"
-
             self._manager.save_config()
             await utils.answer(message, f"Чат {chat_id} {action} в {code_name}")
         except Exception as e:
@@ -394,22 +383,16 @@ class BroadcastMod(loader.Module):
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
-
-        # Остановка и удаление задачи
         if code_name in self._manager.broadcast_tasks:
             task = self._manager.broadcast_tasks.pop(code_name)
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
-
-        # Удаление кода из конфигурации
         await self._manager.config.remove_code(code_name)
 
-        # Очистка кэша и индексов
         self._manager.cached_messages.pop(code_name, None)
         self._manager.message_indices.pop(code_name, None)
 
-        # Сохранение конфигурации
         self._manager.save_config()
 
         await utils.answer(
@@ -423,11 +406,9 @@ class BroadcastMod(loader.Module):
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
-
         reply = await message.get_reply_message()
 
         if len(args) == 1 and reply:
-            # Удаление по реплаю
             code = self._manager.config.codes[code_name]
             matching_messages = [
                 idx
@@ -441,9 +422,7 @@ class BroadcastMod(loader.Module):
                 await utils.answer(message, "Сообщение удалено")
             else:
                 await utils.answer(message, "Сообщение не найдено")
-
         elif len(args) == 2:
-            # Удаление по индексу
             try:
                 index = int(args[1]) - 1
                 code = self._manager.config.codes[code_name]
@@ -464,19 +443,16 @@ class BroadcastMod(loader.Module):
             return await utils.answer(
                 message, "Использование: .interval <код> <мин_минут> <макс_минут>"
             )
-
         code_name, min_str, max_str = args
         code_name = await self._validate_broadcast_code(message, code_name)
         if not code_name:
             return
-
         try:
             min_minutes, max_minutes = map(int, (min_str, max_str))
 
             if not (0 < min_minutes < max_minutes <= 1440):
                 await utils.answer(message, "Некорректный интервал")
                 return
-
             code = self._manager.config.codes[code_name]
             code.interval = (min_minutes, max_minutes)
             self._manager.save_config()
@@ -494,7 +470,6 @@ class BroadcastMod(loader.Module):
         """Информация"""
         if not self._manager.config.codes:
             return await utils.answer(message, "Нет настроенных кодов рассылки")
-
         text = [
             "**Рассылка:**",
             f"🔄 Управление чатами: {'Включено' if self._wat_mode else 'Выключено'}\n",
@@ -521,11 +496,9 @@ class BroadcastMod(loader.Module):
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
-
         messages = self._manager.config.codes[code_name].messages
         if not messages:
             return await utils.answer(message, f"Нет сообщений в коде '{code_name}'")
-
         text = [f"**Сообщения в '{code_name}':**"]
         for i, msg in enumerate(messages, 1):
             try:
@@ -543,7 +516,6 @@ class BroadcastMod(loader.Module):
                 text.append(message_text)
             except Exception as e:
                 text.append(f"{i}. Ошибка получения информации: {str(e)}")
-
         await utils.answer(message, "\n\n".join(text))
 
     async def watcmd(self, message: Message):
@@ -560,14 +532,10 @@ class BroadcastMod(loader.Module):
         """Наблюдатель сообщений для автоматического управления"""
         if not isinstance(message, Message):
             return
-
         current_time = time.time()
-        # Периодический запуск
         if current_time - self._last_broadcast_check >= 600:
             self._last_broadcast_check = current_time
             await self._manager.start_broadcasts()
-
-        # Автоматическое управление чатами
         if (
             self._wat_mode
             and message.sender_id == self._me_id
