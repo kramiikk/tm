@@ -28,7 +28,7 @@ class BroadcastMessage:
 class BroadcastCode:
     chats: Set[int] = field(default_factory=set)
     messages: List[BroadcastMessage] = field(default_factory=list)
-    interval: Tuple[int, int] = field(default_factory=lambda: (9, 13))
+    interval: Tuple[int, int] = field(default_factory=lambda: (3, 13))
 
     def validate_interval(self) -> bool:
         return (
@@ -53,7 +53,6 @@ class BroadcastConfig:
 
 
 class BroadcastManager:
-    MIN_BROADCAST_INTERVAL = 60
     CACHE_LIFETIME = 1800
 
     def __init__(self, client: TelegramClient, db):
@@ -86,13 +85,13 @@ class BroadcastManager:
                     )
                     for msg_data in code_data.get("messages", [])
                 ]
-                interval = tuple(code_data.get("interval", (9, 13)))
+                interval = tuple(code_data.get("interval", (3, 13)))
 
                 broadcast_code = BroadcastCode(
                     chats=chats,
                     messages=messages,
                     interval=(
-                        interval if 0 < interval[0] < interval[1] <= 1440 else (9, 13)
+                        interval if 0 < interval[0] < interval[1] <= 1440 else (3, 13)
                     ),
                 )
                 self.config.codes[code_name] = broadcast_code
@@ -134,7 +133,6 @@ class BroadcastManager:
                         new_cache[code_name].append(messages)
                 except Exception as e:
                     logger.error(f"Failed to cache message for {code_name}: {e}")
-                await asyncio.sleep(random.uniform(1, 3))
         self.cached_messages = new_cache
 
     async def _fetch_messages(
@@ -220,7 +218,7 @@ class BroadcastManager:
             try:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats:
-                    await asyncio.sleep(300)
+                    await asyncio.sleep(33)
                     continue
                 messages = []
                 for msg_data in code.messages[:]:
@@ -228,14 +226,13 @@ class BroadcastManager:
                     if message:
                         messages.append(message)
                 if not messages:
-                    await asyncio.sleep(300)
+                    await asyncio.sleep(42)
                     continue
                 current_time = time.time()
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
 
                 interval = max(
-                    self.MIN_BROADCAST_INTERVAL,
-                    random.uniform(code.interval[0] * 33, code.interval[1] * 42),
+                    13, random.uniform(code.interval[0] * 33, code.interval[1] * 42)
                 )
 
                 if current_time - last_broadcast < interval:
@@ -253,7 +250,7 @@ class BroadcastManager:
                     try:
                         for message_to_send in messages_to_send:
                             await self._send_message(chat_id, message_to_send)
-                            await asyncio.sleep(random.uniform(1, 3))
+                        await asyncio.sleep(1)
                     except (ChatWriteForbiddenError, UserBannedInChannelError):
                         failed_chats.add(chat_id)
                     except Exception as e:
