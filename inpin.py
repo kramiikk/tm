@@ -99,7 +99,7 @@ class ChatAnalyzer:
                 try:
                     user = await client.get_entity(user_id)
                     return {
-                        'name': f"<a href='tg://user?id={user_id}'>{user.username or user.first_name or 'Unknown'}</a>"
+                        'name': f"<a href='tg://user?id={user_id}'>{user.username or user.first_name or 'Unknown'}</a>",
                         'messages': user_message_count.get(user_id, 0)
                     }
                 except Exception:
