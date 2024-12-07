@@ -36,7 +36,6 @@ class ProfessionalChatAnalyzer:
                     pass
             if telethon_latencies:
                 results["telethon"] = sum(telethon_latencies) / len(telethon_latencies)
-
             rtt_latencies = []
             try:
                 import socket
@@ -75,7 +74,6 @@ class ProfessionalChatAnalyzer:
                         ) * 1000
                 except Exception:
                     pass
-
             comprehensive_latencies = []
 
             try:
@@ -88,7 +86,6 @@ class ProfessionalChatAnalyzer:
                 )
             except Exception:
                 pass
-
             try:
                 start = asyncio.get_event_loop().time()
                 me = await self._client.get_me()
@@ -139,7 +136,6 @@ class ProfessionalChatAnalyzer:
                     user_message_count[msg.sender_id] = (
                         user_message_count.get(msg.sender_id, 0) + 1
                     )
-
             top_users = []
             for user_id, msg_count in sorted(
                 user_message_count.items(), key=lambda x: x[1], reverse=True
@@ -214,7 +210,7 @@ class AnalDestrModule(loader.Module):
             ping_results = await self.analyzer.measure_network_latency()
 
             full_text = self.strings["ping_template"].format(**ping_results)
-            
+
             if self._last_context["stats"]:
                 stats = self._last_context["stats"]
 
@@ -224,20 +220,17 @@ class AnalDestrModule(loader.Module):
                         self.strings["top_users_template"].format(**user)
                         for user in stats["top_users"]
                     )
-
                 pattern_section = ""
                 if "pattern" in stats:
                     pattern_section = self.strings["pattern_section"].format(
                         pattern=stats.get("pattern", ""),
-                        pattern_count=stats.get("pattern_count", 0)
+                        pattern_count=stats.get("pattern_count", 0),
                     )
-
                 full_text += self.strings["stats_template"].format(
                     **stats,
                     pattern_section=pattern_section,
-                    top_users_section=top_users_section
+                    top_users_section=top_users_section,
                 )
-            
             await call.edit(
                 full_text,
                 reply_markup=[
@@ -254,7 +247,6 @@ class AnalDestrModule(loader.Module):
             args = utils.get_args(message)
             chat_id_arg = args[0] if args else None
             pattern = None
-
 
             for arg in args:
                 if arg.startswith("r'") and arg.endswith("'"):
@@ -278,7 +270,6 @@ class AnalDestrModule(loader.Module):
                         return
             else:
                 chat = await message.get_chat()
-
             from telethon.tl.types import ChatForbidden, ChatFull
             from telethon.tl.types import ChatParticipantsForbidden
 
@@ -297,7 +288,6 @@ class AnalDestrModule(loader.Module):
                     message=message,
                 )
                 return
-
             ping_results = await self.analyzer.measure_network_latency()
 
             response_message = await self.inline.form(
@@ -307,7 +297,6 @@ class AnalDestrModule(loader.Module):
                     [{"text": "🔄 Обновить пинг", "callback": self._update_ping}]
                 ],
             )
-
 
             async def update_stats():
                 try:
@@ -321,13 +310,11 @@ class AnalDestrModule(loader.Module):
                             self.strings["top_users_template"].format(**user)
                             for user in stats["top_users"]
                         )
-
                     pattern_section = ""
                     if pattern:
                         pattern_section = self.strings["pattern_section"].format(
                             pattern=pattern, pattern_count=stats.get("pattern_count", 0)
                         )
-
                     full_text = self.strings["ping_template"].format(
                         **ping_results
                     ) + self.strings["stats_template"].format(
