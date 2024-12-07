@@ -3,8 +3,9 @@ import bisect
 import logging
 import random
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from telethon import TelegramClient
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
@@ -28,8 +29,11 @@ class BroadcastCode:
     interval: Tuple[int, int] = field(default_factory=lambda: (9, 13))
 
     def validate_interval(self) -> bool:
-        min_interval, max_interval = self.interval
-        return isinstance(min_interval, int) and isinstance(max_interval, int) and 0 < min_interval < max_interval <= 1440
+        return (
+            isinstance(self.interval[0], int) and
+            isinstance(self.interval[1], int) and
+            0 < self.interval[0] < self.interval[1] <= 1440
+        )
 
 class BroadcastConfig:
     def __init__(self):
@@ -38,8 +42,7 @@ class BroadcastConfig:
 
     async def add_code(self, code_name: str) -> None:
         async with self._lock:
-            if code_name not in self.codes:
-                self.codes[code_name] = BroadcastCode()
+            self.codes.setdefault(code_name, BroadcastCode())
 
     async def remove_code(self, code_name: str) -> bool:
         async with self._lock:
@@ -49,11 +52,11 @@ class BroadcastManager:
     MIN_BROADCAST_INTERVAL = 60
     CACHE_LIFETIME = 1800
 
-    def __init__(self, client, db):
+    def __init__(self, client: TelegramClient, db):
         self.client = client
         self.db = db
         self.config = BroadcastConfig()
-        self.cached_messages: Dict[str, List[Message]] = {}
+        self.cached_messages: Dict[str, List[Union[Message, List[Message]]]] = {}
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
         self.message_indices: Dict[str, int] = {}
         self._active = True
@@ -64,14 +67,14 @@ class BroadcastManager:
             stored_data = self.db.get("broadcast", "Broadcast", {})
             self._load_config_from_dict(stored_data)
             await self._cache_messages()
+            await self.start_broadcasts()
         except Exception as e:
             logger.error(f"Failed to initialize broadcast manager: {e}")
 
     def _load_config_from_dict(self, data: dict):
-        code_chats = data.get("code_chats", {})
-        for code_name, code_data in code_chats.items():
+        for code_name, code_data in data.get("code_chats", {}).items():
             try:
-                chats = set(int(chat_id) for chat_id in code_data.get("chats", []))
+                chats = {int(chat_id) for chat_id in code_data.get("chats", [])}
                 messages = [
                     BroadcastMessage(
                         chat_id=int(msg_data["chat_id"]),
@@ -122,43 +125,43 @@ class BroadcastManager:
             new_cache[code_name] = []
             for msg_data in code.messages:
                 try:
-                    if msg_data.grouped_id is not None:
-                        messages = []
-                        for msg_id in msg_data.album_ids:
-                            msg = await self.client.get_messages(msg_data.chat_id, ids=msg_id)
-                            if not msg:
-                                logger.info(f"Message {msg_id} not found, skipping")
-                                continue
-                            messages.append(msg)
-                        if messages:
-                            new_cache[code_name].append(messages)
-                    else:
-                        message = await self.client.get_messages(msg_data.chat_id, ids=msg_data.message_id)
-                        if message:
-                            new_cache[code_name].append(message)
-                    await asyncio.sleep(random.uniform(1, 3))
+                    messages = await self._fetch_messages(msg_data)
+                    if messages:
+                        new_cache[code_name].append(messages)
                 except Exception as e:
                     logger.error(f"Failed to cache message for {code_name}: {e}")
+                await asyncio.sleep(random.uniform(1, 3))
         
         self.cached_messages = new_cache
 
+    async def _fetch_messages(self, msg_data: BroadcastMessage) -> Union[Message, List[Message]]:
+        if msg_data.grouped_id is not None:
+            messages = []
+            for msg_id in msg_data.album_ids:
+                msg = await self.client.get_messages(msg_data.chat_id, ids=msg_id)
+                if msg:
+                    messages.append(msg)
+            return messages if messages else None
+        else:
+            return await self.client.get_messages(msg_data.chat_id, ids=msg_data.message_id)
+
     async def add_message(self, code_name: str, message: Message) -> bool:
         try:
-            if code_name not in self.config.codes:
-                await self.config.add_code(code_name)
-            
+            await self.config.add_code(code_name)
             code = self.config.codes[code_name]
             grouped_id = getattr(message, "grouped_id", None)
 
             if grouped_id:
+                album_messages = [message]
                 async for album_msg in self.client.iter_messages(
                     message.chat_id, 
                     limit=10, 
                     offset_date=message.date
                 ):
                     if hasattr(album_msg, "grouped_id") and album_msg.grouped_id == message.grouped_id:
-                        bisect.insort(album_messages, album_msg, key=lambda m: m.id)
+                        album_messages.append(album_msg)
 
+                bisect.insort(album_messages, key=lambda m: m.id)
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
@@ -175,6 +178,30 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Failed to add message: {str(e)}")
             return False
+
+    async def _send_message(self, chat_id: int, message_to_send: Union[Message, List[Message]]):
+        try:
+            if isinstance(message_to_send, list):
+                await self.client.forward_messages(
+                    entity=chat_id, 
+                    messages=[m.id for m in message_to_send],
+                    from_peer=message_to_send[0].chat_id
+                )
+            else:
+                if message_to_send.media:
+                    await self.client.send_file(
+                        entity=chat_id, 
+                        file=message_to_send.media, 
+                        caption=message_to_send.text
+                    )
+                else:
+                    await self.client.send_message(
+                        entity=chat_id, 
+                        message=message_to_send.text
+                    )
+        except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
+            logger.info(f"Cannot send message to {chat_id}: {e}")
+            raise
 
     async def _broadcast_loop(self, code_name: str):
         while self._active:
@@ -194,7 +221,7 @@ class BroadcastManager:
     
                 interval = max(
                     self.MIN_BROADCAST_INTERVAL,
-                    random.uniform(code.interval[0] * 60, code.interval[1] * 60),
+                    random.uniform(code.interval[0] * 33, code.interval[1] * 42),
                 )
     
                 if current_time - last_broadcast < interval:
@@ -212,32 +239,10 @@ class BroadcastManager:
                 for chat_id in chats:
                     try:
                         for message_to_send in messages_to_send:
-                            if isinstance(message_to_send, list):
-                                # Альбомы отправляются форвардом
-                                await self.client.forward_messages(
-                                    entity=chat_id, 
-                                    messages=[m.id for m in message_to_send],
-                                    from_peer=message_to_send[0].chat_id
-                                )
-                            else:
-                                # Обычные сообщения отправляются как новые
-                                if message_to_send.media:
-                                    # Если есть медиа, используем send_file
-                                    await self.client.send_file(
-                                        entity=chat_id, 
-                                        file=message_to_send.media, 
-                                        caption=message_to_send.text
-                                    )
-                                else:
-                                    # Текстовые сообщения
-                                    await self.client.send_message(
-                                        entity=chat_id, 
-                                        message=message_to_send.text
-                                    )
+                            await self._send_message(chat_id, message_to_send)
                             await asyncio.sleep(random.uniform(1, 3))
-                    except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
+                    except (ChatWriteForbiddenError, UserBannedInChannelError):
                         failed_chats.add(chat_id)
-                        logger.info(f"Removing chat {chat_id} from broadcast {code_name}: {e}")
                     except Exception as e:
                         logger.error(f"Sending error to {chat_id}: {str(e)}")
                 
@@ -264,228 +269,288 @@ class BroadcastManager:
         self._active = False
         for task in self.broadcast_tasks.values():
             task.cancel()
-            try:
+            with suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
         self.broadcast_tasks.clear()
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Professional broadcast module for managing message broadcasts across multiple chats"""
+    """Профессиональный модуль массовой рассылки сообщений с расширенным управлением"""
 
     strings = {
         "name": "Broadcast",
-        "code_not_found": "Broadcast code '{}' not found",
-        "success": "Operation completed successfully: {}",
-        "album_added": "Album added to broadcast '{}'",
-        "single_added": "Message added to broadcast '{}'"
+        "code_not_found": "Код рассылки '{}' не найден",
+        "success": "Операция выполнена успешно: {}",
+        "album_added": "Альбом добавлен в рассылку '{}'",
+        "single_added": "Сообщение добавлено в рассылку '{}'"
     }
 
     def __init__(self):
-        self.manager: Optional[BroadcastManager] = None
-        self.wat_mode = False
+        self._manager: Optional[BroadcastManager] = None
+        self._wat_mode = False
+        self._last_broadcast_check: float = 0
 
-    async def client_ready(self, client, db):
-        self.manager = BroadcastManager(client, db)
-        await self.manager.initialize()
-        self.me_id = self.manager.client.tg_id
+    async def client_ready(self, client: TelegramClient, db: Any):
+        self._manager = BroadcastManager(client, db)
+        await self._manager.initialize()
+        self._me_id = client.tg_id
 
-    async def addmsgcmd(self, message):
-        """Add a message or album to broadcast"""
+    async def _validate_broadcast_code(self, message: Message, code_name: Optional[str] = None) -> Optional[str]:
+        """Валидация кода рассылки"""
         args = utils.get_args(message)
-        reply = await message.get_reply_message()
-
-        if len(args) != 1 or not reply:
-            return await utils.answer(message, "Reply to a message with .addmsg code")
         
-        success = await self.manager.add_message(args[0], reply)
+        if code_name is None:
+            if not args:
+                await utils.answer(message, "Укажите код рассылки")
+                return None
+            code_name = args[0]
+
+        if code_name not in self._manager.config.codes:
+            await utils.answer(message, self.strings["code_not_found"].format(code_name))
+            return None
+
+        return code_name
+
+    async def addmsgcmd(self, message: Message):
+        """Добавить сообщение или альбом в рассылку"""
+        reply = await message.get_reply_message()
+        if not reply:
+            return await utils.answer(message, "Ответьте на сообщение командой .addmsg <код>")
+        
+        args = utils.get_args(message)
+        if len(args) != 1:
+            return await utils.answer(message, "Использование: .addmsg <код>")
+        
+        code_name = args[0]
+        success = await self._manager.add_message(code_name, reply)
+        
         if success:
             await utils.answer(
                 message, 
-                self.strings["album_added"].format(args[0]) if getattr(reply, "grouped_id", None) 
-                else self.strings["single_added"].format(args[0])
+                self.strings["album_added"].format(code_name) if getattr(reply, "grouped_id", None) 
+                else self.strings["single_added"].format(code_name)
             )
         else:
-            await utils.answer(message, "Failed to add message")
+            await utils.answer(message, "Не удалось добавить сообщение")
 
     async def chatcmd(self, message: Message):
-        """Add or remove a chat from broadcast. Usage: .chat code <chat_id>"""
+        """Добавить или удалить чат из рассылки"""
         args = utils.get_args(message)
         if len(args) != 2:
-            return await utils.answer(message, "Usage: .chat code <chat_id>")
+            return await utils.answer(message, "Использование: .chat <код> <id_чата>")
+        
         try:
             code_name, chat_id = args[0], int(args[1])
         except ValueError:
-            return await utils.answer(message, "Chat ID must be a number")
-        success, response = await self.manager.manage_chat(code_name, chat_id)
-        if success:
-            await utils.answer(message, self.strings["success"].format(response))
+            return await utils.answer(message, "ID чата должен быть числом")
+        
+        code_name = await self._validate_broadcast_code(message, code_name)
+        if not code_name:
+            return
+
+        try:
+            code = self._manager.config.codes[code_name]
+            
+            if chat_id in code.chats:
+                code.chats.remove(chat_id)
+                action = "удален"
+            else:
+                code.chats.add(chat_id)
+                action = "добавлен"
+            
+            self._manager.save_config()
+            await utils.answer(message, f"Чат {chat_id} {action} в {code_name}")
+        except Exception as e:
+            await utils.answer(message, f"Ошибка: {str(e)}")
 
     async def delcodecmd(self, message: Message):
-        """Delete a broadcast code. Usage: .delcode code"""
-        args = utils.get_args(message)
-        if len(args) != 1:
-            return await utils.answer(message, "Usage: .delcode code")
-        code_name = args[0]
-        if code_name not in self.manager.config.codes:
-            return await utils.answer(
-                message, self.strings["code_not_found"].format(code_name)
-            )
-        if task := self.manager.broadcast_tasks.pop(code_name, None):
+        """Удалить код рассылки"""
+        code_name = await self._validate_broadcast_code(message)
+        if not code_name:
+            return
+
+        # Остановка и удаление задачи
+        if code_name in self._manager.broadcast_tasks:
+            task = self._manager.broadcast_tasks.pop(code_name)
             task.cancel()
-            try:
+            with suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
-        await self.manager.config.remove_code(code_name)
-        if code_name in self.manager.cached_messages:
-            del self.manager.cached_messages[code_name]
-        if code_name in self.manager.message_indices:
-            del self.manager.message_indices[code_name]
-        self.manager.save_config()
+
+        # Удаление кода из конфигурации
+        await self._manager.config.remove_code(code_name)
+        
+        # Очистка кэша и индексов
+        self._manager.cached_messages.pop(code_name, None)
+        self._manager.message_indices.pop(code_name, None)
+        
+        # Сохранение конфигурации
+        self._manager.save_config()
+        
         await utils.answer(
             message,
-            self.strings["success"].format(f"Broadcast code '{code_name}' deleted"),
+            self.strings["success"].format(f"Код рассылки '{code_name}' удален"),
         )
 
     async def delmsgcmd(self, message: Message):
-        """Delete a message from broadcast. Usage: .delmsg code [index]"""
+        """Удаление сообщения из рассылки"""
         args = utils.get_args(message)
-        if len(args) not in (1, 2):
-            return await utils.answer(
-                message, "Usage: .delmsg code [index] or reply to message"
-            )
-        code_name = args[0]
-        if code_name not in self.manager.config.codes:
-            return await utils.answer(
-                message, self.strings["code_not_found"].format(code_name)
-            )
-        if len(args) == 1:
-            reply = await message.get_reply_message()
-            if not reply:
-                return await utils.answer(
-                    message, "Reply to a message with this command"
-                )
-            success = await self.manager.remove_message(code_name, message=reply)
-            action_text = "removed from" if success else "not found in"
-        else:
+        code_name = await self._validate_broadcast_code(message)
+        if not code_name:
+            return
+
+        reply = await message.get_reply_message()
+        
+        if len(args) == 1 and reply:
+            # Удаление по реплаю
+            code = self._manager.config.codes[code_name]
+            matching_messages = [
+                idx for idx, msg in enumerate(code.messages) 
+                if msg.message_id == reply.id and msg.chat_id == reply.chat_id
+            ]
+            
+            if matching_messages:
+                del code.messages[matching_messages[0]]
+                self._manager.save_config()
+                await utils.answer(message, "Сообщение удалено")
+            else:
+                await utils.answer(message, "Сообщение не найдено")
+        
+        elif len(args) == 2:
+            # Удаление по индексу
             try:
                 index = int(args[1]) - 1
-                success = await self.manager.remove_message(code_name, index=index)
-                action_text = "removed from" if success else "invalid index for"
+                code = self._manager.config.codes[code_name]
+                
+                if 0 <= index < len(code.messages):
+                    del code.messages[index]
+                    self._manager.save_config()
+                    await utils.answer(message, "Сообщение удалено")
+                else:
+                    await utils.answer(message, "Неверный индекс")
             except ValueError:
-                return await utils.answer(message, "Index must be a number")
-        await utils.answer(
-            message,
-            self.strings["success"].format(f"Message {action_text} '{code_name}'"),
-        )
+                await utils.answer(message, "Индекс должен быть числом")
 
     async def intervalcmd(self, message: Message):
-        """Set broadcast interval. Usage: .interval code <min> <max>"""
+        """Установка интервала рассылки"""
         args = utils.get_args(message)
         if len(args) != 3:
             return await utils.answer(
-                message, "Usage: .interval code <min_minutes> <max_minutes>"
+                message, "Использование: .interval <код> <мин_минут> <макс_минут>"
             )
+        
         code_name, min_str, max_str = args
+        code_name = await self._validate_broadcast_code(message, code_name)
+        if not code_name:
+            return
+
         try:
-            min_minutes = int(min_str)
-            max_minutes = int(max_str)
-        except ValueError:
-            return await utils.answer(message, "Interval values must be numbers")
-        success = await self.manager.set_interval(code_name, min_minutes, max_minutes)
-        if success:
+            min_minutes, max_minutes = map(int, (min_str, max_str))
+            
+            if not (0 < min_minutes < max_minutes <= 1440):
+                await utils.answer(message, "Некорректный интервал")
+                return
+
+            code = self._manager.config.codes[code_name]
+            code.interval = (min_minutes, max_minutes)
+            self._manager.save_config()
+            
             await utils.answer(
                 message,
                 self.strings["success"].format(
-                    f"Interval for '{code_name}' set to {min_minutes}-{max_minutes} minutes"
+                    f"Интервал для '{code_name}' установлен: {min_minutes}-{max_minutes} минут"
                 ),
             )
+        except ValueError:
+            await utils.answer(message, "Интервал должен быть числом")
 
     async def listcmd(self, message: Message):
-        """List all broadcast codes and settings. Usage: .list"""
-        if not self.manager.config.codes:
-            return await utils.answer(message, "No broadcast codes configured")
+        """Информация"""
+        if not self._manager.config.codes:
+            return await utils.answer(message, "Нет настроенных кодов рассылки")
+        
         text = [
-            "**Broadcast Settings:**",
-            f"🔄 Auto Chat Management (WAT): {'Enabled' if self.wat_mode else 'Disabled'}\n",
-            "**Broadcast Codes:**",
+            "**Рассылка:**",
+            f"🔄 Управление чатами: {'Включено' if self._wat_mode else 'Выключено'}\n",
+            "**Коды рассылок:**",
         ]
 
-        for code_name, code in self.manager.config.codes.items():
-            chat_list = ", ".join(str(chat_id) for chat_id in code.chats) or "(empty)"
+        for code_name, code in self._manager.config.codes.items():
+            chat_list = ", ".join(map(str, code.chats)) or "(пусто)"
             min_interval, max_interval = code.interval
             message_count = len(code.messages)
-            running = code_name in self.manager.broadcast_tasks
+            running = code_name in self._manager.broadcast_tasks
 
             text.append(
                 f"- `{code_name}`:\n"
-                f"  💬 Chats: {chat_list}\n"
-                f"  ⏱ Interval: {min_interval} - {max_interval} minutes\n"
-                f"  📨 Messages: {message_count}\n"
-                f"  📊 Status: {'🟢 Running' if running else '🔴 Stopped'}\n"
+                f"  💬 Чаты: {chat_list}\n"
+                f"  ⏱ Интервал: {min_interval} - {max_interval} минут\n"
+                f"  📨 Сообщений: {message_count}\n"
+                f"  📊 Статус: {'🟢 Работает' if running else '🔴 Остановлен'}\n"
             )
         await utils.answer(message, "\n".join(text))
 
     async def listmsgcmd(self, message: Message):
-        """List messages in a broadcast code. Usage: .listmsg code"""
-        args = utils.get_args(message)
-        if len(args) != 1:
-            return await utils.answer(message, "Usage: .listmsg code")
-        code_name = args[0]
-        if code_name not in self.manager.config.codes:
-            return await utils.answer(
-                message, self.strings["code_not_found"].format(code_name)
-            )
-        messages = self.manager.config.codes[code_name].messages
+        """Список сообщений в коде рассылки"""
+        code_name = await self._validate_broadcast_code(message)
+        if not code_name:
+            return
+
+        messages = self._manager.config.codes[code_name].messages
         if not messages:
-            return await utils.answer(
-                message, f"No messages in broadcast code '{code_name}'"
-            )
-        text = [f"**Messages in '{code_name}':**"]
+            return await utils.answer(message, f"Нет сообщений в коде '{code_name}'")
+        
+        text = [f"**Сообщения в '{code_name}':**"]
         for i, msg in enumerate(messages, 1):
             try:
                 chat_id = int(str(abs(msg.chat_id))[-10:])
 
                 if msg.grouped_id is not None:
-                    message_text = f"{i}. Album in chat {msg.chat_id} (Total images: {len(msg.album_ids)})"
-                    message_links = []
-                    for album_id in msg.album_ids:
-                        message_links.append(f"t.me/c/{chat_id}/{album_id}")
-                    message_text += f"\nLinks: {' , '.join(message_links)}"
+                    message_text = f"{i}. Альбом в чате {msg.chat_id} (Всего изображений: {len(msg.album_ids)})"
+                    message_links = [f"t.me/c/{chat_id}/{album_id}" for album_id in msg.album_ids]
+                    message_text += f"\nСсылки: {' , '.join(message_links)}"
                 else:
-                    message_text = f"{i}. Message in chat {msg.chat_id}\n"
-                    message_text += f"Link: t.me/c/{chat_id}/{msg.message_id}"
+                    message_text = f"{i}. Сообщение в чате {msg.chat_id}\n"
+                    message_text += f"Ссылка: t.me/c/{chat_id}/{msg.message_id}"
                 text.append(message_text)
             except Exception as e:
-                text.append(f"{i}. Error getting message info: {str(e)}")
+                text.append(f"{i}. Ошибка получения информации: {str(e)}")
+        
         await utils.answer(message, "\n\n".join(text))
 
     async def watcmd(self, message: Message):
-        """Toggle automatic chat management. Usage: .wat"""
-        self.wat_mode = not self.wat_mode
+        """Переключение автоматического управления чатами"""
+        self._wat_mode = not self._wat_mode
         await utils.answer(
             message,
             self.strings["success"].format(
-                f"Auto chat management {'enabled' if self.wat_mode else 'disabled'}"
+                f"Автоматическое управление чатами {'включено' if self._wat_mode else 'выключено'}"
             ),
         )
 
     async def watcher(self, message: Message):
-        """Watch for messages to handle automatic chat management"""
+        """Наблюдатель сообщений для автоматического управления"""
         if not isinstance(message, Message):
             return
+
         current_time = time.time()
-        if (
-            not hasattr(self, "_last_broadcast_check")
-            or current_time - self._last_broadcast_check >= 600
-        ):
+        # Периодический запуск
+        if current_time - self._last_broadcast_check >= 600:
             self._last_broadcast_check = current_time
-            await self.manager.start_broadcasts()
-        if self.wat_mode and message.sender_id == self.me_id:
-            text = message.text.strip() if message.text else ""
-            for code_name in self.manager.config.codes:
-                if text.endswith(code_name):
-                    await self.manager.manage_chat(code_name, message.chat_id)
-                    break
+            await self._manager.start_broadcasts()
+
+        # Автоматическое управление чатами
+        if (
+            self._wat_mode and 
+            message.sender_id == self._me_id and 
+            message.text and 
+            message.text.strip()
+        ):
+            for code_name in self._manager.config.codes:
+                if message.text.strip().endswith(code_name):
+                    try:
+                        code = self._manager.config.codes[code_name]
+                        code.chats.add(message.chat_id)
+                        self._manager.save_config()
+                        break
+                    except Exception as e:
+                        logger.error(f"Ошибка автодобавления чата: {e}")
