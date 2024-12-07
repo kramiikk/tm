@@ -218,7 +218,7 @@ class BroadcastManager:
                                     entity=chat_id, 
                                     messages=[m.id for m in message_to_send],
                                     from_peer=message_to_send[0].chat_id,
-                                    drop_author: bool = None
+                                    post_author=None
                                 )
                             else:
                                 # Обычные сообщения отправляются как новые
