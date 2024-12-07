@@ -53,8 +53,6 @@ class BroadcastConfig:
 
 
 class BroadcastManager:
-    CACHE_LIFETIME = 1800
-
     def __init__(self, client: TelegramClient, db):
         self.client = client
         self.db = db
@@ -226,7 +224,7 @@ class BroadcastManager:
                     if message:
                         messages.append(message)
                 if not messages:
-                    await asyncio.sleep(42)
+                    await asyncio.sleep(33)
                     continue
                 current_time = time.time()
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
