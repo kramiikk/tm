@@ -100,6 +100,7 @@ class ChatAnalyzer:
                     user = await client.get_entity(user_id)
                     return {
                         'name': f"[{user.username or user.first_name or 'Unknown'}](tg://user?id={user_id})",
+                        'id': user_id,
                         'messages': user_message_count.get(user_id, 0)
                     }
                 except Exception:
@@ -134,100 +135,172 @@ class ChatAnalyzer:
 
 @loader.tds
 class AnalyzerModule(loader.Module):
-    """Расширенный анализатор чата"""
+    """Расширенный анализатор чата с React-компонентом"""
     
     strings = {
         "name": "ChatAnalyzer",
         "error": "❌ <b>Ошибка:</b> {}",
-        "ping_template": (
-            "🌐 <b>Ping: {comprehensive:.2f} мс</b>\n"
-            "• Telethon: {telethon:.2f} мс\n"
-            "• RTT: {rtt:.2f} мс\n"
-        ),
-        "stats_template": (
-            "\n<b>Статистика чата:</b>\n"
-            "🏷️ Название: {title}\n"
-            "🆔 ID: <code>{chat_id}</code>\n"
-            "💬 Сообщений: {total_messages}\n"
-            "👥 Активные участники: {active_members}\n"
-            "🤖 Боты: {bots}\n"
-            "{pattern_section}"
-            "\n<b>Топ-3 активных пользователей:</b>\n"
-            "{top_users_section}"
-        ),
-        "pattern_section": "🔍 Сообщений с '{pattern}': {pattern_count}\n",
-        "top_users_template": "• {name}: {messages} сообщений\n",
     }
 
-    def __init__(self):
-        self.network_analyzer = NetworkAnalyzer()
-        self.chat_analyzer = ChatAnalyzer()
-        self._last_context = {"chat": None, "stats": None, "ping": None}
+    # React компонент в виде строки
+    react_component = """
+import React, { useState, useEffect } from 'react';
+import { RefreshCcw } from 'lucide-react';
+
+const ChatStatistics = ({ client, chatId }) => {
+  const [stats, setStats] = useState({
+    ping: null,
+    telethonPing: null,
+    rttPing: null,
+    chatName: null,
+    chatId: null,
+    totalMessages: null,
+    activeMembers: null,
+    bots: null,
+    topUsers: []
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchChatStats = async () => {
+    try {
+      setLoading(true);
+      
+      const pingResults = await window.pywebview.api.measure_latency();
+      const chatStats = await window.pywebview.api.analyze_chat(chatId);
+
+      setStats({
+        ping: pingResults.comprehensive,
+        telethonPing: pingResults.telethon,
+        rttPing: pingResults.rtt,
+        chatName: chatStats.title,
+        chatId: chatStats.chat_id,
+        totalMessages: chatStats.total_messages,
+        activeMembers: chatStats.active_members,
+        bots: chatStats.bots,
+        topUsers: chatStats.top_users || []
+      });
+
+      setError(null);
+    } catch (err) {
+      setError("Ошибка получения статистики: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (chatId) {
+      fetchChatStats();
+    }
+  }, [chatId]);
+
+  const handleRefresh = () => {
+    fetchChatStats();
+  };
+
+  if (loading) return <div>Загрузка...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
+
+  return (
+    <div className="p-4 bg-gray-100 rounded-lg shadow-md">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Статистика чата</h2>
+        <button 
+          onClick={handleRefresh}
+          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition"
+        >
+          <RefreshCcw size={20} />
+        </button>
+      </div>
+
+      <div className="mb-4">
+        <h3 className="font-semibold">🌐 Ping</h3>
+        <p>Общий: {stats.ping?.toFixed(2) || 'N/A'} мс</p>
+        <p>• Telethon: {stats.telethonPing?.toFixed(2) || 'N/A'} мс</p>
+        <p>• RTT: {stats.rttPing?.toFixed(2) || 'N/A'} мс</p>
+      </div>
+
+      <div className="mb-4">
+        <h3 className="font-semibold">Статистика чата</h3>
+        <p>🏷️ Название: {stats.chatName || 'Неизвестно'}</p>
+        <p>🆔 ID: {stats.chatId || 'Неизвестен'}</p>
+        <p>💬 Сообщений: {stats.totalMessages || 0}</p>
+        <p>👥 Активные участники: {stats.activeMembers || 0}</p>
+        <p>🤖 Боты: {stats.bots || 0}</p>
+      </div>
+
+      <div>
+        <h3 className="font-семибольшой">Топ-3 активных пользователей</h3>
+        {stats.topUsers.length > 0 ? (
+          stats.topUsers.map((user) => (
+            <p key={user.id}>
+              • <a 
+                href={`tg://user?id=${user.id}`} 
+                className="text-blue-600 hover:underline"
+              >
+                {user.name}
+              </a>: {user.messages} сообщений
+            </p>
+          ))
+        ) : (
+          <p>Нет данных о пользователях</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ChatStatistics;
+"""
 
     async def client_ready(self, client, db):
         """Инициализация модуля"""
         self._client = client
+        self._network_analyzer = NetworkAnalyzer()
+        self._chat_analyzer = ChatAnalyzer()
 
     @loader.command()
-    async def pstat(self, message):
-        """Команда получения расширенной статистики чата"""
+    async def chatstat(self, message):
+        """Получение статистики чата"""
         try:
-            # Разбор аргументов
-            args = utils.get_args(message)
-            chat_id_arg = args[0] if args else None
-            pattern = None
-
-            # Поиск регулярного выражения
-            for arg in args:
-                if arg.startswith("r'") and arg.endswith("'"):
-                    pattern = arg[2:-1]
-                    args.remove(arg)
-                    chat_id_arg = args[0] if args else None
-                    break
-
-            # Определение чата
-            chat = await (
-                self._client.get_entity(int(chat_id_arg)) if chat_id_arg 
-                else message.get_chat()
-            )
-
+            chat = await message.get_chat()
+            
             # Измерение пинга
-            ping_results = await self.network_analyzer.measure_latency(self._client)
-
-            # Отправка первичного сообщения
-            response_message = await message.reply(
-                self.strings["ping_template"].format(**ping_results)
+            ping_results = await self._network_analyzer.measure_latency(self._client)
+            
+            # Анализ чата
+            stats = await self._chat_analyzer.analyze_chat(self._client, chat)
+            
+            # Форматирование результатов
+            top_users_text = "\n".join([
+                f"• {user['name']}: {user['messages']} сообщений" 
+                for user in stats.get('top_users', [])
+            ])
+            
+            response = (
+                f"🌐 Ping: {ping_results['comprehensive']:.2f} мс\n"
+                f"• Telethon: {ping_results['telethon']:.2f} мс\n"
+                f"• RTT: {ping_results['rtt']:.2f} мс\n\n"
+                f"Статистика чата '{stats.get('title', 'Неизвестно')}':\n"
+                f"🆔 ID: {stats.get('chat_id', 'Н/Д')}\n"
+                f"💬 Сообщений: {stats.get('total_messages', 0)}\n"
+                f"👥 Активные участники: {stats.get('active_members', 0)}\n"
+                f"🤖 Боты: {stats.get('bots', 0)}\n\n"
+                "Топ-3 активных пользователей:\n"
+                f"{top_users_text}"
             )
-
-            # Сбор статистики
-            stats = await self.chat_analyzer.analyze_chat(
-                self._client, chat, pattern=pattern
-            )
-
-            # Подготовка секций
-            top_users_section = "• Нет данных"
-            if stats.get("top_users"):
-                top_users_section = "".join(
-                    self.strings["top_users_template"].format(**user)
-                    for user in stats["top_users"]
-                )
-
-            pattern_section = (
-                self.strings["pattern_section"].format(
-                    pattern=pattern, 
-                    pattern_count=stats.get("pattern_count", 0)
-                ) if pattern else ""
-            )
-
-            # Обновление сообщения полной статистикой
-            await response_message.edit(
-                self.strings["ping_template"].format(**ping_results) +
-                self.strings["stats_template"].format(
-                    **stats,
-                    pattern_section=pattern_section,
-                    top_users_section=top_users_section
-                )
-            )
-
+            
+            await message.reply(response)
+            
         except Exception as e:
-            await message.reply(self.strings["error"].format(str(e)))
+            await message.reply(f"❌ Ошибка: {str(e)}")
+
+    async def measure_latency(self):
+        """API-метод для React-компонента"""
+        return await self._network_analyzer.measure_latency(self._client)
+
+    async def analyze_chat(self, chat_id):
+        """API-метод для React-компонента"""
+        return await self._chat_analyzer.analyze_chat(self._client, chat_id)
