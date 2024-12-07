@@ -357,15 +357,15 @@ class BroadcastManager:
                     if not msg.media:
                         continue
                     
-                    # Extract caption from the first message
+                    # Извлечение caption только из первого сообщения
                     if not caption and msg.text:
                         caption = msg.text
                     
                     try:
-                        file_bytes = await msg.download_media(bytes)
-                        media_files.append(file_bytes)
+                        # Напрямую используем media из сообщения
+                        media_files.append(msg.media)
                     except Exception as e:
-                        logger.error(f"Error downloading media: {e}")
+                        logger.error(f"Error processing media: {e}")
                         continue
                 
                 if not media_files:
@@ -373,25 +373,24 @@ class BroadcastManager:
                     return None
                 
                 try:
-                    # Use send_file with multiple files
-                    result = await self.client.send_file(
+                    # Отправка альбома используя медиа напрямую из сообщений
+                    result = await self.client.send_message(
                         chat_id, 
-                        file=media_files, 
-                        caption=caption,  # Caption will be applied to the first file
-                        album=True  # Explicitly specify album=True
+                        file=media_files,
+                        message=caption
                     )
                     return result
                 
                 except Exception as album_send_error:
                     logger.error(f"Error sending album to {chat_id}: {album_send_error}")
                     
-                    # Fallback - send files individually
+                    # Отправка по одному файлу
                     sent_files = []
-                    for i, file_bytes in enumerate(media_files):
+                    for i, media in enumerate(media_files):
                         try:
                             sent_file = await self.client.send_file(
                                 chat_id, 
-                                file_bytes, 
+                                media, 
                                 caption=caption if i == 0 else None
                             )
                             sent_files.append(sent_file)
@@ -400,7 +399,7 @@ class BroadcastManager:
                     
                     return sent_files[0] if sent_files else None
     
-            # Single message logic remains the same
+            # Логика для одиночного сообщения
             if message.media:
                 return await self.client.send_file(
                     chat_id, message.media, caption=message.text
