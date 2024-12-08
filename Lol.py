@@ -79,9 +79,9 @@ class ChatStatistics:
     async def analyze_chat(
         client: TelegramClient,
         chat: Union[Chat, int],
-        limit: int = 10000,
+        limit: int = 100000,
         pattern: Optional[str] = None,
-        active_threshold: int = 50,  # New parameter to define active membership
+        active_threshold: int = 10,  # New parameter to define active membership
         threshold_method: str = 'percentile'  # Add default threshold method
     ) -> Dict[str, Any]:
         try:
@@ -484,8 +484,8 @@ class AdvancedChatAnalyzer(loader.Module):
                 # Сохраняем ссылку для последующей очистки
                 self.active_web_servers[web_link] = web_stats_creator
 
-                # Планируем автоматическую очистку через 5 минут
-                asyncio.create_task(self._cleanup_web_server(web_link, 300))
+                # Планируем автоматическую очистку через n минут
+                asyncio.create_task(self._cleanup_web_server(web_link, 900))
 
             # Формирование финального сообщения
             final_message = (
