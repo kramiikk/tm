@@ -31,7 +31,7 @@ class NetworkUtils:
             "comprehensive": await _safe_timer(client.get_me())  # Changed from get_dialogs()
         }
     
-          return {k: v if v is not None else -1.0 for k, v in results.items()}
+        return {k: v if v is not None else -1.0 for k, v in results.items()}
 
 class ChatStatistics:
     @staticmethod
