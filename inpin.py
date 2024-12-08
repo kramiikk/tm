@@ -14,10 +14,12 @@ from aiohttp import web
 
 from .. import utils, loader
 
+
 class NetworkUtils:
     @staticmethod
     async def measure_network_performance(client: TelegramClient) -> Dict[str, float]:
         """Advanced network performance measurement with multi-method latency check"""
+
         async def _safe_timer(coro, timeout: float = 2.0) -> Optional[float]:
             try:
                 start = time.perf_counter()
@@ -25,13 +27,16 @@ class NetworkUtils:
                 return (time.perf_counter() - start) * 1000
             except (asyncio.TimeoutError, Exception):
                 return None
-    
+
         results = {
             "telethon": await _safe_timer(client.get_me()),
-            "comprehensive": await _safe_timer(client.get_me())  # Changed from get_dialogs()
+            "comprehensive": await _safe_timer(
+                client.get_me()
+            ),  # Changed from get_dialogs()
         }
-    
-          return {k: v if v is not None else -1.0 for k, v in results.items()}
+
+        return {k: v if v is not None else -1.0 for k, v in results.items()}
+
 
 class ChatStatistics:
     @staticmethod
@@ -39,50 +44,48 @@ class ChatStatistics:
         client: TelegramClient,
         chat: Union[Chat, int],
         limit: int = 10000,
-        pattern: Optional[str] = None
+        pattern: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Comprehensive chat analysis with advanced filtering and performance optimizations"""
         try:
             # Если передан просто chat_id, получаем сущность чата
             if isinstance(chat, int):
                 chat = await client.get_entity(chat)
-    
+
             participants, messages = await asyncio.gather(
                 client.get_participants(chat, limit=limit),
-                client.get_messages(chat, limit=limit)
+                client.get_messages(chat, limit=limit),
             )
-    
+
             def is_valid_message(msg):
                 # Расширенная проверка сообщения
                 try:
                     # Проверяем наличие текста, исключаем сервисные сообщения
-                    if not msg or getattr(msg, 'service', False):
+                    if not msg or getattr(msg, "service", False):
                         return False
-                    
+
                     # Проверяем, что у сообщения есть текст и он не пустой
-                    text = getattr(msg, 'text', '')
+                    text = getattr(msg, "text", "")
                     if not text or not text.strip():
                         return False
-                    
+
                     # Дополнительная проверка наличия отправителя
-                    if not getattr(msg, 'sender_id', None):
+                    if not getattr(msg, "sender_id", None):
                         return False
-                    
+
                     return True
                 except Exception:
                     return False
-    
-            meaningful_messages = [
-                msg for msg in messages 
-                if is_valid_message(msg)
-            ]
-    
+
+            meaningful_messages = [msg for msg in messages if is_valid_message(msg)]
+
             if pattern:
                 meaningful_messages = [
-                    msg for msg in meaningful_messages 
+                    msg
+                    for msg in meaningful_messages
                     if re.search(pattern, msg.text, re.IGNORECASE)
                 ]
-    
+
             user_stats = {}
             for msg in meaningful_messages:
                 sender_id = msg.sender_id
@@ -90,54 +93,55 @@ class ChatStatistics:
                 if sender_id:
                     try:
                         sender = await client.get_entity(sender_id)
-                        if not getattr(sender, 'bot', False):
+                        if not getattr(sender, "bot", False):
                             user_stats[sender_id] = user_stats.get(sender_id, 0) + 1
                     except Exception:
                         pass
-    
+
             async def _get_user_details(user_id: int):
                 try:
                     user = await client.get_entity(user_id)
                     return {
-                        'name': (
-                            user.username or 
-                            user.first_name or 
-                            user.last_name or 
-                            'Unknown'
+                        "name": (
+                            user.username
+                            or user.first_name
+                            or user.last_name
+                            or "Unknown"
                         ),
-                        'messages': user_stats.get(user_id, 0),
-                        'link': f'<a href="tg://user?id={user_id}">{user.username or user.first_name or user.last_name or "Unknown"}</a>'
+                        "messages": user_stats.get(user_id, 0),
+                        "link": f'<a href="tg://user?id={user_id}">{user.username or user.first_name or user.last_name or "Unknown"}</a>',
                     }
                 except Exception:
                     return None
-    
+
             # Безопасное получение топ-пользователей
             top_users = []
             for uid in sorted(user_stats, key=user_stats.get, reverse=True)[:5]:
                 user_details = await _get_user_details(uid)
                 if user_details:
                     top_users.append(user_details)
-    
+
             # Безопасное получение названия чата
             chat_title = (
-                getattr(chat, 'title', None) or 
-                getattr(chat, 'first_name', None) or 
-                getattr(chat, 'username', None) or 
-                'Unknown Chat'
+                getattr(chat, "title", None)
+                or getattr(chat, "first_name", None)
+                or getattr(chat, "username", None)
+                or "Unknown Chat"
             )
-    
+
             return {
-                'title': chat_title,
-                'chat_id': chat.id if hasattr(chat, 'id') else chat,
-                'total_messages': len(meaningful_messages),
-                'active_members': len({msg.sender_id for msg in meaningful_messages}),
-                'bots': len({p.id for p in participants if getattr(p, 'bot', False)}),
-                'top_users': top_users,
-                'pattern_matches': len(meaningful_messages) if pattern else 0
+                "title": chat_title,
+                "chat_id": chat.id if hasattr(chat, "id") else chat,
+                "total_messages": len(meaningful_messages),
+                "active_members": len({msg.sender_id for msg in meaningful_messages}),
+                "bots": len({p.id for p in participants if getattr(p, "bot", False)}),
+                "top_users": top_users,
+                "pattern_matches": len(meaningful_messages) if pattern else 0,
             }
         except Exception as e:
             logging.error(f"Chat analysis error: {e}")
             return {}
+
 
 class WebStatsCreator:
     def __init__(self, stats: Dict[str, Any]):
@@ -276,24 +280,25 @@ class WebStatsCreator:
         if self.ssh_process:
             self.ssh_process.terminate()
             await self.ssh_process.wait()
-        
+
         if self.site:
             await self.site.stop()
-        
+
         if self.runner:
             await self.runner.cleanup()
+
 
 @loader.tds
 class AdvancedChatAnalyzer(loader.Module):
     """High-performance Telegram chat analyzer with network diagnostics"""
-    
+
     strings = {
         "name": "AdvancedChatAnalyzer",
         "network_stats": (
-          "🌐 <b>Network Performance</b>\n"
-          "• Telethon Latency: {telethon:.2f} ms\n"
-          "• Comprehensive Latency: {comprehensive:.2f} ms\n"
-      ),
+            "🌐 <b>Network Performance</b>\n"
+            "• Telethon Latency: {telethon:.2f} ms\n"
+            "• Comprehensive Latency: {comprehensive:.2f} ms\n"
+        ),
         "chat_stats": (
             "\n<b>📊 Chat Statistics</b>\n"
             "🏷️ Title: {title}\n"
@@ -307,7 +312,7 @@ class AdvancedChatAnalyzer(loader.Module):
         ),
         "web_link_message": "🌐 <b>Statistics Web Link</b>: {}",
         "web_url": "🌐 <b>Stats URL:</b> {} <b>Expires in</b> <code>{}</code> seconds",
-        "expired": "⏰ <b>Web statistics link expired</b>"
+        "expired": "⏰ <b>Web statistics link expired</b>",
     }
 
     def __init__(self):
@@ -316,10 +321,6 @@ class AdvancedChatAnalyzer(loader.Module):
         self.active_web_servers = {}
 
     async def pstatcmd(self, message):
-        """
-        Расширенная статистика чата с улучшенной обработкой ошибок
-        """
-        async def pstatcmd(self, message):
         """
         Расширенная статистика чата с улучшенной обработкой ошибок и прелоадером
         """
@@ -333,7 +334,7 @@ class AdvancedChatAnalyzer(loader.Module):
             "  • Генерация отчета\n\n"
             "<blockquote>Пожалуйста, подождите. Это может занять некоторое время в зависимости от размера чата.</blockquote>"
         )
-    
+
         try:
             args = utils.get_args_raw(message).split()
             chat_id = None
@@ -354,10 +355,11 @@ class AdvancedChatAnalyzer(loader.Module):
                     args.remove(arg)
 
             chat_id = args[0] if args else None
-             # Безопасное получение чата
+            # Безопасное получение чата
             try:
                 chat = await (
-                    message.client.get_entity(int(chat_id)) if chat_id 
+                    message.client.get_entity(int(chat_id))
+                    if chat_id
                     else message.get_chat()
                 )
             except ValueError:
@@ -368,8 +370,10 @@ class AdvancedChatAnalyzer(loader.Module):
                 return
 
             # Сетевая производительность
-            network_metrics = await self.network_utils.measure_network_performance(message.client)
-            
+            network_metrics = await self.network_utils.measure_network_performance(
+                message.client
+            )
+
             # Если требуется только сетевая статистика
             if network_only:
                 return await message.edit(
@@ -382,15 +386,19 @@ class AdvancedChatAnalyzer(loader.Module):
             )
 
             # Секция топ-пользователей
-            top_users_section = "\n".join(
-                f"• {user['link']}: {user['messages']} messages" 
-                for user in stats.get('top_users', [])
-            ) or "No active users found"
+            top_users_section = (
+                "\n".join(
+                    f"• {user['link']}: {user['messages']} messages"
+                    for user in stats.get("top_users", [])
+                )
+                or "No active users found"
+            )
 
             # Секция совпадений паттерна
             pattern_section = (
-                f"🔍 Pattern Matches: {stats.get('pattern_matches', 0)}\n" 
-                if pattern else ""
+                f"🔍 Pattern Matches: {stats.get('pattern_matches', 0)}\n"
+                if pattern
+                else ""
             )
 
             # Создание веб-ссылки, если указан флаг
@@ -399,7 +407,7 @@ class AdvancedChatAnalyzer(loader.Module):
                 web_stats_creator = WebStatsCreator(stats)
                 await web_stats_creator.start_server()
                 web_link = await web_stats_creator.open_tunnel()
-                
+
                 # Сохраняем ссылку для последующей очистки
                 self.active_web_servers[web_link] = web_stats_creator
 
@@ -408,20 +416,26 @@ class AdvancedChatAnalyzer(loader.Module):
 
             # Формирование финального сообщения
             final_message = (
-                self.strings["network_stats"].format(**network_metrics) +
-                self.strings["chat_stats"].format(
+                self.strings["network_stats"].format(**network_metrics)
+                + self.strings["chat_stats"].format(
                     **stats,
                     pattern_section=pattern_section,
-                    top_users_section=top_users_section
-                ) +
-                (f"\n{self.strings['web_link_message'].format(web_link)}" if web_link else "")
+                    top_users_section=top_users_section,
+                )
+                + (
+                    f"\n{self.strings['web_link_message'].format(web_link)}"
+                    if web_link
+                    else ""
+                )
             )
 
             await message.edit(final_message)
             if not stats:
-                await message.edit("❌ Не удалось получить статистику чата. Проверьте права доступа.")
+                await message.edit(
+                    "❌ Не удалось получить статистику чата. Проверьте права доступа."
+                )
                 return
-    
+
         except Exception as e:
             logging.error(f"Unexpected error in pstatcmd: {e}", exc_info=True)
             await message.edit(f"❌ Непредвиденная ошибка: {e}")
@@ -429,7 +443,7 @@ class AdvancedChatAnalyzer(loader.Module):
     async def _cleanup_web_server(self, web_link: str, timeout: int):
         """Автоматическая очистка веб-сервера"""
         await asyncio.sleep(timeout)
-        
+
         if web_link in self.active_web_servers:
             web_stats_creator = self.active_web_servers.pop(web_link)
             await web_stats_creator.cleanup()
