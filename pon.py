@@ -5,6 +5,7 @@ import json
 import logging
 import socket
 import time
+import numpy as np
 from typing import Dict, Any, List, Optional, Union
 
 import aiohttp
@@ -40,12 +41,48 @@ class NetworkUtils:
 
 class ChatStatistics:
     @staticmethod
+    def calculate_adaptive_threshold(user_stats: Dict[int, int], method: str = 'percentile') -> int:
+        """
+        Динамический расчет порога активности
+        
+        Методы:
+        - 'percentile': 75-й перцентиль (исключает редких участников)
+        - 'median': средний уровень активности
+        - 'mean': среднее арифметическое
+        - 'std': средне + стандартное отклонение
+        """
+        if not user_stats:
+            return 0
+        
+        message_counts = list(user_stats.values())
+        
+        if method == 'percentile':
+            # 75-й перцентиль - исключает 25% наименее активных
+            return int(np.percentile(message_counts, 75))
+        
+        elif method == 'median':
+            # Медиана - середина распределения
+            return int(np.median(message_counts))
+        
+        elif method == 'mean':
+            # Среднее арифметическое
+            return int(np.mean(message_counts))
+        
+        elif method == 'std':
+            # Среднее + стандартное отклонение
+            return int(np.mean(message_counts) + np.std(message_counts))
+        
+        else:
+            raise ValueError("Неподдерживаемый метод расчета порога")
+
+    @staticmethod
     async def analyze_chat(
         client: TelegramClient,
         chat: Union[Chat, int],
-        limit: int = 10000,
+        limit: int = 100000,
         pattern: Optional[str] = None,
-        active_threshold: int = 50,  # New parameter to define active membership
+        active_threshold: int = 10,  # New parameter to define active membership
+        threshold_method: str = 'percentile'  # Add default threshold method
     ) -> Dict[str, Any]:
         try:
             # If chat_id is passed, get the chat entity
@@ -62,9 +99,9 @@ class ChatStatistics:
             def is_bot(user):
                 return (
                     getattr(user, 'bot', False) or 
-                    getattr(user, 'username', '').lower().endswith('bot') or
-                    (user.first_name or '').lower().endswith('bot') or
-                    (user.last_name or '').lower().endswith('bot')
+                    (getattr(user, 'username', '') or '').lower().endswith('bot') or
+                    (getattr(user, 'first_name', '') or '').lower().endswith('bot') or
+                    (getattr(user, 'last_name', '') or '').lower().endswith('bot')
                 )
     
             # Create a set of bot IDs with comprehensive bot detection
@@ -129,12 +166,26 @@ class ChatStatistics:
                     }
                 except Exception:
                     return None
-    
-            # Filter out users below active threshold
+
+            try:
+                adaptive_threshold = ChatStatistics.calculate_adaptive_threshold(
+                    user_stats, 
+                    method=threshold_method  # Use the passed or default method
+                )
+            except ImportError:
+                # Резервный метод без numpy
+                adaptive_threshold = max(1, len(user_stats) // 4)
+            
+            # Replace active_threshold with adaptive_threshold
             active_user_stats = {
                 uid: count for uid, count in user_stats.items() 
-                if count >= active_threshold
+                if count >= adaptive_threshold
             }
+            
+            # Add logging
+            logging.info(f"Threshold method: {threshold_method}")
+            logging.info(f"Adaptive threshold: {adaptive_threshold}")
+            logging.info(f"Active users count: {len(active_user_stats)}")
     
             # Safely get top users (excluding bots and low-activity users)
             top_users = []
@@ -331,9 +382,10 @@ class AdvancedChatAnalyzer(loader.Module):
             "\n<b>🏆 Top Active Users</b>\n"
             "{top_users_section}"
         ),
-        "web_link_message": "🌐 <b>Statistics Web Link</b>: {}",
+        "web_link_message": "\n🌐 <b>Statistics Web Link</b>: {}",
         "web_url": "🌐 <b>Stats URL:</b> {} <b>Expires in</b> <code>{}</code> seconds",
         "expired": "⏰ <b>Web statistics link expired</b>",
+        "default_title": "Unknown Chat"  # Add a default title
     }
 
     def __init__(self):
@@ -432,14 +484,18 @@ class AdvancedChatAnalyzer(loader.Module):
                 # Сохраняем ссылку для последующей очистки
                 self.active_web_servers[web_link] = web_stats_creator
 
-                # Планируем автоматическую очистку через 5 минут
-                asyncio.create_task(self._cleanup_web_server(web_link, 300))
+                # Планируем автоматическую очистку через n минут
+                asyncio.create_task(self._cleanup_web_server(web_link, 900))
 
             # Формирование финального сообщения
             final_message = (
                 self.strings["network_stats"].format(**network_metrics)
                 + self.strings["chat_stats"].format(
-                    **stats,
+                    title=stats.get('title', self.strings['default_title']),  # Use default if title is missing
+                    chat_id=stats.get('chat_id', 'N/A'),
+                    total_messages=stats.get('total_messages', 0),
+                    active_members=stats.get('active_members', 0),
+                    bots=stats.get('bots', 0),
                     pattern_section=pattern_section,
                     top_users_section=top_users_section,
                 )
