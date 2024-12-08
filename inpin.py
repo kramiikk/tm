@@ -25,20 +25,13 @@ class NetworkUtils:
                 return (time.perf_counter() - start) * 1000
             except (asyncio.TimeoutError, Exception):
                 return None
-
-        async def _rtt_check():
-            async with asyncio.timeout(2):
-                async with aiohttp.ClientSession() as session:
-                    async with session.get('http://8.8.8.8', timeout=2) as response:
-                        await response.text()
-
+    
         results = {
             "telethon": await _safe_timer(client.get_me()),
-            "rtt": await _safe_timer(_rtt_check()),
-            "comprehensive": await _safe_timer(client.get_dialogs(limit=1))
+            "comprehensive": await _safe_timer(client.get_me())  # Changed from get_dialogs()
         }
-
-        return {k: v if v is not None else -1.0 for k, v in results.items()}
+    
+          return {k: v if v is not None else -1.0 for k, v in results.items()}
 
 class ChatStatistics:
     @staticmethod
@@ -107,7 +100,7 @@ class ChatStatistics:
                             'Unknown'
                         ),
                         'messages': user_stats.get(user_id, 0),
-                        'link': f'tg://user?id={user_id}'
+                        'link': f'<a href="tg://user?id={user_id}">{user.username or user.first_name or user.last_name or "Unknown"}</a>'
                     }
                 except Exception:
                     return None
@@ -291,11 +284,10 @@ class AdvancedChatAnalyzer(loader.Module):
     strings = {
         "name": "AdvancedChatAnalyzer",
         "network_stats": (
-            "🌐 <b>Network Performance</b>\n"
-            "• Telethon Latency: {telethon:.2f} ms\n"
-            "• RTT Latency: {rtt:.2f} ms\n"
-            "• Comprehensive Latency: {comprehensive:.2f} ms\n"
-        ),
+          "🌐 <b>Network Performance</b>\n"
+          "• Telethon Latency: {telethon:.2f} ms\n"
+          "• Comprehensive Latency: {comprehensive:.2f} ms\n"
+      ),
         "chat_stats": (
             "\n<b>📊 Chat Statistics</b>\n"
             "🏷️ Title: {title}\n"
@@ -370,7 +362,7 @@ class AdvancedChatAnalyzer(loader.Module):
 
             # Секция топ-пользователей
             top_users_section = "\n".join(
-                f"• [{user['name']}]({user['link']}): {user['messages']} messages" 
+                f"• {user['link']}: {user['messages']} messages" 
                 for user in stats.get('top_users', [])
             ) or "No active users found"
 
