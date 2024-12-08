@@ -5,6 +5,7 @@ import json
 import logging
 import socket
 import time
+import numpy as np
 from typing import Dict, Any, List, Optional, Union
 
 import aiohttp
@@ -167,7 +168,6 @@ class ChatStatistics:
                     return None
 
             try:
-                import numpy as np
                 adaptive_threshold = ChatStatistics.calculate_adaptive_threshold(
                     user_stats, 
                     method=threshold_method  # Use the passed or default method
