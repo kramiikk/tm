@@ -31,7 +31,7 @@ class NetworkUtils:
             "comprehensive": await _safe_timer(client.get_me())  # Changed from get_dialogs()
         }
     
-        return {k: v if v is not None else -1.0 for k, v in results.items()}
+          return {k: v if v is not None else -1.0 for k, v in results.items()}
 
 class ChatStatistics:
     @staticmethod
@@ -86,8 +86,14 @@ class ChatStatistics:
             user_stats = {}
             for msg in meaningful_messages:
                 sender_id = msg.sender_id
+                # Проверяем, что отправитель не бот
                 if sender_id:
-                    user_stats[sender_id] = user_stats.get(sender_id, 0) + 1
+                    try:
+                        sender = await client.get_entity(sender_id)
+                        if not getattr(sender, 'bot', False):
+                            user_stats[sender_id] = user_stats.get(sender_id, 0) + 1
+                    except Exception:
+                        pass
     
             async def _get_user_details(user_id: int):
                 try:
@@ -313,6 +319,21 @@ class AdvancedChatAnalyzer(loader.Module):
         """
         Расширенная статистика чата с улучшенной обработкой ошибок
         """
+        async def pstatcmd(self, message):
+        """
+        Расширенная статистика чата с улучшенной обработкой ошибок и прелоадером
+        """
+        # Создаем красивое сообщение-прелоадер
+        await message.edit(
+            "🔍 <b>Начинаем сбор статистики...</b>\n\n"
+            "⏳ <i>Этапы анализа:</i>\n"
+            "  • Проверка сетевого подключения\n"
+            "  • Сканирование участников чата\n"
+            "  • Анализ сообщений\n"
+            "  • Генерация отчета\n\n"
+            "<blockquote>Пожалуйста, подождите. Это может занять некоторое время в зависимости от размера чата.</blockquote>"
+        )
+    
         try:
             args = utils.get_args_raw(message).split()
             chat_id = None
