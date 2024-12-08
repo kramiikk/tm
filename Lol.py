@@ -99,9 +99,9 @@ class ChatStatistics:
             def is_bot(user):
                 return (
                     getattr(user, 'bot', False) or 
-                    getattr(user, 'username', '').lower().endswith('bot') or
-                    (user.first_name or '').lower().endswith('bot') or
-                    (user.last_name or '').lower().endswith('bot')
+                    (getattr(user, 'username', '') or '').lower().endswith('bot') or
+                    (getattr(user, 'first_name', '') or '').lower().endswith('bot') or
+                    (getattr(user, 'last_name', '') or '').lower().endswith('bot')
                 )
     
             # Create a set of bot IDs with comprehensive bot detection
