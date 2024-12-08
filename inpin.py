@@ -45,6 +45,7 @@ class ChatStatistics:
         chat: Union[Chat, int],
         limit: int = 10000,
         pattern: Optional[str] = None,
+        active_threshold: int = 50,  # New parameter to define active membership
     ) -> Dict[str, Any]:
         try:
             # If chat_id is passed, get the chat entity
@@ -114,7 +115,7 @@ class ChatStatistics:
                     if is_bot(user):
                         return None
                     
-                    # Prioritize username, then first name, then last name
+                    # Prioritize username, then full name
                     name = (
                         user.username or 
                         (user.first_name + " " + (user.last_name or "")).strip() or 
@@ -129,9 +130,15 @@ class ChatStatistics:
                 except Exception:
                     return None
     
-            # Safely get top users (excluding bots)
+            # Filter out users below active threshold
+            active_user_stats = {
+                uid: count for uid, count in user_stats.items() 
+                if count >= active_threshold
+            }
+    
+            # Safely get top users (excluding bots and low-activity users)
             top_users = []
-            for uid in sorted(user_stats, key=user_stats.get, reverse=True)[:5]:
+            for uid in sorted(active_user_stats, key=active_user_stats.get, reverse=True)[:5]:
                 user_details = await _get_user_details(uid)
                 if user_details:
                     top_users.append(user_details)
@@ -148,7 +155,7 @@ class ChatStatistics:
                 "title": chat_title,
                 "chat_id": chat.id if hasattr(chat, "id") else chat,
                 "total_messages": len(meaningful_messages),
-                "active_members": len({msg.sender_id for msg in meaningful_messages} - bot_ids),
+                "active_members": len(active_user_stats),  # Changed to use active_user_stats
                 "bots": len(bot_ids),
                 "top_users": top_users,
                 "pattern_matches": len(meaningful_messages) if pattern else 0,
@@ -156,7 +163,6 @@ class ChatStatistics:
         except Exception as e:
             logging.error(f"Chat analysis error: {e}")
             return {}
-
 
 class WebStatsCreator:
     def __init__(self, stats: Dict[str, Any]):
