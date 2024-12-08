@@ -59,9 +59,29 @@ class ChatStatistics:
                 client.get_messages(chat, limit=limit)
             )
     
+            def is_valid_message(msg):
+                # Расширенная проверка сообщения
+                try:
+                    # Проверяем наличие текста, исключаем сервисные сообщения
+                    if not msg or getattr(msg, 'service', False):
+                        return False
+                    
+                    # Проверяем, что у сообщения есть текст и он не пустой
+                    text = getattr(msg, 'text', '')
+                    if not text or not text.strip():
+                        return False
+                    
+                    # Дополнительная проверка наличия отправителя
+                    if not getattr(msg, 'sender_id', None):
+                        return False
+                    
+                    return True
+                except Exception:
+                    return False
+    
             meaningful_messages = [
                 msg for msg in messages 
-                if (msg.text and msg.text.strip() and not getattr(msg, 'service', False))
+                if is_valid_message(msg)
             ]
     
             if pattern:
@@ -80,22 +100,35 @@ class ChatStatistics:
                 try:
                     user = await client.get_entity(user_id)
                     return {
-                        'name': user.username or user.first_name or 'Unknown',
+                        'name': (
+                            user.username or 
+                            user.first_name or 
+                            user.last_name or 
+                            'Unknown'
+                        ),
                         'messages': user_stats.get(user_id, 0),
                         'link': f'tg://user?id={user_id}'
                     }
                 except Exception:
                     return None
     
-            top_users = await asyncio.gather(*[
-                _get_user_details(uid) 
-                for uid in sorted(user_stats, key=user_stats.get, reverse=True)[:5]
-            ])
-            top_users = [user for user in top_users if user]
+            # Безопасное получение топ-пользователей
+            top_users = []
+            for uid in sorted(user_stats, key=user_stats.get, reverse=True)[:5]:
+                user_details = await _get_user_details(uid)
+                if user_details:
+                    top_users.append(user_details)
+    
+            # Безопасное получение названия чата
+            chat_title = (
+                getattr(chat, 'title', None) or 
+                getattr(chat, 'first_name', None) or 
+                getattr(chat, 'username', None) or 
+                'Unknown Chat'
+            )
     
             return {
-                # Используем более безопасный способ получения заголовка
-                'title': getattr(chat, 'title', getattr(chat, 'first_name', 'Unknown')),
+                'title': chat_title,
                 'chat_id': chat.id if hasattr(chat, 'id') else chat,
                 'total_messages': len(meaningful_messages),
                 'active_members': len({msg.sender_id for msg in meaningful_messages}),
@@ -286,12 +319,7 @@ class AdvancedChatAnalyzer(loader.Module):
 
     async def pstatcmd(self, message):
         """
-        Расширенная статистика чата:
-        - Без аргументов: статистика текущего чата
-        - [chat_id]: статистика указанного чата
-        - r'pattern': фильтрация сообщений по регулярному выражению
-        - web: создание веб-ссылки на статистику
-        - network: только сетевая статистика
+        Расширенная статистика чата с улучшенной обработкой ошибок
         """
         try:
             args = utils.get_args_raw(message).split()
@@ -313,10 +341,18 @@ class AdvancedChatAnalyzer(loader.Module):
                     args.remove(arg)
 
             chat_id = args[0] if args else None
-            chat = await (
-                message.client.get_entity(int(chat_id)) if chat_id 
-                else message.get_chat()
-            )
+             # Безопасное получение чата
+            try:
+                chat = await (
+                    message.client.get_entity(int(chat_id)) if chat_id 
+                    else message.get_chat()
+                )
+            except ValueError:
+                await message.edit("❌ Не удалось найти указанный чат. Проверьте ID.")
+                return
+            except Exception as chat_error:
+                await message.edit(f"❌ Ошибка получения чата: {chat_error}")
+                return
 
             # Сетевая производительность
             network_metrics = await self.network_utils.measure_network_performance(message.client)
@@ -373,10 +409,9 @@ class AdvancedChatAnalyzer(loader.Module):
                 await message.edit("❌ Не удалось получить статистику чата. Проверьте права доступа.")
                 return
     
-        except ValueError as ve:
-            await message.edit(f"❌ Ошибка: Неверный форматChat ID - {ve}")
         except Exception as e:
-            await message.edit(f"❌ Неизвестная ошибка: {e}")
+            logging.error(f"Unexpected error in pstatcmd: {e}", exc_info=True)
+            await message.edit(f"❌ Непредвиденная ошибка: {e}")
 
     async def _cleanup_web_server(self, web_link: str, timeout: int):
         """Автоматическая очистка веб-сервера"""
