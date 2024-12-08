@@ -46,61 +46,63 @@ class ChatStatistics:
         limit: int = 10000,
         pattern: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Comprehensive chat analysis with advanced filtering and performance optimizations"""
         try:
             # Если передан просто chat_id, получаем сущность чата
             if isinstance(chat, int):
                 chat = await client.get_entity(chat)
-
+    
             participants, messages = await asyncio.gather(
                 client.get_participants(chat, limit=limit),
                 client.get_messages(chat, limit=limit),
             )
-
+    
+            # Создаем множество ID ботов
+            bot_ids = {p.id for p in participants if getattr(p, "bot", False)}
+    
             def is_valid_message(msg):
-                # Расширенная проверка сообщения
                 try:
-                    # Проверяем наличие текста, исключаем сервисные сообщения
-                    if not msg or getattr(msg, "service", False):
+                    # Исключаем сервисные сообщения и сообщения от ботов
+                    if (
+                        not msg 
+                        or getattr(msg, "service", False)
+                        or getattr(msg, "sender_id", None) in bot_ids
+                    ):
                         return False
-
+    
                     # Проверяем, что у сообщения есть текст и он не пустой
                     text = getattr(msg, "text", "")
                     if not text or not text.strip():
                         return False
-
-                    # Дополнительная проверка наличия отправителя
-                    if not getattr(msg, "sender_id", None):
-                        return False
-
-                    return True
+    
+                    # Проверяем, что у сообщения есть отправитель
+                    return bool(getattr(msg, "sender_id", None))
                 except Exception:
                     return False
-
+    
+            # Фильтруем сообщения с учетом новых правил
             meaningful_messages = [msg for msg in messages if is_valid_message(msg)]
-
+    
+            # Применяем фильтр по паттерну, если указан
             if pattern:
                 meaningful_messages = [
                     msg
                     for msg in meaningful_messages
                     if re.search(pattern, msg.text, re.IGNORECASE)
                 ]
-
+    
+            # Подсчет сообщений для каждого пользователя (исключая ботов)
             user_stats = {}
             for msg in meaningful_messages:
                 sender_id = msg.sender_id
-                # Проверяем, что отправитель не бот
-                if sender_id:
-                    try:
-                        sender = await client.get_entity(sender_id)
-                        if not getattr(sender, "bot", False):
-                            user_stats[sender_id] = user_stats.get(sender_id, 0) + 1
-                    except Exception:
-                        pass
-
+                if sender_id and sender_id not in bot_ids:
+                    user_stats[sender_id] = user_stats.get(sender_id, 0) + 1
+    
             async def _get_user_details(user_id: int):
                 try:
                     user = await client.get_entity(user_id)
+                    # Исключаем ботов
+                    if getattr(user, "bot", False):
+                        return None
                     return {
                         "name": (
                             user.username
@@ -113,14 +115,14 @@ class ChatStatistics:
                     }
                 except Exception:
                     return None
-
-            # Безопасное получение топ-пользователей
+    
+            # Безопасное получение топ-пользователей (исключая ботов)
             top_users = []
             for uid in sorted(user_stats, key=user_stats.get, reverse=True)[:5]:
                 user_details = await _get_user_details(uid)
                 if user_details:
                     top_users.append(user_details)
-
+    
             # Безопасное получение названия чата
             chat_title = (
                 getattr(chat, "title", None)
@@ -128,13 +130,13 @@ class ChatStatistics:
                 or getattr(chat, "username", None)
                 or "Unknown Chat"
             )
-
+    
             return {
                 "title": chat_title,
                 "chat_id": chat.id if hasattr(chat, "id") else chat,
                 "total_messages": len(meaningful_messages),
-                "active_members": len({msg.sender_id for msg in meaningful_messages}),
-                "bots": len({p.id for p in participants if getattr(p, "bot", False)}),
+                "active_members": len({msg.sender_id for msg in meaningful_messages} - bot_ids),
+                "bots": len(bot_ids),
                 "top_users": top_users,
                 "pattern_matches": len(meaningful_messages) if pattern else 0,
             }
