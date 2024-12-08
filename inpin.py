@@ -50,28 +50,32 @@ class ChatStatistics:
     ) -> Dict[str, Any]:
         """Comprehensive chat analysis with advanced filtering and performance optimizations"""
         try:
+            # Если передан просто chat_id, получаем сущность чата
+            if isinstance(chat, int):
+                chat = await client.get_entity(chat)
+    
             participants, messages = await asyncio.gather(
                 client.get_participants(chat, limit=limit),
                 client.get_messages(chat, limit=limit)
             )
-
+    
             meaningful_messages = [
                 msg for msg in messages 
                 if (msg.text and msg.text.strip() and not getattr(msg, 'service', False))
             ]
-
+    
             if pattern:
                 meaningful_messages = [
                     msg for msg in meaningful_messages 
                     if re.search(pattern, msg.text, re.IGNORECASE)
                 ]
-
+    
             user_stats = {}
             for msg in meaningful_messages:
                 sender_id = msg.sender_id
                 if sender_id:
                     user_stats[sender_id] = user_stats.get(sender_id, 0) + 1
-
+    
             async def _get_user_details(user_id: int):
                 try:
                     user = await client.get_entity(user_id)
@@ -82,15 +86,16 @@ class ChatStatistics:
                     }
                 except Exception:
                     return None
-
+    
             top_users = await asyncio.gather(*[
                 _get_user_details(uid) 
                 for uid in sorted(user_stats, key=user_stats.get, reverse=True)[:5]
             ])
             top_users = [user for user in top_users if user]
-
+    
             return {
-                'title': getattr(chat, 'title', 'Unknown'),
+                # Используем более безопасный способ получения заголовка
+                'title': getattr(chat, 'title', getattr(chat, 'first_name', 'Unknown')),
                 'chat_id': chat.id if hasattr(chat, 'id') else chat,
                 'total_messages': len(meaningful_messages),
                 'active_members': len({msg.sender_id for msg in meaningful_messages}),
@@ -364,9 +369,14 @@ class AdvancedChatAnalyzer(loader.Module):
             )
 
             await message.edit(final_message)
-
+            if not stats:
+                await message.edit("❌ Не удалось получить статистику чата. Проверьте права доступа.")
+                return
+    
+        except ValueError as ve:
+            await message.edit(f"❌ Ошибка: Неверный форматChat ID - {ve}")
         except Exception as e:
-            await message.edit(f"❌ Error: {e}")
+            await message.edit(f"❌ Неизвестная ошибка: {e}")
 
     async def _cleanup_web_server(self, web_link: str, timeout: int):
         """Автоматическая очистка веб-сервера"""
