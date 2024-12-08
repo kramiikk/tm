@@ -81,6 +81,7 @@ class ChatStatistics:
         limit: int = 10000,
         pattern: Optional[str] = None,
         active_threshold: int = 50,  # New parameter to define active membership
+        threshold_method: str = 'percentile'  # Add default threshold method
     ) -> Dict[str, Any]:
         try:
             # If chat_id is passed, get the chat entity
@@ -167,23 +168,23 @@ class ChatStatistics:
 
             try:
                 import numpy as np
-                active_threshold = ChatStatistics.calculate_adaptive_threshold(
+                adaptive_threshold = ChatStatistics.calculate_adaptive_threshold(
                     user_stats, 
-                    method=threshold_method
+                    method=threshold_method  # Use the passed or default method
                 )
             except ImportError:
                 # Резервный метод без numpy
-                active_threshold = max(1, len(user_stats) // 4)
+                adaptive_threshold = max(1, len(user_stats) // 4)
             
-            # Фильтрация активных пользователей с новым порогом
+            # Replace active_threshold with adaptive_threshold
             active_user_stats = {
                 uid: count for uid, count in user_stats.items() 
-                if count >= active_threshold
+                if count >= adaptive_threshold
             }
             
-            # Логирование для понимания
+            # Add logging
             logging.info(f"Threshold method: {threshold_method}")
-            logging.info(f"Active threshold: {active_threshold}")
+            logging.info(f"Adaptive threshold: {adaptive_threshold}")
             logging.info(f"Active users count: {len(active_user_stats)}")
     
             # Safely get top users (excluding bots and low-activity users)
@@ -381,9 +382,10 @@ class AdvancedChatAnalyzer(loader.Module):
             "\n<b>🏆 Top Active Users</b>\n"
             "{top_users_section}"
         ),
-        "web_link_message": "🌐 <b>Statistics Web Link</b>: {}",
+        "web_link_message": "\n🌐 <b>Statistics Web Link</b>: {}",
         "web_url": "🌐 <b>Stats URL:</b> {} <b>Expires in</b> <code>{}</code> seconds",
         "expired": "⏰ <b>Web statistics link expired</b>",
+        "default_title": "Unknown Chat"  # Add a default title
     }
 
     def __init__(self):
@@ -489,7 +491,11 @@ class AdvancedChatAnalyzer(loader.Module):
             final_message = (
                 self.strings["network_stats"].format(**network_metrics)
                 + self.strings["chat_stats"].format(
-                    **stats,
+                    title=stats.get('title', self.strings['default_title']),  # Use default if title is missing
+                    chat_id=stats.get('chat_id', 'N/A'),
+                    total_messages=stats.get('total_messages', 0),
+                    active_members=stats.get('active_members', 0),
+                    bots=stats.get('bots', 0),
                     pattern_section=pattern_section,
                     top_users_section=top_users_section,
                 )
