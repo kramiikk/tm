@@ -232,6 +232,7 @@ class WebStatsCreator:
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Statistics</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -240,7 +241,7 @@ class WebStatsCreator:
     <div class="container mx-auto p-6">
         <h1 class="text-3xl font-bold mb-6 text-center">Chat Statistics</h1>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 gap-6">
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Basic Information</h2>
                 <ul class="space-y-2">
@@ -254,13 +255,15 @@ class WebStatsCreator:
 
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Top Users</h2>
-                <canvas id="topUsersChart"></canvas>
+                <div class="w-full h-96">
+                    <canvas id="topUsersChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {{
+    document.addEventListener('DOMContentLoaded', () => {
         const topUsers = {json.dumps([
             user['name'] for user in self.stats.get('top_users', [])
         ])};
@@ -268,32 +271,33 @@ class WebStatsCreator:
             user['messages'] for user in self.stats.get('top_users', [])
         ])};
 
-        new Chart(document.getElementById('topUsersChart'), {{
+        new Chart(document.getElementById('topUsersChart'), {
             type: 'bar',
-            data: {{
+            data: {
                 labels: topUsers,
-                datasets: [{{
+                datasets: [{
                     label: 'Messages',
                     data: topUserMessages,
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
-                }}]
-            }},
-            options: {{
+                }]
+            },
+            options: {
                 responsive: true,
-                scales: {{
-                    y: {{
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
                         beginAtZero: true,
-                        title: {{
+                        title: {
                             display: true,
                             text: 'Number of Messages'
-                        }}
-                    }}
-                }}
-            }}
-        }});
-    }});
+                        }
+                    }
+                }
+            }
+        });
+    });
     </script>
 </body>
 </html>
@@ -485,7 +489,7 @@ class AdvancedChatAnalyzer(loader.Module):
                 self.active_web_servers[web_link] = web_stats_creator
 
                 # Планируем автоматическую очистку через n минут
-                asyncio.create_task(self._cleanup_web_server(web_link, 900))
+                asyncio.create_task(self._cleanup_web_server(web_link, 300))
 
             # Формирование финального сообщения
             final_message = (
