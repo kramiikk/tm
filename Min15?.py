@@ -7,6 +7,7 @@ import socket
 import time
 import numpy as np
 from typing import Dict, Any, List, Optional, Union
+import gc
 
 import aiohttp
 from telethon import TelegramClient
@@ -371,11 +372,11 @@ class WebStatsCreator:
 
 
 @loader.tds
-class AdvancedChatAnalyzer(loader.Module):
-    """High-performance Telegram chat analyzer with network diagnostics"""
+class AnalDestroy(loader.Module):
+    """Скинь жопу"""
 
     strings = {
-        "name": "AdvancedChatAnalyzer",
+        "name": "AnalDestroy",
         "network_stats": (
             "🏓 <b>Пинг</b>\n"
             "• Telethon: {telethon:.2f} ms\n"
@@ -392,9 +393,8 @@ class AdvancedChatAnalyzer(loader.Module):
             "\n<b>🏆 Топ Активные</b>\n"
             "{top_users_section}"
         ),
-        "web_link_message": "\n🌐 <b>Веб версия статистики</b>: {} (действителен 5 минут)",
-        "expired": "⏰ <b>Срок ссылки истек</b>",
-        "default_title": "Unknown Chat"  # Add a default title
+        "web_link_message": "\n🌐 <b>Веб версия статистики</b> сгенерирована",
+        "default_title": "Unknown Chat"
     }
 
     def __init__(self):
@@ -500,7 +500,7 @@ class AdvancedChatAnalyzer(loader.Module):
             final_message = (
                 self.strings["network_stats"].format(**network_metrics)
                 + self.strings["chat_stats"].format(
-                    title=stats.get('title', self.strings['default_title']),  # Use default if title is missing
+                    title=stats.get('title', self.strings['default_title']),
                     chat_id=stats.get('chat_id', 'N/A'),
                     total_messages=stats.get('total_messages', 0),
                     active_members=stats.get('active_members', 0),
@@ -509,8 +509,8 @@ class AdvancedChatAnalyzer(loader.Module):
                     top_users_section=top_users_section,
                 )
                 + (
-                    f"\n{self.strings['web_link_message'].format(web_link)}"
-                    if web_link
+                    f"\n{self.strings['web_link_message']}"
+                    if generate_web
                     else ""
                 )
             )
@@ -533,3 +533,7 @@ class AdvancedChatAnalyzer(loader.Module):
         if web_link in self.active_web_servers:
             web_stats_creator = self.active_web_servers.pop(web_link)
             await web_stats_creator.cleanup()
+
+            # Принудительная очистка памяти
+            del web_stats_creator
+            gc.collect()
