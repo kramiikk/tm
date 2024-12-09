@@ -241,8 +241,8 @@ class WebStatsCreator:
     <div class="container mx-auto p-6">
         <h1 class="text-3xl font-bold mb-6 text-center">Chat Statistics</h1>
         
-        <div class="grid grid-cols-1 gap-6">
-            <div class="bg-gray-800 p-6 rounded-lg">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gray-800 p-6 rounded-lg h-full">
                 <h2 class="text-xl font-semibold mb-4">Basic Information</h2>
                 <ul class="space-y-2">
                     <li><strong>Chat Title:</strong> {self.stats.get('title', 'Unknown')}</li>
@@ -253,9 +253,11 @@ class WebStatsCreator:
                 </ul>
             </div>
 
-            <div class="bg-gray-800 p-6 rounded-lg">
+            <div class="bg-gray-800 p-6 rounded-lg h-full">
                 <h2 class="text-xl font-semibold mb-4">Top Users</h2>
-                <canvas id="topUsersChart" class="w-full h-64"></canvas>
+                <div class="h-full flex items-center justify-center">
+                    <canvas id="topUsersChart" class="w-full"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -291,6 +293,12 @@ class WebStatsCreator:
                             display: true,
                             text: 'Number of Messages'
                         }}
+                    }}
+                }},
+                layout: {{
+                    padding: {{
+                        top: 10,
+                        bottom: 10
                     }}
                 }}
             }}
