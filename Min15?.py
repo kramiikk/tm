@@ -301,10 +301,6 @@ class WebStatsCreator:
             options: {{
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 1000,
-                    easing: 'easeOutQuart'
-                },
                 scales: {{
                     y: {{
                         beginAtZero: true,
