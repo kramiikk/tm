@@ -403,9 +403,7 @@ class AnalDestroy(loader.Module):
         self.active_web_servers = {}
 
     async def pstatcmd(self, message):
-        """
-        Расширенная статистика чата с улучшенной обработкой ошибок и прелоадером
-        """
+        """Расширенная статистика, расширяя горизонты"""
         # Создаем красивое сообщение-прелоадер
         await message.edit(
             "🔍 <b>Начинаем сбор статистики...</b>\n\n"
@@ -416,14 +414,14 @@ class AnalDestroy(loader.Module):
             "  • Генерация отчета\n\n"
             "<blockquote>Пожалуйста, подождите. Это может занять некоторое время в зависимости от размера чата.</blockquote>"
         )
-
+    
         try:
             args = utils.get_args_raw(message).split()
             chat_id = None
             pattern = None
             generate_web = False
             network_only = False
-
+    
             # Парсинг аргументов
             for arg in args[:]:
                 if arg.startswith("r'") and arg.endswith("'"):
@@ -435,17 +433,22 @@ class AnalDestroy(loader.Module):
                 elif arg == "network":
                     network_only = True
                     args.remove(arg)
-
+    
             chat_id = args[0] if args else None
-            # Безопасное получение чата
+            
+            # Безопасное получение чата с поддержкой ID и username
             try:
-                chat = await (
-                    message.client.get_entity(int(chat_id))
-                    if chat_id
-                    else message.get_chat()
-                )
+                if chat_id:
+                    # Проверяем, является ли chat_id числом (ID)
+                    if chat_id.isdigit():
+                        chat = await message.client.get_entity(int(chat_id))
+                    # Иначе считаем это username
+                    else:
+                        chat = await message.client.get_entity(f"@{chat_id}")
+                else:
+                    chat = await message.get_chat()
             except ValueError:
-                await message.edit("❌ Не удалось найти указанный чат. Проверьте ID.")
+                await message.edit("❌ Не удалось найти указанный чат. Проверьте ID или username.")
                 return
             except Exception as chat_error:
                 await message.edit(f"❌ Ошибка получения чата: {chat_error}")
