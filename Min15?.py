@@ -536,4 +536,4 @@ class AnalDestroy(loader.Module):
 
             # Принудительная очистка памяти
             del web_stats_creator
-            gc.collect()
+            gc.collect(generation=2)
