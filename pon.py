@@ -245,11 +245,11 @@ class WebStatsCreator:
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Basic Information</h2>
                 <ul class="space-y-2">
-                    <li><strong>Chat Title:</strong> {self.stats.get('title', 'Unknown')}</li>
-                    <li><strong>Chat ID:</strong> <code>{self.stats.get('chat_id', 'N/A')}</code></li>
-                    <li><strong>Total Messages:</strong> {self.stats.get('total_messages', 0)}</li>
-                    <li><strong>Active Members:</strong> {self.stats.get('active_members', 0)}</li>
-                    <li><strong>Bots:</strong> {self.stats.get('bots', 0)}</li>
+                    <li><strong>Chat Title:</strong> %s</li>
+                    <li><strong>Chat ID:</strong> <code>%s</code></li>
+                    <li><strong>Total Messages:</strong> %d</li>
+                    <li><strong>Active Members:</strong> %d</li>
+                    <li><strong>Bots:</strong> %d</li>
                 </ul>
             </div>
 
@@ -264,8 +264,8 @@ class WebStatsCreator:
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const topUsers = {json.dumps([user['name'] for user in self.stats.get('top_users', [])])};
-        const topUserMessages = {json.dumps([user['messages'] for user in self.stats.get('top_users', [])])};
+        const topUsers = JSON.parse('%s');
+        const topUserMessages = JSON.parse('%s');
 
         new Chart(document.getElementById('topUsersChart'), {
             type: 'bar',
