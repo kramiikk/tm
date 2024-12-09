@@ -377,24 +377,23 @@ class AdvancedChatAnalyzer(loader.Module):
     strings = {
         "name": "AdvancedChatAnalyzer",
         "network_stats": (
-            "🌐 <b>Network Performance</b>\n"
-            "• Telethon Latency: {telethon:.2f} ms\n"
-            "• Comprehensive Latency: {comprehensive:.2f} ms\n"
+            "🏓 <b>Пинг</b>\n"
+            "• Telethon: {telethon:.2f} ms\n"
+            "• All: {comprehensive:.2f} ms\n"
         ),
         "chat_stats": (
-            "\n<b>📊 Chat Statistics</b>\n"
-            "🏷️ Title: {title}\n"
+            "\n<b>📊 Статистика группы</b>\n"
+            "🏷️ Название: {title}\n"
             "🆔 ID: <code>{chat_id}</code>\n"
-            "💬 Total Messages: {total_messages}\n"
-            "👥 Active Members: {active_members}\n"
-            "🤖 Bots: {bots}\n"
+            "💬 Всего сообщений: {total_messages}\n"
+            "👥 Активные участники: {active_members}\n"
+            "🤖 Боты: {bots}\n"
             "{pattern_section}"
-            "\n<b>🏆 Top Active Users</b>\n"
+            "\n<b>🏆 Топ Активные</b>\n"
             "{top_users_section}"
         ),
-        "web_link_message": "\n🌐 <b>Statistics Web Link</b>: {}",
-        "web_url": "🌐 <b>Stats URL:</b> {} <b>Expires in</b> <code>{}</code> seconds",
-        "expired": "⏰ <b>Web statistics link expired</b>",
+        "web_link_message": "\n🌐 <b>Веб версия статистики</b>: {} (действителен в течении 15 минут)",
+        "expired": "⏰ <b>Срок ссылки истек</b>",
         "default_title": "Unknown Chat"  # Add a default title
     }
 
@@ -495,7 +494,7 @@ class AdvancedChatAnalyzer(loader.Module):
                 self.active_web_servers[web_link] = web_stats_creator
 
                 # Планируем автоматическую очистку через n минут
-                asyncio.create_task(self._cleanup_web_server(web_link, 900))
+                asyncio.create_task(self._cleanup_web_server(web_link, 600))
 
             # Формирование финального сообщения
             final_message = (
