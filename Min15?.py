@@ -84,7 +84,7 @@ class ChatStatistics:
         pattern: Optional[str] = None,
         active_threshold: int = 10,
         threshold_method: str = 'percentile',
-        top_user_ratio: float = 1.8  # Новый параметр для ограничения разницы
+        top_user_ratio: float = 2.0  # Новый параметр для ограничения разницы
     ) -> Dict[str, Any]:
         try:
             # If chat_id is passed, get the chat entity
@@ -268,7 +268,7 @@ class WebStatsCreator:
 
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Top Users</h2>
-                <div class="h-[calc(100%-2.5rem)] flex items-center justify-center">
+                <div class="h-[calc(100%-2rem)] flex items-center justify-center">
                     <canvas id="topUsersChart" class="w-full"></canvas>
                 </div>
             </div>
