@@ -511,7 +511,7 @@ class AnalDestroy(loader.Module):
                 self.active_web_servers[web_link] = web_stats_creator
 
                 # Планируем автоматическую очистку через n минут
-                asyncio.create_task(self._cleanup_web_server(web_link, 300))
+                asyncio.create_task(self._cleanup_web_server(web_link, 1800))
 
             # Формирование финального сообщения
             final_message = (
