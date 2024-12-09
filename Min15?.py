@@ -254,7 +254,7 @@ class WebStatsCreator:
     <div class="container mx-auto p-6">
         <h1 class="text-3xl font-bold mb-6 text-center">Chat Statistics</h1>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Basic Information</h2>
                 <ul class="space-y-2">
@@ -268,7 +268,7 @@ class WebStatsCreator:
 
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Top Users</h2>
-                <div class="h-[calc(100%-1rem)] flex items-center justify-center">
+                <div class="h-[calc(100%-3.3rem)] flex items-center justify-center">
                     <canvas id="topUsersChart" class="w-full"></canvas>
                 </div>
             </div>
