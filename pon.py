@@ -264,12 +264,8 @@ class WebStatsCreator:
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const topUsers = {json.dumps([
-            user['name'] for user in self.stats.get('top_users', [])
-        ])};
-        const topUserMessages = {json.dumps([
-            user['messages'] for user in self.stats.get('top_users', [])
-        ])};
+        const topUsers = {json.dumps([user['name'] for user in self.stats.get('top_users', [])])};
+        const topUserMessages = {json.dumps([user['messages'] for user in self.stats.get('top_users', [])])};
 
         new Chart(document.getElementById('topUsersChart'), {
             type: 'bar',
