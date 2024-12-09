@@ -393,7 +393,7 @@ class AnalDestroy(loader.Module):
             "\n<b>🏆 Топ Активные</b>\n"
             "{top_users_section}"
         ),
-        "web_link_message": "\n🌐 <b>Веб версия статистики</b> сгенерирована",
+        "web_link_message": "\n🌐 <b>Веб версия статистики</b>: {} (действителен 5 минут)",
         "default_title": "Unknown Chat"
     }
 
@@ -509,8 +509,8 @@ class AnalDestroy(loader.Module):
                     top_users_section=top_users_section,
                 )
                 + (
-                    f"\n{self.strings['web_link_message']}"
-                    if generate_web
+                    f"\n{self.strings['web_link_message'].format(web_link)}"
+                    if web_link
                     else ""
                 )
             )
