@@ -232,8 +232,8 @@ class WebStatsCreator:
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Statistics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -245,55 +245,57 @@ class WebStatsCreator:
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Basic Information</h2>
                 <ul class="space-y-2">
-                    <li><strong>Chat Title:</strong> %s</li>
-                    <li><strong>Chat ID:</strong> <code>%s</code></li>
-                    <li><strong>Total Messages:</strong> %d</li>
-                    <li><strong>Active Members:</strong> %d</li>
-                    <li><strong>Bots:</strong> %d</li>
+                    <li><strong>Chat Title:</strong> {self.stats.get('title', 'Unknown')}</li>
+                    <li><strong>Chat ID:</strong> <code>{self.stats.get('chat_id', 'N/A')}</code></li>
+                    <li><strong>Total Messages:</strong> {self.stats.get('total_messages', 0)}</li>
+                    <li><strong>Active Members:</strong> {self.stats.get('active_members', 0)}</li>
+                    <li><strong>Bots:</strong> {self.stats.get('bots', 0)}</li>
                 </ul>
             </div>
 
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Top Users</h2>
-                <div class="w-full h-96">
-                    <canvas id="topUsersChart"></canvas>
-                </div>
+                <canvas id="topUsersChart" class="w-full h-64"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const topUsers = JSON.parse('%s');
-        const topUserMessages = JSON.parse('%s');
+    document.addEventListener('DOMContentLoaded', () => {{
+        const topUsers = {json.dumps([
+            user['name'] for user in self.stats.get('top_users', [])
+        ])};
+        const topUserMessages = {json.dumps([
+            user['messages'] for user in self.stats.get('top_users', [])
+        ])};
 
-        new Chart(document.getElementById('topUsersChart'), {
+        new Chart(document.getElementById('topUsersChart'), {{
             type: 'bar',
-            data: {
+            data: {{
                 labels: topUsers,
-                datasets: [{
+                datasets: [{{
                     label: 'Messages',
                     data: topUserMessages,
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
-                }]
-            },
-            options: {
+                }}]
+            }},
+            options: {{
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
+                scales: {{
+                    y: {{
                         beginAtZero: true,
-                        title: {
+                        title: {{
                             display: true,
                             text: 'Number of Messages'
-                        }
-                    }
-                }
-            }
-        });
-    });
+                        }}
+                    }}
+                }}
+            }}
+        }});
+    }});
     </script>
 </body>
 </html>
@@ -485,7 +487,7 @@ class AdvancedChatAnalyzer(loader.Module):
                 self.active_web_servers[web_link] = web_stats_creator
 
                 # Планируем автоматическую очистку через n минут
-                asyncio.create_task(self._cleanup_web_server(web_link, 300))
+                asyncio.create_task(self._cleanup_web_server(web_link, 900))
 
             # Формирование финального сообщения
             final_message = (
