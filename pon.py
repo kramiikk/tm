@@ -309,6 +309,8 @@ class WebStatsCreator:
 </html>
 """
         return web.Response(text=html_content, content_type="text/html")
+"""
+        return web.Response(text=html_content, content_type="text/html")
 
     async def start_server(self, port: Optional[int] = None):
         """Запуск локального веб-сервера"""
