@@ -255,7 +255,7 @@ class WebStatsCreator:
 
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-xl font-semibold mb-4">Top Users</h2>
-                <div class="h-[calc(100%-3.5rem)] flex items-center justify-center">
+                <div class="h-[calc(100%-3rem)] flex items-center justify-center">
                     <canvas id="topUsersChart" class="w-full"></canvas>
                 </div>
             </div>
