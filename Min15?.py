@@ -82,8 +82,9 @@ class ChatStatistics:
         chat: Union[Chat, int],
         limit: int = 100000,
         pattern: Optional[str] = None,
-        active_threshold: int = 10,  # New parameter to define active membership
-        threshold_method: str = 'percentile'  # Add default threshold method
+        active_threshold: int = 10,
+        threshold_method: str = 'percentile',
+        top_user_ratio: float = 1.8  # Новый параметр для ограничения разницы
     ) -> Dict[str, Any]:
         try:
             # If chat_id is passed, get the chat entity
@@ -190,10 +191,21 @@ class ChatStatistics:
     
             # Safely get top users (excluding bots and low-activity users)
             top_users = []
-            for uid in sorted(active_user_stats, key=active_user_stats.get, reverse=True)[:5]:
-                user_details = await _get_user_details(uid)
-                if user_details:
-                    top_users.append(user_details)
+            sorted_active_users = sorted(active_user_stats.items(), key=lambda x: x[1], reverse=True)
+            
+            if sorted_active_users:
+                top_user_messages = sorted_active_users[0][1]  # Количество сообщений первого пользователя
+                
+                for uid, msg_count in sorted_active_users:
+                    # Добавляем только тех, кто не более чем в top_user_ratio раз отстает от первого
+                    if msg_count >= (top_user_messages / top_user_ratio):
+                        user_details = await _get_user_details(uid)
+                        if user_details:
+                            top_users.append(user_details)
+                            
+                        # Ограничиваем топ 5 пользователями
+                        if len(top_users) == 5:
+                            break
     
             # Safely get chat title
             chat_title = (
