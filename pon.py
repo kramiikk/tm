@@ -379,7 +379,7 @@ class AdvancedChatAnalyzer(loader.Module):
         "network_stats": (
             "🏓 <b>Пинг</b>\n"
             "• Telethon: {telethon:.2f} ms\n"
-            "• All: {comprehensive:.2f} ms\n"
+            "• Сеть: {comprehensive:.2f} ms\n"
         ),
         "chat_stats": (
             "\n<b>📊 Статистика группы</b>\n"
