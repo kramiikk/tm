@@ -286,40 +286,40 @@ class WebStatsCreator:
             user['messages'] for user in self.stats.get('top_users', [])
         ])};
 
-        new Chart(document.getElementById('topUsersChart'), {
-            type: 'horizontalBar',  // Изменено на horizontalBar для горизонтальной ориентации
-            data: {
+        new Chart(document.getElementById('topUsersChart'), {{
+            type: 'horizontalBar',
+            data: {{
                 labels: topUsers,
-                datasets: [{
+                datasets: [{{
                     label: 'Messages',
                     data: topUserMessages,
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1,
-                    barThickness: 20  // Установка толщины полосы (можно уменьшить до 10-15)
-                }]
-            },
-            options: {
+                    barThickness: 15
+                }}]
+            }},
+            options: {{
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    x: {  // Изменено с y на x для горизонтальной ориентации
+                scales: {{
+                    x: {{
                         beginAtZero: true,
-                        title: {
+                        title: {{
                             display: true,
                             text: 'Number of Messages'
-                        }
-                    }
-                },
-                layout: {
-                    padding: {
+                        }}
+                    }}
+                }},
+                layout: {{
+                    padding: {{
                         top: 10,
                         bottom: 10
-                    }
-                },
-                indexAxis: 'y'  // Важная опция для горизонтальной ориентации
-            }
-        });
+                    }}
+                }},
+                indexAxis: 'y'
+            }}
+        }});
     }});
     </script>
 </body>
