@@ -287,7 +287,7 @@ class WebStatsCreator:
         ])};
 
         new Chart(document.getElementById('topUsersChart'), {{
-            type: 'horizontalBar',
+            type: 'bar',
             data: {{
                 labels: topUsers,
                 datasets: [{{
@@ -295,11 +295,11 @@ class WebStatsCreator:
                     data: topUserMessages,
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1,
-                    barThickness: 15
+                    borderWidth: 1
                 }}]
             }},
             options: {{
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {{
@@ -309,6 +309,11 @@ class WebStatsCreator:
                             display: true,
                             text: 'Number of Messages'
                         }}
+                    }},
+                    y: {{
+                        ticks: {{
+                            beginAtZero: true
+                        }}
                     }}
                 }},
                 layout: {{
@@ -316,8 +321,7 @@ class WebStatsCreator:
                         top: 10,
                         bottom: 10
                     }}
-                }},
-                indexAxis: 'y'
+                }}
             }}
         }});
     }});
