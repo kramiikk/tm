@@ -407,7 +407,7 @@ class AnalDestroy(loader.Module):
             "\n<b>🏆 Топ Активные</b>\n"
             "{top_users_section}"
         ),
-        "web_link_message": "\n🌐 <b>Веб версия статистики</b>: {} (ссылка актуальна лишь 30 минут)",
+        "web_link_message": "\n🌐 <b>Веб версия статистики</b>: {} (действительна лишь 10 минут)",
         "default_title": "Unknown Chat"
     }
 
@@ -511,7 +511,7 @@ class AnalDestroy(loader.Module):
                 self.active_web_servers[web_link] = web_stats_creator
 
                 # Планируем автоматическую очистку через n минут
-                asyncio.create_task(self._cleanup_web_server(web_link, 1800))
+                asyncio.create_task(self._cleanup_web_server(web_link, 600))
 
             # Формирование финального сообщения
             final_message = (
