@@ -301,7 +301,7 @@ class WebStatsCreator:
             options: {{
                 indexAxis: 'y',
                 responsive: true,
-                maintainAspectRatio: false,
+                aspectRatio: 0.5,
                 scales: {{
                     x: {{
                         beginAtZero: true,
