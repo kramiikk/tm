@@ -229,9 +229,7 @@ class BroadcastManager:
                 current_time = time.time()
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
 
-                interval = max(
-                    13, random.uniform(code.interval[0] * 13, code.interval[1] * 33)
-                )
+                interval = random.uniform(code.interval[0] * 52, code.interval[1] * 60)
 
                 if current_time - last_broadcast < interval:
                     await asyncio.sleep(interval)
