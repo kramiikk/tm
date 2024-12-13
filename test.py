@@ -242,6 +242,7 @@ class BroadcastManager:
                         entity=entity,
                         messages=[m.id for m in msg],
                         from_peer=msg[0].chat_id,
+                        as_album=True,
                         schedule=schedule_time
                     )
                 else:
