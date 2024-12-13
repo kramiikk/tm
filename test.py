@@ -190,10 +190,7 @@ class BroadcastManager:
             return False
 
     async def _send_message(
-        self,
-        chat_id: int,
-        message_to_send: Union[Message, List[Message]],
-        send_mode: str = "auto",
+        self, chat_id: int, message_to_send: Union[Message, List[Message]], send_mode: str = "auto"
     ):
         try:
             if isinstance(message_to_send, list):
@@ -203,31 +200,36 @@ class BroadcastManager:
                     from_peer=message_to_send[0].chat_id,
                 )
                 return
-            if send_mode == "forward":
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=[message_to_send.id],
-                    from_peer=message_to_send.chat_id,
-                )
-            elif send_mode == "normal" or (
-                send_mode == "auto" and not message_to_send.media
-            ):
-                if message_to_send.media:
-                    await self.client.send_file(
+
+            try:
+                if send_mode == "forward":
+                    await self.client.forward_messages(
                         entity=chat_id,
-                        file=message_to_send.media,
-                        caption=message_to_send.text,
+                        messages=[message_to_send.id],
+                        from_peer=message_to_send.chat_id,
                     )
+                elif send_mode == "normal" or (send_mode == "auto" and not message_to_send.media):
+                    if message_to_send.media:
+                        await self.client.send_file(
+                            entity=chat_id,
+                            file=message_to_send.media,
+                            caption=message_to_send.text,
+                        )
+                    else:
+                        await self.client.send_message(
+                            entity=chat_id, message=message_to_send.text
+                        )
                 else:
-                    await self.client.send_message(
-                        entity=chat_id, message=message_to_send.text
+                    await self.client.forward_messages(
+                        entity=chat_id,
+                        messages=[message_to_send.id],
+                        from_peer=message_to_send.chat_id,
                     )
-            else:
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=[message_to_send.id],
-                    from_peer=message_to_send.chat_id,
-                )
+            except Exception as media_error:
+                logger.warning(f"Media send error in chat {chat_id}: {media_error}")
+                text = message_to_send.text
+                await self.client.send_message(entity=chat_id, message=text)
+
         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
             logger.info(f"Cannot send message to {chat_id}: {e}")
             raise
@@ -262,20 +264,22 @@ class BroadcastManager:
                 messages_to_send = [messages[message_index % len(messages)]]
                 self.message_indices[code_name] = (message_index + 1) % len(messages)
 
-                failed_chats = set()
                 send_mode = getattr(code, "send_mode", "auto")
-
+            
+                failed_chats = set()
                 for chat_id in chats:
                     try:
                         for message_to_send in messages_to_send:
-                            await self._send_message(
-                                chat_id, message_to_send, send_mode
-                            )
+                            try:
+                                await self._send_message(chat_id, message_to_send, send_mode)
+                            except Exception as send_error:
+                                logger.error(f"Sending error to {chat_id}: {send_error}")
+                                failed_chats.add(chat_id)
                         await asyncio.sleep(1)
-                    except (ChatWriteForbiddenError, UserBannedInChannelError):
+                    except Exception as chat_error:
+                        logger.error(f"Chat processing error {chat_id}: {chat_error}")
                         failed_chats.add(chat_id)
-                    except Exception as e:
-                        logger.error(f"Sending error to {chat_id}: {str(e)}")
+                
                 if failed_chats:
                     code.chats -= failed_chats
                     self.save_config()
@@ -285,6 +289,7 @@ class BroadcastManager:
                 break
             except Exception as e:
                 logger.error(f"Critical error in broadcast loop {code_name}: {e}")
+                await asyncio.sleep(33)
 
     async def start_broadcasts(self):
         for code_name in self.config.codes:
@@ -307,7 +312,7 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Профессиональный модуль массовой рассылки сообщений с расширенным управлением"""
+    """Профессиональный модуль массовой рассылки сообщений с расширенным управлением. v.t2"""
 
     strings = {
         "name": "Broadcast",
