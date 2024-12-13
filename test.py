@@ -298,43 +298,6 @@ class BroadcastManager:
                         await _schedule_message(chat_id, msg, current_schedule)
                 else:
                     await _schedule_message(chat_id, message_to_send, schedule_time)
-            else:
-                # Existing non-scheduled send logic
-                if isinstance(message_to_send, list):
-                    await self.client.forward_messages(
-                        entity=chat_id,
-                        messages=[m.id for m in message_to_send],
-                        from_peer=message_to_send[0].chat_id,
-                    )
-                else:
-                    try:
-                        if send_mode == "forward":
-                            await self.client.forward_messages(
-                                entity=chat_id,
-                                messages=[message_to_send.id],
-                                from_peer=message_to_send.chat_id,
-                            )
-                        elif send_mode == "normal" or (send_mode == "auto" and not message_to_send.media):
-                            if message_to_send.media:
-                                await self.client.send_file(
-                                    entity=chat_id,
-                                    file=message_to_send.media,
-                                    caption=message_to_send.text,
-                                )
-                            else:
-                                await self.client.send_message(
-                                    entity=chat_id, message=message_to_send.text
-                                )
-                        else:
-                            await self.client.forward_messages(
-                                entity=chat_id,
-                                messages=[message_to_send.id],
-                                from_peer=message_to_send.chat_id,
-                            )
-                    except Exception as media_error:
-                        logger.warning(f"Media send error in chat {chat_id}: {media_error}")
-                        text = message_to_send.text
-                        await self.client.send_message(entity=chat_id, message=text)
 
         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
             logger.info(f"Cannot send message to {chat_id}: {e}")
