@@ -6,8 +6,9 @@ import time
 from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Union, Any
+from datetime import datetime, timedelta
 
-from telethon import TelegramClient
+from telethon import TelegramClient, functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
 from telethon.tl.types import Message
 
@@ -62,6 +63,8 @@ class BroadcastManager:
         self.message_indices: Dict[str, int] = {}
         self._active = True
         self._last_broadcast_time: Dict[str, float] = {}
+        self._scheduled_messages: Dict[str, Set[int]] = {}
+
 
     async def initialize(self):
         try:
