@@ -192,46 +192,148 @@ class BroadcastManager:
             logger.error(f"Failed to add message: {str(e)}")
             return False
 
+    async def _check_existing_scheduled_messages(self, code_name: str):
+        """
+        Check for existing scheduled messages to prevent duplicates
+        """
+        try:
+            # Get scheduled messages for this account
+            scheduled_messages = await self.client(
+                functions.messages.GetScheduledHistoryRequest(
+                    peer=await self.client.get_input_peer(self.client.tg_id), 
+                    hash=0
+                )
+            ).messages
+
+            # Track scheduled message IDs for this broadcast code
+            code_scheduled_ids = {
+                msg.id for msg in scheduled_messages 
+                if hasattr(msg, 'message') and msg.message and code_name in msg.message
+            }
+            self._scheduled_messages[code_name] = code_scheduled_ids
+        except Exception as e:
+            logger.error(f"Failed to check scheduled messages for {code_name}: {e}")
+            self._scheduled_messages[code_name] = set()
+
     async def _send_message(
-        self, chat_id: int, message_to_send: Union[Message, List[Message]], send_mode: str = "auto"
+        self, 
+        chat_id: int, 
+        message_to_send: Union[Message, List[Message]], 
+        send_mode: str = "auto", 
+        code_name: Optional[str] = None,
+        interval: Optional[float] = None
     ):
         try:
-            if isinstance(message_to_send, list):
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=[m.id for m in message_to_send],
-                    from_peer=message_to_send[0].chat_id,
-                )
-                return
+            # Ensure code_name is set for scheduling
+            if code_name is None:
+                code_name = "default"
 
-            try:
-                if send_mode == "forward":
-                    await self.client.forward_messages(
-                        entity=chat_id,
-                        messages=[message_to_send.id],
-                        from_peer=message_to_send.chat_id,
+            # Check existing scheduled messages if not done before
+            if code_name not in self._scheduled_messages:
+                await self._check_existing_scheduled_messages(code_name)
+
+            async def _schedule_message(entity, msg, schedule_time):
+                # Use a unique identifier to prevent duplicate scheduling
+                schedule_identifier = f"{code_name}_{entity}_{msg.id}"
+                
+                if isinstance(msg, list):
+                    # For albums/multiple messages
+                    scheduled_msg = await self.client.forward_messages(
+                        entity=entity,
+                        messages=[m.id for m in msg],
+                        from_peer=msg[0].chat_id,
+                        schedule=schedule_time
                     )
-                elif send_mode == "normal" or (send_mode == "auto" and not message_to_send.media):
-                    if message_to_send.media:
-                        await self.client.send_file(
-                            entity=chat_id,
-                            file=message_to_send.media,
-                            caption=message_to_send.text,
-                        )
-                    else:
-                        await self.client.send_message(
-                            entity=chat_id, message=message_to_send.text
-                        )
                 else:
+                    try:
+                        if send_mode == "forward":
+                            scheduled_msg = await self.client.forward_messages(
+                                entity=entity,
+                                messages=[msg.id],
+                                from_peer=msg.chat_id,
+                                schedule=schedule_time
+                            )
+                        elif send_mode == "normal" or (send_mode == "auto" and not msg.media):
+                            if msg.media:
+                                scheduled_msg = await self.client.send_file(
+                                    entity=entity,
+                                    file=msg.media,
+                                    caption=msg.text,
+                                    schedule=schedule_time
+                                )
+                            else:
+                                scheduled_msg = await self.client.send_message(
+                                    entity=entity, 
+                                    message=msg.text,
+                                    schedule=schedule_time
+                                )
+                        else:
+                            scheduled_msg = await self.client.forward_messages(
+                                entity=entity,
+                                messages=[msg.id],
+                                from_peer=msg.chat_id,
+                                schedule=schedule_time
+                            )
+                    except Exception as media_error:
+                        logger.warning(f"Media schedule error in chat {entity}: {media_error}")
+                        text = msg.text if hasattr(msg, 'text') else str(msg)
+                        scheduled_msg = await self.client.send_message(
+                            entity=entity, 
+                            message=text, 
+                            schedule=schedule_time
+                        )
+                
+                return scheduled_msg
+
+            # Determine if we should schedule
+            if interval is not None:
+                # Calculate schedule time based on interval
+                schedule_time = datetime.now() + timedelta(seconds=interval)
+                
+                # Send all messages with scheduling
+                if isinstance(message_to_send, list):
+                    for i, msg in enumerate(message_to_send):
+                        current_schedule = schedule_time + timedelta(seconds=interval * i)
+                        await _schedule_message(chat_id, msg, current_schedule)
+                else:
+                    await _schedule_message(chat_id, message_to_send, schedule_time)
+            else:
+                # Existing non-scheduled send logic
+                if isinstance(message_to_send, list):
                     await self.client.forward_messages(
                         entity=chat_id,
-                        messages=[message_to_send.id],
-                        from_peer=message_to_send.chat_id,
+                        messages=[m.id for m in message_to_send],
+                        from_peer=message_to_send[0].chat_id,
                     )
-            except Exception as media_error:
-                logger.warning(f"Media send error in chat {chat_id}: {media_error}")
-                text = message_to_send.text
-                await self.client.send_message(entity=chat_id, message=text)
+                else:
+                    try:
+                        if send_mode == "forward":
+                            await self.client.forward_messages(
+                                entity=chat_id,
+                                messages=[message_to_send.id],
+                                from_peer=message_to_send.chat_id,
+                            )
+                        elif send_mode == "normal" or (send_mode == "auto" and not message_to_send.media):
+                            if message_to_send.media:
+                                await self.client.send_file(
+                                    entity=chat_id,
+                                    file=message_to_send.media,
+                                    caption=message_to_send.text,
+                                )
+                            else:
+                                await self.client.send_message(
+                                    entity=chat_id, message=message_to_send.text
+                                )
+                        else:
+                            await self.client.forward_messages(
+                                entity=chat_id,
+                                messages=[message_to_send.id],
+                                from_peer=message_to_send.chat_id,
+                            )
+                    except Exception as media_error:
+                        logger.warning(f"Media send error in chat {chat_id}: {media_error}")
+                        text = message_to_send.text
+                        await self.client.send_message(entity=chat_id, message=text)
 
         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
             logger.info(f"Cannot send message to {chat_id}: {e}")
@@ -274,7 +376,13 @@ class BroadcastManager:
                     try:
                         for message_to_send in messages_to_send:
                             try:
-                                await self._send_message(chat_id, message_to_send, send_mode)
+                                await self._send_message(
+                                    chat_id, 
+                                    message_to_send, 
+                                    send_mode, 
+                                    code_name, 
+                                    interval
+                                )
                             except Exception as send_error:
                                 logger.error(f"Sending error to {chat_id}: {send_error}")
                                 failed_chats.add(chat_id)
