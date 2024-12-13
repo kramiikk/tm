@@ -244,7 +244,6 @@ class BroadcastManager:
                         entity=entity,
                         messages=[m.id for m in messages],
                         from_peer=messages[0].chat_id,
-                        as_album=True,
                         schedule=schedule_time
                     )
                 elif isinstance(messages, list):
