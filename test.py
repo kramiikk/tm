@@ -197,19 +197,23 @@ class BroadcastManager:
         Check for existing scheduled messages to prevent duplicates
         """
         try:
-            # Get scheduled messages for this account
+            # Используем peer с правильным способом получения
+            peer = await self.client.get_input_entity(self.client.tg_id)
+            
+            # Получаем scheduled-сообщения
             scheduled_messages = await self.client(
                 functions.messages.GetScheduledHistoryRequest(
-                    peer=await self.client.get_input_peer(self.client.tg_id), 
+                    peer=peer, 
                     hash=0
                 )
-            ).messages
-
-            # Track scheduled message IDs for this broadcast code
+            )
+    
+            # Безопасная проверка сообщений
             code_scheduled_ids = {
-                msg.id for msg in scheduled_messages 
+                msg.id for msg in scheduled_messages.messages 
                 if hasattr(msg, 'message') and msg.message and code_name in msg.message
             }
+            
             self._scheduled_messages[code_name] = code_scheduled_ids
         except Exception as e:
             logger.error(f"Failed to check scheduled messages for {code_name}: {e}")
