@@ -6,7 +6,7 @@ import time
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union, Any
 
 from telethon import TelegramClient, functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
@@ -14,11 +14,25 @@ from telethon.tl.types import Message
 
 from .. import loader, utils
 
+# Получаем логгер для записи событий в журнал.
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class BroadcastMessage:
+    """
+    Класс для хранения информации о сообщении, которое нужно отправить.
+
+    :param chat_id: ID чата, из которого взято сообщение.
+    :type chat_id: int
+    :param message_id: ID сообщения.
+    :type message_id: int
+    :param grouped_id: ID группы сообщений (альбома), если есть.
+    :type grouped_id: Optional[int]
+    :param album_ids: Список ID сообщений в альбоме.
+    :type album_ids: List[int]
+    """
+
     chat_id: int
     message_id: int
     grouped_id: Optional[int] = None
@@ -27,6 +41,19 @@ class BroadcastMessage:
 
 @dataclass
 class BroadcastCode:
+    """
+    Класс для хранения настроек рассылки для конкретного кода.
+
+    :param chats: Множество ID чатов, в которые нужно отправлять сообщения.
+    :type chats: Set[int]
+    :param messages: Список сообщений для рассылки.
+    :type messages: List[BroadcastMessage]
+    :param interval: Интервал между отправками в минутах (мин, макс).
+    :type interval: Tuple[int, int]
+    :param send_mode: Режим отправки сообщений ("auto", "normal", "forward").
+    :type send_mode: str
+    """
+
     chats: Set[int] = field(default_factory=set)
     messages: List[BroadcastMessage] = field(default_factory=list)
     interval: Tuple[int, int] = field(default_factory=lambda: (1, 13))
@@ -34,21 +61,66 @@ class BroadcastCode:
 
 
 class BroadcastConfig:
+    """
+    Класс для хранения настроек всех кодов рассылки.
+
+    :ivar codes: Словарь, где ключ - имя кода рассылки, значение - объект `BroadcastCode`.
+    :vartype codes: Dict[str, BroadcastCode]
+    """
+
     def __init__(self):
+        """Инициализация объекта BroadcastConfig."""
         self.codes: Dict[str, BroadcastCode] = {}
         self._lock = asyncio.Lock()
 
     async def add_code(self, code_name: str) -> None:
+        """
+        Добавляет новый код рассылки, если он еще не существует.
+
+        :param code_name: Имя кода рассылки.
+        :type code_name: str
+        """
         async with self._lock:
             self.codes.setdefault(code_name, BroadcastCode())
 
     async def remove_code(self, code_name: str) -> bool:
+        """
+        Удаляет код рассылки.
+
+        :param code_name: Имя кода рассылки.
+        :type code_name: str
+        :return: True, если код был удален, False - если кода не было.
+        :rtype: bool
+        """
         async with self._lock:
             return bool(self.codes.pop(code_name, None))
 
 
 class BroadcastManager:
+    """
+    Класс для управления рассылками.
+
+    :param client: Клиент Telethon.
+    :type client: TelegramClient
+    :param db: Объект для работы с базой данных.
+    :type db: Any
+
+    :ivar config: Объект `BroadcastConfig` для хранения настроек рассылок.
+    :vartype config: BroadcastConfig
+    :ivar broadcast_tasks: Словарь, где ключ - имя кода, а значение - задача asyncio.
+    :vartype broadcast_tasks: Dict[str, asyncio.Task]
+    :ivar message_indices: Словарь для хранения индекса следующего сообщения для каждого кода.
+    :vartype message_indices: Dict[str, int]
+    :ivar _active: Флаг активности менеджера.
+    :vartype _active: bool
+    :ivar _last_broadcast_time: Словарь для хранения времени последней рассылки для каждого кода.
+    :vartype _last_broadcast_time: Dict[str, float]
+    :ivar _scheduled_messages: Словарь для хранения ID запланированных сообщений для каждого кода.
+    :vartype _scheduled_messages: Dict[str, Set[int]]
+    """
+
     def __init__(self, client: TelegramClient, db):
+        """Инициализация объекта BroadcastManager."""
         self.client = client
         self.db = db
         self.config = BroadcastConfig()
@@ -59,6 +131,12 @@ class BroadcastManager:
         self._scheduled_messages: Dict[str, Set[int]] = {}
 
     def _load_config_from_dict(self, data: dict):
+        """
+        Загружает настройки рассылки из словаря.
+
+        :param data: Словарь с данными о конфигурации.
+        :type data: dict
+        """
         for code_name, code_data in data.get("code_chats", {}).items():
             try:
                 chats = {int(chat_id) for chat_id in code_data.get("chats", [])}
@@ -86,6 +164,7 @@ class BroadcastManager:
                 logger.error(f"Error loading broadcast code {code_name}: {e}")
 
     def save_config(self):
+        """Сохраняет текущую конфигурацию рассылки в базу данных."""
         try:
             config_dict = {
                 "code_chats": {
@@ -113,6 +192,14 @@ class BroadcastManager:
     async def _fetch_messages(
         self, msg_data: BroadcastMessage
     ) -> Union[Message, List[Message], None]:
+        """
+        Получает сообщение или альбом из Telegram.
+
+        :param msg_data: Объект `BroadcastMessage` с информацией о сообщении.
+        :type msg_data: BroadcastMessage
+        :return: Объект сообщения или список объектов сообщений, или None в случае ошибки.
+        :rtype: Union[Message, List[Message], None]
+        """
         try:
             if msg_data.grouped_id is not None:
                 messages = [
@@ -128,6 +215,16 @@ class BroadcastManager:
             return None
 
     async def add_message(self, code_name: str, message: Message) -> bool:
+        """
+        Добавляет сообщение или альбом в список рассылки.
+
+        :param code_name: Имя кода рассылки.
+        :type code_name: str
+        :param message: Объект сообщения Telethon.
+        :type message: Message
+        :return: True, если сообщение было добавлено, False в случае ошибки.
+        :rtype: bool
+        """
         try:
             await self.config.add_code(code_name)
             code = self.config.codes[code_name]
@@ -162,6 +259,7 @@ class BroadcastManager:
             return False
 
     async def _check_existing_scheduled_messages(self, code_name: str):
+        """Проверяет наличие запланированных сообщений для кода рассылки."""
         try:
             peer = await self.client.get_input_entity(self.client.tg_id)
             scheduled_messages = await self.client(
@@ -185,6 +283,20 @@ class BroadcastManager:
         code_name: Optional[str] = None,
         interval: Optional[float] = None,
     ):
+        """
+        Отправляет сообщение в чат.
+
+        :param chat_id: ID чата для отправки.
+        :type chat_id: int
+        :param message_to_send: Сообщение или список сообщений для отправки.
+        :type message_to_send: Union[Message, List[Message]]
+        :param send_mode: Режим отправки ("auto", "normal", "forward").
+        :type send_mode: str
+        :param code_name: Имя кода рассылки.
+        :type code_name: Optional[str]
+        :param interval: Интервал между отправками в секундах.
+        :type interval: Optional[float]
+        """
         code_name = code_name or "default"
 
         if code_name not in self._scheduled_messages:
@@ -200,7 +312,14 @@ class BroadcastManager:
             raise
 
     def _calculate_schedule_time(self, interval: Optional[float] = None) -> datetime:
-        """Вычисление времени отправки с более гибкой логикой"""
+        """
+        Вычисляет время отправки с гибкой логикой.
+
+        :param interval: Интервал между отправками в секундах.
+        :type interval: Optional[float]
+        :return: Время запланированной отправки.
+        :rtype: datetime
+        """
         base_delay = (
             random.choice([60, 120, 180])
             if interval and interval > 60
@@ -215,7 +334,18 @@ class BroadcastManager:
         send_mode: str,
         schedule_time: datetime,
     ):
-        """Унифицированный метод отправки сообщений"""
+        """
+        Унифицированный метод отправки сообщений.
+
+        :param chat_id: ID чата для отправки.
+        :type chat_id: int
+        :param messages: Сообщение или список сообщений для отправки.
+        :type messages: Union[Message, List[Message]]
+        :param send_mode: Режим отправки ("auto", "normal", "forward").
+        :type send_mode: str
+        :param schedule_time: Время запланированной отправки.
+        :type schedule_time: datetime
+        """
 
         async def _send_single_message(entity, message):
             if send_mode == "forward" or (send_mode == "auto" and message.media):
@@ -247,6 +377,7 @@ class BroadcastManager:
         return await _send_single_message(chat_id, message)
 
     async def _broadcast_loop(self, code_name: str):
+        """Основной цикл рассылки."""
         while self._active:
             try:
                 code = self.config.codes.get(code_name)
@@ -296,6 +427,7 @@ class BroadcastManager:
                 logger.error(f"Critical error in broadcast loop {code_name}: {e}")
 
     async def start_broadcasts(self):
+        """Запускает задачи рассылки для каждого кода."""
         for code_name in self.config.codes:
             if code_name not in self.broadcast_tasks:
                 try:
@@ -308,7 +440,9 @@ class BroadcastManager:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Профессиональный модуль массовой рассылки сообщений с расширенным управлением"""
+    """
+    Профессиональный модуль массовой рассылки сообщений с расширенным управлением.
+    """
 
     strings = {
         "name": "Broadcast",
@@ -319,11 +453,21 @@ class BroadcastMod(loader.Module):
     }
 
     def __init__(self):
+        """Инициализация модуля."""
         self._manager: Optional[BroadcastManager] = None
         self._wat_mode = False
         self._last_broadcast_check: float = 0
+        self._me_id: Optional[int] = None
 
     async def client_ready(self, client: TelegramClient, db: Any):
+        """
+        Вызывается при готовности клиента Telethon.
+
+        :param client: Клиент Telethon.
+        :type client: TelegramClient
+        :param db: Объект для работы с базой данных.
+        :type db: Any
+        """
         self._manager = BroadcastManager(client, db)
         stored_data = self.db.get("broadcast", "Broadcast", {})
         self._manager._load_config_from_dict(stored_data)
@@ -332,6 +476,16 @@ class BroadcastMod(loader.Module):
     async def _validate_broadcast_code(
         self, message: Message, code_name: Optional[str] = None
     ) -> Optional[str]:
+        """
+        Проверяет наличие кода рассылки и возвращает его имя.
+
+        :param message: Объект сообщения Telethon.
+        :type message: Message
+        :param code_name: Имя кода рассылки.
+        :type code_name: Optional[str]
+        :return: Имя кода рассылки или None, если код не найден.
+        :rtype: Optional[str]
+        """
         args = utils.get_args(message)
         if code_name is None:
             if not args:
@@ -346,7 +500,11 @@ class BroadcastMod(loader.Module):
         return code_name
 
     async def addmsgcmd(self, message: Message):
-        """Добавить сообщение или альбом в рассылку"""
+        """
+        Добавляет сообщение или альбом в рассылку.
+
+        Использование: .addmsg <код> (в ответ на сообщение).
+        """
         reply = await message.get_reply_message()
         if not reply:
             return await utils.answer(
@@ -371,7 +529,11 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, "Не удалось добавить сообщение")
 
     async def chatcmd(self, message: Message):
-        """Добавить или удалить чат из рассылки"""
+        """
+        Добавляет или удаляет чат из рассылки.
+
+        Использование: .chat <код> <id_чата>.
+        """
         args = utils.get_args(message)
         if len(args) != 2:
             return await utils.answer(message, "Использование: .chat <код> <id_чата>")
@@ -392,7 +554,11 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, f"Ошибка: {str(e)}")
 
     async def delcodecmd(self, message: Message):
-        """Удалить код рассылки"""
+        """
+        Удаляет код рассылки.
+
+        Использование: .delcode <код>.
+        """
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
@@ -413,7 +579,11 @@ class BroadcastMod(loader.Module):
         )
 
     async def delmsgcmd(self, message: Message):
-        """Удаление сообщения из рассылки"""
+        """
+        Удаление сообщения из рассылки.
+
+        Использование: .delmsg <код> [индекс] или .delmsg <код> (в ответ на сообщение).
+        """
         args = utils.get_args(message)
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
@@ -449,7 +619,11 @@ class BroadcastMod(loader.Module):
                 await utils.answer(message, "Индекс должен быть числом")
 
     async def intervalcmd(self, message: Message):
-        """Установка интервала рассылки"""
+        """
+        Устанавливает интервал рассылки.
+
+        Использование: .interval <код> <мин_минут> <макс_минут>.
+        """
         args = utils.get_args(message)
         if len(args) != 3:
             return await utils.answer(
@@ -479,7 +653,11 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, "Интервал должен быть числом")
 
     async def listcmd(self, message: Message):
-        """Информация"""
+        """
+        Выводит информацию о настроенных рассылках.
+
+        Использование: .list.
+        """
         if not self._manager.config.codes:
             return await utils.answer(message, "Нет настроенных кодов рассылки")
         text = [
@@ -504,7 +682,11 @@ class BroadcastMod(loader.Module):
         await utils.answer(message, "\n".join(text))
 
     async def listmsgcmd(self, message: Message):
-        """Список сообщений в коде рассылки"""
+        """
+        Выводит список сообщений в коде рассылки.
+
+        Использование: .listmsg <код>.
+        """
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
@@ -531,7 +713,12 @@ class BroadcastMod(loader.Module):
         await utils.answer(message, "\n\n".join(text))
 
     async def sendmodecmd(self, message: Message):
-        """Установка режима отправки сообщений"""
+        """
+        Устанавливает режим отправки сообщений.
+
+        Использование: .sendmode <код> <режим>.
+        Режимы: auto (по умолчанию), normal (обычная отправка), forward (форвард).
+        """
         args = utils.get_args(message)
         if len(args) != 2 or args[1] not in ["auto", "normal", "forward"]:
             return await utils.answer(
@@ -555,7 +742,11 @@ class BroadcastMod(loader.Module):
         )
 
     async def watcmd(self, message: Message):
-        """Переключение автоматического управления чатами"""
+        """
+        Переключает автоматическое управление чатами.
+
+        Использование: .wat.
+        """
         self._wat_mode = not self._wat_mode
         await utils.answer(
             message,
@@ -565,7 +756,11 @@ class BroadcastMod(loader.Module):
         )
 
     async def watcher(self, message: Message):
-        """Наблюдатель сообщений для автоматического управления"""
+        """
+        Наблюдатель сообщений для автоматического управления.
+
+        Этот метод отслеживает новые сообщения и, если включен wat mode, добавляет чаты в код рассылки.
+        """
         if not isinstance(message, Message):
             return
         current_time = time.time()
