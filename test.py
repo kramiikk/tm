@@ -6,7 +6,6 @@ import time
 from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Union, Any
-from datetime import datetime, timedelta
 
 from telethon import TelegramClient, functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
@@ -61,10 +60,10 @@ class BroadcastManager:
         self.config = BroadcastConfig()
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
         self.message_indices: Dict[str, int] = {}
+        self.cached_messages: Dict[str, List[Union[Message, List[Message]]]] = {}
         self._active = True
         self._last_broadcast_time: Dict[str, float] = {}
         self._scheduled_messages: Dict[str, Set[int]] = {}
-
 
     async def initialize(self):
         try:
@@ -92,9 +91,7 @@ class BroadcastManager:
                 broadcast_code = BroadcastCode(
                     chats=chats,
                     messages=messages,
-                    interval=(
-                        interval if 0 < interval[0] < interval[1] <= 1440 else (3, 13)
-                    ),
+                    interval=interval if 0 < interval[0] < interval[1] <= 1440 else (3, 13),
                     send_mode=code_data.get("send_mode", "auto"),
                 )
                 self.config.codes[code_name] = broadcast_code
@@ -126,19 +123,6 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
 
-    async def _cache_messages(self):
-        new_cache = {}
-        for code_name, code in self.config.codes.items():
-            new_cache[code_name] = []
-            for msg_data in code.messages:
-                try:
-                    messages = await self._fetch_messages(msg_data)
-                    if messages:
-                        new_cache[code_name].append(messages)
-                except Exception as e:
-                    logger.error(f"Failed to cache message for {code_name}: {e}")
-        self.cached_messages = new_cache
-
     async def _fetch_messages(
         self, msg_data: BroadcastMessage
     ) -> Union[Message, List[Message], None]:
@@ -157,6 +141,18 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Failed to fetch message: {e}")
             return None
+
+    async def _cache_messages(self):
+        self.cached_messages = {}
+        for code_name, code in self.config.codes.items():
+            self.cached_messages[code_name] = []
+            for msg_data in code.messages:
+                try:
+                    messages = await self._fetch_messages(msg_data)
+                    if messages:
+                        self.cached_messages[code_name].append(messages)
+                except Exception as e:
+                    logger.error(f"Failed to cache message for {code_name}: {e}")
 
     async def add_message(self, code_name: str, message: Message) -> bool:
         try:
@@ -193,14 +189,9 @@ class BroadcastManager:
             return False
 
     async def _check_existing_scheduled_messages(self, code_name: str):
-        """
-        Check for existing scheduled messages to prevent duplicates
-        """
         try:
-            # Используем peer с правильным способом получения
             peer = await self.client.get_input_entity(self.client.tg_id)
             
-            # Получаем scheduled-сообщения
             scheduled_messages = await self.client(
                 functions.messages.GetScheduledHistoryRequest(
                     peer=peer, 
@@ -208,7 +199,6 @@ class BroadcastManager:
                 )
             )
     
-            # Безопасная проверка сообщений
             code_scheduled_ids = {
                 msg.id for msg in scheduled_messages.messages 
                 if hasattr(msg, 'message') and msg.message and code_name in msg.message
@@ -228,74 +218,62 @@ class BroadcastManager:
         interval: Optional[float] = None
     ):
         try:
-            # Ensure code_name is set for scheduling
-            if code_name is None:
-                code_name = "default"
+            code_name = code_name or "default"
     
-            # Check existing scheduled messages if not done before
             if code_name not in self._scheduled_messages:
                 await self._check_existing_scheduled_messages(code_name)
     
             async def _schedule_message(entity, messages, schedule_time):
-                # Unified handling for single message and album
-                if isinstance(messages, list) and len(messages) > 1:
-                    # Album handling
-                    scheduled_msg = await self.client.forward_messages(
-                        entity=entity,
-                        messages=[m.id for m in messages],
-                        from_peer=messages[0].chat_id,
-                        schedule=schedule_time
-                    )
-                elif isinstance(messages, list):
-                    # Single message in a list
-                    messages = messages[0]
+                def is_single_message(msg):
+                    return isinstance(msg, Message)
     
-                if isinstance(messages, Message):
-                    try:
-                        if send_mode == "forward":
-                            scheduled_msg = await self.client.forward_messages(
-                                entity=entity,
-                                messages=[messages.id],
-                                from_peer=messages.chat_id,
-                                schedule=schedule_time
-                            )
-                        elif send_mode == "normal" or (send_mode == "auto" and not messages.media):
-                            if messages.media:
-                                scheduled_msg = await self.client.send_file(
-                                    entity=entity,
-                                    file=messages.media,
-                                    caption=messages.text,
-                                    schedule=schedule_time
-                                )
-                            else:
-                                scheduled_msg = await self.client.send_message(
-                                    entity=entity, 
-                                    message=messages.text,
-                                    schedule=schedule_time
-                                )
-                        else:
-                            scheduled_msg = await self.client.forward_messages(
-                                entity=entity,
-                                messages=[messages.id],
-                                from_peer=messages.chat_id,
-                                schedule=schedule_time
-                            )
-                    except Exception as media_error:
-                        logger.warning(f"Media schedule error in chat {entity}: {media_error}")
-                        text = messages.text if hasattr(messages, 'text') else str(messages)
-                        scheduled_msg = await self.client.send_message(
-                            entity=entity, 
-                            message=text, 
+                try:
+                    if not is_single_message(messages):
+                        return await self.client.forward_messages(
+                            entity=entity,
+                            messages=[m.id for m in messages],
+                            from_peer=messages[0].chat_id,
                             schedule=schedule_time
                         )
-                
-                return scheduled_msg
     
-            # Determine if we should schedule
+                    message = messages[0] if not is_single_message(messages) else messages
+                    
+                    if send_mode == "forward":
+                        return await self.client.forward_messages(
+                            entity=entity,
+                            messages=[message.id],
+                            from_peer=message.chat_id,
+                            schedule=schedule_time
+                        )
+                    
+                    if send_mode == "normal" or (send_mode == "auto" and not message.media):
+                        schedule_method = self.client.send_file if message.media else self.client.send_message
+                        return await schedule_method(
+                            entity=entity,
+                            file=message.media if message.media else None,
+                            caption=message.text,
+                            message=message.text if not message.media else None,
+                            schedule=schedule_time
+                        )
+                    
+                    return await self.client.forward_messages(
+                        entity=entity,
+                        messages=[message.id],
+                        from_peer=message.chat_id,
+                        schedule=schedule_time
+                    )
+                
+                except Exception as media_error:
+                    logger.warning(f"Media schedule error in chat {entity}: {media_error}")
+                    text = messages[0].text if hasattr(messages[0], 'text') else str(messages)
+                    return await self.client.send_message(
+                        entity=entity, 
+                        message=text, 
+                        schedule=schedule_time
+                    )
+    
             if interval is not None:
                 schedule_time = datetime.now() + timedelta(seconds=interval)
-                
-                # Single message or album - pass as is
                 await _schedule_message(chat_id, message_to_send, schedule_time)
     
         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
