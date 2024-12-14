@@ -5,8 +5,8 @@ import random
 import time
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple, Union, Any
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from telethon import TelegramClient, functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
@@ -16,12 +16,14 @@ from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class BroadcastMessage:
     chat_id: int
     message_id: int
     grouped_id: Optional[int] = None
     album_ids: List[int] = field(default_factory=list)
+
 
 @dataclass
 class BroadcastCode:
@@ -31,10 +33,13 @@ class BroadcastCode:
     send_mode: str = "auto"
 
     def validate_interval(self) -> bool:
-        return (isinstance(self.interval[0], int) and 
-                isinstance(self.interval[1], int) and 
-                0 < self.interval[0] < self.interval[1] <= 1440)
-   
+        return (
+            isinstance(self.interval[0], int)
+            and isinstance(self.interval[1], int)
+            and 0 < self.interval[0] < self.interval[1] <= 1440
+        )
+
+
 class BroadcastConfig:
     def __init__(self):
         self.codes: Dict[str, BroadcastCode] = {}
@@ -48,6 +53,7 @@ class BroadcastConfig:
         async with self._lock:
             return bool(self.codes.pop(code_name, None))
 
+
 class BroadcastManager:
     def __init__(self, client: TelegramClient, db):
         self.client = client
@@ -58,7 +64,7 @@ class BroadcastManager:
         self._active = True
         self._last_broadcast_time: Dict[str, float] = {}
         self._scheduled_messages: Dict[str, Set[int]] = {}
-    
+
     async def initialize(self):
         try:
             stored_data = self.db.get("broadcast", "Broadcast", {})
@@ -85,7 +91,9 @@ class BroadcastManager:
                 broadcast_code = BroadcastCode(
                     chats=chats,
                     messages=messages,
-                    interval=interval if 0 < interval[0] < interval[1] <= 1440 else (1, 13),
+                    interval=(
+                        interval if 0 < interval[0] < interval[1] <= 1440 else (1, 13)
+                    ),
                     send_mode=code_data.get("send_mode", "auto"),
                 )
                 self.config.codes[code_name] = broadcast_code
@@ -117,15 +125,19 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
 
-    async def _fetch_messages(self, msg_data: BroadcastMessage) -> Union[Message, List[Message], None]:
+    async def _fetch_messages(
+        self, msg_data: BroadcastMessage
+    ) -> Union[Message, List[Message], None]:
         try:
             if msg_data.grouped_id is not None:
                 messages = [
-                    await self.client.get_messages(msg_data.chat_id, ids=msg_id) 
+                    await self.client.get_messages(msg_data.chat_id, ids=msg_id)
                     for msg_id in msg_data.album_ids
                 ]
                 return [msg for msg in messages if msg]
-            return await self.client.get_messages(msg_data.chat_id, ids=msg_data.message_id)
+            return await self.client.get_messages(
+                msg_data.chat_id, ids=msg_data.message_id
+            )
         except Exception as e:
             logger.error(f"Failed to fetch message: {e}")
             return None
@@ -141,10 +153,11 @@ class BroadcastManager:
                 async for album_msg in self.client.iter_messages(
                     message.chat_id, limit=10, offset_date=message.date
                 ):
-                    if (hasattr(album_msg, "grouped_id") and 
-                        album_msg.grouped_id == message.grouped_id):
+                    if (
+                        hasattr(album_msg, "grouped_id")
+                        and album_msg.grouped_id == message.grouped_id
+                    ):
                         album_messages.append(album_msg)
-                
                 bisect.insort(album_messages, key=lambda m: m.id)
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
@@ -154,10 +167,8 @@ class BroadcastManager:
                 )
             else:
                 msg_data = BroadcastMessage(
-                    chat_id=message.chat_id, 
-                    message_id=message.id
+                    chat_id=message.chat_id, message_id=message.id
                 )
-            
             code.messages.append(msg_data)
             self.save_config()
             return True
@@ -171,79 +182,84 @@ class BroadcastManager:
             scheduled_messages = await self.client(
                 functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
             )
-        
+
             self._scheduled_messages[code_name] = {
-                msg.id for msg in scheduled_messages.messages 
-                if hasattr(msg, 'message') and msg.message and code_name in msg.message
+                msg.id
+                for msg in scheduled_messages.messages
+                if hasattr(msg, "message") and msg.message and code_name in msg.message
             }
         except Exception as e:
             logger.error(f"Failed to check scheduled messages for {code_name}: {e}")
             self._scheduled_messages[code_name] = set()
 
     async def _send_message(
-        self, 
-        chat_id: int, 
-        message_to_send: Union[Message, List[Message]], 
-        send_mode: str = "auto", 
+        self,
+        chat_id: int,
+        message_to_send: Union[Message, List[Message]],
+        send_mode: str = "auto",
         code_name: Optional[str] = None,
-        interval: Optional[float] = None
+        interval: Optional[float] = None,
     ):
+        code_name = code_name or "default"
+
+        if code_name not in self._scheduled_messages:
+            await self._check_existing_scheduled_messages(code_name)
+        schedule_time = self._calculate_schedule_time(interval)
+
         try:
-            code_name = code_name or "default"
-            
-            if code_name not in self._scheduled_messages:
-                await self._check_existing_scheduled_messages(code_name)
-
-            schedule_time = datetime.now() + timedelta(seconds=random.choice([60, 120, 180]) if interval > 60 else interval)
-
-            async def _process_message(entity, messages):
-                try:
-                    if isinstance(messages, list) and len(messages) > 1:
-                        return await self.client.forward_messages(
-                            entity=entity,
-                            messages=[m.id for m in messages],
-                            from_peer=messages[0].chat_id,
-                            schedule=schedule_time
-                        )
-                    
-                    message = messages[0] if isinstance(messages, list) else messages
-                    
-                    if send_mode == "forward" or (send_mode == "auto" and message.media):
-                        return await self.client.forward_messages(
-                            entity=entity,
-                            messages=[message.id],
-                            from_peer=message.chat_id,
-                            schedule=schedule_time
-                        )
-                    
-                    if message.media:
-                        return await self.client.send_file(
-                            entity=entity,
-                            file=message.media,
-                            caption=message.text,
-                            schedule=schedule_time
-                        )
-                    
-                    return await self.client.send_message(
-                        entity=entity, 
-                        message=message.text,
-                        schedule=schedule_time
-                    )
-                
-                except Exception as media_error:
-                    logger.warning(f"Media send error in chat {entity}: {media_error}")
-                    text = message.text if hasattr(message, 'text') else str(message)
-                    return await self.client.send_message(
-                        entity=entity, 
-                        message=text, 
-                        schedule=schedule_time
-                    )
-
-            await _process_message(chat_id, message_to_send)
-
+            await self._process_message_send(
+                chat_id, message_to_send, send_mode, schedule_time
+            )
         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
             logger.info(f"Cannot send message to {chat_id}: {e}")
             raise
+
+    def _calculate_schedule_time(self, interval: Optional[float] = None) -> datetime:
+        """Вычисление времени отправки с более гибкой логикой"""
+        base_delay = (
+            random.choice([60, 120, 180])
+            if interval and interval > 60
+            else (interval or 60)
+        )
+        return datetime.now() + timedelta(seconds=base_delay)
+
+    async def _process_message_send(
+        self,
+        chat_id: int,
+        messages: Union[Message, List[Message]],
+        send_mode: str,
+        schedule_time: datetime,
+    ):
+        """Унифицированный метод отправки сообщений"""
+
+        async def _send_single_message(entity, message):
+            if send_mode == "forward" or (send_mode == "auto" and message.media):
+                return await self.client.forward_messages(
+                    entity=entity,
+                    messages=[message.id],
+                    from_peer=message.chat_id,
+                    schedule=schedule_time,
+                )
+            if message.media:
+                return await self.client.send_file(
+                    entity=entity,
+                    file=message.media,
+                    caption=message.text,
+                    schedule=schedule_time,
+                )
+            return await self.client.send_message(
+                entity=entity, message=message.text, schedule=schedule_time
+            )
+
+        if isinstance(messages, list) and len(messages) > 1:
+            return await self.client.forward_messages(
+                entity=chat_id,
+                messages=[m.id for m in messages],
+                from_peer=messages[0].chat_id,
+                schedule=schedule_time,
+            )
+        message = messages[0] if isinstance(messages, list) else messages
+        return await _send_single_message(chat_id, message)
 
     async def _broadcast_loop(self, code_name: str):
         while self._active:
@@ -251,16 +267,13 @@ class BroadcastManager:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats:
                     continue
-
                 messages = [
-                    await self._fetch_messages(msg_data) 
-                    for msg_data in code.messages
+                    await self._fetch_messages(msg_data) for msg_data in code.messages
                 ]
                 messages = [m for m in messages if m]
-                
+
                 if not messages:
                     continue
-
                 current_time = time.time()
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
 
@@ -268,9 +281,8 @@ class BroadcastManager:
 
                 if current_time - last_broadcast < interval:
                     continue
-                
                 await asyncio.sleep(interval)
-                
+
                 chats = list(code.chats)
                 random.shuffle(chats)
 
@@ -279,27 +291,20 @@ class BroadcastManager:
                 self.message_indices[code_name] = (message_index + 1) % len(messages)
 
                 send_mode = getattr(code, "send_mode", "auto")
-            
+
                 failed_chats = set()
                 for chat_id in chats:
                     try:
                         await self._send_message(
-                            chat_id, 
-                            messages_to_send, 
-                            send_mode, 
-                            code_name, 
-                            interval
+                            chat_id, messages_to_send, send_mode, code_name, interval
                         )
                     except Exception as send_error:
                         logger.error(f"Sending error to {chat_id}: {send_error}")
                         failed_chats.add(chat_id)
-                
                 if failed_chats:
                     code.chats -= failed_chats
                     self.save_config()
-                
                 self._last_broadcast_time[code_name] = time.time()
-            
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -314,7 +319,6 @@ class BroadcastManager:
                     )
                 except Exception as e:
                     logger.error(f"Failed to start broadcast loop for {code_name}: {e}")
-
 
     async def stop_broadcasts(self):
         self._active = False
@@ -373,15 +377,17 @@ class BroadcastMod(loader.Module):
         args = utils.get_args(message)
         if len(args) != 1:
             return await utils.answer(message, "Использование: .addmsg <код>")
-        
         code_name = args[0]
         success = await self._manager.add_message(code_name, reply)
 
         if success:
             await utils.answer(
                 message,
-                (self.strings["album_added"] if getattr(reply, "grouped_id", None)
-                 else self.strings["single_added"]).format(code_name)
+                (
+                    self.strings["album_added"]
+                    if getattr(reply, "grouped_id", None)
+                    else self.strings["single_added"]
+                ).format(code_name),
             )
         else:
             await utils.answer(message, "Не удалось добавить сообщение")
@@ -391,16 +397,13 @@ class BroadcastMod(loader.Module):
         args = utils.get_args(message)
         if len(args) != 2:
             return await utils.answer(message, "Использование: .chat <код> <id_чата>")
-        
         try:
             code_name, chat_id = args[0], int(args[1])
         except ValueError:
             return await utils.answer(message, "ID чата должен быть числом")
-        
         code_name = await self._validate_broadcast_code(message, code_name)
         if not code_name:
             return
-        
         try:
             code = self._manager.config.codes[code_name]
             action = "удален" if chat_id in code.chats else "добавлен"
