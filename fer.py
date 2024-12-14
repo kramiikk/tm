@@ -32,13 +32,6 @@ class BroadcastCode:
     interval: Tuple[int, int] = field(default_factory=lambda: (1, 13))
     send_mode: str = "auto"
 
-    def validate_interval(self) -> bool:
-        return (
-            isinstance(self.interval[0], int)
-            and isinstance(self.interval[1], int)
-            and 0 < self.interval[0] < self.interval[1] <= 1440
-        )
-
 
 class BroadcastConfig:
     def __init__(self):
@@ -64,14 +57,6 @@ class BroadcastManager:
         self._active = True
         self._last_broadcast_time: Dict[str, float] = {}
         self._scheduled_messages: Dict[str, Set[int]] = {}
-
-    async def initialize(self):
-        try:
-            stored_data = self.db.get("broadcast", "Broadcast", {})
-            self._load_config_from_dict(stored_data)
-            await self.start_broadcasts()
-        except Exception as e:
-            logger.error(f"Failed to initialize broadcast manager: {e}")
 
     def _load_config_from_dict(self, data: dict):
         for code_name, code_data in data.get("code_chats", {}).items():
@@ -320,14 +305,6 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Failed to start broadcast loop for {code_name}: {e}")
 
-    async def stop_broadcasts(self):
-        self._active = False
-        for task in self.broadcast_tasks.values():
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
-        self.broadcast_tasks.clear()
-
 
 @loader.tds
 class BroadcastMod(loader.Module):
@@ -348,7 +325,8 @@ class BroadcastMod(loader.Module):
 
     async def client_ready(self, client: TelegramClient, db: Any):
         self._manager = BroadcastManager(client, db)
-        await self._manager.initialize()
+        stored_data = self.db.get("broadcast", "Broadcast", {})
+        self._manager._load_config_from_dict(stored_data)
         self._me_id = client.tg_id
 
     async def _validate_broadcast_code(
@@ -591,7 +569,7 @@ class BroadcastMod(loader.Module):
         if not isinstance(message, Message):
             return
         current_time = time.time()
-        if current_time - self._last_broadcast_check >= 600:
+        if current_time - self._last_broadcast_check >= 60:
             self._last_broadcast_check = current_time
             await self._manager.start_broadcasts()
         if (
