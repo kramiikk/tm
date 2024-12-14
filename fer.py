@@ -176,7 +176,7 @@ class BroadcastManager:
             await self.config.add_code(code_name)
             code = self.config.codes[code_name]
             grouped_id = getattr(message, "grouped_id", None)
-
+    
             if grouped_id:
                 album_messages = [message]
                 async for album_msg in self.client.iter_messages(
@@ -187,7 +187,10 @@ class BroadcastManager:
                         and album_msg.grouped_id == message.grouped_id
                     ):
                         album_messages.append(album_msg)
-                bisect.insort(album_messages, x=album_messages, key=lambda m: m.id)
+                
+                # Сортировка списка альбомных сообщений по id
+                album_messages.sort(key=lambda m: m.id)
+                
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
