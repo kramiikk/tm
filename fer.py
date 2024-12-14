@@ -187,7 +187,7 @@ class BroadcastManager:
                         and album_msg.grouped_id == message.grouped_id
                     ):
                         album_messages.append(album_msg)
-                bisect.insort(album_messages, key=lambda m: m.id)
+                bisect.insort(album_messages, x=album_messages, key=lambda m: m.id)
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
