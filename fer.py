@@ -291,8 +291,8 @@ class BroadcastManager:
 
             base_delay = (
                 random.choice([60, 120, 180])
-                if interval and interval > 60
-                else (interval or 60)
+                if interval > 60
+                else 60
             )
 
             schedule_time = datetime.now() + timedelta(seconds=base_delay)
