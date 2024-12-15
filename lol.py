@@ -280,7 +280,7 @@ class BroadcastManager:
     async def _broadcast_loop(self, code_name: str):
         precision_timer = PrecisionTimer()
         while self._active:
-            await precision_timer.wait(random.uniform(60, 180))
+            await precision_timer.wait(random.uniform(60, 90))
             try:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats:
@@ -600,9 +600,8 @@ class BroadcastMod(loader.Module):
     async def watcher(self, message: Message):
         if not isinstance(message, Message):
             return
-        current_time = time.time()
-        if current_time - self._last_broadcast_check >= 3600:
-            self._last_broadcast_check = current_time
+        if time.time() - self._last_broadcast_check >= 3600:
+            self._last_broadcast_check = time.time()
             await self._manager.start_broadcasts()
         if (
             self._wat_mode
