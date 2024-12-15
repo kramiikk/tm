@@ -604,7 +604,6 @@ class BroadcastMod(loader.Module):
             self._wat_mode
             and message.sender_id == self._me_id
             and message.text
-            and message.text.strip()
         ):
             for code_name in self._manager.config.codes:
                 if message.text.strip().endswith(code_name):
