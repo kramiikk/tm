@@ -280,7 +280,7 @@ class BroadcastManager:
     async def _broadcast_loop(self, code_name: str):
         precision_timer = PrecisionTimer()
         while self._active:
-            await precision_timer.wait(random.uniform(60, 90))
+            await precision_timer.wait(random.uniform(13, 33))
             try:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats:
