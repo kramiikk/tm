@@ -67,7 +67,7 @@ class PrecisionTimer:
         self._event.clear()
 
         try:
-            await asyncio.wait_for(self._event.wait(), timeout=interval * 1.1)
+            await asyncio.wait_for(self._event.wait(), timeout=interval)
             return False
         except asyncio.TimeoutError:
             return True
@@ -280,7 +280,7 @@ class BroadcastManager:
     async def _broadcast_loop(self, code_name: str):
         precision_timer = PrecisionTimer()
         while self._active:
-            await precision_timer.wait(random.uniform(13, 33))
+            await precision_timer.wait(13)
             try:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats:
