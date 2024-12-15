@@ -57,6 +57,31 @@ class BroadcastConfig:
             return bool(self.codes.pop(code_name, None))
 
 
+class PrecisionTimer:
+    def __init__(self):
+        self._target_time: Optional[float] = None
+        self._event = asyncio.Event()
+
+    async def wait(self, interval: float):
+        self._target_time = time.time() + interval
+        self._event.clear()
+
+        try:
+            await asyncio.wait_for(self._event.wait(), timeout=interval * 1.1)
+            return False
+        except asyncio.TimeoutError:
+            return True
+
+    def cancel(self):
+        self._event.set()
+
+    @property
+    def remaining(self) -> float:
+        if self._target_time is None:
+            return 0
+        return max(0, self._target_time - time.time())
+
+
 class BroadcastManager:
     def __init__(self, client: TelegramClient, db):
         self.client = client
@@ -253,18 +278,21 @@ class BroadcastManager:
             raise
 
     async def _broadcast_loop(self, code_name: str):
+        precision_timer = PrecisionTimer()
         while self._active:
+            await asyncio.sleep(random.uniform(60, 180))
             try:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats:
                     continue
+                start_time = time.time()
                 min_interval, max_interval = code.normalize_interval()
-                interval = random.uniform(min_interval * 58, max_interval * 59)
-                current_time = time.time()
-                last_broadcast = self._last_broadcast_time.get(code_name, 0)
-                if current_time - last_broadcast < interval:
+                interval = random.uniform(min_interval * 60, max_interval * 60)
+                elapsed = start_time - self._last_broadcast_time.get(code_name, 0)
+                if elapsed < interval:
+                    await asyncio.sleep(max(0, interval - elapsed))
                     continue
-                await asyncio.sleep(interval)
+                await precision_timer.wait(interval)
 
                 messages = [
                     await self._fetch_messages(msg_data)
@@ -276,7 +304,6 @@ class BroadcastManager:
                     continue
                 chats = list(code.chats)
                 random.shuffle(chats)
-
                 message_index = self.message_indices.get(code_name, 0)
                 messages_to_send = messages[message_index % len(messages)]
                 self.message_indices[code_name] = (message_index + 1) % len(messages)
@@ -289,7 +316,6 @@ class BroadcastManager:
                         await self._send_message(
                             chat_id, messages_to_send, send_mode, code_name, interval
                         )
-                        await asyncio.sleep(1)
                     except Exception as send_error:
                         logger.error(f"Sending error to {chat_id}: {send_error}")
                         failed_chats.add(chat_id)
@@ -297,6 +323,9 @@ class BroadcastManager:
                     code.chats -= failed_chats
                     self.save_config()
                 self._last_broadcast_time[code_name] = time.time()
+                remaining = max(0, interval - (time.time() - start_time))
+                if remaining > 0:
+                    await asyncio.sleep(remaining)
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -571,7 +600,7 @@ class BroadcastMod(loader.Module):
         if not isinstance(message, Message):
             return
         current_time = time.time()
-        if current_time - self._last_broadcast_check >= 600:
+        if current_time - self._last_broadcast_check >= 3600:
             self._last_broadcast_check = current_time
             await self._manager.start_broadcasts()
         if (
