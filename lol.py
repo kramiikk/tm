@@ -280,7 +280,7 @@ class BroadcastManager:
     async def _broadcast_loop(self, code_name: str):
         precision_timer = PrecisionTimer()
         while self._active:
-            await asyncio.sleep(random.uniform(60, 180))
+            await precision_timer.wait(random.uniform(60, 180))
             try:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats:
@@ -288,12 +288,13 @@ class BroadcastManager:
                 start_time = time.time()
                 min_interval, max_interval = code.normalize_interval()
                 interval = random.uniform(min_interval * 60, max_interval * 60)
-                elapsed = start_time - self._last_broadcast_time.get(code_name, 0)
-                if elapsed < interval:
-                    await asyncio.sleep(max(0, interval - elapsed))
+                time_since_last_broadcast = start_time - self._last_broadcast_time.get(
+                    code_name, 0
+                )
+                if time_since_last_broadcast < interval:
+                    remaining_time = max(0, interval - time_since_last_broadcast)
+                    await precision_timer.wait(remaining_time)
                     continue
-                await precision_timer.wait(interval)
-
                 messages = [
                     await self._fetch_messages(msg_data)
                     for msg_data in code.messages
@@ -325,7 +326,7 @@ class BroadcastManager:
                 self._last_broadcast_time[code_name] = time.time()
                 remaining = max(0, interval - (time.time() - start_time))
                 if remaining > 0:
-                    await asyncio.sleep(remaining)
+                    await precision_timer.wait(remaining)
             except asyncio.CancelledError:
                 break
             except Exception as e:
