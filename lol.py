@@ -324,9 +324,6 @@ class BroadcastManager:
                     code.chats -= failed_chats
                     self.save_config()
                 self._last_broadcast_time[code_name] = time.time()
-                remaining = max(0, interval - (time.time() - start_time))
-                if remaining > 0:
-                    await precision_timer.wait(remaining)
             except asyncio.CancelledError:
                 break
             except Exception as e:
