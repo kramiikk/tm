@@ -597,7 +597,7 @@ class BroadcastMod(loader.Module):
     async def watcher(self, message: Message):
         if not isinstance(message, Message):
             return
-        if time.time() - self._last_broadcast_check >= 3600:
+        if time.time() - self._last_broadcast_check > 3600:
             self._last_broadcast_check = time.time()
             await self._manager.start_broadcasts()
         if (
