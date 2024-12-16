@@ -183,12 +183,15 @@ class BroadcastManager:
                         and album_msg.grouped_id == message.grouped_id
                     ):
                         album_messages.append(album_msg)
-                bisect.insort(album_messages, key=lambda m: m.id)
+                
+                # Сортировка по ID
+                album_messages.sort(key=lambda m: m.id)
+                
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
                     grouped_id=grouped_id,
-                    album_ids=[msg.id for msg in album_messages],
+                    album_ids = list(dict.fromkeys([msg.id for msg in album_messages])),
                 )
             else:
                 msg_data = BroadcastMessage(
@@ -204,20 +207,43 @@ class BroadcastManager:
     async def _check_existing_scheduled_messages(self, code_name: str):
         try:
             peer = await self.client.get_input_entity(self.client.tg_id)
-
+    
+            # Используем более безопасный метод получения сообщений
             scheduled_messages = await self.client(
                 functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
             )
-
+    
+            # Более подробная проверка с логированием
+            def is_matching_message(msg):
+                # Проверяем наличие атрибутов
+                if not hasattr(msg, 'message') or not msg.message:
+                    return False
+                
+                # Точное совпадение кода рассылки
+                if code_name not in msg.message:
+                    return False
+                
+                return True
+    
+            # Используем генератор для эффективности
             code_scheduled_ids = {
-                msg.id
-                for msg in scheduled_messages.messages
-                if hasattr(msg, "message") and msg.message and code_name in msg.message
+                msg.id for msg in scheduled_messages.messages 
+                if is_matching_message(msg)
             }
-
+    
+            # Логирование найденных scheduled-сообщений
+            logger.info(
+                f"Found {len(code_scheduled_ids)} scheduled messages "
+                f"for code {code_name}"
+            )
+    
             self._scheduled_messages[code_name] = code_scheduled_ids
+    
         except Exception as e:
-            logger.error(f"Failed to check scheduled messages for {code_name}: {e}")
+            logger.error(
+                f"Failed to check scheduled messages for {code_name}: {e}", 
+                exc_info=True  # Подробный трейсбек
+            )
             self._scheduled_messages[code_name] = set()
 
     async def _send_message(
@@ -595,14 +621,10 @@ class BroadcastMod(loader.Module):
         )
 
     async def watcher(self, message: Message):
-        if not isinstance(message, Message):
+        if not isinstance(message, Message) or not self._wat_mode:
             return
-        if time.time() - self._last_broadcast_check > 3600:
-            self._last_broadcast_check = time.time()
-            await self._manager.start_broadcasts()
         if (
-            self._wat_mode
-            and message.sender_id == self._me_id
+            message.sender_id == self._me_id
             and message.text
         ):
             for code_name in self._manager.config.codes:
