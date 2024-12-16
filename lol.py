@@ -428,6 +428,48 @@ class BroadcastMod(loader.Module):
         else:
             await utils.answer(message, "Не удалось добавить сообщение")
 
+    async def broadcastcmd(self, message: Message):
+        args = utils.get_args(message)
+    
+        if not args:
+            # Если аргументов нет - запускаем/останавливаем все рассылки
+            if any(self._manager.broadcast_tasks.values()):
+                # Если какие-то рассылки уже работают - останавливаем все
+                for code_name, task in list(self._manager.broadcast_tasks.items()):
+                    task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await task
+                    self._manager.broadcast_tasks.pop(code_name, None)
+                await utils.answer(message, "Все рассылки остановлены")
+            else:
+                # Если рассылок нет - запускаем все
+                await self._manager.start_broadcasts()
+                await utils.answer(message, "Все рассылки запущены")
+        else:
+            # Если указан код рассылки - работаем с конкретной рассылкой
+            code_name = args[0]
+            if code_name not in self._manager.config.codes:
+                return await utils.answer(message, self.strings["code_not_found"].format(code_name))
+    
+            # Проверяем текущий статус рассылки
+            if code_name in self._manager.broadcast_tasks:
+                # Если рассылка работает - останавливаем
+                task = self._manager.broadcast_tasks.pop(code_name)
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+                await utils.answer(message, f"Рассылка '{code_name}' остановлена")
+            else:
+                # Если рассылка не работает - запускаем
+                try:
+                    self._manager.broadcast_tasks[code_name] = asyncio.create_task(
+                        self._manager._broadcast_loop(code_name)
+                    )
+                    await utils.answer(message, f"Рассылка '{code_name}' запущена")
+                except Exception as e:
+                    logger.error(f"Failed to start broadcast loop for {code_name}: {e}")
+                    await utils.answer(message, f"Не удалось запустить рассылку '{code_name}'")
+
     async def chatcmd(self, message: Message):
         args = utils.get_args(message)
         if len(args) != 2:
