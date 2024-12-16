@@ -202,63 +202,6 @@ class BroadcastManager:
             logger.error(f"Failed to add message: {str(e)}")
             return False
 
-    async def _check_existing_scheduled_messages(self, code_name: str):
-        try:
-            code = self.config.codes.get(code_name)
-            if not code or not code.chats:
-                logger.info(f"No chats found for code {code_name}")
-                return False, None, None
-    
-            for chat_id in code.chats:
-                try:
-                    # Получаем входной объект чата
-                    peer = await self.client.get_input_entity(chat_id)
-    
-                    # Получаем запланированные сообщения для конкретного чата
-                    scheduled_messages = await self.client(
-                        functions.messages.GetScheduledHistoryRequest(
-                            peer=peer, 
-                            hash=0
-                        )
-                    )
-    
-                    # Если есть запланированные сообщения
-                    if scheduled_messages.messages:
-                        # Находим последнее запланированное сообщение
-                        last_scheduled = max(scheduled_messages.messages, key=lambda x: x.date)
-                        
-                        # Определяем индекс сообщения, которое было или будет отправлено
-                        current_message_index = self.message_indices.get(code_name, 0)
-                        next_message_index = (current_message_index + 1) % len(code.messages)
-                        
-                        # Проверяем, не является ли это сообщение уже запланированным
-                        scheduled_message_ids = [msg.id for msg in scheduled_messages.messages]
-                        
-                        # Время до следующей возможной отправки
-                        time_to_next = max(0, (last_scheduled.date - datetime.now(last_scheduled.date.tzinfo)).total_seconds())
-                        
-                        return (
-                            True,  # Есть запланированные сообщения
-                            time_to_next,  # Время до следующей отправки
-                            next_message_index  # Индекс следующего сообщения
-                        )
-    
-                except Exception as chat_error:
-                    logger.error(
-                        f"Error checking scheduled messages in chat {chat_id} "
-                        f"for code {code_name}: {chat_error}"
-                    )
-    
-            # Если в чатах нет запланированных сообщений
-            return False, None, None
-    
-        except Exception as e:
-            logger.error(
-                f"Failed to check scheduled messages for {code_name}: {e}",
-                exc_info=True
-            )
-            return False, None, None
-
     async def _send_message(
         self,
         chat_id: int,
@@ -268,19 +211,7 @@ class BroadcastManager:
         interval: Optional[float] = None,
     ):
         try:
-            precision_timer = PrecisionTimer()
             code_name = code_name or "default"
-
-            if code_name not in self._scheduled_messages:
-                has_scheduled, wait_time, next_index = await self._check_existing_scheduled_messages(code_name)
-                if has_scheduled:
-                    # Если есть запланированные сообщения, ждем указанное время
-                    if wait_time:
-                        await precision_timer.wait(wait_time)
-                    
-                    # Используем предопределенный индекс следующего сообщения
-                    if next_index is not None:
-                        self.message_indices[code_name] = next_index
             schedule_time = datetime.now() + timedelta(seconds=interval or 60)
 
             async def _schedule_single_message(entity, message):
@@ -413,15 +344,18 @@ class BroadcastMod(loader.Module):
 
     async def client_ready(self, client: TelegramClient, db: Any):
         self._manager = BroadcastManager(client, db)
-
+    
         config_data = db.get("broadcast", "Broadcast", {})
         self._manager._load_config_from_dict(config_data)
-
+    
         broadcast_status = db.get("broadcast", "BroadcastStatus", {})
-
+    
         for code_name in self._manager.config.codes:
             if broadcast_status.get(code_name, False):
                 try:
+                    # Проверяем запланированные сообщения при старте
+                    await self._check_and_adjust_message_index(code_name)
+                    
                     self._manager.broadcast_tasks[code_name] = asyncio.create_task(
                         self._manager._broadcast_loop(code_name)
                     )
@@ -429,6 +363,59 @@ class BroadcastMod(loader.Module):
                 except Exception as e:
                     logger.error(f"Не удалось восстановить рассылку {code_name}: {e}")
         self._me_id = client.tg_id
+    
+    async def _check_and_adjust_message_index(self, code_name: str):
+        try:
+            code = self._manager.config.codes.get(code_name)
+            if not code or not code.chats:
+                return
+    
+            for chat_id in code.chats:
+                try:
+                    peer = await self._manager.client.get_input_entity(chat_id)
+    
+                    # Получаем запланированные сообщения
+                    scheduled_messages = await self._manager.client(
+                        functions.messages.GetScheduledHistoryRequest(
+                            peer=peer, 
+                            hash=0
+                        )
+                    )
+    
+                    if scheduled_messages.messages:
+                        last_scheduled = max(scheduled_messages.messages, key=lambda x: x.date)
+                        
+                        # Проверяем, какое сообщение запланировано
+                        for index, msg_data in enumerate(code.messages):
+                            fetch_message = await self._manager._fetch_messages(msg_data)
+                            if fetch_message:
+                                if isinstance(fetch_message, list):
+                                    # Для альбомов
+                                    scheduled_msg_id = last_scheduled.id
+                                    album_msg_ids = [m.id for m in fetch_message]
+                                    
+                                    if scheduled_msg_id in album_msg_ids:
+                                        # Устанавливаем корректный индекс
+                                        self._manager.message_indices[code_name] = index
+                                        return
+                                else:
+                                    # Для одиночных сообщений
+                                    if last_scheduled.id == fetch_message.id:
+                                        # Устанавливаем корректный индекс
+                                        self._manager.message_indices[code_name] = index
+                                        return
+    
+                except Exception as chat_error:
+                    logger.error(
+                        f"Ошибка проверки запланированных сообщений в чате {chat_id} "
+                        f"для кода {code_name}: {chat_error}"
+                    )
+    
+        except Exception as e:
+            logger.error(
+                f"Не удалось проверить запланированные сообщения для {code_name}: {e}",
+                exc_info=True
+            )
 
     async def _validate_broadcast_code(
         self, message: Message, code_name: Optional[str] = None
