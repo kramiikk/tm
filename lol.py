@@ -392,6 +392,9 @@ class BroadcastMod(loader.Module):
                         reverse=True
                     )
     
+                    # Первое последнее запланированное сообщение 
+                    latest_scheduled_msg = last_scheduled_messages[0]
+    
                     # Проходим по каждому сообщению из списка сообщений кода рассылки
                     for index, msg_data in enumerate(code.messages):
                         fetch_message = await self._manager._fetch_messages(msg_data)
@@ -404,26 +407,24 @@ class BroadcastMod(loader.Module):
                             album_msg_ids = [m.id for m in fetch_message]
                             
                             # Ищем совпадение среди последних запланированных сообщений
-                            for scheduled_msg in last_scheduled_messages:
-                                if scheduled_msg.id in album_msg_ids:
-                                    # Устанавливаем корректный индекс для альбомов
-                                    self._manager.message_indices[code_name] = index
-                                    logger.info(
-                                        f"Индекс для альбома '{code_name}' установлен на {index}"
-                                    )
-                                    return
+                            if latest_scheduled_msg.id in album_msg_ids:
+                                # Устанавливаем корректный индекс для альбомов
+                                self._manager.message_indices[code_name] = index
+                                logger.info(
+                                    f"Индекс для альбома '{code_name}' установлен на {index}"
+                                )
+                                return
                         
                         # Обработка одиночных сообщений
                         else:
-                            # Проверяем, есть ли совпадение среди последних запланированных сообщений
-                            for scheduled_msg in last_scheduled_messages:
-                                if scheduled_msg.id == fetch_message.id:
-                                    # Устанавливаем корректный индекс
-                                    self._manager.message_indices[code_name] = index
-                                    logger.info(
-                                        f"Индекс для '{code_name}' установлен на {index}"
-                                    )
-                                    return
+                            # Проверяем совпадение с последним запланированным сообщением
+                            if latest_scheduled_msg.id == fetch_message.id:
+                                # Устанавливаем корректный индекс
+                                self._manager.message_indices[code_name] = index
+                                logger.info(
+                                    f"Индекс для '{code_name}' установлен на {index}"
+                                )
+                                return
     
                     # Если не нашли точного совпадения, устанавливаем индекс на 0
                     self._manager.message_indices[code_name] = 0
