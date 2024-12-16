@@ -183,15 +183,13 @@ class BroadcastManager:
                         and album_msg.grouped_id == message.grouped_id
                     ):
                         album_messages.append(album_msg)
-                
-                # Сортировка по ID
                 album_messages.sort(key=lambda m: m.id)
-                
+
                 msg_data = BroadcastMessage(
                     chat_id=message.chat_id,
                     message_id=message.id,
                     grouped_id=grouped_id,
-                    album_ids = list(dict.fromkeys([msg.id for msg in album_messages])),
+                    album_ids=list(dict.fromkeys([msg.id for msg in album_messages])),
                 )
             else:
                 msg_data = BroadcastMessage(
@@ -206,45 +204,60 @@ class BroadcastManager:
 
     async def _check_existing_scheduled_messages(self, code_name: str):
         try:
-            peer = await self.client.get_input_entity(self.client.tg_id)
+            code = self.config.codes.get(code_name)
+            if not code or not code.chats:
+                logger.info(f"No chats found for code {code_name}")
+                return False, None, None
     
-            # Используем более безопасный метод получения сообщений
-            scheduled_messages = await self.client(
-                functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
-            )
+            for chat_id in code.chats:
+                try:
+                    # Получаем входной объект чата
+                    peer = await self.client.get_input_entity(chat_id)
     
-            # Более подробная проверка с логированием
-            def is_matching_message(msg):
-                # Проверяем наличие атрибутов
-                if not hasattr(msg, 'message') or not msg.message:
-                    return False
-                
-                # Точное совпадение кода рассылки
-                if code_name not in msg.message:
-                    return False
-                
-                return True
+                    # Получаем запланированные сообщения для конкретного чата
+                    scheduled_messages = await self.client(
+                        functions.messages.GetScheduledHistoryRequest(
+                            peer=peer, 
+                            hash=0
+                        )
+                    )
     
-            # Используем генератор для эффективности
-            code_scheduled_ids = {
-                msg.id for msg in scheduled_messages.messages 
-                if is_matching_message(msg)
-            }
+                    # Если есть запланированные сообщения
+                    if scheduled_messages.messages:
+                        # Находим последнее запланированное сообщение
+                        last_scheduled = max(scheduled_messages.messages, key=lambda x: x.date)
+                        
+                        # Определяем индекс сообщения, которое было или будет отправлено
+                        current_message_index = self.message_indices.get(code_name, 0)
+                        next_message_index = (current_message_index + 1) % len(code.messages)
+                        
+                        # Проверяем, не является ли это сообщение уже запланированным
+                        scheduled_message_ids = [msg.id for msg in scheduled_messages.messages]
+                        
+                        # Время до следующей возможной отправки
+                        time_to_next = max(0, (last_scheduled.date - datetime.now()).total_seconds())
+                        
+                        return (
+                            True,  # Есть запланированные сообщения
+                            time_to_next,  # Время до следующей отправки
+                            next_message_index  # Индекс следующего сообщения
+                        )
     
-            # Логирование найденных scheduled-сообщений
-            logger.info(
-                f"Found {len(code_scheduled_ids)} scheduled messages "
-                f"for code {code_name}"
-            )
+                except Exception as chat_error:
+                    logger.error(
+                        f"Error checking scheduled messages in chat {chat_id} "
+                        f"for code {code_name}: {chat_error}"
+                    )
     
-            self._scheduled_messages[code_name] = code_scheduled_ids
+            # Если в чатах нет запланированных сообщений
+            return False, None, None
     
         except Exception as e:
             logger.error(
-                f"Failed to check scheduled messages for {code_name}: {e}", 
-                exc_info=True  # Подробный трейсбек
+                f"Failed to check scheduled messages for {code_name}: {e}",
+                exc_info=True
             )
-            self._scheduled_messages[code_name] = set()
+            return False, None, None
 
     async def _send_message(
         self,
@@ -259,6 +272,15 @@ class BroadcastManager:
 
             if code_name not in self._scheduled_messages:
                 await self._check_existing_scheduled_messages(code_name)
+                has_scheduled, wait_time, next_index = await self._check_existing_scheduled_messages(code_name)
+                if has_scheduled:
+                    # Если есть запланированные сообщения, ждем указанное время
+                    if wait_time:
+                        await precision_timer.wait(wait_time)
+                    
+                    # Используем предопределенный индекс следующего сообщения
+                    if next_index is not None:
+                        self.message_indices[code_name] = next_index
             schedule_time = datetime.now() + timedelta(seconds=interval or 60)
 
             async def _schedule_single_message(entity, message):
@@ -382,9 +404,30 @@ class BroadcastMod(loader.Module):
         self._wat_mode = False
         self._last_broadcast_check: float = 0
 
+    def save_broadcast_status(self):
+        """Сохраняем статус активных рассылок"""
+        broadcast_status = {
+            code_name: True for code_name in self._manager.broadcast_tasks
+        }
+        self._manager.db.set("broadcast", "BroadcastStatus", broadcast_status)
+
     async def client_ready(self, client: TelegramClient, db: Any):
         self._manager = BroadcastManager(client, db)
-        self._manager._load_config_from_dict(db.get("broadcast", "Broadcast", {}))
+
+        config_data = db.get("broadcast", "Broadcast", {})
+        self._manager._load_config_from_dict(config_data)
+
+        broadcast_status = db.get("broadcast", "BroadcastStatus", {})
+
+        for code_name in self._manager.config.codes:
+            if broadcast_status.get(code_name, False):
+                try:
+                    self._manager.broadcast_tasks[code_name] = asyncio.create_task(
+                        self._manager._broadcast_loop(code_name)
+                    )
+                    logger.info(f"Автоматически восстановлена рассылка: {code_name}")
+                except Exception as e:
+                    logger.error(f"Не удалось восстановить рассылку {code_name}: {e}")
         self._me_id = client.tg_id
 
     async def _validate_broadcast_code(
@@ -430,45 +473,59 @@ class BroadcastMod(loader.Module):
 
     async def broadcastcmd(self, message: Message):
         args = utils.get_args(message)
-    
+
         if not args:
-            # Если аргументов нет - запускаем/останавливаем все рассылки
             if any(self._manager.broadcast_tasks.values()):
-                # Если какие-то рассылки уже работают - останавливаем все
                 for code_name, task in list(self._manager.broadcast_tasks.items()):
                     task.cancel()
                     with suppress(asyncio.CancelledError):
                         await task
                     self._manager.broadcast_tasks.pop(code_name, None)
+                self._manager.db.set("broadcast", "BroadcastStatus", {})
+
                 await utils.answer(message, "Все рассылки остановлены")
             else:
-                # Если рассылок нет - запускаем все
                 await self._manager.start_broadcasts()
+                self.save_broadcast_status()
                 await utils.answer(message, "Все рассылки запущены")
         else:
-            # Если указан код рассылки - работаем с конкретной рассылкой
             code_name = args[0]
             if code_name not in self._manager.config.codes:
-                return await utils.answer(message, self.strings["code_not_found"].format(code_name))
-    
-            # Проверяем текущий статус рассылки
+                return await utils.answer(
+                    message, self.strings["code_not_found"].format(code_name)
+                )
             if code_name in self._manager.broadcast_tasks:
-                # Если рассылка работает - останавливаем
                 task = self._manager.broadcast_tasks.pop(code_name)
                 task.cancel()
                 with suppress(asyncio.CancelledError):
                     await task
+                broadcast_status = self._manager.db.get(
+                    "broadcast", "BroadcastStatus", {}
+                )
+                broadcast_status.pop(code_name, None)
+                self._manager.db.set("broadcast", "BroadcastStatus", broadcast_status)
+
                 await utils.answer(message, f"Рассылка '{code_name}' остановлена")
             else:
-                # Если рассылка не работает - запускаем
                 try:
                     self._manager.broadcast_tasks[code_name] = asyncio.create_task(
                         self._manager._broadcast_loop(code_name)
                     )
+
+                    broadcast_status = self._manager.db.get(
+                        "broadcast", "BroadcastStatus", {}
+                    )
+                    broadcast_status[code_name] = True
+                    self._manager.db.set(
+                        "broadcast", "BroadcastStatus", broadcast_status
+                    )
+
                     await utils.answer(message, f"Рассылка '{code_name}' запущена")
                 except Exception as e:
                     logger.error(f"Failed to start broadcast loop for {code_name}: {e}")
-                    await utils.answer(message, f"Не удалось запустить рассылку '{code_name}'")
+                    await utils.answer(
+                        message, f"Не удалось запустить рассылку '{code_name}'"
+                    )
 
     async def chatcmd(self, message: Message):
         args = utils.get_args(message)
@@ -665,10 +722,7 @@ class BroadcastMod(loader.Module):
     async def watcher(self, message: Message):
         if not isinstance(message, Message) or not self._wat_mode:
             return
-        if (
-            message.sender_id == self._me_id
-            and message.text
-        ):
+        if message.sender_id == self._me_id and message.text:
             for code_name in self._manager.config.codes:
                 if message.text.strip().endswith(code_name):
                     try:
