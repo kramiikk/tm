@@ -392,8 +392,22 @@ class BroadcastMod(loader.Module):
                         reverse=True
                     )
     
-                    # Первое последнее запланированное сообщение 
-                    latest_scheduled_msg = last_scheduled_messages[0]
+                    def compute_message_hash(message):
+                        """Вычисление хеша для сообщения с учетом текста и медиа"""
+                        # Для текста используем текст или caption
+                        text_hash = hash(message.text or message.message or '')
+                        
+                        # Для медиа используем хеш медиа, если оно есть
+                        media_hash = 0
+                        if hasattr(message, 'media') and message.media:
+                            # Используем аттрибуты медиа для создания уникального хеша
+                            media_attrs = [
+                                getattr(message.media, attr, None) 
+                                for attr in ['photo', 'document', 'geo']
+                            ]
+                            media_hash = hash(tuple(str(attr) for attr in media_attrs if attr))
+                        
+                        return text_hash ^ media_hash  # XOR для комбинирования хешей
     
                     # Проходим по каждому сообщению из списка сообщений кода рассылки
                     for index, msg_data in enumerate(code.messages):
@@ -404,34 +418,33 @@ class BroadcastMod(loader.Module):
     
                         # Обработка альбомов
                         if isinstance(fetch_message, list):
-                            album_msg_ids = [m.id for m in fetch_message]
+                            # Хеш для первого сообщения альбома
+                            original_hash = compute_message_hash(fetch_message[0])
                             
-                            # Ищем совпадение среди последних запланированных сообщений
-                            if latest_scheduled_msg.id in album_msg_ids:
-                                # Устанавливаем корректный индекс для альбомов
-                                self._manager.message_indices[code_name] = index
-                                logger.info(
-                                    f"Индекс для альбома '{code_name}' установлен на {index}"
-                                )
-                                return
+                            # Проверяем для каждого запланированного сообщения
+                            for scheduled_msg in last_scheduled_messages:
+                                scheduled_hash = compute_message_hash(scheduled_msg)
+                                
+                                if original_hash == scheduled_hash:
+                                    self._manager.message_indices[code_name] = index
+                                    logger.info(
+                                        f"Индекс для альбома '{code_name}' установлен на {index}"
+                                    )
+                                    return
                         
                         # Обработка одиночных сообщений
                         else:
-                            # Проверяем совпадение с последним запланированным сообщением
-                            if latest_scheduled_msg.id == fetch_message.id:
-                                # Устанавливаем корректный индекс
-                                self._manager.message_indices[code_name] = index
-                                logger.info(
-                                    f"Индекс для '{code_name}' установлен на {index}"
-                                )
-                                return
-    
-                    # Если не нашли точного совпадения, устанавливаем индекс на 0
-                    self._manager.message_indices[code_name] = 0
-                    logger.warning(
-                        f"Не найдено точное совпадение для '{code_name}'. "
-                        "Установлен индекс по умолчанию: 0"
-                    )
+                            original_hash = compute_message_hash(fetch_message)
+                            
+                            for scheduled_msg in last_scheduled_messages:
+                                scheduled_hash = compute_message_hash(scheduled_msg)
+                                
+                                if original_hash == scheduled_hash:
+                                    self._manager.message_indices[code_name] = index
+                                    logger.info(
+                                        f"Индекс для '{code_name}' установлен на {index}"
+                                    )
+                                    return
     
                 except Exception as chat_error:
                     logger.error(
