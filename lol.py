@@ -235,7 +235,7 @@ class BroadcastManager:
                         scheduled_message_ids = [msg.id for msg in scheduled_messages.messages]
                         
                         # Время до следующей возможной отправки
-                        time_to_next = max(0, (last_scheduled.date - datetime.now()).total_seconds())
+                        time_to_next = max(0, (last_scheduled.date - datetime.now(last_scheduled.date.tzinfo)).total_seconds())
                         
                         return (
                             True,  # Есть запланированные сообщения
