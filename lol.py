@@ -271,7 +271,6 @@ class BroadcastManager:
             code_name = code_name or "default"
 
             if code_name not in self._scheduled_messages:
-                await self._check_existing_scheduled_messages(code_name)
                 has_scheduled, wait_time, next_index = await self._check_existing_scheduled_messages(code_name)
                 if has_scheduled:
                     # Если есть запланированные сообщения, ждем указанное время
