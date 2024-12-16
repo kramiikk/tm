@@ -382,33 +382,61 @@ class BroadcastMod(loader.Module):
                         )
                     )
     
-                    if scheduled_messages.messages:
-                        last_scheduled = max(scheduled_messages.messages, key=lambda x: x.date)
+                    if not scheduled_messages.messages:
+                        continue
+    
+                    # Сортируем запланированные сообщения по дате в порядке убывания
+                    last_scheduled_messages = sorted(
+                        scheduled_messages.messages, 
+                        key=lambda x: x.date, 
+                        reverse=True
+                    )
+    
+                    # Проходим по каждому сообщению из списка сообщений кода рассылки
+                    for index, msg_data in enumerate(code.messages):
+                        fetch_message = await self._manager._fetch_messages(msg_data)
                         
-                        # Проверяем, какое сообщение запланировано
-                        for index, msg_data in enumerate(code.messages):
-                            fetch_message = await self._manager._fetch_messages(msg_data)
-                            if fetch_message:
-                                if isinstance(fetch_message, list):
-                                    # Для альбомов
-                                    scheduled_msg_id = last_scheduled.id
-                                    album_msg_ids = [m.id for m in fetch_message]
-                                    
-                                    if scheduled_msg_id in album_msg_ids:
-                                        # Устанавливаем корректный индекс
-                                        self._manager.message_indices[code_name] = index
-                                        return
-                                else:
-                                    # Для одиночных сообщений
-                                    if last_scheduled.id == fetch_message.id:
-                                        # Устанавливаем корректный индекс
-                                        self._manager.message_indices[code_name] = index
-                                        return
+                        if not fetch_message:
+                            continue
+    
+                        # Обработка альбомов
+                        if isinstance(fetch_message, list):
+                            album_msg_ids = [m.id for m in fetch_message]
+                            
+                            # Ищем совпадение среди последних запланированных сообщений
+                            for scheduled_msg in last_scheduled_messages:
+                                if scheduled_msg.id in album_msg_ids:
+                                    # Устанавливаем корректный индекс для альбомов
+                                    self._manager.message_indices[code_name] = index
+                                    logger.info(
+                                        f"Индекс для альбома '{code_name}' установлен на {index}"
+                                    )
+                                    return
+                        
+                        # Обработка одиночных сообщений
+                        else:
+                            # Проверяем, есть ли совпадение среди последних запланированных сообщений
+                            for scheduled_msg in last_scheduled_messages:
+                                if scheduled_msg.id == fetch_message.id:
+                                    # Устанавливаем корректный индекс
+                                    self._manager.message_indices[code_name] = index
+                                    logger.info(
+                                        f"Индекс для '{code_name}' установлен на {index}"
+                                    )
+                                    return
+    
+                    # Если не нашли точного совпадения, устанавливаем индекс на 0
+                    self._manager.message_indices[code_name] = 0
+                    logger.warning(
+                        f"Не найдено точное совпадение для '{code_name}'. "
+                        "Установлен индекс по умолчанию: 0"
+                    )
     
                 except Exception as chat_error:
                     logger.error(
                         f"Ошибка проверки запланированных сообщений в чате {chat_id} "
-                        f"для кода {code_name}: {chat_error}"
+                        f"для кода {code_name}: {chat_error}",
+                        exc_info=True
                     )
     
         except Exception as e:
