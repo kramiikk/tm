@@ -268,6 +268,7 @@ class BroadcastManager:
         interval: Optional[float] = None,
     ):
         try:
+            precision_timer = PrecisionTimer()
             code_name = code_name or "default"
 
             if code_name not in self._scheduled_messages:
