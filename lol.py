@@ -14,6 +14,9 @@ from telethon.tl.types import Message
 
 from .. import loader, utils
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -233,14 +236,18 @@ class BroadcastManager:
                             schedule=schedule_time,
                         )
                     return await self.client.send_message(
-                        entity=entity, message=message.text, schedule=schedule_time
+                        entity=entity,
+                        message=message.text,
+                        schedule=schedule_time,
                     )
                 except Exception as media_error:
-                    logger.warning(
+                    logger.error(
                         f"Message scheduling error in chat {entity}: {media_error}"
                     )
                     return await self.client.send_message(
-                        entity=entity, message=str(message), schedule=schedule_time
+                        entity=entity,
+                        message=str(message),
+                        schedule=schedule_time,
                     )
 
             if isinstance(message_to_send, list):
@@ -253,7 +260,7 @@ class BroadcastManager:
             else:
                 await _schedule_single_message(chat_id, message_to_send)
         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
-            logger.info(f"Cannot send message to {chat_id}: {e}")
+            logger.error(f"Cannot send message to {chat_id}: {e}")
             raise
 
     async def _broadcast_loop(self, code_name: str):
@@ -294,7 +301,11 @@ class BroadcastManager:
                 for chat_id in chats:
                     try:
                         await self._send_message(
-                            chat_id, messages_to_send, send_mode, code_name, interval
+                            chat_id,
+                            messages_to_send,
+                            send_mode,
+                            code_name,
+                            interval,
                         )
                     except Exception as send_error:
                         logger.error(f"Sending error to {chat_id}: {send_error}")
@@ -336,7 +347,6 @@ class BroadcastMod(loader.Module):
         self._last_broadcast_check: float = 0
 
     def save_broadcast_status(self):
-        """Сохраняем статус активных рассылок"""
         broadcast_status = {
             code_name: True for code_name in self._manager.broadcast_tasks
         }
@@ -344,18 +354,17 @@ class BroadcastMod(loader.Module):
 
     async def client_ready(self, client: TelegramClient, db: Any):
         self._manager = BroadcastManager(client, db)
-    
+
         config_data = db.get("broadcast", "Broadcast", {})
         self._manager._load_config_from_dict(config_data)
-    
+
         broadcast_status = db.get("broadcast", "BroadcastStatus", {})
-    
+
         for code_name in self._manager.config.codes:
             if broadcast_status.get(code_name, False):
                 try:
-                    # Проверяем запланированные сообщения при старте
                     await self._check_and_adjust_message_index(code_name)
-                    
+
                     self._manager.broadcast_tasks[code_name] = asyncio.create_task(
                         self._manager._broadcast_loop(code_name)
                     )
@@ -363,100 +372,128 @@ class BroadcastMod(loader.Module):
                 except Exception as e:
                     logger.error(f"Не удалось восстановить рассылку {code_name}: {e}")
         self._me_id = client.tg_id
-    
+
     async def _check_and_adjust_message_index(self, code_name: str):
+        logger.info(
+            f"Начало проверки запланированных сообщений для кода рассылки: {code_name}"
+        )
+
         try:
             code = self._manager.config.codes.get(code_name)
             if not code or not code.chats:
+                logger.info(
+                    f"Для кода {code_name} не найдены чаты или код не существует"
+                )
                 return
-    
+
+            logger.info(f"Найдено чатов для проверки: {len(code.chats)}")
+
+            def check_message_match(original_message, scheduled_message):
+                if hasattr(original_message, "media") and hasattr(
+                    scheduled_message, "media"
+                ):
+                    if hasattr(original_message.media, "photo") and hasattr(
+                        scheduled_message.media, "photo"
+                    ):
+                        match = (
+                            original_message.media.photo.id
+                            == scheduled_message.media.photo.id
+                            and original_message.media.photo.access_hash
+                            == scheduled_message.media.photo.access_hash
+                        )
+                        logger.info(f"Сравнение фото: {match}")
+                        return match
+
+                    if hasattr(original_message.media, "document") and hasattr(
+                        scheduled_message.media, "document"
+                    ):
+                        match = (
+                            original_message.media.document.id
+                            == scheduled_message.media.document.id
+                            and original_message.media.document.access_hash
+                            == scheduled_message.media.document.access_hash
+                        )
+                        logger.info(f"Сравнение документа: {match}")
+                        return match
+
+                text_match = original_message.text == scheduled_message.text
+                logger.info(f"Сравнение текста: {text_match}")
+                return text_match
+
             for chat_id in code.chats:
                 try:
+                    logger.info(
+                        f"Проверка запланированных сообщений для чата: {chat_id}"
+                    )
                     peer = await self._manager.client.get_input_entity(chat_id)
-    
-                    # Получаем запланированные сообщения
+
+                    logger.info(
+                        f"Получение списка запланированных сообщений для чата {chat_id}"
+                    )
                     scheduled_messages = await self._manager.client(
-                        functions.messages.GetScheduledHistoryRequest(
-                            peer=peer, 
-                            hash=0
-                        )
+                        functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
                     )
-    
+
                     if not scheduled_messages.messages:
+                        logger.info(f"В чате {chat_id} нет запланированных сообщений")
                         continue
-    
-                    # Сортируем запланированные сообщения по дате в порядке убывания
+
                     last_scheduled_messages = sorted(
-                        scheduled_messages.messages, 
-                        key=lambda x: x.date, 
-                        reverse=True
+                        scheduled_messages.messages,
+                        key=lambda x: x.date,
+                        reverse=True,
                     )
-    
-                    def compute_message_hash(message):
-                        """Вычисление хеша для сообщения с учетом текста и медиа"""
-                        # Для текста используем текст или caption
-                        text_hash = hash(message.text or message.message or '')
-                        
-                        # Для медиа используем хеш медиа, если оно есть
-                        media_hash = 0
-                        if hasattr(message, 'media') and message.media:
-                            # Используем аттрибуты медиа для создания уникального хеша
-                            media_attrs = [
-                                getattr(message.media, attr, None) 
-                                for attr in ['photo', 'document', 'geo']
-                            ]
-                            media_hash = hash(tuple(str(attr) for attr in media_attrs if attr))
-                        
-                        return text_hash ^ media_hash  # XOR для комбинирования хешей
-    
-                    # Проходим по каждому сообщению из списка сообщений кода рассылки
+
+                    logger.info(
+                        f"Найдено запланированных сообщений: {len(last_scheduled_messages)}"
+                    )
+
                     for index, msg_data in enumerate(code.messages):
+                        logger.info(f"Проверка сообщения индекс {index}")
                         fetch_message = await self._manager._fetch_messages(msg_data)
-                        
+
                         if not fetch_message:
+                            logger.info(
+                                f"Не удалось получить сообщение для индекса {index}"
+                            )
                             continue
-    
-                        # Обработка альбомов
+
                         if isinstance(fetch_message, list):
-                            # Хеш для первого сообщения альбома
-                            original_hash = compute_message_hash(fetch_message[0])
-                            
-                            # Проверяем для каждого запланированного сообщения
+                            logger.info("Обработка альбома")
+                            original_message = fetch_message[0]
+
                             for scheduled_msg in last_scheduled_messages:
-                                scheduled_hash = compute_message_hash(scheduled_msg)
-                                
-                                if original_hash == scheduled_hash:
+                                if check_message_match(original_message, scheduled_msg):
                                     self._manager.message_indices[code_name] = index
                                     logger.info(
-                                        f"Индекс для альбома '{code_name}' установлен на {index}"
+                                        f"✅ Индекс для альбома '{code_name}' установлен на {index}"
                                     )
                                     return
-                        
-                        # Обработка одиночных сообщений
+
                         else:
-                            original_hash = compute_message_hash(fetch_message)
-                            
+                            logger.info("Обработка одиночного сообщения")
+
                             for scheduled_msg in last_scheduled_messages:
-                                scheduled_hash = compute_message_hash(scheduled_msg)
-                                
-                                if original_hash == scheduled_hash:
+                                if check_message_match(fetch_message, scheduled_msg):
                                     self._manager.message_indices[code_name] = index
                                     logger.info(
-                                        f"Индекс для '{code_name}' установлен на {index}"
+                                        f"✅ Индекс для '{code_name}' установлен на {index}"
                                     )
                                     return
-    
+
+                    logger.info(f"Не найдено совпадений для кода рассылки {code_name}")
+
                 except Exception as chat_error:
                     logger.error(
-                        f"Ошибка проверки запланированных сообщений в чате {chat_id} "
+                        f"❌ Ошибка проверки запланированных сообщений в чате {chat_id} "
                         f"для кода {code_name}: {chat_error}",
-                        exc_info=True
+                        exc_info=True,
                     )
-    
+
         except Exception as e:
             logger.error(
-                f"Не удалось проверить запланированные сообщения для {code_name}: {e}",
-                exc_info=True
+                f"❌ Критическая ошибка в проверке запланированных сообщений для {code_name}: {e}",
+                exc_info=True,
             )
 
     async def _validate_broadcast_code(
@@ -640,7 +677,8 @@ class BroadcastMod(loader.Module):
         args = utils.get_args(message)
         if len(args) != 3:
             return await utils.answer(
-                message, "Использование: .interval <код> <мин_минут> <макс_минут>"
+                message,
+                "Использование: .interval <код> <мин_минут> <макс_минут>",
             )
         code_name, min_str, max_str = args
         code_name = await self._validate_broadcast_code(message, code_name)
