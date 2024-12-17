@@ -457,7 +457,7 @@ class BroadcastMod(loader.Module):
 
                             for scheduled_msg in last_scheduled_messages:
                                 if self.check_message_match(original_message, scheduled_msg):
-                                    self._manager.message_indices[code_name] = index
+                                    self._manager.message_indices[code_name] = index + 1
                                     logger.info(f"✅ Индекс для альбома '{code_name}' установлен на {index}")
                                     return
 
@@ -465,7 +465,7 @@ class BroadcastMod(loader.Module):
                             logger.info("Обработка одиночного сообщения")
                             for scheduled_msg in last_scheduled_messages:
                                 if self.check_message_match(fetch_message, scheduled_msg):
-                                    self._manager.message_indices[code_name] = index
+                                    self._manager.message_indices[code_name] = index + 1
                                     logger.info(f"✅ Индекс для '{code_name}' установлен на {index}")
                                     return
 
