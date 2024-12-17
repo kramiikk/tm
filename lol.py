@@ -370,123 +370,104 @@ class BroadcastMod(loader.Module):
                     logger.error(f"Не удалось восстановить рассылку {code_name}: {e}")
         self._me_id = client.tg_id
 
-    async def _check_and_adjust_message_index(self, code_name: str):
-        logger.info(
-            f"Начало проверки запланированных сообщений для кода рассылки: {code_name}"
-        )
+    def check_message_match(self, original_message, scheduled_message):
+        # Проверка альбома по ID первого фото
+        if (hasattr(original_message, 'media') and 
+            hasattr(scheduled_message, 'media') and 
+            hasattr(original_message.media, 'photo') and 
+            hasattr(scheduled_message.media, 'photo')):
+            
+            photo_match = (original_message.media.photo.id == 
+                           scheduled_message.media.photo.id)
+            logger.info(f"Сравнение фото: {photo_match}")
+            return photo_match
+    
+        # Проверка документов
+        if (hasattr(original_message, 'media') and 
+            hasattr(scheduled_message, 'media') and 
+            hasattr(original_message.media, 'document') and 
+            hasattr(scheduled_message.media, 'document')):
+            
+            doc_match = (original_message.media.document.id == 
+                         scheduled_message.media.document.id)
+            logger.info(f"Сравнение документа: {doc_match}")
+            return doc_match
+    
+        # Сравнение текста
+        text_match = original_message.text == scheduled_message.text
+        logger.info(f"Сравнение текста: {text_match}")
+        return text_match
 
+    async def _check_and_adjust_message_index(self, code_name: str):
+        logger.info(f"Начало проверки запланированных сообщений для кода рассылки: {code_name}")
+    
         try:
             code = self._manager.config.codes.get(code_name)
             if not code or not code.chats:
-                logger.info(
-                    f"Для кода {code_name} не найдены чаты или код не существует"
-                )
+                logger.info(f"Для кода {code_name} не найдены чаты или код не существует")
                 return
-
+    
             logger.info(f"Найдено чатов для проверки: {len(code.chats)}")
-
-            def check_message_match(original_message, scheduled_message):
-                if hasattr(original_message, "media") and hasattr(
-                    scheduled_message, "media"
-                ):
-                    if hasattr(original_message.media, "photo") and hasattr(
-                        scheduled_message.media, "photo"
-                    ):
-                        match = (
-                            original_message.media.photo.id
-                            == scheduled_message.media.photo.id
-                            and original_message.media.photo.access_hash
-                            == scheduled_message.media.photo.access_hash
-                        )
-                        logger.info(f"Сравнение фото: {match}")
-                        return match
-
-                    if hasattr(original_message.media, "document") and hasattr(
-                        scheduled_message.media, "document"
-                    ):
-                        match = (
-                            original_message.media.document.id
-                            == scheduled_message.media.document.id
-                            and original_message.media.document.access_hash
-                            == scheduled_message.media.document.access_hash
-                        )
-                        logger.info(f"Сравнение документа: {match}")
-                        return match
-
-                text_match = original_message.text == scheduled_message.text
-                logger.info(f"Сравнение текста: {text_match}")
-                return text_match
-
+    
             for chat_id in code.chats:
                 try:
-                    logger.info(
-                        f"Проверка запланированных сообщений для чата: {chat_id}"
-                    )
+                    logger.info(f"Проверка запланированных сообщений для чата: {chat_id}")
                     peer = await self._manager.client.get_input_entity(chat_id)
-
-                    logger.info(
-                        f"Получение списка запланированных сообщений для чата {chat_id}"
-                    )
+    
+                    logger.info(f"Получение списка запланированных сообщений для чата {chat_id}")
                     scheduled_messages = await self._manager.client(
                         functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
                     )
-
+    
                     if not scheduled_messages.messages:
                         logger.info(f"В чате {chat_id} нет запланированных сообщений")
                         continue
-
+    
                     last_scheduled_messages = sorted(
                         scheduled_messages.messages,
                         key=lambda x: x.date,
                         reverse=True,
                     )
-
-                    logger.info(
-                        f"Найдено запланированных сообщений: {len(last_scheduled_messages)}"
-                    )
-
+    
+                    logger.info(f"Найдено запланированных сообщений: {len(last_scheduled_messages)}")
+    
                     for index, msg_data in enumerate(code.messages):
                         logger.info(f"Проверка сообщения индекс {index}")
                         fetch_message = await self._manager._fetch_messages(msg_data)
-
+    
                         if not fetch_message:
-                            logger.info(
-                                f"Не удалось получить сообщение для индекса {index}"
-                            )
+                            logger.info(f"Не удалось получить сообщение для индекса {index}")
                             continue
-
+    
+                        # Обработка альбома
                         if isinstance(fetch_message, list):
                             logger.info("Обработка альбома")
-                            original_message = fetch_message[0]
-
+                            original_message = fetch_message[0]  # Первое сообщение альбома
+    
                             for scheduled_msg in last_scheduled_messages:
-                                if check_message_match(original_message, scheduled_msg):
+                                if self.check_message_match(original_message, scheduled_msg):
                                     self._manager.message_indices[code_name] = index
-                                    logger.info(
-                                        f"✅ Индекс для альбома '{code_name}' установлен на {index}"
-                                    )
+                                    logger.info(f"✅ Индекс для альбома '{code_name}' установлен на {index}")
                                     return
-
+    
+                        # Обработка одиночного сообщения
                         else:
                             logger.info("Обработка одиночного сообщения")
-
                             for scheduled_msg in last_scheduled_messages:
-                                if check_message_match(fetch_message, scheduled_msg):
+                                if self.check_message_match(fetch_message, scheduled_msg):
                                     self._manager.message_indices[code_name] = index
-                                    logger.info(
-                                        f"✅ Индекс для '{code_name}' установлен на {index}"
-                                    )
+                                    logger.info(f"✅ Индекс для '{code_name}' установлен на {index}")
                                     return
-
+    
                     logger.info(f"Не найдено совпадений для кода рассылки {code_name}")
-
+    
                 except Exception as chat_error:
                     logger.error(
                         f"❌ Ошибка проверки запланированных сообщений в чате {chat_id} "
                         f"для кода {code_name}: {chat_error}",
                         exc_info=True,
                     )
-
+    
         except Exception as e:
             logger.error(
                 f"❌ Критическая ошибка в проверке запланированных сообщений для {code_name}: {e}",
