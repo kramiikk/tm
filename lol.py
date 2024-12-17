@@ -371,13 +371,13 @@ class BroadcastMod(loader.Module):
                     logger.error(f"Не удалось восстановить рассылку {code_name}: {e}")
         self._me_id = client.tg_id
 
-    def _get_photo_bytes(media):
+    def _get_photo_bytes(self, media):
         for size in media.photo.sizes:
             if isinstance(size, PhotoStrippedSize):
                 return size.bytes
         return None
 
-    def _get_media_hash(media):
+    def _get_media_hash(self, media):
         if not media:
             return None
         if hasattr(media, 'photo'):
@@ -392,7 +392,7 @@ class BroadcastMod(loader.Module):
             return hashlib.md5(media.document.file_reference).hexdigest()
         return None
 
-    def check_message_match(original_message, scheduled_message):
+    def check_message_match(self, original_message, scheduled_message):
         original_media_hash = self._get_media_hash(original_message.media)
         scheduled_media_hash = self._get_media_hash(scheduled_message.media)
         
