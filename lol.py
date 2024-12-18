@@ -359,10 +359,15 @@ class BroadcastMod(loader.Module):
         broadcast_status = db.get("broadcast", "BroadcastStatus", {})
 
         for code_name in self._manager.config.codes:
+            logger.info(f"Цикл прикол: {code_name} ФФФФФФФФФ: {self._manager.config.codes}")
+            await asyncio.sleep(3)
             if broadcast_status.get(code_name, False):
                 try:
+                    logger.info(f"Начинаем работать с: {code_name}")
+                    await asyncio.sleep(3)
                     await self._check_and_adjust_message_index(code_name)
-
+                    logger.info(f"Закончил проверку запланированных в: {code_name}")
+                    await asyncio.sleep(3)
                     self._manager.broadcast_tasks[code_name] = asyncio.create_task(
                         self._manager._broadcast_loop(code_name)
                     )
@@ -371,126 +376,110 @@ class BroadcastMod(loader.Module):
                     logger.error(f"Не удалось восстановить рассылку {code_name}: {e}")
         self._me_id = client.tg_id
 
-    def _get_photo_bytes(self, media):
-        if not media or not hasattr(media, 'photo') or not media.photo.sizes:
-            return None
-        
-        for size in media.photo.sizes:
-            if isinstance(size, PhotoStrippedSize):
-                return size.bytes
-            if isinstance(size, PhotoSize):
-                return size.bytes
-        return None
-
-    def _get_document_bytes(self, media):
-        if not media or not hasattr(media, 'document'):
-            return None
-        
-        if hasattr(media.document, 'thumbs') and media.document.thumbs:
-            for thumb in media.document.thumbs:
-                if isinstance(thumb, PhotoStrippedSize):
-                    return thumb.bytes
-                if isinstance(thumb, PhotoSize):
-                    return thumb.bytes
-        return media.document.file_reference
-
-    def _get_media_hash(self, media):
-        if not media:
-            return None
-        if hasattr(media, 'photo'):
-            photo_bytes = self._get_photo_bytes(media)
-            if photo_bytes:
-                return hashlib.md5(photo_bytes).hexdigest()
-        if hasattr(media, 'document'):
-            document_bytes = self._get_document_bytes(media)
-            if document_bytes:
-                if isinstance(document_bytes, bytes):
-                    return hashlib.md5(document_bytes).hexdigest()
-                else:
-                    return hashlib.md5(document_bytes).hexdigest()
-        return None
-
     def check_message_match(self, original_message, scheduled_message):
-        original_media_hash = self._get_media_hash(original_message.media)
-        scheduled_media_hash = self._get_media_hash(scheduled_message.media)
-        
-        if original_media_hash and scheduled_media_hash:
-            media_match = original_media_hash == scheduled_media_hash
-            logger.info(f"Сравнение медиа: {media_match}")
-            if not media_match:
-                return False
-        elif original_media_hash or scheduled_media_hash:
-            return False
+        if original_message.media and scheduled_message.media:
+            logger.info(f"Проверка медиа по ID файла. ориг: {original_message.media}")
+            logger.info(f"планер: {scheduled_message.media}")
+            if hasattr(original_message.media, 'photo') and hasattr(scheduled_message.media, 'photo'):
+                logger.info(f"ФОТО  ---  ид ориг: {original_message.media.photo.id} ид планер: {scheduled_message.media.photo.id}")
+                return original_message.media.photo.id == scheduled_message.media.photo.id
 
-        original_text = (original_message.text or "")
-        scheduled_text = (scheduled_message.text or "")
-        text_match = original_text == scheduled_text
-        logger.info(f"Сравнение текста: {text_match}")
-        return text_match
+            elif hasattr(original_message.media, 'document') and hasattr(scheduled_message.media, 'document'):
+                logger.info(f"ДОКУМЕНТ  ---  ид ориг: {original_message.media.document.id} ид планер: {scheduled_message.media.document.id}")
+                return original_message.media.document.id == scheduled_message.media.document.id
+
+        elif original_message.text and scheduled_message.text:
+            original_text = (original_message.text or "").strip()
+            scheduled_text = (scheduled_message.text or "").strip()
+            logger.info(f"ТЕКСТ  ---  ид ориг: {original_text} ид планер: {scheduled_text}")
+            return original_text == scheduled_text
+
+        else:
+            return False
 
     async def _check_and_adjust_message_index(self, code_name: str):
         logger.info(f"Начало проверки запланированных сообщений для кода рассылки: {code_name}")
 
         try:
             code = self._manager.config.codes.get(code_name)
-            if not code or not code.chats:
-                logger.info(f"Для кода {code_name} не найдены чаты или код не существует")
+            if not code.chats:
+                logger.info(f"Для кода {code_name} не найдены чаты")
+                await asyncio.sleep(3)
                 return
 
             logger.info(f"Найдено чатов для проверки: {len(code.chats)}")
 
             for chat_id in code.chats:
+                logger.info(f"Цикл по чатам лооол: {code.chats}")
+                await asyncio.sleep(3)
                 try:
                     logger.info(f"Проверка запланированных сообщений для чата: {chat_id}")
+                    await asyncio.sleep(3)
                     peer = await self._manager.client.get_input_entity(chat_id)
 
                     logger.info(f"Получение списка запланированных сообщений для чата {chat_id}")
+                    await asyncio.sleep(3)
                     scheduled_messages = await self._manager.client(
                         functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
                     )
 
                     if not scheduled_messages.messages:
                         logger.info(f"В чате {chat_id} нет запланированных сообщений")
+                        await asyncio.sleep(3)
                         continue
 
                     logger.info(f"Найдено запланированных сообщений: {len(scheduled_messages.messages)}")
+                    await asyncio.sleep(3)
 
                     for index, msg_data in enumerate(code.messages):
                         logger.info(f"Проверка сообщения индекс {index}")
+                        await asyncio.sleep(3)
                         fetch_message = await self._manager._fetch_messages(msg_data)
 
                         if not fetch_message:
                             logger.info(f"Не удалось получить сообщение для индекса {index}")
+                            await asyncio.sleep(3)
                             continue
 
                         if isinstance(fetch_message, list):
                             logger.info("Обработка альбома")
+                            await asyncio.sleep(3)
                             original_messages = fetch_message
                             
                             found_match = False
                             for scheduled_msg in scheduled_messages.messages:
                                 if len(original_messages) > 0 and self.check_message_match(original_messages[0], scheduled_msg):
+                                    logger.info(f"Альбом? {len(original_messages)}")
+                                    await asyncio.sleep(3)
                                     self._manager.message_indices[code_name] = index
                                     logger.info(f"✅ Индекс для альбома '{code_name}' установлен на {index}")
+                                    await asyncio.sleep(3)
                                     found_match = True
                                     break
                             if found_match:
+                                logger.info(f"Тип нашел стоющее! брик")
+                                await asyncio.sleep(3)
                                 break
 
                         else:
                             logger.info("Обработка одиночного сообщения")
+                            await asyncio.sleep(3)
                             found_match = False
                             for scheduled_msg in scheduled_messages.messages:
                                 if self.check_message_match(fetch_message, scheduled_msg):
                                     self._manager.message_indices[code_name] = index
                                     logger.info(f"✅ Индекс для '{code_name}' установлен на {index}")
+                                    await asyncio.sleep(3)
                                     found_match = True
                                     break
                             if found_match:
+                                logger.info(f"И тут тип нашел стоющее! брик")
+                                await asyncio.sleep(3)
                                 break
 
                     if code_name not in self._manager.message_indices:
                         logger.info(f"Не найдено совпадений для кода рассылки {code_name}")
+                        await asyncio.sleep(3)
 
                 except Exception as chat_error:
                     logger.error(
