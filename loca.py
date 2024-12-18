@@ -446,6 +446,8 @@ class BroadcastMod(loader.Module):
                         logger.info(f"Определил как обычный: {matching_msg}")
 
                         if matching_msg:
+                            if hasattr(matching_msg, 'date'):
+                                self._manager._last_broadcast_time[code_name] = matching_msg.date.timestamp()
                             self._manager.message_indices[code_name] = index
                             return
 
