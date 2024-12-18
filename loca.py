@@ -418,7 +418,7 @@ class BroadcastMod(loader.Module):
 
                         matching_msg = next(
                             (msg for msg in scheduled_messages.messages 
-                            if self.check_message_match(first_original_msg, msg)), 
+                            if hasattr(msg, 'grouped_id') and self.check_message_match(first_original_msg, msg)), 
                             None
                         )
 
@@ -430,22 +430,13 @@ class BroadcastMod(loader.Module):
                                 if msg.grouped_id == matching_msg.grouped_id
                             ]
 
-                            scheduled_album_messages.sort(key=lambda m: m.id)
-                            orig_album_messages = sorted(fetch_message, key=lambda m: m.id)
-                            logger.info(f"Отсортировал имба, ориг {orig_album_messages}")
-                            await asyncio.sleep(8)
-                            logger.info(f"Отсортировал имба, пародия {scheduled_album_messages}")
-                            await asyncio.sleep(8)
-
-                            if (len(scheduled_album_messages) == len(orig_album_messages) and
-                                all(self.check_message_match(orig, sched) 
-                                    for orig, sched in zip(orig_album_messages, scheduled_album_messages))):
-                                logger.info(f"Дофига сравнил альбомы, ради индекса: {index}")
-                                await asyncio.sleep(8)
-
-                                self._manager.message_indices[code_name] = index
-                                break
-
+                            if scheduled_album_messages:
+                                scheduled_first_msg = sorted(scheduled_album_messages, key=lambda m: m.id)[0]
+                                if self.check_message_match(first_original_msg, scheduled_first_msg):
+                                    logger.info(f"Нашел совпадение первого элемента альбома, для индекса: {index}")
+                                    await asyncio.sleep(8)
+                                    self._manager.message_indices[code_name] = index
+                                    break
                     else:
                         matching_msg = next(
                             (msg for msg in scheduled_messages.messages 
@@ -459,22 +450,20 @@ class BroadcastMod(loader.Module):
 
             except Exception as chat_error:
                 logger.error(f"Error in scheduled messages check: {chat_error}", exc_info=True)
+    
+    def compare_media(orig_media, sched_media):
+        if hasattr(orig_media, 'photo'):
+            return orig_media.photo.id == sched_media.photo.id
+
+        if hasattr(orig_media, 'document'):
+            return orig_media.document.id == sched_media.document.id
+        return False
 
     def check_message_match(self, original_message, scheduled_message):
         if original_message.media and scheduled_message.media:
             return compare_media(original_message.media, scheduled_message.media)
         else:
             return (original_message.text or "").strip() == (scheduled_message.text or "").strip()
-
-        def compare_media(orig_media, sched_media):
-            if hasattr(orig_media, 'photo'):
-                return orig_media.photo.id == sched_media.photo.id
-
-            if hasattr(orig_media, 'document'):
-                return orig_media.document.id == sched_media.document.id
-
-            return False
-
         return False
             
     async def _validate_broadcast_code(
