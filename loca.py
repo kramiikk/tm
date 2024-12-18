@@ -450,18 +450,14 @@ class BroadcastMod(loader.Module):
 
             except Exception as chat_error:
                 logger.error(f"Error in scheduled messages check: {chat_error}", exc_info=True)
-    
-    def compare_media(orig_media, sched_media):
-        if hasattr(orig_media, 'photo'):
-            return orig_media.photo.id == sched_media.photo.id
-
-        if hasattr(orig_media, 'document'):
-            return orig_media.document.id == sched_media.document.id
-        return False
 
     def check_message_match(self, original_message, scheduled_message):
         if original_message.media and scheduled_message.media:
-            return compare_media(original_message.media, scheduled_message.media)
+            if hasattr(original_message.media, 'photo'):
+                return original_message.media.photo.id == scheduled_message.media.photo.id
+
+            if hasattr(original_message.media, 'document'):
+                return original_message.media.document.id == scheduled_message.media.document.id
         else:
             return (original_message.text or "").strip() == (scheduled_message.text or "").strip()
         return False
