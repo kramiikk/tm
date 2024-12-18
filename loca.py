@@ -1,5 +1,6 @@
 import asyncio
 import bisect
+import hashlib
 import logging
 import random
 import time
@@ -10,7 +11,7 @@ from datetime import datetime, timedelta
 
 from telethon import TelegramClient, functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
-from telethon.tl.types import Message
+from telethon.tl.types import Message, PhotoStrippedSize, PhotoSize, DocumentAttributeFilename
 
 from .. import loader, utils
 
@@ -202,40 +203,6 @@ class BroadcastManager:
             logger.error(f"Failed to add message: {str(e)}")
             return False
 
-    async def _check_existing_scheduled_messages(self, code_name: str):
-        try:
-            peer = await self.client.get_input_entity(self.client.tg_id)
-
-            scheduled_messages = await self.client(
-                functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
-            )
-
-            def is_matching_message(msg):
-                if not hasattr(msg, "message") or not msg.message:
-                    return False
-                if code_name not in msg.message:
-                    return False
-                return True
-
-            code_scheduled_ids = {
-                msg.id
-                for msg in scheduled_messages.messages
-                if is_matching_message(msg)
-            }
-
-            logger.info(
-                f"Found {len(code_scheduled_ids)} scheduled messages "
-                f"for code {code_name}"
-            )
-
-            self._scheduled_messages[code_name] = code_scheduled_ids
-        except Exception as e:
-            logger.error(
-                f"Failed to check scheduled messages for {code_name}: {e}",
-                exc_info=True,
-            )
-            self._scheduled_messages[code_name] = set()
-
     async def _send_message(
         self,
         chat_id: int,
@@ -246,9 +213,6 @@ class BroadcastManager:
     ):
         try:
             code_name = code_name or "default"
-
-            if code_name not in self._scheduled_messages:
-                await self._check_existing_scheduled_messages(code_name)
             schedule_time = datetime.now() + timedelta(seconds=interval or 60)
 
             async def _schedule_single_message(entity, message):
@@ -270,14 +234,18 @@ class BroadcastManager:
                             schedule=schedule_time,
                         )
                     return await self.client.send_message(
-                        entity=entity, message=message.text, schedule=schedule_time
+                        entity=entity,
+                        message=message.text,
+                        schedule=schedule_time,
                     )
                 except Exception as media_error:
-                    logger.warning(
+                    logger.error(
                         f"Message scheduling error in chat {entity}: {media_error}"
                     )
                     return await self.client.send_message(
-                        entity=entity, message=str(message), schedule=schedule_time
+                        entity=entity,
+                        message=str(message),
+                        schedule=schedule_time,
                     )
 
             if isinstance(message_to_send, list):
@@ -290,7 +258,7 @@ class BroadcastManager:
             else:
                 await _schedule_single_message(chat_id, message_to_send)
         except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
-            logger.info(f"Cannot send message to {chat_id}: {e}")
+            logger.error(f"Cannot send message to {chat_id}: {e}")
             raise
 
     async def _broadcast_loop(self, code_name: str):
@@ -331,7 +299,11 @@ class BroadcastManager:
                 for chat_id in chats:
                     try:
                         await self._send_message(
-                            chat_id, messages_to_send, send_mode, code_name, interval
+                            chat_id,
+                            messages_to_send,
+                            send_mode,
+                            code_name,
+                            interval,
                         )
                     except Exception as send_error:
                         logger.error(f"Sending error to {chat_id}: {send_error}")
@@ -373,7 +345,6 @@ class BroadcastMod(loader.Module):
         self._last_broadcast_check: float = 0
 
     def save_broadcast_status(self):
-        """Сохраняем статус активных рассылок"""
         broadcast_status = {
             code_name: True for code_name in self._manager.broadcast_tasks
         }
@@ -388,8 +359,15 @@ class BroadcastMod(loader.Module):
         broadcast_status = db.get("broadcast", "BroadcastStatus", {})
 
         for code_name in self._manager.config.codes:
+            logger.info(f"Цикл прикол: {code_name} ФФФФФФФФФ: {self._manager.config.codes}")
+            await asyncio.sleep(8)
             if broadcast_status.get(code_name, False):
                 try:
+                    logger.info(f"Начинаем работать с: {code_name}")
+                    await asyncio.sleep(8)
+                    await self._check_and_adjust_message_index(code_name)
+                    logger.info(f"Закончил проверку запланированных в: {code_name}")
+                    await asyncio.sleep(3)
                     self._manager.broadcast_tasks[code_name] = asyncio.create_task(
                         self._manager._broadcast_loop(code_name)
                     )
@@ -398,6 +376,107 @@ class BroadcastMod(loader.Module):
                     logger.error(f"Не удалось восстановить рассылку {code_name}: {e}")
         self._me_id = client.tg_id
 
+    async def _check_and_adjust_message_index(self, code_name: str):
+        logger.info(f"Начало проверки запланированных сообщений для кода рассылки: {code_name}")
+        code = self._manager.config.codes.get(code_name)
+        if not code.chats:
+            logger.info(f"Для кода {code_name} не найдены чаты")
+            await asyncio.sleep(8)
+            return
+
+        logger.info(f"Найдено чатов для проверки: {len(code.chats)}")
+        await asyncio.sleep(8)
+
+        for chat_id in code.chats:
+            logger.info(f"Оп цикл {code.chats}")
+            await asyncio.sleep(8)
+            try:
+                peer = await self._manager.client.get_input_entity(chat_id)
+                scheduled_messages = await self._manager.client(
+                    functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
+                )
+                logger.info(f"Получил планерку штук {len(scheduled_messages)}")
+                await asyncio.sleep(8)
+
+                if not scheduled_messages.messages:
+                    logger.info(f"Не получил планерку!")
+                    await asyncio.sleep(8)
+                    continue
+
+                for index, msg_data in enumerate(code.messages, 1):
+                    logger.info(f"Беру ориг соо, индекс: {index}")
+                    await asyncio.sleep(8)
+                    fetch_message = await self._manager._fetch_messages(msg_data)
+
+                    if not fetch_message:
+                        continue
+
+                    if isinstance(fetch_message, list):
+                        logger.info(f"Да начнется трэш с альбомом, ориг: {fetch_message[0]}")
+                        await asyncio.sleep(8)
+                        first_original_msg = fetch_message[0]
+
+                        matching_msg = next(
+                            (msg for msg in scheduled_messages.messages 
+                            if self.check_message_match(first_original_msg, msg)), 
+                            None
+                        )
+
+                        if matching_msg:
+                            logger.info(f"Тип нашел похожий элемент альбома в планерке {matching_msg}")
+                            await asyncio.sleep(8)
+                            scheduled_album_messages = [
+                                msg for msg in scheduled_messages.messages 
+                                if msg.grouped_id == matching_msg.grouped_id
+                            ]
+
+                            scheduled_album_messages.sort(key=lambda m: m.id)
+                            orig_album_messages = sorted(fetch_message, key=lambda m: m.id)
+                            logger.info(f"Отсортировал имба, ориг {orig_album_messages}")
+                            await asyncio.sleep(8)
+                            logger.info(f"Отсортировал имба, пародия {scheduled_album_messages}")
+                            await asyncio.sleep(8)
+
+                            if (len(scheduled_album_messages) == len(orig_album_messages) and
+                                all(self.check_message_match(orig, sched) 
+                                    for orig, sched in zip(orig_album_messages, scheduled_album_messages))):
+                                logger.info(f"Дофига сравнил альбомы, ради индекса: {index}")
+                                await asyncio.sleep(8)
+
+                                self._manager.message_indices[code_name] = index
+                                break
+
+                    else:
+                        matching_msg = next(
+                            (msg for msg in scheduled_messages.messages 
+                            if self.check_message_match(fetch_message, msg)), 
+                            None
+                        )
+
+                        if matching_msg:
+                            self._manager.message_indices[code_name] = index
+                            return
+
+            except Exception as chat_error:
+                logger.error(f"Error in scheduled messages check: {chat_error}", exc_info=True)
+
+    def check_message_match(self, original_message, scheduled_message):
+        if original_message.media and scheduled_message.media:
+            return compare_media(original_message.media, scheduled_message.media)
+        else:
+            return (original_message.text or "").strip() == (scheduled_message.text or "").strip()
+
+        def compare_media(orig_media, sched_media):
+            if hasattr(orig_media, 'photo'):
+                return orig_media.photo.id == sched_media.photo.id
+
+            if hasattr(orig_media, 'document'):
+                return orig_media.document.id == sched_media.document.id
+
+            return False
+
+        return False
+            
     async def _validate_broadcast_code(
         self, message: Message, code_name: Optional[str] = None
     ) -> Optional[str]:
@@ -579,7 +658,8 @@ class BroadcastMod(loader.Module):
         args = utils.get_args(message)
         if len(args) != 3:
             return await utils.answer(
-                message, "Использование: .interval <код> <мин_минут> <макс_минут>"
+                message,
+                "Использование: .interval <код> <мин_минут> <макс_минут>",
             )
         code_name, min_str, max_str = args
         code_name = await self._validate_broadcast_code(message, code_name)
@@ -609,9 +689,9 @@ class BroadcastMod(loader.Module):
         if not self._manager.config.codes:
             return await utils.answer(message, "Нет настроенных кодов рассылки")
         text = [
-            "**Рассылка:**",
+            "<b>Рассылка:</b>",
             f"🔄 Управление чатами: {'Включено' if self._wat_mode else 'Выключено'}\n",
-            "**Коды рассылок:**",
+            "<b>Коды рассылок:</b>",
         ]
 
         for code_name, code in self._manager.config.codes.items():
@@ -621,7 +701,7 @@ class BroadcastMod(loader.Module):
             running = code_name in self._manager.broadcast_tasks
 
             text.append(
-                f"- `{code_name}`:\n"
+                f"- <code>{code_name}</code>:\n"
                 f"  💬 Чаты: {chat_list}\n"
                 f"  ⏱ Интервал: {min_interval} - {max_interval} минут\n"
                 f"  📨 Сообщений: {message_count}\n"
@@ -636,7 +716,7 @@ class BroadcastMod(loader.Module):
         messages = self._manager.config.codes[code_name].messages
         if not messages:
             return await utils.answer(message, f"Нет сообщений в коде '{code_name}'")
-        text = [f"**Сообщения в '{code_name}':**"]
+        text = [f"<b>Сообщения в '{code_name}':</b>"]
         for i, msg in enumerate(messages, 1):
             try:
                 chat_id = int(str(abs(msg.chat_id))[-10:])

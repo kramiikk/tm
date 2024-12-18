@@ -360,14 +360,14 @@ class BroadcastMod(loader.Module):
 
         for code_name in self._manager.config.codes:
             logger.info(f"Цикл прикол: {code_name} ФФФФФФФФФ: {self._manager.config.codes}")
-            await asyncio.sleep(3)
+            await asyncio.sleep(8)
             if broadcast_status.get(code_name, False):
                 try:
                     logger.info(f"Начинаем работать с: {code_name}")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(8)
                     await self._check_and_adjust_message_index(code_name)
                     logger.info(f"Закончил проверку запланированных в: {code_name}")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(8)
                     self._manager.broadcast_tasks[code_name] = asyncio.create_task(
                         self._manager._broadcast_loop(code_name)
                     )
@@ -404,72 +404,72 @@ class BroadcastMod(loader.Module):
             code = self._manager.config.codes.get(code_name)
             if not code.chats:
                 logger.info(f"Для кода {code_name} не найдены чаты")
-                await asyncio.sleep(3)
+                await asyncio.sleep(8)
                 return
 
             logger.info(f"Найдено чатов для проверки: {len(code.chats)}")
 
             for chat_id in code.chats:
                 logger.info(f"Цикл по чатам лооол: {code.chats}")
-                await asyncio.sleep(3)
+                await asyncio.sleep(8)
                 try:
                     logger.info(f"Проверка запланированных сообщений для чата: {chat_id}")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(8)
                     peer = await self._manager.client.get_input_entity(chat_id)
 
                     logger.info(f"Получение списка запланированных сообщений для чата {chat_id}")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(8)
                     scheduled_messages = await self._manager.client(
                         functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
                     )
 
                     if not scheduled_messages.messages:
                         logger.info(f"В чате {chat_id} нет запланированных сообщений")
-                        await asyncio.sleep(3)
+                        await asyncio.sleep(8)
                         continue
 
                     logger.info(f"Найдено запланированных сообщений: {len(scheduled_messages.messages)}")
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(8)
 
                     for index, msg_data in enumerate(code.messages):
                         logger.info(f"Проверка сообщения индекс {index}")
-                        await asyncio.sleep(3)
+                        await asyncio.sleep(8)
                         fetch_message = await self._manager._fetch_messages(msg_data)
 
                         if not fetch_message:
                             logger.info(f"Не удалось получить сообщение для индекса {index}")
-                            await asyncio.sleep(3)
+                            await asyncio.sleep(8)
                             continue
 
                         if isinstance(fetch_message, list):
                             logger.info("Обработка альбома")
-                            await asyncio.sleep(3)
+                            await asyncio.sleep(8)
                             original_messages = fetch_message
                             
                             found_match = False
                             for scheduled_msg in scheduled_messages.messages:
                                 if len(original_messages) > 0 and self.check_message_match(original_messages[0], scheduled_msg):
                                     logger.info(f"Альбом? {len(original_messages)}")
-                                    await asyncio.sleep(3)
-                                    self._manager.message_indices[code_name] = index
-                                    logger.info(f"✅ Индекс для альбома '{code_name}' установлен на {index}")
-                                    await asyncio.sleep(3)
+                                    await asyncio.sleep(8)
+                                    self._manager.message_indices[code_name] = index + 1
+                                    logger.info(f"✅ Индекс для альбома '{code_name}' установлен на {index + 1}")
+                                    await asyncio.sleep(8)
                                     found_match = True
                                     break
                             if found_match:
                                 logger.info(f"Тип нашел стоющее! брик")
-                                await asyncio.sleep(3)
+                                await asyncio.sleep(8)
                                 break
 
                         else:
                             logger.info("Обработка одиночного сообщения")
-                            await asyncio.sleep(3)
+                            await asyncio.sleep(8)
                             found_match = False
                             for scheduled_msg in scheduled_messages.messages:
                                 if self.check_message_match(fetch_message, scheduled_msg):
-                                    self._manager.message_indices[code_name] = index
-                                    logger.info(f"✅ Индекс для '{code_name}' установлен на {index}")
-                                    await asyncio.sleep(3)
+                                    self._manager.message_indices[code_name] = index + 1
+                                    logger.info(f"✅ Индекс для '{code_name}' установлен на {index + 1}")
+                                    await asyncio.sleep(8)
                                     found_match = True
                                     break
                             if found_match:
