@@ -453,6 +453,7 @@ class BroadcastMod(loader.Module):
                 logger.error(f"Error in scheduled messages check: {chat_error}", exc_info=True)
 
     def check_message_match(self, original_message, scheduled_message):
+        logger.info(f"Проверка: {original_message}")
         if original_message.media and scheduled_message.media:
             if hasattr(original_message.media, 'photo'):
                 logger.info(f"Определил как фото")
@@ -462,7 +463,7 @@ class BroadcastMod(loader.Module):
                 logger.info(f"Определил как документ")
                 return original_message.media.document.id == scheduled_message.media.document.id
         else:
-            logger.info(f"Определил как текст")
+            logger.info(f"Определил как текст {original_message.text} и {scheduled_message.text}")
             return original_message.text == scheduled_message.text
         return False
             
