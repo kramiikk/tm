@@ -467,8 +467,10 @@ class BroadcastMod(loader.Module):
                 logger.info(f"Определил как документ")
                 return original_message.media.document.id == scheduled_message.media.document.id
         else:
-            logger.info(f"Определил как текст {original_message.text} и {scheduled_message.text}")
-            return original_message.text == scheduled_message.text
+            original_text = original_message.text
+            scheduled_text = scheduled_message.message
+            logger.info(f"Определил как текст {original_text} и {scheduled_text}")
+            return original_text == scheduled_text
         return False
             
     async def _validate_broadcast_code(
