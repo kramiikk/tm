@@ -443,6 +443,7 @@ class BroadcastMod(loader.Module):
                             if self.check_message_match(fetch_message, msg)), 
                             None
                         )
+                        logger.info(f"Определил как обычный: {matching_msg}")
 
                         if matching_msg:
                             self._manager.message_indices[code_name] = index
@@ -454,12 +455,15 @@ class BroadcastMod(loader.Module):
     def check_message_match(self, original_message, scheduled_message):
         if original_message.media and scheduled_message.media:
             if hasattr(original_message.media, 'photo'):
+                logger.info(f"Определил как фото")
                 return original_message.media.photo.id == scheduled_message.media.photo.id
 
             if hasattr(original_message.media, 'document'):
+                logger.info(f"Определил как документ")
                 return original_message.media.document.id == scheduled_message.media.document.id
         else:
-            return (original_message.text or "").strip() == (scheduled_message.text or "").strip()
+            logger.info(f"Определил как текст")
+            return original_message.text == scheduled_message.text
         return False
             
     async def _validate_broadcast_code(
