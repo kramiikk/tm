@@ -395,7 +395,7 @@ class BroadcastMod(loader.Module):
                 scheduled_messages = await self._manager.client(
                     functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
                 )
-                logger.info(f"Получил планерку штук {len(scheduled_messages)}")
+                logger.info(f"Получил планерку {scheduled_messages}")
                 await asyncio.sleep(8)
 
                 if not scheduled_messages.messages:
