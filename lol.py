@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from telethon import TelegramClient, functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
-from telethon.tl.types import Message, PhotoStrippedSize
+from telethon.tl.types import Message, PhotoStrippedSize, PhotoSize, DocumentAttributeFilename
 
 from .. import loader, utils
 
@@ -372,10 +372,27 @@ class BroadcastMod(loader.Module):
         self._me_id = client.tg_id
 
     def _get_photo_bytes(self, media):
+        if not media or not hasattr(media, 'photo') or not media.photo.sizes:
+            return None
+        
         for size in media.photo.sizes:
             if isinstance(size, PhotoStrippedSize):
                 return size.bytes
+            if isinstance(size, PhotoSize):
+                return size.bytes
         return None
+
+    def _get_document_bytes(self, media):
+        if not media or not hasattr(media, 'document'):
+            return None
+        
+        if hasattr(media.document, 'thumbs') and media.document.thumbs:
+            for thumb in media.document.thumbs:
+                if isinstance(thumb, PhotoStrippedSize):
+                    return thumb.bytes
+                if isinstance(thumb, PhotoSize):
+                    return thumb.bytes
+        return media.document.file_reference
 
     def _get_media_hash(self, media):
         if not media:
@@ -385,11 +402,12 @@ class BroadcastMod(loader.Module):
             if photo_bytes:
                 return hashlib.md5(photo_bytes).hexdigest()
         if hasattr(media, 'document'):
-            if hasattr(media.document, 'thumbs') and media.document.thumbs:
-                for thumb in media.document.thumbs:
-                    if isinstance(thumb, PhotoStrippedSize):
-                        return hashlib.md5(thumb.bytes).hexdigest()
-            return hashlib.md5(media.document.file_reference).hexdigest()
+            document_bytes = self._get_document_bytes(media)
+            if document_bytes:
+                if isinstance(document_bytes, bytes):
+                    return hashlib.md5(document_bytes).hexdigest()
+                else:
+                    return hashlib.md5(document_bytes).hexdigest()
         return None
 
     def check_message_match(self, original_message, scheduled_message):
@@ -404,8 +422,8 @@ class BroadcastMod(loader.Module):
         elif original_media_hash or scheduled_media_hash:
             return False
 
-        original_text = (original_message.text or "").strip()
-        scheduled_text = (scheduled_message.text or "").strip()
+        original_text = (original_message.text or "")
+        scheduled_text = (scheduled_message.text or "")
         text_match = original_text == scheduled_text
         logger.info(f"Сравнение текста: {text_match}")
         return text_match
@@ -435,13 +453,7 @@ class BroadcastMod(loader.Module):
                         logger.info(f"В чате {chat_id} нет запланированных сообщений")
                         continue
 
-                    last_scheduled_messages = sorted(
-                        scheduled_messages.messages,
-                        key=lambda x: x.date,
-                        reverse=True,
-                    )
-
-                    logger.info(f"Найдено запланированных сообщений: {len(last_scheduled_messages)}")
+                    logger.info(f"Найдено запланированных сообщений: {len(scheduled_messages.messages)}")
 
                     for index, msg_data in enumerate(code.messages):
                         logger.info(f"Проверка сообщения индекс {index}")
@@ -453,23 +465,32 @@ class BroadcastMod(loader.Module):
 
                         if isinstance(fetch_message, list):
                             logger.info("Обработка альбома")
-                            original_message = fetch_message[0]
-
-                            for scheduled_msg in last_scheduled_messages:
-                                if self.check_message_match(original_message, scheduled_msg):
-                                    self._manager.message_indices[code_name] = index + 1
+                            original_messages = fetch_message
+                            
+                            found_match = False
+                            for scheduled_msg in scheduled_messages.messages:
+                                if len(original_messages) > 0 and self.check_message_match(original_messages[0], scheduled_msg):
+                                    self._manager.message_indices[code_name] = index
                                     logger.info(f"✅ Индекс для альбома '{code_name}' установлен на {index}")
-                                    return
+                                    found_match = True
+                                    break
+                            if found_match:
+                                break
 
                         else:
                             logger.info("Обработка одиночного сообщения")
-                            for scheduled_msg in last_scheduled_messages:
+                            found_match = False
+                            for scheduled_msg in scheduled_messages.messages:
                                 if self.check_message_match(fetch_message, scheduled_msg):
-                                    self._manager.message_indices[code_name] = index + 1
+                                    self._manager.message_indices[code_name] = index
                                     logger.info(f"✅ Индекс для '{code_name}' установлен на {index}")
-                                    return
+                                    found_match = True
+                                    break
+                            if found_match:
+                                break
 
-                    logger.info(f"Не найдено совпадений для кода рассылки {code_name}")
+                    if code_name not in self._manager.message_indices:
+                        logger.info(f"Не найдено совпадений для кода рассылки {code_name}")
 
                 except Exception as chat_error:
                     logger.error(
