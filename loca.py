@@ -435,8 +435,10 @@ class BroadcastMod(loader.Module):
                                 if self.check_message_match(first_original_msg, scheduled_first_msg):
                                     logger.info(f"Нашел совпадение первого элемента альбома, для индекса: {index}")
                                     await asyncio.sleep(8)
+                                    if hasattr(scheduled_first_msg, 'date'):
+                                        self._manager._last_broadcast_time[code_name] = scheduled_first_msg.date.timestamp()
                                     self._manager.message_indices[code_name] = index
-                                    break
+                                    return
                     else:
                         matching_msg = next(
                             (msg for msg in scheduled_messages.messages 
