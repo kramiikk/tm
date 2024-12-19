@@ -263,17 +263,22 @@ class BroadcastManager:
                 # Получаем случайный интервал в минутах
                 interval_minutes = random.uniform(min_interval, max_interval)
                 
-                # Получаем случайную задержку в секундах
-                random_delay = random.choice([60, 120, 180])
+                # Конвертируем интервал в секунды
+                interval_seconds = interval_minutes * 60
                 
-                # Вычисляем время до отправки в секундах (конвертируем минуты в секунды и вычитаем задержку)
-                time_until_send = (interval_minutes * 60) - random_delay
-    
+                # Фиксированная задержка для отложенной отправки (3 минуты)
+                schedule_delay = random.choice([60, 120, 180])  # 3 минуты в секундах
+                
+                # Вычисляем время ожидания до установки отложенной отправки
+                # Вычитаем задержку, чтобы общее время точно соответствовало интервалу
+                time_until_schedule = interval_seconds - schedule_delay
+                
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
                 time_since_last_broadcast = start_time - last_broadcast
                 
-                if time_since_last_broadcast < time_until_send:
-                    await asyncio.sleep(time_until_send - time_since_last_broadcast)
+                if time_since_last_broadcast < time_until_schedule:
+                    # Ждем до момента установки отложенной отправки
+                    await asyncio.sleep(time_until_schedule - time_since_last_broadcast)
     
                 messages_to_send = [
                     msg
@@ -297,8 +302,8 @@ class BroadcastManager:
                     messages_to_send
                 )
     
-                # Устанавливаем время отложенной отправки
-                schedule_time = datetime.now() + timedelta(seconds=random_delay)
+                # Устанавливаем время отложенной отправки на 3 минуты вперед
+                schedule_time = datetime.now() + timedelta(seconds=schedule_delay)
     
                 # Отправляем сообщения
                 send_tasks = [
