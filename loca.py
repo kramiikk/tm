@@ -794,100 +794,100 @@ class BroadcastMod(loader.Module):
             )
         await utils.answer(message, "\n".join(text))
 
-        async def listmsgcmd(self, message: Message):
-            """
-            Команда для просмотра списка сообщений в определенном коде рассылки.
+    async def listmsgcmd(self, message: Message):
+        """
+        Команда для просмотра списка сообщений в определенном коде рассылки.
 
-            Использование: .listmsg кодовое_слово
-            """
-            code_name = await self._validate_broadcast_code(message)
-            if not code_name:
-                return
-            messages = self._manager.config.codes[code_name].messages
-            if not messages:
-                return await utils.answer(
-                    message, f"Нет сообщений в коде '{code_name}'"
-                )
-            text = [f"<b>Сообщения в '{code_name}':</b>"]
-            for i, msg in enumerate(messages, 1):
-                try:
-                    chat_id = int(str(abs(msg.chat_id))[-10:])
-
-                    if msg.grouped_id is not None:
-                        message_text = f"{i}. Альбом в чате {msg.chat_id} (Всего изображений: {len(msg.album_ids)})"
-                        message_links = [
-                            f"t.me/c/{chat_id}/{album_id}"
-                            for album_id in msg.album_ids
-                        ]
-                        message_text += f"\nСсылки: {' , '.join(message_links)}"
-                    else:
-                        message_text = f"{i}. Сообщение в чате {msg.chat_id}\n"
-                        message_text += (
-                            f"Ссылка: t.me/c/{chat_id}/{msg.message_id}"
-                        )
-                    text.append(message_text)
-                except Exception as e:
-                    text.append(f"{i}. Ошибка получения информации: {str(e)}")
-            await utils.answer(message, "\n\n".join(text))
-
-        async def sendmodecmd(self, message: Message):
-            """
-            Команда для изменения режима отправки сообщений.
-
-            Использование: .sendmode кодовое_слово режим
-
-            - Режим отправки:
-                - auto: Автоматический выбор (по умолчанию).
-                - normal: Обычная отправка текста.
-                - forward: Пересылка сообщения.
-            """
-            args = utils.get_args(message)
-            if len(args) != 2 or args[1] not in ["auto", "normal", "forward"]:
-                return await utils.answer(
-                    message,
-                    "Использование: .sendmode <код> <режим>\n"
-                    "Режимы: auto (по умолчанию), normal (обычная отправка), forward (форвард)",
-                )
-            code_name, mode = args
-            code_name = await self._validate_broadcast_code(message, code_name)
-            if not code_name:
-                return
-            code = self._manager.config.codes[code_name]
-            code.send_mode = mode
-            self._manager.save_config()
-
-            await utils.answer(
-                message,
-                self.strings["success"].format(
-                    f"Режим отправки для '{code_name}' установлен: {mode}"
-                ),
+        Использование: .listmsg кодовое_слово
+        """
+        code_name = await self._validate_broadcast_code(message)
+        if not code_name:
+            return
+        messages = self._manager.config.codes[code_name].messages
+        if not messages:
+            return await utils.answer(
+                message, f"Нет сообщений в коде '{code_name}'"
             )
+        text = [f"<b>Сообщения в '{code_name}':</b>"]
+        for i, msg in enumerate(messages, 1):
+            try:
+                chat_id = int(str(abs(msg.chat_id))[-10:])
 
-        async def watcmd(self, message: Message):
-            """
-            Команда для включения/выключения автоматического добавления чатов в рассылку.
+                if msg.grouped_id is not None:
+                    message_text = f"{i}. Альбом в чате {msg.chat_id} (Всего изображений: {len(msg.album_ids)})"
+                    message_links = [
+                        f"t.me/c/{chat_id}/{album_id}"
+                        for album_id in msg.album_ids
+                    ]
+                    message_text += f"\nСсылки: {' , '.join(message_links)}"
+                else:
+                    message_text = f"{i}. Сообщение в чате {msg.chat_id}\n"
+                    message_text += (
+                        f"Ссылка: t.me/c/{chat_id}/{msg.message_id}"
+                    )
+                text.append(message_text)
+            except Exception as e:
+                text.append(f"{i}. Ошибка получения информации: {str(e)}")
+        await utils.answer(message, "\n\n".join(text))
 
-            Использование: .wat
-            """
-            self._wat_mode = not self._wat_mode
-            await utils.answer(
+    async def sendmodecmd(self, message: Message):
+        """
+        Команда для изменения режима отправки сообщений.
+
+        Использование: .sendmode кодовое_слово режим
+
+        - Режим отправки:
+            - auto: Автоматический выбор (по умолчанию).
+            - normal: Обычная отправка текста.
+            - forward: Пересылка сообщения.
+        """
+        args = utils.get_args(message)
+        if len(args) != 2 or args[1] not in ["auto", "normal", "forward"]:
+            return await utils.answer(
                 message,
-                self.strings["success"].format(
-                    f"Автоматическое управление чатами {'включено' if self._wat_mode else 'выключено'}"
-                ),
+                "Использование: .sendmode <код> <режим>\n"
+                "Режимы: auto (по умолчанию), normal (обычная отправка), forward (форвард)",
             )
+        code_name, mode = args
+        code_name = await self._validate_broadcast_code(message, code_name)
+        if not code_name:
+            return
+        code = self._manager.config.codes[code_name]
+        code.send_mode = mode
+        self._manager.save_config()
 
-        async def watcher(self, message: Message):
-            """Автоматически добавляет чаты в рассылку, если режим автоматического управления чатами включен."""
-            if not isinstance(message, Message) or not self._wat_mode:
-                return
-            if message.sender_id == self._me_id and message.text:
-                for code_name in self._manager.config.codes:
-                    if message.text.strip().endswith(code_name):
-                        try:
-                            code = self._manager.config.codes[code_name]
-                            code.chats.add(message.chat_id)
-                            self._manager.save_config()
-                            break
-                        except Exception as e:
-                            logger.error(f"Ошибка автодобавления чата: {e}")
+        await utils.answer(
+            message,
+            self.strings["success"].format(
+                f"Режим отправки для '{code_name}' установлен: {mode}"
+            ),
+        )
+
+    async def watcmd(self, message: Message):
+        """
+        Команда для включения/выключения автоматического добавления чатов в рассылку.
+
+        Использование: .wat
+        """
+        self._wat_mode = not self._wat_mode
+        await utils.answer(
+            message,
+            self.strings["success"].format(
+                f"Автоматическое управление чатами {'включено' if self._wat_mode else 'выключено'}"
+            ),
+        )
+
+    async def watcher(self, message: Message):
+        """Автоматически добавляет чаты в рассылку, если режим автоматического управления чатами включен."""
+        if not isinstance(message, Message) or not self._wat_mode:
+            return
+        if message.sender_id == self._me_id and message.text:
+            for code_name in self._manager.config.codes:
+                if message.text.strip().endswith(code_name):
+                    try:
+                        code = self._manager.config.codes[code_name]
+                        code.chats.add(message.chat_id)
+                        self._manager.save_config()
+                        break
+                    except Exception as e:
+                        logger.error(f"Ошибка автодобавления чата: {e}")
