@@ -1,6 +1,4 @@
 import asyncio
-import bisect
-import hashlib
 import logging
 import random
 import time
@@ -11,7 +9,7 @@ from datetime import datetime, timedelta
 
 from telethon import TelegramClient, functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
-from telethon.tl.types import Message, PhotoStrippedSize, PhotoSize, DocumentAttributeFilename
+from telethon.tl.types import Message
 
 from .. import loader, utils
 
@@ -20,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class BroadcastMessage:
+    """Сообщение для рассылки."""
+
     chat_id: int
     message_id: int
     grouped_id: Optional[int] = None
@@ -28,12 +28,15 @@ class BroadcastMessage:
 
 @dataclass
 class BroadcastCode:
+    """Набор настроек для рассылки."""
+
     chats: Set[int] = field(default_factory=set)
     messages: List[BroadcastMessage] = field(default_factory=list)
     interval: Tuple[int, int] = field(default_factory=lambda: (1, 13))
     send_mode: str = "auto"
 
     def validate_interval(self) -> bool:
+        """Проверяет корректность интервала."""
         return (
             isinstance(self.interval[0], int)
             and isinstance(self.interval[1], int)
@@ -41,29 +44,38 @@ class BroadcastCode:
         )
 
     def normalize_interval(self) -> Tuple[int, int]:
+        """Нормализует интервал, если он некорректный."""
         return self.interval if self.validate_interval() else (1, 13)
 
 
 class BroadcastConfig:
+    """Управляет конфигурацией рассылки, хранит все коды рассылок."""
+
     def __init__(self):
         self.codes: Dict[str, BroadcastCode] = {}
         self._lock = asyncio.Lock()
 
     async def add_code(self, code_name: str) -> None:
+        """Добавляет новый код рассылки, если он не существует."""
         async with self._lock:
             self.codes.setdefault(code_name, BroadcastCode())
 
     async def remove_code(self, code_name: str) -> bool:
+        """Удаляет код рассылки."""
         async with self._lock:
             return bool(self.codes.pop(code_name, None))
 
 
 class PrecisionTimer:
+    """Таймер с более точной задержкой, чем asyncio.sleep."""
+
     def __init__(self):
+        """Инициализирует таймер."""
         self._target_time: Optional[float] = None
         self._event = asyncio.Event()
 
     async def wait(self, interval: float):
+        """Ожидает указанный интервал."""
         self._target_time = time.time() + interval
         self._event.clear()
 
@@ -74,17 +86,22 @@ class PrecisionTimer:
             return True
 
     def cancel(self):
+        """Отменяет ожидание."""
         self._event.set()
 
     @property
     def remaining(self) -> float:
+        """Возвращает оставшееся время до истечения таймера."""
         if self._target_time is None:
             return 0
         return max(0, self._target_time - time.time())
 
 
 class BroadcastManager:
+    """Управляет рассылками, хранит и обрабатывает информацию о рассылках."""
+
     def __init__(self, client: TelegramClient, db):
+        """Инициализирует менеджер рассылок."""
         self.client = client
         self.db = db
         self.config = BroadcastConfig()
@@ -95,6 +112,7 @@ class BroadcastManager:
         self._scheduled_messages: Dict[str, Set[int]] = {}
 
     def _load_config_from_dict(self, data: dict):
+        """Загружает конфигурацию рассылки из словаря."""
         for code_name, code_data in data.get("code_chats", {}).items():
             try:
                 chats = {int(chat_id) for chat_id in code_data.get("chats", [])}
@@ -121,6 +139,7 @@ class BroadcastManager:
                 logger.error(f"Error loading broadcast code {code_name}: {e}")
 
     def save_config(self):
+        """Сохраняет текущую конфигурацию рассылки в базу данных."""
         try:
             config_dict = {
                 "code_chats": {
@@ -148,6 +167,7 @@ class BroadcastManager:
     async def _fetch_messages(
         self, msg_data: BroadcastMessage
     ) -> Union[Message, List[Message], None]:
+        """Получает сообщение или список сообщений из Telegram."""
         try:
             if msg_data.grouped_id is not None:
                 messages = [
@@ -169,6 +189,7 @@ class BroadcastManager:
             return None
 
     async def add_message(self, code_name: str, message: Message) -> bool:
+        """Добавляет сообщение в список рассылки."""
         try:
             await self.config.add_code(code_name)
             code = self.config.codes[code_name]
@@ -190,7 +211,9 @@ class BroadcastManager:
                     chat_id=message.chat_id,
                     message_id=message.id,
                     grouped_id=grouped_id,
-                    album_ids=list(dict.fromkeys([msg.id for msg in album_messages])),
+                    album_ids=list(
+                        dict.fromkeys([msg.id for msg in album_messages])
+                    ),
                 )
             else:
                 msg_data = BroadcastMessage(
@@ -211,6 +234,7 @@ class BroadcastManager:
         code_name: Optional[str] = None,
         interval: Optional[float] = None,
     ):
+        """Отправляет сообщение в указанный чат."""
         try:
             code_name = code_name or "default"
             schedule_time = datetime.now() + timedelta(seconds=interval or 60)
@@ -262,6 +286,7 @@ class BroadcastManager:
             raise
 
     async def _broadcast_loop(self, code_name: str):
+        """Бесконечный цикл рассылки сообщений."""
         precision_timer = PrecisionTimer()
         while self._active:
             await precision_timer.wait(13)
@@ -272,11 +297,13 @@ class BroadcastManager:
                 start_time = time.time()
                 min_interval, max_interval = code.normalize_interval()
                 interval = random.uniform(min_interval * 60, max_interval * 60)
-                time_since_last_broadcast = start_time - self._last_broadcast_time.get(
-                    code_name, 0
+                time_since_last_broadcast = (
+                    start_time - self._last_broadcast_time.get(code_name, 0)
                 )
                 if time_since_last_broadcast < interval:
-                    remaining_time = max(0, interval - time_since_last_broadcast)
+                    remaining_time = max(
+                        0, interval - time_since_last_broadcast
+                    )
                     await precision_timer.wait(remaining_time)
                     continue
                 messages = [
@@ -291,7 +318,9 @@ class BroadcastManager:
                 random.shuffle(chats)
                 message_index = self.message_indices.get(code_name, 0)
                 messages_to_send = messages[message_index % len(messages)]
-                self.message_indices[code_name] = (message_index + 1) % len(messages)
+                self.message_indices[code_name] = (message_index + 1) % len(
+                    messages
+                )
 
                 send_mode = getattr(code, "send_mode", "auto")
 
@@ -306,7 +335,9 @@ class BroadcastManager:
                             interval,
                         )
                     except Exception as send_error:
-                        logger.error(f"Sending error to {chat_id}: {send_error}")
+                        logger.error(
+                            f"Sending error to {chat_id}: {send_error}"
+                        )
                         failed_chats.add(chat_id)
                 if failed_chats:
                     code.chats -= failed_chats
@@ -315,9 +346,12 @@ class BroadcastManager:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"Critical error in broadcast loop {code_name}: {e}")
+                logger.error(
+                    f"Critical error in broadcast loop {code_name}: {e}"
+                )
 
     async def start_broadcasts(self):
+        """Запускает все активные рассылки."""
         for code_name in self.config.codes:
             if code_name not in self.broadcast_tasks:
                 try:
@@ -325,11 +359,14 @@ class BroadcastManager:
                         self._broadcast_loop(code_name)
                     )
                 except Exception as e:
-                    logger.error(f"Failed to start broadcast loop for {code_name}: {e}")
+                    logger.error(
+                        f"Failed to start broadcast loop for {code_name}: {e}"
+                    )
 
 
 @loader.tds
 class BroadcastMod(loader.Module):
+    """Модуль для рассылки сообщений."""
 
     strings = {
         "name": "Broadcast",
@@ -340,17 +377,20 @@ class BroadcastMod(loader.Module):
     }
 
     def __init__(self):
+        """Инициализация модуля."""
         self._manager: Optional[BroadcastManager] = None
         self._wat_mode = False
         self._last_broadcast_check: float = 0
 
     def save_broadcast_status(self):
+        """Сохраняет статус запущенных рассылок."""
         broadcast_status = {
             code_name: True for code_name in self._manager.broadcast_tasks
         }
         self._manager.db.set("broadcast", "BroadcastStatus", broadcast_status)
 
     async def client_ready(self, client: TelegramClient, db: Any):
+        """Выполняется при готовности клиента Telegram."""
         self._manager = BroadcastManager(client, db)
 
         config_data = db.get("broadcast", "Broadcast", {})
@@ -359,123 +399,131 @@ class BroadcastMod(loader.Module):
         broadcast_status = db.get("broadcast", "BroadcastStatus", {})
 
         for code_name in self._manager.config.codes:
-            logger.info(f"Цикл прикол: {code_name} ФФФФФФФФФ: {self._manager.config.codes}")
-            await asyncio.sleep(8)
             if broadcast_status.get(code_name, False):
                 try:
-                    logger.info(f"Начинаем работать с: {code_name}")
-                    await asyncio.sleep(8)
                     await self._check_and_adjust_message_index(code_name)
-                    logger.info(f"Закончил проверку запланированных в: {code_name}")
-                    await asyncio.sleep(3)
-                    self._manager.broadcast_tasks[code_name] = asyncio.create_task(
-                        self._manager._broadcast_loop(code_name)
+                    self._manager.broadcast_tasks[code_name] = (
+                        asyncio.create_task(
+                            self._manager._broadcast_loop(code_name)
+                        )
                     )
-                    logger.info(f"Автоматически восстановлена рассылка: {code_name}")
                 except Exception as e:
-                    logger.error(f"Не удалось восстановить рассылку {code_name}: {e}")
+                    logger.error(
+                        f"Не удалось восстановить рассылку {code_name}: {e}"
+                    )
         self._me_id = client.tg_id
 
     async def _check_and_adjust_message_index(self, code_name: str):
-        logger.info(f"Начало проверки запланированных сообщений для кода рассылки: {code_name}")
+        """Проверяет и корректирует индекс сообщения для рассылки."""
         code = self._manager.config.codes.get(code_name)
         if not code.chats:
-            logger.info(f"Для кода {code_name} не найдены чаты")
-            await asyncio.sleep(8)
             return
 
-        logger.info(f"Найдено чатов для проверки: {len(code.chats)}")
-        await asyncio.sleep(8)
-
         for chat_id in code.chats:
-            logger.info(f"Оп цикл {code.chats}")
-            await asyncio.sleep(8)
             try:
                 peer = await self._manager.client.get_input_entity(chat_id)
                 scheduled_messages = await self._manager.client(
-                    functions.messages.GetScheduledHistoryRequest(peer=peer, hash=0)
+                    functions.messages.GetScheduledHistoryRequest(
+                        peer=peer, hash=0
+                    )
                 )
-                logger.info(f"Получил планерку {scheduled_messages}")
-                await asyncio.sleep(8)
 
                 if not scheduled_messages.messages:
-                    logger.info(f"Не получил планерку!")
-                    await asyncio.sleep(8)
                     continue
 
                 for index, msg_data in enumerate(code.messages, 1):
-                    logger.info(f"Беру ориг соо, индекс: {index}")
-                    await asyncio.sleep(8)
-                    fetch_message = await self._manager._fetch_messages(msg_data)
+                    fetch_message = await self._manager._fetch_messages(
+                        msg_data
+                    )
 
                     if not fetch_message:
                         continue
 
                     if isinstance(fetch_message, list):
-                        logger.info(f"Да начнется трэш с альбомом, ориг: {fetch_message[0]}")
-                        await asyncio.sleep(8)
                         first_original_msg = fetch_message[0]
 
                         matching_msg = next(
-                            (msg for msg in scheduled_messages.messages 
-                            if hasattr(msg, 'grouped_id') and self.check_message_match(first_original_msg, msg)), 
-                            None
+                            (
+                                msg
+                                for msg in scheduled_messages.messages
+                                if hasattr(msg, "grouped_id")
+                                and self.check_message_match(
+                                    first_original_msg, msg
+                                )
+                            ),
+                            None,
                         )
 
                         if matching_msg:
-                            logger.info(f"Тип нашел похожий элемент альбома в планерке {matching_msg}")
-                            await asyncio.sleep(8)
                             scheduled_album_messages = [
-                                msg for msg in scheduled_messages.messages 
+                                msg
+                                for msg in scheduled_messages.messages
                                 if msg.grouped_id == matching_msg.grouped_id
                             ]
 
                             if scheduled_album_messages:
-                                scheduled_first_msg = sorted(scheduled_album_messages, key=lambda m: m.id)[0]
-                                if self.check_message_match(first_original_msg, scheduled_first_msg):
-                                    logger.info(f"Нашел совпадение первого элемента альбома, для индекса: {index}")
-                                    await asyncio.sleep(8)
-                                    if hasattr(scheduled_first_msg, 'date'):
-                                        self._manager._last_broadcast_time[code_name] = scheduled_first_msg.date.timestamp()
-                                    self._manager.message_indices[code_name] = index
+                                scheduled_first_msg = sorted(
+                                    scheduled_album_messages, key=lambda m: m.id
+                                )[0]
+                                if self.check_message_match(
+                                    first_original_msg, scheduled_first_msg
+                                ):
+                                    if hasattr(scheduled_first_msg, "date"):
+                                        self._manager._last_broadcast_time[
+                                            code_name
+                                        ] = scheduled_first_msg.date.timestamp()
+                                    self._manager.message_indices[code_name] = (
+                                        index
+                                    )
                                     return
                     else:
                         matching_msg = next(
-                            (msg for msg in scheduled_messages.messages 
-                            if self.check_message_match(fetch_message, msg)), 
-                            None
+                            (
+                                msg
+                                for msg in scheduled_messages.messages
+                                if self.check_message_match(fetch_message, msg)
+                            ),
+                            None,
                         )
-                        logger.info(f"Определил как обычный: {matching_msg}")
 
                         if matching_msg:
-                            if hasattr(matching_msg, 'date'):
-                                self._manager._last_broadcast_time[code_name] = matching_msg.date.timestamp()
+                            if hasattr(matching_msg, "date"):
+                                self._manager._last_broadcast_time[
+                                    code_name
+                                ] = matching_msg.date.timestamp()
                             self._manager.message_indices[code_name] = index
                             return
 
             except Exception as chat_error:
-                logger.error(f"Error in scheduled messages check: {chat_error}", exc_info=True)
+                logger.error(
+                    f"Error in scheduled messages check: {chat_error}",
+                    exc_info=True,
+                )
 
     def check_message_match(self, original_message, scheduled_message):
-        logger.info(f"Проверка: {original_message}")
+        """Проверяет совпадает ли оригинальное и запланированное сообщение."""
         if original_message.media and scheduled_message.media:
-            if hasattr(original_message.media, 'photo'):
-                logger.info(f"Определил как фото")
-                return original_message.media.photo.id == scheduled_message.media.photo.id
+            if hasattr(original_message.media, "photo"):
+                return (
+                    original_message.media.photo.id
+                    == scheduled_message.media.photo.id
+                )
 
-            if hasattr(original_message.media, 'document'):
-                logger.info(f"Определил как документ")
-                return original_message.media.document.id == scheduled_message.media.document.id
+            if hasattr(original_message.media, "document"):
+                return (
+                    original_message.media.document.id
+                    == scheduled_message.media.document.id
+                )
         else:
             original_text = original_message.text
             scheduled_text = scheduled_message.message
-            logger.info(f"Определил как текст {original_text} и {scheduled_text}")
             return original_text == scheduled_text
         return False
-            
+
     async def _validate_broadcast_code(
         self, message: Message, code_name: Optional[str] = None
     ) -> Optional[str]:
+        """Проверяет существование кода рассылки."""
         args = utils.get_args(message)
 
         if code_name is None:
@@ -491,14 +539,19 @@ class BroadcastMod(loader.Module):
         return code_name
 
     async def addmsgcmd(self, message: Message):
+        """Команда добавления сообщения в рассылку. Использование: .addmsg кодовое_слово
+        Нужно ответить на сообщение.
+        """
         reply = await message.get_reply_message()
         if not reply:
             return await utils.answer(
-                message, "Ответьте на сообщение командой .addmsg <код>"
+                message, "Ответьте на сообщение командой .addmsg кодовое_слово"
             )
         args = utils.get_args(message)
         if len(args) != 1:
-            return await utils.answer(message, "Использование: .addmsg <код>")
+            return await utils.answer(
+                message, "Использование: .addmsg кодовое_слово"
+            )
         code_name = args[0]
         success = await self._manager.add_message(code_name, reply)
 
@@ -515,11 +568,18 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, "Не удалось добавить сообщение")
 
     async def broadcastcmd(self, message: Message):
+        """Команда управления рассылкой.
+        Использование:
+            .broadcast - Запускает/останавливает все рассылки
+            .broadcast кодовое_слово - только конкретную рассылку
+        """
         args = utils.get_args(message)
 
         if not args:
             if any(self._manager.broadcast_tasks.values()):
-                for code_name, task in list(self._manager.broadcast_tasks.items()):
+                for code_name, task in list(
+                    self._manager.broadcast_tasks.items()
+                ):
                     task.cancel()
                     with suppress(asyncio.CancelledError):
                         await task
@@ -546,13 +606,19 @@ class BroadcastMod(loader.Module):
                     "broadcast", "BroadcastStatus", {}
                 )
                 broadcast_status.pop(code_name, None)
-                self._manager.db.set("broadcast", "BroadcastStatus", broadcast_status)
+                self._manager.db.set(
+                    "broadcast", "BroadcastStatus", broadcast_status
+                )
 
-                await utils.answer(message, f"Рассылка '{code_name}' остановлена")
+                await utils.answer(
+                    message, f"Рассылка '{code_name}' остановлена"
+                )
             else:
                 try:
-                    self._manager.broadcast_tasks[code_name] = asyncio.create_task(
-                        self._manager._broadcast_loop(code_name)
+                    self._manager.broadcast_tasks[code_name] = (
+                        asyncio.create_task(
+                            self._manager._broadcast_loop(code_name)
+                        )
                     )
 
                     broadcast_status = self._manager.db.get(
@@ -563,17 +629,26 @@ class BroadcastMod(loader.Module):
                         "broadcast", "BroadcastStatus", broadcast_status
                     )
 
-                    await utils.answer(message, f"Рассылка '{code_name}' запущена")
+                    await utils.answer(
+                        message, f"Рассылка '{code_name}' запущена"
+                    )
                 except Exception as e:
-                    logger.error(f"Failed to start broadcast loop for {code_name}: {e}")
+                    logger.error(
+                        f"Failed to start broadcast loop for {code_name}: {e}"
+                    )
                     await utils.answer(
                         message, f"Не удалось запустить рассылку '{code_name}'"
                     )
 
     async def chatcmd(self, message: Message):
+        """Команда добавления/удаления чата из рассылки.
+        Использование: .chat кодовое_слово id_чата
+        """
         args = utils.get_args(message)
         if len(args) != 2:
-            return await utils.answer(message, "Использование: .chat <код> <id_чата>")
+            return await utils.answer(
+                message, "Использование: .chat кодовое_слово id_чата"
+            )
         try:
             code_name, chat_id = args[0], int(args[1])
         except ValueError:
@@ -596,6 +671,9 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, f"Ошибка: {str(e)}")
 
     async def delcodecmd(self, message: Message):
+        """Команда удаления кода рассылки.
+        Использование: .delcode кодовое_слово
+        """
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
@@ -612,10 +690,17 @@ class BroadcastMod(loader.Module):
 
         await utils.answer(
             message,
-            self.strings["success"].format(f"Код рассылки '{code_name}' удален"),
+            self.strings["success"].format(
+                f"Код рассылки '{code_name}' удален"
+            ),
         )
 
     async def delmsgcmd(self, message: Message):
+        """Команда удаления сообщения из рассылки.
+        Использование:
+            .delmsg кодовое_слово - Удаляет сообщение, на которое ответили
+            .delmsg кодовое_слово индекс - Удаляет сообщение по индексу из списка
+        """
         args = utils.get_args(message)
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
@@ -651,11 +736,14 @@ class BroadcastMod(loader.Module):
                 await utils.answer(message, "Индекс должен быть числом")
 
     async def intervalcmd(self, message: Message):
+        """Команда изменения интервала рассылки.
+        Использование: .interval кодовое_слово мин_минут макс_минут
+        """
         args = utils.get_args(message)
         if len(args) != 3:
             return await utils.answer(
                 message,
-                "Использование: .interval <код> <мин_минут> <макс_минут>",
+                "Использование: .interval кодовое_слово мин_минут макс_минут",
             )
         code_name, min_str, max_str = args
         code_name = await self._validate_broadcast_code(message, code_name)
@@ -682,6 +770,9 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, "Интервал должен быть числом")
 
     async def listcmd(self, message: Message):
+        """Команда для получения списка кодов рассылок и их статусов.
+        Использование: .list
+        """
         if not self._manager.config.codes:
             return await utils.answer(message, "Нет настроенных кодов рассылки")
         text = [
@@ -697,7 +788,7 @@ class BroadcastMod(loader.Module):
             running = code_name in self._manager.broadcast_tasks
 
             text.append(
-                f"- <code>{code_name}</code>:\n"
+                f"+ <code>{code_name}</code>:\n"
                 f"  💬 Чаты: {chat_list}\n"
                 f"  ⏱ Интервал: {min_interval} - {max_interval} минут\n"
                 f"  📨 Сообщений: {message_count}\n"
@@ -705,74 +796,100 @@ class BroadcastMod(loader.Module):
             )
         await utils.answer(message, "\n".join(text))
 
-    async def listmsgcmd(self, message: Message):
-        code_name = await self._validate_broadcast_code(message)
-        if not code_name:
-            return
-        messages = self._manager.config.codes[code_name].messages
-        if not messages:
-            return await utils.answer(message, f"Нет сообщений в коде '{code_name}'")
-        text = [f"<b>Сообщения в '{code_name}':</b>"]
-        for i, msg in enumerate(messages, 1):
-            try:
-                chat_id = int(str(abs(msg.chat_id))[-10:])
+        async def listmsgcmd(self, message: Message):
+            """
+            Команда для просмотра списка сообщений в определенном коде рассылки.
 
-                if msg.grouped_id is not None:
-                    message_text = f"{i}. Альбом в чате {msg.chat_id} (Всего изображений: {len(msg.album_ids)})"
-                    message_links = [
-                        f"t.me/c/{chat_id}/{album_id}" for album_id in msg.album_ids
-                    ]
-                    message_text += f"\nСсылки: {' , '.join(message_links)}"
-                else:
-                    message_text = f"{i}. Сообщение в чате {msg.chat_id}\n"
-                    message_text += f"Ссылка: t.me/c/{chat_id}/{msg.message_id}"
-                text.append(message_text)
-            except Exception as e:
-                text.append(f"{i}. Ошибка получения информации: {str(e)}")
-        await utils.answer(message, "\n\n".join(text))
+            Использование: .listmsg кодовое_слово
+            """
+            code_name = await self._validate_broadcast_code(message)
+            if not code_name:
+                return
+            messages = self._manager.config.codes[code_name].messages
+            if not messages:
+                return await utils.answer(
+                    message, f"Нет сообщений в коде '{code_name}'"
+                )
+            text = [f"<b>Сообщения в '{code_name}':</b>"]
+            for i, msg in enumerate(messages, 1):
+                try:
+                    chat_id = int(str(abs(msg.chat_id))[-10:])
 
-    async def sendmodecmd(self, message: Message):
-        args = utils.get_args(message)
-        if len(args) != 2 or args[1] not in ["auto", "normal", "forward"]:
-            return await utils.answer(
+                    if msg.grouped_id is not None:
+                        message_text = f"{i}. Альбом в чате {msg.chat_id} (Всего изображений: {len(msg.album_ids)})"
+                        message_links = [
+                            f"t.me/c/{chat_id}/{album_id}"
+                            for album_id in msg.album_ids
+                        ]
+                        message_text += f"\nСсылки: {' , '.join(message_links)}"
+                    else:
+                        message_text = f"{i}. Сообщение в чате {msg.chat_id}\n"
+                        message_text += (
+                            f"Ссылка: t.me/c/{chat_id}/{msg.message_id}"
+                        )
+                    text.append(message_text)
+                except Exception as e:
+                    text.append(f"{i}. Ошибка получения информации: {str(e)}")
+            await utils.answer(message, "\n\n".join(text))
+
+        async def sendmodecmd(self, message: Message):
+            """
+            Команда для изменения режима отправки сообщений.
+
+            Использование: .sendmode кодовое_слово режим
+
+            - Режим отправки:
+                - auto: Автоматический выбор (по умолчанию).
+                - normal: Обычная отправка текста.
+                - forward: Пересылка сообщения.
+            """
+            args = utils.get_args(message)
+            if len(args) != 2 or args[1] not in ["auto", "normal", "forward"]:
+                return await utils.answer(
+                    message,
+                    "Использование: .sendmode <код> <режим>\n"
+                    "Режимы: auto (по умолчанию), normal (обычная отправка), forward (форвард)",
+                )
+            code_name, mode = args
+            code_name = await self._validate_broadcast_code(message, code_name)
+            if not code_name:
+                return
+            code = self._manager.config.codes[code_name]
+            code.send_mode = mode
+            self._manager.save_config()
+
+            await utils.answer(
                 message,
-                "Использование: .sendmode <код> <режим>\n"
-                "Режимы: auto (по умолчанию), normal (обычная отправка), forward (форвард)",
+                self.strings["success"].format(
+                    f"Режим отправки для '{code_name}' установлен: {mode}"
+                ),
             )
-        code_name, mode = args
-        code_name = await self._validate_broadcast_code(message, code_name)
-        if not code_name:
-            return
-        code = self._manager.config.codes[code_name]
-        code.send_mode = mode
-        self._manager.save_config()
 
-        await utils.answer(
-            message,
-            self.strings["success"].format(
-                f"Режим отправки для '{code_name}' установлен: {mode}"
-            ),
-        )
+        async def watcmd(self, message: Message):
+            """
+            Команда для включения/выключения автоматического добавления чатов в рассылку.
 
-    async def watcmd(self, message: Message):
-        self._wat_mode = not self._wat_mode
-        await utils.answer(
-            message,
-            self.strings["success"].format(
-                f"Автоматическое управление чатами {'включено' if self._wat_mode else 'выключено'}"
-            ),
-        )
+            Использование: .wat
+            """
+            self._wat_mode = not self._wat_mode
+            await utils.answer(
+                message,
+                self.strings["success"].format(
+                    f"Автоматическое управление чатами {'включено' if self._wat_mode else 'выключено'}"
+                ),
+            )
 
-    async def watcher(self, message: Message):
-        if not isinstance(message, Message) or not self._wat_mode:
-            return
-        if message.sender_id == self._me_id and message.text:
-            for code_name in self._manager.config.codes:
-                if message.text.strip().endswith(code_name):
-                    try:
-                        code = self._manager.config.codes[code_name]
-                        code.chats.add(message.chat_id)
-                        self._manager.save_config()
-                        break
-                    except Exception as e:
-                        logger.error(f"Ошибка автодобавления чата: {e}")
+        async def watcher(self, message: Message):
+            """Автоматически добавляет чаты в рассылку, если режим автоматического управления чатами включен."""
+            if not isinstance(message, Message) or not self._wat_mode:
+                return
+            if message.sender_id == self._me_id and message.text:
+                for code_name in self._manager.config.codes:
+                    if message.text.strip().endswith(code_name):
+                        try:
+                            code = self._manager.config.codes[code_name]
+                            code.chats.add(message.chat_id)
+                            self._manager.save_config()
+                            break
+                        except Exception as e:
+                            logger.error(f"Ошибка автодобавления чата: {e}")
