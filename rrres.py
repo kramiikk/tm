@@ -718,6 +718,31 @@ class BroadcastMod(loader.Module):
             )
         except ValueError:
             await utils.answer(message, self.strings["interval_numeric"])
+    
+    async def listcmd(self, message: Message):
+        """Команда для получения списка кодов рассылок и их статусов."""
+        if not self._manager.config.codes:
+            return await utils.answer(message, "Нет настроенных кодов рассылки")
+        text = [
+            "<b>Рассылка:</b>",
+            f"🔄 Управление чатами: {'Включено' if self._wat_mode else 'Выключено'}\n",
+            "<b>Коды рассылок:</b>",
+        ]
+
+        for code_name, code in self._manager.config.codes.items():
+            chat_list = ", ".join(map(str, code.chats)) or "(пусто)"
+            min_interval, max_interval = code.interval
+            message_count = len(code.messages)
+            running = code_name in self._manager.broadcast_tasks
+
+            text.append(
+                f"+ <code>{code_name}</code>:\n"
+                f"  💬 Чаты: {chat_list}\n"
+                f"  ⏱ Интервал: {min_interval} - {max_interval} минут\n"
+                f"  📨 Сообщений: {message_count}\n"
+                f"  📊 Статус: {'🟢 Работает' if running else '🔴 Остановлен'}\n"
+            )
+        await utils.answer(message, "\n".join(text))
 
     async def listmsgcmd(self, message: Message):
         """Команда для просмотра списка сообщений в определенном коде рассылки."""
