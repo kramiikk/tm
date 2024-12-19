@@ -242,7 +242,7 @@ class BroadcastManager:
         except Exception:
             logger.exception(f"Error sending message to {chat_id}")
             raise
-
+    
     async def _broadcast_loop(self, code_name: str):
         """Бесконечный цикл рассылки сообщений."""
         while self._active:
@@ -251,21 +251,25 @@ class BroadcastManager:
                 if not code or not code.chats or not code.messages:
                     await asyncio.sleep(60)
                     continue
-
+    
                 start_time = time.time()
                 min_interval, max_interval = code.normalize_interval()
-                interval_sec = random.uniform(
-                    min_interval * 60, max_interval * 60
-                )
-
+                
+                # Получаем случайный интервал в минутах
+                interval_minutes = random.uniform(min_interval, max_interval)
+                
+                # Получаем случайную задержку в секундах
+                random_delay = random.choice([60, 120, 180])
+                
+                # Вычисляем время до отправки в секундах (конвертируем минуты в секунды и вычитаем задержку)
+                time_until_send = (interval_minutes * 60) - random_delay
+    
                 last_broadcast = self._last_broadcast_time.get(code_name, 0)
                 time_since_last_broadcast = start_time - last_broadcast
-                if time_since_last_broadcast < interval_sec:
-                    await asyncio.sleep(
-                        interval_sec - time_since_last_broadcast
-                    )
-                    continue
-
+                
+                if time_since_last_broadcast < time_until_send:
+                    await asyncio.sleep(time_until_send - time_since_last_broadcast)
+    
                 messages_to_send = [
                     msg
                     for msg in [
@@ -277,7 +281,7 @@ class BroadcastManager:
                 if not messages_to_send:
                     await asyncio.sleep(60)
                     continue
-
+    
                 chats = list(code.chats)
                 random.shuffle(chats)
                 message_index = self.message_indices.get(code_name, 0)
@@ -287,15 +291,20 @@ class BroadcastManager:
                 self.message_indices[code_name] = (message_index + 1) % len(
                     messages_to_send
                 )
-
+    
+                # Устанавливаем время отложенной отправки
+                schedule_time = datetime.now() + timedelta(seconds=random_delay)
+    
+                # Отправляем сообщения
                 send_tasks = [
-                    self._send_message(chat_id, message_to_send, code.send_mode)
+                    self._send_message(chat_id, message_to_send, code.send_mode, schedule_time)
                     for chat_id in chats
                 ]
                 results = await asyncio.gather(
                     *send_tasks, return_exceptions=True
                 )
-
+    
+                # Обрабатываем ошибки
                 failed_chats = {
                     chats[i]
                     for i, result in enumerate(results)
@@ -304,9 +313,10 @@ class BroadcastManager:
                 if failed_chats:
                     code.chats -= failed_chats
                     self.save_config()
-
+    
+                # Обновляем время последней рассылки
                 self._last_broadcast_time[code_name] = time.time()
-
+    
             except asyncio.CancelledError:
                 break
             except Exception:
