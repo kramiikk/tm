@@ -256,29 +256,22 @@ class BroadcastManager:
                 if not code or not code.chats or not code.messages:
                     await asyncio.sleep(60)
                     continue
-    
+                
                 start_time = time.time()
                 min_interval, max_interval = code.normalize_interval()
-                
-                # Получаем случайный интервал в минутах
                 interval_minutes = random.uniform(min_interval, max_interval)
-                
-                # Конвертируем интервал в секунды
                 interval_seconds = interval_minutes * 60
-                
-                # Фиксированная задержка для отложенной отправки (3 минуты)
-                schedule_delay = random.choice([60, 120, 180])  # 3 минуты в секундах
-                
-                # Вычисляем время ожидания до установки отложенной отправки
-                # Вычитаем задержку, чтобы общее время точно соответствовало интервалу
-                time_until_schedule = interval_seconds - schedule_delay
-                
-                last_broadcast = self._last_broadcast_time.get(code_name, 0)
-                time_since_last_broadcast = start_time - last_broadcast
-                
-                if time_since_last_broadcast < time_until_schedule:
-                    # Ждем до момента установки отложенной отправки
-                    await asyncio.sleep(time_until_schedule)
+                schedule_delay = random.choice([60, 120, 180])
+
+                last_broadcast = self._last_broadcast_time.get(code_name)
+
+                if last_broadcast is None:  # Первый запуск
+                    await asyncio.sleep(interval_seconds)
+                else:
+                    time_since_last_broadcast = start_time - last_broadcast
+                    time_until_schedule = interval_seconds - schedule_delay
+                    if time_since_last_broadcast < time_until_schedule:
+                        await asyncio.sleep(time_until_schedule)
     
                 messages_to_send = [
                     msg
