@@ -147,15 +147,19 @@ class BroadcastManager:
         cache_key = (msg_data.chat_id, msg_data.message_id)
         if cache_key in self._message_cache:
             return self._message_cache[cache_key]
-
+    
         try:
             if msg_data.grouped_id is not None:
+                # Получаем все сообщения альбома
                 messages = await self.client.get_messages(
                     msg_data.chat_id, ids=list(msg_data.album_ids)
                 )
+                # Фильтруем None значения и сортируем по ID
+                messages = [msg for msg in messages if msg is not None]
+                messages.sort(key=lambda x: x.id)
+                
                 if messages:
-                    for msg in messages:
-                        self._message_cache[(msg_data.chat_id, msg.id)] = msg
+                    self._message_cache[cache_key] = messages
                     return messages
             else:
                 message = await self.client.get_messages(
@@ -218,9 +222,10 @@ class BroadcastManager:
         """Отправляет сообщение в указанный чат."""
         try:
             if isinstance(message_to_send, list):
+                # Для альбома отправляем все сообщения из него
                 await self.client.forward_messages(
                     entity=chat_id,
-                    messages=[m.id for m in message_to_send],
+                    messages=message_to_send,  # Передаем весь список сообщений
                     from_peer=message_to_send[0].chat_id,
                     schedule=schedule_time,
                 )
