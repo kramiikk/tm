@@ -278,7 +278,7 @@ class BroadcastManager:
                 
                 if time_since_last_broadcast < time_until_schedule:
                     # Ждем до момента установки отложенной отправки
-                    await asyncio.sleep(time_until_schedule - time_since_last_broadcast)
+                    await asyncio.sleep(time_until_schedule)
     
                 messages_to_send = [
                     msg
