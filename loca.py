@@ -770,9 +770,7 @@ class BroadcastMod(loader.Module):
             await utils.answer(message, "Интервал должен быть числом")
 
     async def listcmd(self, message: Message):
-        """Команда для получения списка кодов рассылок и их статусов.
-        Использование: .list
-        """
+        """Команда для получения списка кодов рассылок и их статусов."""
         if not self._manager.config.codes:
             return await utils.answer(message, "Нет настроенных кодов рассылки")
         text = [
