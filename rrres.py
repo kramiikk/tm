@@ -75,11 +75,6 @@ class MessageSender:
 
     @sleep_and_retry
     @limits(calls=1, period=7)
-    async def _rate_limited_send(self, *args, **kwargs):
-        """Вспомогательная функция для rate-limited отправки"""
-        pass  # Просто для обеспечения rate limit
-        logger.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-
     async def send_message(
         self,
         client,
@@ -91,8 +86,8 @@ class MessageSender:
         """
         Отправляет сообщение с правильной обработкой rate limit.
         """
-        async with self._send_lock:  # Гарантируем, что только один запрос в обработке
-            await self._rate_limited_send()  # Проверяем rate limit
+        async with self._send_lock:
+            logger.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
             try:
                 if isinstance(message_to_send, list):
@@ -169,7 +164,7 @@ class BroadcastManager:
                     self._create_broadcast_code_from_dict(code_data)
                 )
             except Exception:
-                logger.exception(f"Error loading broadcast code {code_name}")
+                logger.error(f"Error loading broadcast code {code_name}")
 
     def save_config(self):
         """Сохраняет текущую конфигурацию рассылки в базу данных."""
@@ -205,28 +200,27 @@ class BroadcastManager:
 
         cache_key = (msg_data.chat_id, msg_data.message_id)
         if cache_key in self._message_cache:
+            logger.info(f"Оп взял из кэша ссобщение {cache_key}")
             return self._message_cache[cache_key]
+        logger.info(f"Сообщение не в кэше {cache_key}")
 
         try:
-            if msg_data.grouped_id is not None:
-                messages = await self.client.get_messages(
-                    msg_data.chat_id, ids=list(msg_data.album_ids)
-                )
-                messages = [msg for msg in messages if msg is not None]
-                messages.sort(key=lambda x: x.id)
+            message_ids = (
+                list(msg_data.album_ids) if msg_data.grouped_id is not None 
+                else msg_data.message_id
+            )
 
-                if messages:
-                    self._message_cache[cache_key] = messages
-                    return messages
-            else:
-                message = await self.client.get_messages(
-                    msg_data.chat_id, ids=msg_data.message_id
-                )
-                if message:
-                    self._message_cache[cache_key] = message
-                    return message
+            message = await self.client.get_messages(msg_data.chat_id, ids=message_ids)
+
+            if msg_data.grouped_id is not None:
+                message = [msg for msg in message if msg is not None]
+                message.sort(key=lambda x: x.id)
+
+            if message:
+                self._message_cache[cache_key] = message
+                return message
         except Exception:
-            logger.exception("Failed to fetch message")
+            logger.error("Failed to fetch message")
         return None
 
     async def add_message(self, code_name: str, message: Message) -> bool:
@@ -275,6 +269,7 @@ class BroadcastManager:
             try:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats or not code.messages:
+                    logger.warning(f"No chats or messages for code {code_name}")
                     await asyncio.sleep(60)
                     continue
 
@@ -329,36 +324,36 @@ class BroadcastManager:
                     for chat_id in chats
                 ]
 
-                # Отправляем сообщения последовательно
                 for task in send_tasks:
                     try:
                         await task
                     except Exception as e:
                         logger.error(f"Failed to send message: {str(e)}")
 
-                results = await asyncio.gather(
-                    *send_tasks, return_exceptions=True
-                )
-
-                failed_chats = {
-                    chats[i]
-                    for i, result in enumerate(results)
-                    if isinstance(result, BaseException)
-                }
+                results = await asyncio.gather(*send_tasks, return_exceptions=True)
+            
+                failed_chats = set()
+                for i, result in enumerate(results):
+                    if isinstance(result, BaseException):
+                        chat_id = chats[i]
+                        logger.error(f"Failed to send to chat {chat_id} in code {code_name}: {str(result)}")
+                        if isinstance(result, (ChatWriteForbiddenError, UserBannedInChannelError)):
+                            failed_chats.add(chat_id)
+                            logger.warning(f"Removing chat {chat_id} from {code_name} due to permission error")
+                        
                 if failed_chats:
+                    original_chat_count = len(code.chats)
                     code.chats -= failed_chats
+                    logger.info(f"Removed {len(failed_chats)} chats from {code_name}. Before: {original_chat_count}, After: {len(code.chats)}")
                     self.save_config()
 
-                self._last_broadcast_time[code_name] = (
-                    time.time() + schedule_delay
-                )
+                self._last_broadcast_time[code_name] = time.time() + schedule_delay
 
             except asyncio.CancelledError:
+                logger.info(f"Broadcast loop cancelled for {code_name}")
                 break
-            except Exception:
-                logger.exception(
-                    f"Critical error in broadcast loop {code_name}"
-                )
+            except Exception as e:
+                logger.exception(f"Critical error in broadcast loop {code_name}: {str(e)}")
                 await asyncio.sleep(60)
 
     async def start_broadcasts(self):
