@@ -69,6 +69,59 @@ class BroadcastConfig:
             return self.codes.pop(code_name, None) is not None
 
 
+class MessageSender:
+    def __init__(self):
+        self._send_lock = asyncio.Lock()
+
+    @sleep_and_retry
+    @limits(calls=1, period=7)
+    async def _rate_limited_send(self, *args, **kwargs):
+        """Вспомогательная функция для rate-limited отправки"""
+        pass  # Просто для обеспечения rate limit
+        logger.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+
+    async def send_message(
+        self,
+        client,
+        chat_id: int,
+        message_to_send: Union[Message, List[Message]],
+        send_mode: str = "auto",
+        schedule_time: Optional[datetime] = None,
+    ):
+        """
+        Отправляет сообщение с правильной обработкой rate limit.
+        """
+        async with self._send_lock:  # Гарантируем, что только один запрос в обработке
+            await self._rate_limited_send()  # Проверяем rate limit
+
+            try:
+                if isinstance(message_to_send, list):
+                    await client.forward_messages(
+                        entity=chat_id,
+                        messages=message_to_send,
+                        from_peer=message_to_send[0].chat_id,
+                        schedule=schedule_time,
+                    )
+                elif message_to_send.media and send_mode != "normal":
+                    await client.forward_messages(
+                        entity=chat_id,
+                        messages=[message_to_send.id],
+                        from_peer=message_to_send.chat_id,
+                        schedule=schedule_time,
+                    )
+                else:
+                    await client.send_message(
+                        entity=chat_id,
+                        message=message_to_send.text,
+                        schedule=schedule_time,
+                    )
+                logger.info(f"Message successfully sent to chat {chat_id}")
+
+            except Exception as e:
+                logger.error(f"Error sending message to {chat_id}: {str(e)}")
+                raise
+
+
 class BroadcastManager:
     """Управляет рассылками, хранит и обрабатывает информацию о рассылках."""
 
@@ -78,6 +131,7 @@ class BroadcastManager:
         self.client = client
         self.db = db
         self.config = BroadcastConfig()
+        self.message_sender = MessageSender()
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
         self.message_indices: Dict[str, int] = {}
         self._active = True
@@ -214,45 +268,6 @@ class BroadcastManager:
             logger.exception("Failed to add message")
             return False
 
-    @sleep_and_retry
-    @limits(calls=1, period=7)
-    async def _send_message(
-        self,
-        chat_id: int,
-        message_to_send: Union[Message, List[Message]],
-        send_mode: str = "auto",
-        schedule_time: Optional[datetime] = None,
-    ):
-        """Отправляет сообщение в указанный чат."""
-        logger.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-
-        try:
-            if isinstance(message_to_send, list):
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=message_to_send,
-                    from_peer=message_to_send[0].chat_id,
-                    schedule=schedule_time,
-                )
-            elif message_to_send.media and send_mode != "normal":
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=[message_to_send.id],
-                    from_peer=message_to_send.chat_id,
-                    schedule=schedule_time,
-                )
-            else:
-                await self.client.send_message(
-                    entity=chat_id,
-                    message=message_to_send.text,
-                    schedule=schedule_time,
-                )
-        except (ChatWriteForbiddenError, UserBannedInChannelError) as e:
-            logger.warning(f"Cannot send message to {chat_id}: {e}")
-        except Exception:
-            logger.exception(f"Error sending message to {chat_id}")
-            raise
-
     async def _broadcast_loop(self, code_name: str):
         """Бесконечный цикл рассылки сообщений."""
 
@@ -304,11 +319,23 @@ class BroadcastManager:
                 )
 
                 send_tasks = [
-                    self._send_message(
-                        chat_id, message_to_send, code.send_mode, schedule_time
+                    self.message_sender.send_message(
+                        self.client,
+                        chat_id,
+                        message_to_send,
+                        code.send_mode,
+                        schedule_time,
                     )
                     for chat_id in chats
                 ]
+
+                # Отправляем сообщения последовательно
+                for task in send_tasks:
+                    try:
+                        await task
+                    except Exception as e:
+                        logger.error(f"Failed to send message: {str(e)}")
+
                 results = await asyncio.gather(
                     *send_tasks, return_exceptions=True
                 )
