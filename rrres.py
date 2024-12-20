@@ -206,11 +206,14 @@ class BroadcastManager:
 
         try:
             message_ids = (
-                list(msg_data.album_ids) if msg_data.grouped_id is not None 
+                list(msg_data.album_ids)
+                if msg_data.grouped_id is not None
                 else msg_data.message_id
             )
 
-            message = await self.client.get_messages(msg_data.chat_id, ids=message_ids)
+            message = await self.client.get_messages(
+                msg_data.chat_id, ids=message_ids
+            )
 
             if msg_data.grouped_id is not None:
                 message = [msg for msg in message if msg is not None]
@@ -330,30 +333,45 @@ class BroadcastManager:
                     except Exception as e:
                         logger.error(f"Failed to send message: {str(e)}")
 
-                results = await asyncio.gather(*send_tasks, return_exceptions=True)
-            
+                results = await asyncio.gather(
+                    *send_tasks, return_exceptions=True
+                )
+
                 failed_chats = set()
                 for i, result in enumerate(results):
                     if isinstance(result, BaseException):
                         chat_id = chats[i]
-                        logger.error(f"Failed to send to chat {chat_id} in code {code_name}: {str(result)}")
-                        if isinstance(result, (ChatWriteForbiddenError, UserBannedInChannelError)):
+                        logger.error(
+                            f"Failed to send to chat {chat_id} in code {code_name}: {str(result)}"
+                        )
+                        if isinstance(
+                            result,
+                            (ChatWriteForbiddenError, UserBannedInChannelError),
+                        ):
                             failed_chats.add(chat_id)
-                            logger.warning(f"Removing chat {chat_id} from {code_name} due to permission error")
-                        
+                            logger.warning(
+                                f"Removing chat {chat_id} from {code_name} due to permission error"
+                            )
+
                 if failed_chats:
                     original_chat_count = len(code.chats)
                     code.chats -= failed_chats
-                    logger.info(f"Removed {len(failed_chats)} chats from {code_name}. Before: {original_chat_count}, After: {len(code.chats)}")
+                    logger.info(
+                        f"Removed {len(failed_chats)} chats from {code_name}. Before: {original_chat_count}, After: {len(code.chats)}"
+                    )
                     self.save_config()
 
-                self._last_broadcast_time[code_name] = time.time() + schedule_delay
+                self._last_broadcast_time[code_name] = (
+                    time.time() + schedule_delay
+                )
 
             except asyncio.CancelledError:
                 logger.info(f"Broadcast loop cancelled for {code_name}")
                 break
             except Exception as e:
-                logger.exception(f"Critical error in broadcast loop {code_name}: {str(e)}")
+                logger.exception(
+                    f"Critical error in broadcast loop {code_name}: {str(e)}"
+                )
                 await asyncio.sleep(60)
 
     async def start_broadcasts(self):
