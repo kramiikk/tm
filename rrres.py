@@ -74,6 +74,7 @@ class BroadcastManager:
 
     def __init__(self, client: TelegramClient, db):
         """Инициализирует менеджер рассылок."""
+
         self.client = client
         self.db = db
         self.config = BroadcastConfig()
@@ -89,6 +90,7 @@ class BroadcastManager:
         self, code_data: dict
     ) -> BroadcastCode:
         """Создает объект BroadcastCode из словаря."""
+
         return BroadcastCode(
             chats=set(code_data.get("chats", [])),
             messages=[
@@ -106,6 +108,7 @@ class BroadcastManager:
 
     def _load_config_from_dict(self, data: dict):
         """Загружает конфигурацию рассылки из словаря."""
+
         for code_name, code_data in data.get("code_chats", {}).items():
             try:
                 self.config.codes[code_name] = (
@@ -116,6 +119,7 @@ class BroadcastManager:
 
     def save_config(self):
         """Сохраняет текущую конфигурацию рассылки в базу данных."""
+
         try:
             config_dict = {
                 "code_chats": {
@@ -144,20 +148,19 @@ class BroadcastManager:
         self, msg_data: BroadcastMessage
     ) -> Optional[Union[Message, List[Message]]]:
         """Получает сообщение или список сообщений из Telegram, используя кэш."""
+
         cache_key = (msg_data.chat_id, msg_data.message_id)
         if cache_key in self._message_cache:
             return self._message_cache[cache_key]
-    
+
         try:
             if msg_data.grouped_id is not None:
-                # Получаем все сообщения альбома
                 messages = await self.client.get_messages(
                     msg_data.chat_id, ids=list(msg_data.album_ids)
                 )
-                # Фильтруем None значения и сортируем по ID
                 messages = [msg for msg in messages if msg is not None]
                 messages.sort(key=lambda x: x.id)
-                
+
                 if messages:
                     self._message_cache[cache_key] = messages
                     return messages
@@ -174,6 +177,7 @@ class BroadcastManager:
 
     async def add_message(self, code_name: str, message: Message) -> bool:
         """Добавляет сообщение в список рассылки."""
+
         try:
             await self.config.add_code(code_name)
             code = self.config.codes[code_name]
@@ -211,7 +215,7 @@ class BroadcastManager:
             return False
 
     @sleep_and_retry
-    @limits(calls=1, period=1)
+    @limits(calls=1, period=7)
     async def _send_message(
         self,
         chat_id: int,
@@ -220,12 +224,12 @@ class BroadcastManager:
         schedule_time: Optional[datetime] = None,
     ):
         """Отправляет сообщение в указанный чат."""
+
         try:
             if isinstance(message_to_send, list):
-                # Для альбома отправляем все сообщения из него
                 await self.client.forward_messages(
                     entity=chat_id,
-                    messages=message_to_send,  # Передаем весь список сообщений
+                    messages=message_to_send,
                     from_peer=message_to_send[0].chat_id,
                     schedule=schedule_time,
                 )
@@ -247,32 +251,31 @@ class BroadcastManager:
         except Exception:
             logger.exception(f"Error sending message to {chat_id}")
             raise
-    
+
     async def _broadcast_loop(self, code_name: str):
         """Бесконечный цикл рассылки сообщений."""
+
         while self._active:
             try:
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats or not code.messages:
                     await asyncio.sleep(60)
                     continue
-                
-                start_time = time.time()
-                min_interval, max_interval = code.normalize_interval()
-                interval_minutes = random.uniform(min_interval, max_interval)
-                interval_seconds = interval_minutes * 60
-                schedule_delay = random.choice([60, 120, 180])
 
+                min_interval, max_interval = code.normalize_interval()
+                schedule_delay = random.choice([60, 120, 180])
+                time_until_schedule = (
+                    random.uniform(min_interval, max_interval) * 60
+                    - schedule_delay
+                )
                 last_broadcast = self._last_broadcast_time.get(code_name)
 
-                if last_broadcast is None:  # Первый запуск
-                    await asyncio.sleep(interval_seconds)
-                else:
-                    time_since_last_broadcast = start_time - last_broadcast
-                    time_until_schedule = interval_seconds - schedule_delay
-                    if time_since_last_broadcast < time_until_schedule:
-                        await asyncio.sleep(time_until_schedule)
-    
+                if (
+                    last_broadcast is None
+                    or time.time() - last_broadcast < time_until_schedule
+                ):
+                    await asyncio.sleep(time_until_schedule)
+
                 messages_to_send = [
                     msg
                     for msg in [
@@ -284,7 +287,7 @@ class BroadcastManager:
                 if not messages_to_send:
                     await asyncio.sleep(60)
                     continue
-    
+
                 chats = list(code.chats)
                 random.shuffle(chats)
                 message_index = self.message_indices.get(code_name, 0)
@@ -294,20 +297,21 @@ class BroadcastManager:
                 self.message_indices[code_name] = (message_index + 1) % len(
                     messages_to_send
                 )
-    
-                # Устанавливаем время отложенной отправки на 3 минуты вперед
-                schedule_time = datetime.now() + timedelta(seconds=schedule_delay)
-    
-                # Отправляем сообщения
+
+                schedule_time = datetime.now() + timedelta(
+                    seconds=schedule_delay
+                )
+
                 send_tasks = [
-                    self._send_message(chat_id, message_to_send, code.send_mode, schedule_time)
+                    self._send_message(
+                        chat_id, message_to_send, code.send_mode, schedule_time
+                    )
                     for chat_id in chats
                 ]
                 results = await asyncio.gather(
                     *send_tasks, return_exceptions=True
                 )
-    
-                # Обрабатываем ошибки
+
                 failed_chats = {
                     chats[i]
                     for i, result in enumerate(results)
@@ -316,10 +320,11 @@ class BroadcastManager:
                 if failed_chats:
                     code.chats -= failed_chats
                     self.save_config()
-    
-                # Обновляем время последней рассылки
-                self._last_broadcast_time[code_name] = time.time()
-    
+
+                self._last_broadcast_time[code_name] = (
+                    time.time() + schedule_delay
+                )
+
             except asyncio.CancelledError:
                 break
             except Exception:
@@ -731,7 +736,7 @@ class BroadcastMod(loader.Module):
             )
         except ValueError:
             await utils.answer(message, self.strings["interval_numeric"])
-    
+
     async def listcmd(self, message: Message):
         """Команда для получения списка кодов рассылок и их статусов."""
         if not self._manager.config.codes:
