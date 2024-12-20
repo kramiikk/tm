@@ -224,6 +224,7 @@ class BroadcastManager:
         schedule_time: Optional[datetime] = None,
     ):
         """Отправляет сообщение в указанный чат."""
+        logger.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
         try:
             if isinstance(message_to_send, list):
@@ -335,6 +336,7 @@ class BroadcastManager:
 
     async def start_broadcasts(self):
         """Запускает все активные рассылки."""
+
         for code_name in self.config.codes:
             if code_name not in self.broadcast_tasks:
                 try:
@@ -390,12 +392,14 @@ class BroadcastMod(loader.Module):
 
     def __init__(self):
         """Инициализация модуля."""
+
         self._manager: Optional[BroadcastManager] = None
         self._wat_mode = False
         self._me_id = None
 
     def save_broadcast_status(self):
         """Сохраняет статус запущенных рассылок."""
+
         broadcast_status = {
             code_name: True for code_name in self._manager.broadcast_tasks
         }
@@ -403,6 +407,7 @@ class BroadcastMod(loader.Module):
 
     async def client_ready(self, client: TelegramClient, db: Any):
         """Выполняется при готовности клиента Telegram."""
+
         self._manager = BroadcastManager(client, db)
         self._me_id = client.tg_id
 
@@ -430,6 +435,7 @@ class BroadcastMod(loader.Module):
 
     async def _check_and_adjust_message_index(self, code_name: str):
         """Проверяет и корректирует индекс сообщения для рассылки."""
+
         code = self._manager.config.codes.get(code_name)
         if not code or not code.chats:
             return
@@ -507,6 +513,7 @@ class BroadcastMod(loader.Module):
         self, message: Message, code_name: Optional[str] = None
     ) -> Optional[str]:
         """Проверяет существование кода рассылки."""
+
         args = utils.get_args(message)
         if code_name is None:
             if not args:
@@ -522,6 +529,7 @@ class BroadcastMod(loader.Module):
 
     async def addmsgcmd(self, message: Message):
         """Команда добавления сообщения в рассылку."""
+
         reply = await message.get_reply_message()
         if not reply:
             return await utils.answer(message, self.strings["reply_to_message"])
@@ -545,6 +553,7 @@ class BroadcastMod(loader.Module):
 
     async def broadcastcmd(self, message: Message):
         """Команда управления рассылкой."""
+
         args = utils.get_args(message)
         if not args:
             if self._manager.broadcast_tasks:
@@ -617,6 +626,7 @@ class BroadcastMod(loader.Module):
 
     async def chatcmd(self, message: Message):
         """Команда добавления/удаления чата из рассылки."""
+
         args = utils.get_args(message)
         if len(args) != 2:
             return await utils.answer(message, self.strings["chat_usage"])
@@ -644,6 +654,7 @@ class BroadcastMod(loader.Module):
 
     async def delcodecmd(self, message: Message):
         """Команда удаления кода рассылки."""
+
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
@@ -665,6 +676,7 @@ class BroadcastMod(loader.Module):
 
     async def delmsgcmd(self, message: Message):
         """Команда удаления сообщения из рассылки."""
+
         args = utils.get_args(message)
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
@@ -709,6 +721,7 @@ class BroadcastMod(loader.Module):
 
     async def intervalcmd(self, message: Message):
         """Команда изменения интервала рассылки."""
+
         args = utils.get_args(message)
         if len(args) != 3:
             return await utils.answer(message, self.strings["interval_usage"])
@@ -739,6 +752,7 @@ class BroadcastMod(loader.Module):
 
     async def listcmd(self, message: Message):
         """Команда для получения списка кодов рассылок и их статусов."""
+
         if not self._manager.config.codes:
             return await utils.answer(message, "Нет настроенных кодов рассылки")
         text = [
@@ -764,6 +778,7 @@ class BroadcastMod(loader.Module):
 
     async def listmsgcmd(self, message: Message):
         """Команда для просмотра списка сообщений в определенном коде рассылки."""
+
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
@@ -796,6 +811,7 @@ class BroadcastMod(loader.Module):
 
     async def sendmodecmd(self, message: Message):
         """Команда для изменения режима отправки сообщений."""
+
         args = utils.get_args(message)
         if len(args) != 2 or args[1] not in ["auto", "normal", "forward"]:
             return await utils.answer(message, self.strings["sendmode_usage"])
@@ -814,6 +830,7 @@ class BroadcastMod(loader.Module):
 
     async def watcmd(self, message: Message):
         """Команда для включения/выключения автоматического добавления чатов в рассылку."""
+
         self._wat_mode = not self._wat_mode
         await utils.answer(
             message,
@@ -826,6 +843,7 @@ class BroadcastMod(loader.Module):
 
     async def watcher(self, message: Message):
         """Автоматически добавляет чаты в рассылку, если режим автоматического управления чатами включен."""
+
         if not isinstance(message, Message) or not self._wat_mode:
             return
         if message.sender_id == self._me_id and message.text:
