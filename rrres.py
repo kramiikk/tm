@@ -74,7 +74,7 @@ class MessageSender:
         self._send_lock = asyncio.Lock()
 
     @sleep_and_retry
-    @limits(calls=1, period=7)
+    @limits(calls=1, period=5)
     async def send_message(
         self,
         client,
@@ -316,42 +316,29 @@ class BroadcastManager:
                     seconds=schedule_delay
                 )
 
-                send_tasks = [
-                    self.message_sender.send_message(
-                        self.client,
-                        chat_id,
-                        message_to_send,
-                        code.send_mode,
-                        schedule_time,
-                    )
-                    for chat_id in chats
-                ]
-
-                for task in send_tasks:
-                    try:
-                        await task
-                    except Exception as e:
-                        logger.error(f"Failed to send message: {str(e)}")
-
-                results = await asyncio.gather(
-                    *send_tasks, return_exceptions=True
-                )
-
                 failed_chats = set()
-                for i, result in enumerate(results):
-                    if isinstance(result, BaseException):
-                        chat_id = chats[i]
-                        logger.error(
-                            f"Failed to send to chat {chat_id} in code {code_name}: {str(result)}"
+
+                for chat_id in chats:
+                    try:
+                        await self.message_sender.send_message(
+                            self.client,
+                            chat_id,
+                            message_to_send,
+                            code.send_mode,
+                            schedule_time,
                         )
-                        if isinstance(
-                            result,
-                            (ChatWriteForbiddenError, UserBannedInChannelError),
-                        ):
-                            failed_chats.add(chat_id)
-                            logger.warning(
-                                f"Removing chat {chat_id} from {code_name} due to permission error"
-                            )
+                    except (
+                        ChatWriteForbiddenError,
+                        UserBannedInChannelError,
+                    ) as e:
+                        failed_chats.add(chat_id)
+                        logger.warning(
+                            f"Removing chat {chat_id} from {code_name} due to permission error: {str(e)}"
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to send to chat {chat_id} in code {code_name}: {str(e)}"
+                        )
 
                 if failed_chats:
                     original_chat_count = len(code.chats)
