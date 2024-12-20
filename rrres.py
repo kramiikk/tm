@@ -299,7 +299,6 @@ class BroadcastManager:
                     if msg
                 ]
                 if not messages_to_send:
-                    await asyncio.sleep(60)
                     continue
 
                 chats = list(code.chats)
@@ -340,6 +339,9 @@ class BroadcastManager:
                             f"Failed to send to chat {chat_id} in code {code_name}: {str(e)}"
                         )
 
+                await asyncio.sleep(schedule_delay)
+                self._last_broadcast_time[code_name] = time.time()
+
                 if failed_chats:
                     original_chat_count = len(code.chats)
                     code.chats -= failed_chats
@@ -348,10 +350,6 @@ class BroadcastManager:
                     )
                     self.save_config()
 
-                self._last_broadcast_time[code_name] = (
-                    time.time() + schedule_delay
-                )
-
             except asyncio.CancelledError:
                 logger.info(f"Broadcast loop cancelled for {code_name}")
                 break
@@ -359,7 +357,6 @@ class BroadcastManager:
                 logger.exception(
                     f"Critical error in broadcast loop {code_name}: {str(e)}"
                 )
-                await asyncio.sleep(60)
 
     async def start_broadcasts(self):
         """Запускает все активные рассылки."""
