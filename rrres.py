@@ -3,12 +3,13 @@ import logging
 import random
 import time
 from contextlib import suppress
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Union, Any
 from ratelimit import limits, sleep_and_retry
 from datetime import datetime, timedelta
 
-from telethon import TelegramClient, functions
+from telethon import functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
 from telethon.tl.types import Message
 
@@ -16,6 +17,41 @@ from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
+class CacheManager:
+    
+    def __init__(self, max_size: int = 100, max_age: int = 3600):
+        self.cache = OrderedDict()
+        self.max_size = max_size
+        self.max_age = max_age
+        self._lock = asyncio.Lock()
+
+    async def get(self, key: Any) -> Optional[Any]:
+        async with self._lock:
+            if key in self.cache:
+                item = self.cache[key]
+                if time.time() - item['timestamp'] < self.max_age:
+                    self.cache.move_to_end(key)
+                    return item['value']
+                else:
+                    del self.cache[key]
+            return None
+
+    async def set(self, key: Any, value: Any):
+        async with self._lock:
+            if len(self.cache) >= self.max_size:
+                self.cache.popitem(last=False)
+            self.cache[key] = {
+                'value': value,
+                'timestamp': time.time()
+            }
+
+    async def cleanup(self):
+        async with self._lock:
+            current_time = time.time()
+            self.cache = OrderedDict(
+                (k, v) for k, v in self.cache.items()
+                if current_time - v['timestamp'] < self.max_age
+            )
 
 @dataclass(frozen=True)
 class BroadcastMessage:
@@ -54,8 +90,18 @@ class BroadcastConfig:
     """Управляет конфигурацией рассылки, хранит все коды рассылок."""
 
     def __init__(self):
-        self.codes: Dict[str, BroadcastCode] = {}
+        # Используем OrderedDict для кодов рассылки
+        self.codes: OrderedDict[str, BroadcastCode] = OrderedDict()
         self._lock = asyncio.Lock()
+    
+    async def cleanup_codes(self):
+        """Очищает неиспользуемые коды рассылки"""
+        for code_name in list(self.codes.keys()):
+            code = self.codes[code_name]
+            if not code.chats or not code.messages:
+                del self.codes[code_name]
+            else:
+                self.codes.move_to_end(code_name)  # Перемещаем активные в конец
 
     async def add_code(self, code_name: str) -> None:
         """Добавляет новый код рассылки, если он не существует."""
@@ -71,7 +117,9 @@ class BroadcastConfig:
 
 class MessageSender:
     def __init__(self):
+        self._message_cache = OrderedDict()
         self._send_lock = asyncio.Lock()
+        self.MAX_CACHE_SIZE = 10
 
     @sleep_and_retry
     @limits(calls=1, period=5)
@@ -120,20 +168,52 @@ class MessageSender:
 class BroadcastManager:
     """Управляет рассылками, хранит и обрабатывает информацию о рассылках."""
 
-    def __init__(self, client: TelegramClient, db):
+    def __init__(self, client, db):
         """Инициализирует менеджер рассылок."""
 
         self.client = client
         self.db = db
         self.config = BroadcastConfig()
         self.message_sender = MessageSender()
-        self.broadcast_tasks: Dict[str, asyncio.Task] = {}
-        self.message_indices: Dict[str, int] = {}
+        # Используем OrderedDict для задач рассылки
+        self.broadcast_tasks = OrderedDict()
+        # Используем OrderedDict для индексов сообщений
+        self.message_indices = OrderedDict()
         self._active = True
-        self._last_broadcast_time: Dict[str, float] = {}
-        self._message_cache: Dict[
-            Tuple[int, int], Union[Message, List[Message]]
-        ] = {}
+        # Используем OrderedDict для времени последней рассылки
+        self._last_broadcast_time = OrderedDict()
+        self._message_cache = OrderedDict()
+    
+    # Можно добавить метод для очистки устаревших сообщений
+    def clear_old_messages(self, max_age_seconds: int = 3600):
+        current_time = time.time()
+        # Создаем новый OrderedDict с актуальными сообщениями
+        self._message_cache = OrderedDict(
+            (k, v) for k, v in self._message_cache.items() 
+            if current_time - v.get('timestamp', 0) < max_age_seconds
+        )
+    
+    # Метод очистки устаревших данных
+    async def cleanup_manager(self):
+        """Очищает устаревшие данные из всех кэшей"""
+        current_time = time.time()
+        
+        # Очистка неактивных задач
+        for code_name in list(self.broadcast_tasks.keys()):
+            if not self.broadcast_tasks[code_name].done():
+                self.broadcast_tasks.move_to_end(code_name)
+            else:
+                del self.broadcast_tasks[code_name]
+
+        # Очистка старых временных меток
+        max_age = 24 * 60 * 60  # 24 часа
+        self._last_broadcast_time = OrderedDict(
+            (k, v) for k, v in self._last_broadcast_time.items()
+            if current_time - v < max_age
+        )
+
+        # Очистка кэша сообщений
+        await self.clear_old_messages()
 
     def _create_broadcast_code_from_dict(
         self, code_data: dict
@@ -201,12 +281,15 @@ class BroadcastManager:
         cache_key = (msg_data.chat_id, msg_data.message_id)
         logger.info(f"Current cache size: {len(self._message_cache)} messages")
         
-        # Периодически очищаем весь кэш (например, каждый 100й запрос)
+        # Периодическая полная очистка
         if random.randint(1, 100) == 1:
             self._message_cache.clear()
             logger.info("Cache cleared")
         
+        # Проверяем кэш
         if cache_key in self._message_cache:
+            # Обновляем позицию элемента, перемещая его в конец
+            self._message_cache.move_to_end(cache_key)
             logger.info(f"Got from cache: {cache_key}")
             return self._message_cache[cache_key]
             
@@ -228,12 +311,17 @@ class BroadcastManager:
                 message.sort(key=lambda x: x.id)
     
             if message:
-                # Ограничиваем размер кэша
-                if len(self._message_cache) > 13:  # Храним максимум 10 сообщений
-                    oldest_key = next(iter(self._message_cache))
-                    del self._message_cache[oldest_key]
+                # Проверяем размер кэша и удаляем старые элементы
+                if len(self._message_cache) >= self.MAX_CACHE_SIZE:
+                    # Удаляем самый старый элемент (первый в OrderedDict)
+                    self._message_cache.popitem(last=False)
                     
-                self._message_cache[cache_key] = message
+                # Добавляем новое сообщение в конец
+                # И модифицировать сохранение в кэш
+                self._message_cache[cache_key] = {
+                    'message': message,
+                    'timestamp': time.time()
+                }
                 return message
                 
         except Exception:
@@ -281,9 +369,11 @@ class BroadcastManager:
 
     async def _broadcast_loop(self, code_name: str):
         """Бесконечный цикл рассылки сообщений."""
-
         while self._active:
             try:
+                # Очистка в начале каждой итерации
+                await self.cleanup_manager()
+                
                 code = self.config.codes.get(code_name)
                 if not code or not code.chats or not code.messages:
                     logger.warning(f"No chats or messages for code {code_name}")
@@ -443,10 +533,11 @@ class BroadcastMod(loader.Module):
         }
         self._manager.db.set("broadcast", "BroadcastStatus", broadcast_status)
 
-    async def client_ready(self, client: TelegramClient, db: Any):
+    async def client_ready(self, client, db: Any):
         """Выполняется при готовности клиента Telegram."""
 
         self._manager = BroadcastManager(client, db)
+        asyncio.create_task(self._periodic_cleanup())
         self._me_id = client.tg_id
 
         config_data = db.get("broadcast", "Broadcast", {})
@@ -470,6 +561,27 @@ class BroadcastMod(loader.Module):
                     logger.exception(
                         f"Не удалось восстановить рассылку {code_name}"
                     )
+    
+    async def _periodic_cleanup(self):
+        """Периодическая очистка всех кэшей"""
+        while True:
+            try:
+                await self._manager.cleanup_manager()
+                await self._manager.config.cleanup_codes()
+                
+                # Очистка неактивных кодов из БД
+                broadcast_status = self._manager.db.get("broadcast", "BroadcastStatus", {})
+                cleaned_status = {
+                    k: v for k, v in broadcast_status.items() 
+                    if k in self._manager.config.codes
+                }
+                if cleaned_status != broadcast_status:
+                    self._manager.db.set("broadcast", "BroadcastStatus", cleaned_status)
+                    
+            except Exception as e:
+                logger.error(f"Cleanup error: {e}")
+            
+            await asyncio.sleep(3600)  # Очистка раз в час
 
     async def _check_and_adjust_message_index(self, code_name: str):
         """Проверяет и корректирует индекс сообщения для рассылки."""
@@ -591,7 +703,7 @@ class BroadcastMod(loader.Module):
 
     async def broadcastcmd(self, message: Message):
         """Команда управления рассылкой."""
-
+        await self._manager.cleanup_manager()
         args = utils.get_args(message)
         if not args:
             if self._manager.broadcast_tasks:
@@ -692,7 +804,7 @@ class BroadcastMod(loader.Module):
 
     async def delcodecmd(self, message: Message):
         """Команда удаления кода рассылки."""
-
+        await self._manager.cleanup_manager()
         code_name = await self._validate_broadcast_code(message)
         if not code_name:
             return
