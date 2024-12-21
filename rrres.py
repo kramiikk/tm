@@ -197,31 +197,45 @@ class BroadcastManager:
         self, msg_data: BroadcastMessage
     ) -> Optional[Union[Message, List[Message]]]:
         """Получает сообщение или список сообщений из Telegram, используя кэш."""
-
+    
         cache_key = (msg_data.chat_id, msg_data.message_id)
+        logger.info(f"Current cache size: {len(self._message_cache)} messages")
+        
+        # Периодически очищаем весь кэш (например, каждый 100й запрос)
+        if random.randint(1, 100) == 1:
+            self._message_cache.clear()
+            logger.info("Cache cleared")
+        
         if cache_key in self._message_cache:
-            logger.info(f"Оп взял из кэша ссобщение {cache_key}")
+            logger.info(f"Got from cache: {cache_key}")
             return self._message_cache[cache_key]
-        logger.info(f"Сообщение не в кэше {cache_key}")
-
+            
+        logger.info(f"Not in cache: {cache_key}")
+    
         try:
             message_ids = (
                 list(msg_data.album_ids)
                 if msg_data.grouped_id is not None
                 else msg_data.message_id
             )
-
+    
             message = await self.client.get_messages(
                 msg_data.chat_id, ids=message_ids
             )
-
+    
             if msg_data.grouped_id is not None:
                 message = [msg for msg in message if msg is not None]
                 message.sort(key=lambda x: x.id)
-
+    
             if message:
+                # Ограничиваем размер кэша
+                if len(self._message_cache) > 13:  # Храним максимум 10 сообщений
+                    oldest_key = next(iter(self._message_cache))
+                    del self._message_cache[oldest_key]
+                    
                 self._message_cache[cache_key] = message
                 return message
+                
         except Exception:
             logger.error("Failed to fetch message")
         return None
