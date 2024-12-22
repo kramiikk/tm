@@ -6,8 +6,8 @@ from contextlib import suppress
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Union, Any
-from ratelimit import limits, sleep_and_retry
 from datetime import datetime, timedelta
+from ratelimit import limits, sleep_and_retry
 
 from telethon import functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
@@ -17,8 +17,8 @@ from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
-class CacheManager:
-    
+class Cache:
+    """Generic cache implementation with size and age limits."""
     def __init__(self, max_size: int = 100, max_age: int = 3600):
         self.cache = OrderedDict()
         self.max_size = max_size
@@ -27,14 +27,16 @@ class CacheManager:
 
     async def get(self, key: Any) -> Optional[Any]:
         async with self._lock:
-            if key in self.cache:
-                item = self.cache[key]
-                if time.time() - item['timestamp'] < self.max_age:
-                    self.cache.move_to_end(key)
-                    return item['value']
-                else:
-                    del self.cache[key]
-            return None
+            if key not in self.cache:
+                return None
+            
+            item = self.cache[key]
+            if time.time() - item['timestamp'] >= self.max_age:
+                del self.cache[key]
+                return None
+                
+            self.cache.move_to_end(key)
+            return item['value']
 
     async def set(self, key: Any, value: Any):
         async with self._lock:
@@ -55,8 +57,7 @@ class CacheManager:
 
 @dataclass(frozen=True)
 class BroadcastMessage:
-    """Сообщение для рассылки."""
-
+    """Message data for broadcasting."""
     chat_id: int
     message_id: int
     grouped_id: Optional[int] = None
@@ -65,15 +66,13 @@ class BroadcastMessage:
 
 @dataclass
 class BroadcastCode:
-    """Набор настроек для рассылки."""
-
+    """Broadcast settings container."""
     chats: Set[int] = field(default_factory=set)
     messages: List[BroadcastMessage] = field(default_factory=list)
     interval: Tuple[int, int] = field(default_factory=lambda: (10, 13))
     send_mode: str = "auto"
 
     def is_valid_interval(self) -> bool:
-        """Проверяет корректность интервала."""
         min_val, max_val = self.interval
         return (
             isinstance(min_val, int)
@@ -82,7 +81,6 @@ class BroadcastCode:
         )
 
     def normalize_interval(self) -> Tuple[int, int]:
-        """Нормализует интервал, если он некорректный."""
         return self.interval if self.is_valid_interval() else (10, 13)
 
 
@@ -116,73 +114,55 @@ class BroadcastConfig:
 
 
 class MessageSender:
-    def __init__(self):
-        self._message_cache = OrderedDict()
-        self._send_lock = asyncio.Lock()
-        self.MAX_CACHE_SIZE = 10
-
+    """Handles message sending with rate limiting."""
     @sleep_and_retry
     @limits(calls=1, period=5)
     async def send_message(
         self,
         client,
         chat_id: int,
-        message_to_send: Union[Message, List[Message]],
+        message: Union[Message, List[Message]],
         send_mode: str = "auto",
         schedule_time: Optional[datetime] = None,
     ):
-        """
-        Отправляет сообщение с правильной обработкой rate limit.
-        """
-        async with self._send_lock:
-            logger.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-
-            try:
-                if isinstance(message_to_send, list):
-                    await client.forward_messages(
-                        entity=chat_id,
-                        messages=message_to_send,
-                        from_peer=message_to_send[0].chat_id,
-                        schedule=schedule_time,
-                    )
-                elif message_to_send.media and send_mode != "normal":
-                    await client.forward_messages(
-                        entity=chat_id,
-                        messages=[message_to_send.id],
-                        from_peer=message_to_send.chat_id,
-                        schedule=schedule_time,
-                    )
-                else:
-                    await client.send_message(
-                        entity=chat_id,
-                        message=message_to_send.text,
-                        schedule=schedule_time,
-                    )
-                logger.info(f"Message successfully sent to chat {chat_id}")
-
-            except Exception as e:
-                logger.error(f"Error sending message to {chat_id}: {str(e)}")
-                raise
+        try:
+            if isinstance(message, list):
+                await client.forward_messages(
+                    entity=chat_id,
+                    messages=message,
+                    from_peer=message[0].chat_id,
+                    schedule=schedule_time,
+                )
+            elif message.media and send_mode != "normal":
+                await client.forward_messages(
+                    entity=chat_id,
+                    messages=[message.id],
+                    from_peer=message.chat_id,
+                    schedule=schedule_time,
+                )
+            else:
+                await client.send_message(
+                    entity=chat_id,
+                    message=message.text,
+                    schedule=schedule_time,
+                )
+        except Exception as e:
+            logger.error(f"Error sending message to {chat_id}: {str(e)}")
+            raise
 
 
 class BroadcastManager:
-    """Управляет рассылками, хранит и обрабатывает информацию о рассылках."""
-
+    """Manages broadcast operations and state."""
     def __init__(self, client, db):
-        """Инициализирует менеджер рассылок."""
-
         self.client = client
         self.db = db
-        self.config = BroadcastConfig()
-        self.message_sender = MessageSender()
-        # Используем OrderedDict для задач рассылки
-        self.broadcast_tasks = OrderedDict()
-        # Используем OrderedDict для индексов сообщений
+        self.codes = OrderedDict()
+        self.tasks = OrderedDict()
         self.message_indices = OrderedDict()
+        self.message_sender = MessageSender()
+        self.message_cache = Cache(max_size=100, max_age=3600)
+        self.last_broadcast_time = OrderedDict()
         self._active = True
-        # Используем OrderedDict для времени последней рассылки
-        self._last_broadcast_time = OrderedDict()
-        self._message_cache = OrderedDict()
     
     # Можно добавить метод для очистки устаревших сообщений
     def clear_old_messages(self, max_age_seconds: int = 3600):
@@ -193,27 +173,27 @@ class BroadcastManager:
             if current_time - v.get('timestamp', 0) < max_age_seconds
         )
     
-    # Метод очистки устаревших данных
-    async def cleanup_manager(self):
-        """Очищает устаревшие данные из всех кэшей"""
+    async def cleanup(self):
+        """Cleanup all caches and inactive tasks."""
         current_time = time.time()
         
-        # Очистка неактивных задач
-        for code_name in list(self.broadcast_tasks.keys()):
-            if not self.broadcast_tasks[code_name].done():
-                self.broadcast_tasks.move_to_end(code_name)
+        # Clean tasks
+        for code_name in list(self.tasks.keys()):
+            task = self.tasks[code_name]
+            if task.done():
+                del self.tasks[code_name]
             else:
-                del self.broadcast_tasks[code_name]
-
-        # Очистка старых временных меток
-        max_age = 24 * 60 * 60  # 24 часа
-        self._last_broadcast_time = OrderedDict(
-            (k, v) for k, v in self._last_broadcast_time.items()
+                self.tasks.move_to_end(code_name)
+                
+        # Clean broadcast times
+        max_age = 24 * 60 * 60
+        self.last_broadcast_time = OrderedDict(
+            (k, v) for k, v in self.last_broadcast_time.items()
             if current_time - v < max_age
         )
-
-        # Очистка кэша сообщений
-        await self.clear_old_messages()
+        
+        # Clean message cache
+        await self.message_cache.cleanup()
 
     def _create_broadcast_code_from_dict(
         self, code_data: dict
@@ -246,13 +226,12 @@ class BroadcastManager:
             except Exception:
                 logger.error(f"Error loading broadcast code {code_name}")
 
-    def save_config(self):
-        """Сохраняет текущую конфигурацию рассылки в базу данных."""
-
+    def _save_config(self):
+        """Save current configuration to database."""
         try:
-            config_dict = {
-                "code_chats": {
-                    code_name: {
+            config = {
+                "codes": {
+                    name: {
                         "chats": list(code.chats),
                         "messages": [
                             {
@@ -266,66 +245,30 @@ class BroadcastManager:
                         "interval": list(code.interval),
                         "send_mode": code.send_mode,
                     }
-                    for code_name, code in self.config.codes.items()
+                    for name, code in self.codes.items()
                 }
             }
-            self.db.set("broadcast", "Broadcast", config_dict)
+            self.db.set("broadcast", "config", config)
         except Exception:
-            logger.exception("Failed to save config")
+            logger.error("Failed to save config")
 
-    async def _fetch_messages(
-        self, msg_data: BroadcastMessage
-    ) -> Optional[Union[Message, List[Message]]]:
-        """Получает сообщение или список сообщений из Telegram, используя кэш."""
-    
-        cache_key = (msg_data.chat_id, msg_data.message_id)
-        logger.info(f"Current cache size: {len(self._message_cache)} messages")
-        
-        # Периодическая полная очистка
-        if random.randint(1, 100) == 1:
-            self._message_cache.clear()
-            logger.info("Cache cleared")
-        
-        # Проверяем кэш
-        if cache_key in self._message_cache:
-            # Обновляем позицию элемента, перемещая его в конец
-            self._message_cache.move_to_end(cache_key)
-            logger.info(f"Got from cache: {cache_key}")
-            return self._message_cache[cache_key]
-            
-        logger.info(f"Not in cache: {cache_key}")
-    
+    async def _fetch_messages(self, msg_data: BroadcastMessage) -> Optional[Union[Message, List[Message]]]:
+        """Fetch messages with caching."""
         try:
-            message_ids = (
-                list(msg_data.album_ids)
-                if msg_data.grouped_id is not None
-                else msg_data.message_id
-            )
-    
-            message = await self.client.get_messages(
-                msg_data.chat_id, ids=message_ids
-            )
-    
-            if msg_data.grouped_id is not None:
-                message = [msg for msg in message if msg is not None]
-                message.sort(key=lambda x: x.id)
-    
-            if message:
-                # Проверяем размер кэша и удаляем старые элементы
-                if len(self._message_cache) >= self.MAX_CACHE_SIZE:
-                    # Удаляем самый старый элемент (первый в OrderedDict)
-                    self._message_cache.popitem(last=False)
-                    
-                # Добавляем новое сообщение в конец
-                # И модифицировать сохранение в кэш
-                self._message_cache[cache_key] = {
-                    'message': message,
-                    'timestamp': time.time()
-                }
-                return message
+            message_ids = list(msg_data.album_ids) if msg_data.grouped_id else msg_data.message_id
+            messages = await self.client.get_messages(msg_data.chat_id, ids=message_ids)
+            
+            if msg_data.grouped_id:
+                messages = [msg for msg in messages if msg]
+                messages.sort(key=lambda x: x.id)
+                
+            if messages:
+                await self.message_cache.set((msg_data.chat_id, msg_data.message_id), messages)
+                return messages
                 
         except Exception:
-            logger.error("Failed to fetch message")
+            logger.error(f"Failed to fetch message from {msg_data.chat_id}")
+            
         return None
 
     async def add_message(self, code_name: str, message: Message) -> bool:
@@ -368,99 +311,78 @@ class BroadcastManager:
             return False
 
     async def _broadcast_loop(self, code_name: str):
-        """Бесконечный цикл рассылки сообщений."""
+        """Main broadcast loop."""
         while self._active:
             try:
-                # Очистка в начале каждой итерации
-                await self.cleanup_manager()
+                await self.cleanup()
+                code = self.codes.get(code_name)
                 
-                code = self.config.codes.get(code_name)
-                if not code or not code.chats or not code.messages:
-                    logger.warning(f"No chats or messages for code {code_name}")
+                if not code or not (code.chats and code.messages):
                     await asyncio.sleep(60)
                     continue
 
                 min_interval, max_interval = code.normalize_interval()
                 schedule_delay = random.choice([60, 120, 180])
-                time_until_schedule = (
-                    random.uniform(min_interval, max_interval) * 60
-                    - schedule_delay
-                )
-                last_broadcast = self._last_broadcast_time.get(code_name)
-
-                if (
-                    last_broadcast is None
-                    or time.time() - last_broadcast < time_until_schedule
-                ):
+                time_until_schedule = random.uniform(min_interval, max_interval) * 60 - schedule_delay
+                
+                last_broadcast = self.last_broadcast_time.get(code_name)
+                if last_broadcast and time.time() - last_broadcast < time_until_schedule:
                     await asyncio.sleep(time_until_schedule)
 
-                messages_to_send = [
-                    msg
-                    for msg in [
-                        await self._fetch_messages(msg_data)
-                        for msg_data in code.messages
-                    ]
-                    if msg
-                ]
+                messages_to_send = [msg for msg in [
+                    await self._fetch_messages(msg_data) 
+                    for msg_data in code.messages
+                ] if msg]
+                
                 if not messages_to_send:
                     continue
 
                 chats = list(code.chats)
                 random.shuffle(chats)
-                message_index = self.message_indices.get(code_name, 0)
-                message_to_send = messages_to_send[
-                    message_index % len(messages_to_send)
-                ]
-                self.message_indices[code_name] = (message_index + 1) % len(
-                    messages_to_send
+                msg_index = self.message_indices.get(code_name, 0)
+                message_to_send = messages_to_send[msg_index % len(messages_to_send)]
+                self.message_indices[code_name] = (msg_index + 1) % len(messages_to_send)
+
+                schedule_time = datetime.now() + timedelta(seconds=schedule_delay)
+                failed_chats = await self._send_messages_to_chats(
+                    code_name, chats, message_to_send, code.send_mode, schedule_time
                 )
-
-                schedule_time = datetime.now() + timedelta(
-                    seconds=schedule_delay
-                )
-
-                failed_chats = set()
-
-                for chat_id in chats:
-                    try:
-                        await self.message_sender.send_message(
-                            self.client,
-                            chat_id,
-                            message_to_send,
-                            code.send_mode,
-                            schedule_time,
-                        )
-                    except (
-                        ChatWriteForbiddenError,
-                        UserBannedInChannelError,
-                    ) as e:
-                        failed_chats.add(chat_id)
-                        logger.warning(
-                            f"Removing chat {chat_id} from {code_name} due to permission error: {str(e)}"
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"Failed to send to chat {chat_id} in code {code_name}: {str(e)}"
-                        )
-
-                await asyncio.sleep(schedule_delay)
-                self._last_broadcast_time[code_name] = time.time()
 
                 if failed_chats:
-                    original_chat_count = len(code.chats)
                     code.chats -= failed_chats
-                    logger.info(
-                        f"Removed {len(failed_chats)} chats from {code_name}. Before: {original_chat_count}, After: {len(code.chats)}"
-                    )
-                    self.save_config()
+                    self._save_config()
 
             except asyncio.CancelledError:
-                logger.info(f"Broadcast loop cancelled for {code_name}")
                 break
             except Exception as e:
-                logger.exception(
-                    f"Critical error in broadcast loop {code_name}: {str(e)}"
+                logger.exception(f"Critical error in broadcast loop {code_name}: {str(e)}")
+                await asyncio.sleep(60)
+    
+    async def _send_messages_to_chats(
+        self, 
+        code_name: str,
+        chats: List[int],
+        message: Union[Message, List[Message]],
+        send_mode: str,
+        schedule_time: datetime
+    ) -> Set[int]:
+        """Send messages to multiple chats and track failures."""
+        failed_chats = set()
+        
+        for chat_id in chats:
+            try:
+                await self.message_sender.send_message(
+                    self.client, chat_id, message, send_mode, schedule_time
                 )
+            except (ChatWriteForbiddenError, UserBannedInChannelError):
+                failed_chats.add(chat_id)
+            except Exception as e:
+                logger.error(f"Failed to send to chat {chat_id}: {str(e)}")
+                
+        await asyncio.sleep(schedule_delay)
+        self.last_broadcast_time[code_name] = time.time()
+        
+        return failed_chats
 
     async def start_broadcasts(self):
         """Запускает все активные рассылки."""
