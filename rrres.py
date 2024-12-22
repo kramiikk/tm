@@ -383,6 +383,17 @@ class MessageCache:
         """Clear all cached data."""
         self.cache.clear()
 
+    async def clean_expired(self):
+        """Removes expired entries from the cache."""
+        async with self._lock:
+            expired_keys = [
+                k
+                for k, (timestamp, _) in self.cache.items()
+                if time.time() - timestamp > self.ttl
+            ]
+            for key in expired_keys:
+                del self.cache[key]
+
 
 @loader.tds
 class BroadcastMod(loader.Module):
@@ -778,7 +789,7 @@ class BroadcastMod(loader.Module):
                 base_link = f"t.me/c/{chat_id % 10**10}"
 
                 if msg.grouped_id is not None:
-                    album_links = ", ".join(
+                    album_links = "\n   ".join(
                         f"<a href='{base_link}/{album_id}'>{album_id}</a>"
                         for album_id in msg.album_ids
                     )
@@ -790,7 +801,9 @@ class BroadcastMod(loader.Module):
                         f"{i}. Сообщение ID: {msg.message_id} в чате {msg.chat_id}:\n   <a href='{base_link}/{msg.message_id}'>{msg.message_id}</a>"
                     )
             except Exception as e:
-                text.append(f"{i}. Ошибка получения информации: {e}")
+                text.append(
+                    f"{i}. Ошибка получения информации о сообщении в чате {msg.chat_id} с ID {msg.message_id}: {e}"
+                )
         await utils.answer(message, "\n\n".join(text))
 
     async def sendmodecmd(self, message: Message):
