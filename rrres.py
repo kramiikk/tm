@@ -17,43 +17,6 @@ from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
-class Cache:
-    """Generic cache implementation with size and age limits."""
-    def __init__(self, max_size: int = 100, max_age: int = 3600):
-        self.cache = OrderedDict()
-        self.max_size = max_size
-        self.max_age = max_age
-        self._lock = asyncio.Lock()
-
-    async def get(self, key: Any) -> Optional[Any]:
-        async with self._lock:
-            if key not in self.cache:
-                return None
-            
-            item = self.cache[key]
-            if time.time() - item['timestamp'] >= self.max_age:
-                del self.cache[key]
-                return None
-                
-            self.cache.move_to_end(key)
-            return item['value']
-
-    async def set(self, key: Any, value: Any):
-        async with self._lock:
-            if len(self.cache) >= self.max_size:
-                self.cache.popitem(last=False)
-            self.cache[key] = {
-                'value': value,
-                'timestamp': time.time()
-            }
-
-    async def cleanup(self):
-        async with self._lock:
-            current_time = time.time()
-            self.cache = OrderedDict(
-                (k, v) for k, v in self.cache.items()
-                if current_time - v['timestamp'] < self.max_age
-            )
 
 @dataclass(frozen=True)
 class BroadcastMessage:
@@ -84,72 +47,22 @@ class BroadcastCode:
         return self.interval if self.is_valid_interval() else (10, 13)
 
 
-class BroadcastConfig:
-    """Управляет конфигурацией рассылки, хранит все коды рассылок."""
-
+class MessageCache:
+    """Thread-safe message cache implementation."""
     def __init__(self):
-        # Используем OrderedDict для кодов рассылки
-        self.codes: OrderedDict[str, BroadcastCode] = OrderedDict()
+        self.cache = OrderedDict()
         self._lock = asyncio.Lock()
-    
-    async def cleanup_codes(self):
-        """Очищает неиспользуемые коды рассылки"""
-        for code_name in list(self.codes.keys()):
-            code = self.codes[code_name]
-            if not code.chats or not code.messages:
-                del self.codes[code_name]
-            else:
-                self.codes.move_to_end(code_name)  # Перемещаем активные в конец
-
-    async def add_code(self, code_name: str) -> None:
-        """Добавляет новый код рассылки, если он не существует."""
+        
+    async def get(self, key: Tuple[int, int]) -> Optional[Union[Message, List[Message]]]:
         async with self._lock:
-            if code_name not in self.codes:
-                self.codes[code_name] = BroadcastCode()
-
-    async def remove_code(self, code_name: str) -> bool:
-        """Удаляет код рассылки."""
+            return self.cache.get(key)
+            
+    async def set(self, key: Tuple[int, int], value: Union[Message, List[Message]]):
         async with self._lock:
-            return self.codes.pop(code_name, None) is not None
-
-
-class MessageSender:
-    """Handles message sending with rate limiting."""
-    @sleep_and_retry
-    @limits(calls=1, period=5)
-    async def send_message(
-        self,
-        client,
-        chat_id: int,
-        message: Union[Message, List[Message]],
-        send_mode: str = "auto",
-        schedule_time: Optional[datetime] = None,
-    ):
-        try:
-            if isinstance(message, list):
-                await client.forward_messages(
-                    entity=chat_id,
-                    messages=message,
-                    from_peer=message[0].chat_id,
-                    schedule=schedule_time,
-                )
-            elif message.media and send_mode != "normal":
-                await client.forward_messages(
-                    entity=chat_id,
-                    messages=[message.id],
-                    from_peer=message.chat_id,
-                    schedule=schedule_time,
-                )
-            else:
-                await client.send_message(
-                    entity=chat_id,
-                    message=message.text,
-                    schedule=schedule_time,
-                )
-        except Exception as e:
-            logger.error(f"Error sending message to {chat_id}: {str(e)}")
-            raise
-
+            self.cache[key] = value
+            
+    def clear(self):
+        self.cache.clear()
 
 class BroadcastManager:
     """Manages broadcast operations and state."""
@@ -157,49 +70,32 @@ class BroadcastManager:
         self.client = client
         self.db = db
         self.codes = OrderedDict()
-        self.tasks = OrderedDict()
+        self.broadcast_tasks = OrderedDict()
         self.message_indices = OrderedDict()
-        self.message_sender = MessageSender()
-        self.message_cache = Cache(max_size=100, max_age=3600)
         self.last_broadcast_time = OrderedDict()
+        self._message_cache = MessageCache()
         self._active = True
     
-    # Можно добавить метод для очистки устаревших сообщений
-    def clear_old_messages(self, max_age_seconds: int = 3600):
-        current_time = time.time()
-        # Создаем новый OrderedDict с актуальными сообщениями
-        self._message_cache = OrderedDict(
-            (k, v) for k, v in self._message_cache.items() 
-            if current_time - v.get('timestamp', 0) < max_age_seconds
-        )
-    
-    async def cleanup(self):
-        """Cleanup all caches and inactive tasks."""
-        current_time = time.time()
-        
-        # Clean tasks
-        for code_name in list(self.tasks.keys()):
-            task = self.tasks[code_name]
+    async def cleanup_manager(self):
+        """Cleanup all tasks and caches."""
+        # Clean inactive tasks
+        for code_name in list(self.broadcast_tasks.keys()):
+            task = self.broadcast_tasks[code_name]
             if task.done():
-                del self.tasks[code_name]
+                del self.broadcast_tasks[code_name]
             else:
-                self.tasks.move_to_end(code_name)
+                self.broadcast_tasks.move_to_end(code_name)
                 
-        # Clean broadcast times
-        max_age = 24 * 60 * 60
+        # Clean outdated broadcast times
+        current_time = time.time()
+        max_age = 24 * 60 * 60  # 24 hours
         self.last_broadcast_time = OrderedDict(
             (k, v) for k, v in self.last_broadcast_time.items()
             if current_time - v < max_age
         )
-        
-        # Clean message cache
-        await self.message_cache.cleanup()
 
-    def _create_broadcast_code_from_dict(
-        self, code_data: dict
-    ) -> BroadcastCode:
-        """Создает объект BroadcastCode из словаря."""
-
+    def _create_broadcast_code_from_dict(self, code_data: dict) -> BroadcastCode:
+        """Creates BroadcastCode object from dictionary."""
         return BroadcastCode(
             chats=set(code_data.get("chats", [])),
             messages=[
@@ -216,18 +112,15 @@ class BroadcastManager:
         )
 
     def _load_config_from_dict(self, data: dict):
-        """Загружает конфигурацию рассылки из словаря."""
-
-        for code_name, code_data in data.get("code_chats", {}).items():
+        """Loads broadcast configuration from dictionary."""
+        for code_name, code_data in data.get("codes", {}).items():
             try:
-                self.config.codes[code_name] = (
-                    self._create_broadcast_code_from_dict(code_data)
-                )
+                self.codes[code_name] = self._create_broadcast_code_from_dict(code_data)
             except Exception:
                 logger.error(f"Error loading broadcast code {code_name}")
 
-    def _save_config(self):
-        """Save current configuration to database."""
+    def save_config(self):
+        """Saves current configuration to database."""
         try:
             config = {
                 "codes": {
@@ -253,9 +146,13 @@ class BroadcastManager:
             logger.error("Failed to save config")
 
     async def _fetch_messages(self, msg_data: BroadcastMessage) -> Optional[Union[Message, List[Message]]]:
-        """Fetch messages with caching."""
+        """Fetches messages with caching."""
         try:
-            message_ids = list(msg_data.album_ids) if msg_data.grouped_id else msg_data.message_id
+            cached = await self._message_cache.get((msg_data.chat_id, msg_data.message_id))
+            if cached:
+                return cached
+                
+            message_ids = list(msg_data.album_ids) if msg_data.grouped_id else [msg_data.message_id]
             messages = await self.client.get_messages(msg_data.chat_id, ids=message_ids)
             
             if msg_data.grouped_id:
@@ -263,7 +160,7 @@ class BroadcastManager:
                 messages.sort(key=lambda x: x.id)
                 
             if messages:
-                await self.message_cache.set((msg_data.chat_id, msg_data.message_id), messages)
+                await self._message_cache.set((msg_data.chat_id, msg_data.message_id), messages)
                 return messages
                 
         except Exception:
@@ -272,11 +169,12 @@ class BroadcastManager:
         return None
 
     async def add_message(self, code_name: str, message: Message) -> bool:
-        """Добавляет сообщение в список рассылки."""
-
+        """Adds message to broadcast list."""
         try:
-            await self.config.add_code(code_name)
-            code = self.config.codes[code_name]
+            if code_name not in self.codes:
+                self.codes[code_name] = BroadcastCode()
+                
+            code = self.codes[code_name]
             grouped_id = getattr(message, "grouped_id", None)
 
             if grouped_id:
@@ -300,7 +198,8 @@ class BroadcastManager:
                 )
             else:
                 msg_data = BroadcastMessage(
-                    chat_id=message.chat_id, message_id=message.id
+                    chat_id=message.chat_id,
+                    message_id=message.id
                 )
 
             code.messages.append(msg_data)
@@ -310,11 +209,46 @@ class BroadcastManager:
             logger.exception("Failed to add message")
             return False
 
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    async def _send_message(
+        self,
+        chat_id: int,
+        message: Union[Message, List[Message]],
+        send_mode: str = "auto",
+        schedule_time: Optional[datetime] = None,
+    ):
+        """Sends message with rate limiting."""
+        try:
+            if isinstance(message, list):
+                await self.client.forward_messages(
+                    entity=chat_id,
+                    messages=message,
+                    from_peer=message[0].chat_id,
+                    schedule=schedule_time,
+                )
+            elif message.media and send_mode != "normal":
+                await self.client.forward_messages(
+                    entity=chat_id,
+                    messages=[message.id],
+                    from_peer=message.chat_id,
+                    schedule=schedule_time,
+                )
+            else:
+                await self.client.send_message(
+                    entity=chat_id,
+                    message=message.text,
+                    schedule=schedule_time,
+                )
+        except Exception as e:
+            logger.error(f"Error sending message to {chat_id}: {str(e)}")
+            raise
+
     async def _broadcast_loop(self, code_name: str):
         """Main broadcast loop."""
         while self._active:
             try:
-                await self.cleanup()
+                await self.cleanup_manager()
                 code = self.codes.get(code_name)
                 
                 if not code or not (code.chats and code.messages):
@@ -322,17 +256,18 @@ class BroadcastManager:
                     continue
 
                 min_interval, max_interval = code.normalize_interval()
-                schedule_delay = random.choice([60, 120, 180])
+                schedule_delay = random.randint(60, 180)
                 time_until_schedule = random.uniform(min_interval, max_interval) * 60 - schedule_delay
                 
                 last_broadcast = self.last_broadcast_time.get(code_name)
                 if last_broadcast and time.time() - last_broadcast < time_until_schedule:
                     await asyncio.sleep(time_until_schedule)
 
-                messages_to_send = [msg for msg in [
-                    await self._fetch_messages(msg_data) 
-                    for msg_data in code.messages
-                ] if msg]
+                messages_to_send = []
+                for msg_data in code.messages:
+                    msg = await self._fetch_messages(msg_data)
+                    if msg:
+                        messages_to_send.append(msg)
                 
                 if not messages_to_send:
                     continue
@@ -344,59 +279,30 @@ class BroadcastManager:
                 self.message_indices[code_name] = (msg_index + 1) % len(messages_to_send)
 
                 schedule_time = datetime.now() + timedelta(seconds=schedule_delay)
-                failed_chats = await self._send_messages_to_chats(
-                    code_name, chats, message_to_send, code.send_mode, schedule_time
-                )
-
+                failed_chats = set()
+                
+                for chat_id in chats:
+                    try:
+                        await self._send_message(
+                            chat_id, message_to_send, code.send_mode, schedule_time
+                        )
+                    except (ChatWriteForbiddenError, UserBannedInChannelError):
+                        failed_chats.add(chat_id)
+                    except Exception as e:
+                        logger.error(f"Failed to send to chat {chat_id}: {str(e)}")
+                
                 if failed_chats:
                     code.chats -= failed_chats
-                    self._save_config()
+                    self.save_config()
+                    
+                await asyncio.sleep(schedule_delay)
+                self.last_broadcast_time[code_name] = time.time()
 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.exception(f"Critical error in broadcast loop {code_name}: {str(e)}")
                 await asyncio.sleep(60)
-    
-    async def _send_messages_to_chats(
-        self, 
-        code_name: str,
-        chats: List[int],
-        message: Union[Message, List[Message]],
-        send_mode: str,
-        schedule_time: datetime
-    ) -> Set[int]:
-        """Send messages to multiple chats and track failures."""
-        failed_chats = set()
-        
-        for chat_id in chats:
-            try:
-                await self.message_sender.send_message(
-                    self.client, chat_id, message, send_mode, schedule_time
-                )
-            except (ChatWriteForbiddenError, UserBannedInChannelError):
-                failed_chats.add(chat_id)
-            except Exception as e:
-                logger.error(f"Failed to send to chat {chat_id}: {str(e)}")
-                
-        await asyncio.sleep(schedule_delay)
-        self.last_broadcast_time[code_name] = time.time()
-        
-        return failed_chats
-
-    async def start_broadcasts(self):
-        """Запускает все активные рассылки."""
-
-        for code_name in self.config.codes:
-            if code_name not in self.broadcast_tasks:
-                try:
-                    self.broadcast_tasks[code_name] = asyncio.create_task(
-                        self._broadcast_loop(code_name)
-                    )
-                except Exception:
-                    logger.exception(
-                        f"Failed to start broadcast loop for {code_name}"
-                    )
 
 
 @loader.tds
@@ -441,11 +347,10 @@ class BroadcastMod(loader.Module):
     }
 
     def __init__(self):
-        """Инициализация модуля."""
-
-        self._manager: Optional[BroadcastManager] = None
-        self._wat_mode = False
-        self._me_id = None
+        self.manager = None
+        self.wat_mode = False
+        self.me_id = None
+        self._periodic_task = None
 
     def save_broadcast_status(self):
         """Сохраняет статус запущенных рассылок."""
@@ -455,55 +360,69 @@ class BroadcastMod(loader.Module):
         }
         self._manager.db.set("broadcast", "BroadcastStatus", broadcast_status)
 
-    async def client_ready(self, client, db: Any):
-        """Выполняется при готовности клиента Telegram."""
-
-        self._manager = BroadcastManager(client, db)
-        asyncio.create_task(self._periodic_cleanup())
-        self._me_id = client.tg_id
-
-        config_data = db.get("broadcast", "Broadcast", {})
-        self._manager._load_config_from_dict(config_data)
-
+    async def client_ready(self, client, db):
+        """Инициализация при запуске."""
+        self.manager = BroadcastManager(client, db)
+        self.me_id = await client.get_me()
+        self.me_id = self.me_id.id
+        
+        # Загружаем конфигурацию
+        config_data = db.get("broadcast", "config", {})
+        self.manager._load_config_from_dict(config_data)
+        
+        # Восстанавливаем активные рассылки
         broadcast_status = db.get("broadcast", "BroadcastStatus", {})
-
-        for code_name in self._manager.config.codes:
-            if (
-                broadcast_status.get(code_name)
-                and code_name not in self._manager.broadcast_tasks
-            ):
-                try:
-                    await self._check_and_adjust_message_index(code_name)
-                    self._manager.broadcast_tasks[code_name] = (
-                        asyncio.create_task(
-                            self._manager._broadcast_loop(code_name)
-                        )
-                    )
-                except Exception:
-                    logger.exception(
-                        f"Не удалось восстановить рассылку {code_name}"
-                    )
+        for code_name in self.manager.codes:
+            if broadcast_status.get(code_name):
+                await self._start_broadcast(code_name)
+        
+        # Запускаем периодическую очистку
+        self._periodic_task = asyncio.create_task(self._periodic_cleanup())
     
     async def _periodic_cleanup(self):
-        """Периодическая очистка всех кэшей"""
+        """Периодическая очистка ресурсов."""
         while True:
             try:
-                await self._manager.cleanup_manager()
-                await self._manager.config.cleanup_codes()
-                
-                # Очистка неактивных кодов из БД
-                broadcast_status = self._manager.db.get("broadcast", "BroadcastStatus", {})
+                await self.manager.cleanup_manager()
+                # Очищаем неактивные коды из статуса
+                broadcast_status = self.manager.db.get("broadcast", "BroadcastStatus", {})
                 cleaned_status = {
                     k: v for k, v in broadcast_status.items() 
-                    if k in self._manager.config.codes
+                    if k in self.manager.codes
                 }
                 if cleaned_status != broadcast_status:
-                    self._manager.db.set("broadcast", "BroadcastStatus", cleaned_status)
-                    
+                    self.manager.db.set("broadcast", "BroadcastStatus", cleaned_status)
             except Exception as e:
                 logger.error(f"Cleanup error: {e}")
-            
-            await asyncio.sleep(3600)  # Очистка раз в час
+            await asyncio.sleep(3600)  # Раз в час
+
+    async def _start_broadcast(self, code_name: str) -> bool:
+        """Запускает рассылку."""
+        try:
+            if code_name not in self.manager.broadcast_tasks:
+                self.manager.broadcast_tasks[code_name] = asyncio.create_task(
+                    self.manager._broadcast_loop(code_name)
+                )
+                broadcast_status = self.manager.db.get("broadcast", "BroadcastStatus", {})
+                broadcast_status[code_name] = True
+                self.manager.db.set("broadcast", "BroadcastStatus", broadcast_status)
+                return True
+        except Exception:
+            logger.exception(f"Failed to start broadcast {code_name}")
+        return False
+
+    async def _stop_broadcast(self, code_name: str):
+        """Останавливает рассылку."""
+        if code_name in self.manager.broadcast_tasks:
+            task = self.manager.broadcast_tasks.pop(code_name)
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+            # Обновляем статус
+            broadcast_status = self.manager.db.get("broadcast", "BroadcastStatus", {})
+            if code_name in broadcast_status:
+                del broadcast_status[code_name]
+                self.manager.db.set("broadcast", "BroadcastStatus", broadcast_status)
 
     async def _check_and_adjust_message_index(self, code_name: str):
         """Проверяет и корректирует индекс сообщения для рассылки."""
@@ -581,263 +500,215 @@ class BroadcastMod(loader.Module):
                     f"Error checking scheduled messages for {code_name} in chat {chat_id}"
                 )
 
-    async def _validate_broadcast_code(
-        self, message: Message, code_name: Optional[str] = None
-    ) -> Optional[str]:
+    async def _validate_code(self, message: Message, code_name: Optional[str] = None) -> Optional[str]:
         """Проверяет существование кода рассылки."""
-
         args = utils.get_args(message)
         if code_name is None:
             if not args:
                 await utils.answer(message, self.strings["specify_code"])
                 return None
             code_name = args[0]
-        if code_name not in self._manager.config.codes:
+        if code_name not in self.manager.codes:
             await utils.answer(
-                message, self.strings["code_not_found"].format(code_name)
+                message,
+                self.strings["code_not_found"].format(code_name)
             )
             return None
         return code_name
 
     async def addmsgcmd(self, message: Message):
-        """Команда добавления сообщения в рассылку."""
-
+        """Добавить сообщение в рассылку."""
         reply = await message.get_reply_message()
         if not reply:
             return await utils.answer(message, self.strings["reply_to_message"])
+            
         args = utils.get_args(message)
         if len(args) != 1:
             return await utils.answer(message, self.strings["addmsg_usage"])
+            
         code_name = args[0]
-        success = await self._manager.add_message(code_name, reply)
-        (
-            await utils.answer(
-                message,
-                (
-                    self.strings["album_added"].format(code_name)
-                    if getattr(reply, "grouped_id", None)
-                    else self.strings["single_added"].format(code_name)
-                ),
-            )
-            if success
-            else await utils.answer(message, "Не удалось добавить сообщение")
+        success = await self.manager.add_message(code_name, reply)
+        
+        await utils.answer(
+            message,
+            self.strings["album_added" if getattr(reply, "grouped_id", None) else "single_added"].format(code_name) 
+            if success else "Не удалось добавить сообщение"
         )
 
     async def broadcastcmd(self, message: Message):
-        """Команда управления рассылкой."""
-        await self._manager.cleanup_manager()
+        """Управление рассылкой."""
+        await self.manager.cleanup_manager()
         args = utils.get_args(message)
+        
         if not args:
-            if self._manager.broadcast_tasks:
-                for code_name, task in list(
-                    self._manager.broadcast_tasks.items()
-                ):
-                    task.cancel()
-                    with suppress(asyncio.CancelledError):
-                        await task
-                self._manager.broadcast_tasks.clear()
-                self._manager.db.set("broadcast", "BroadcastStatus", {})
+            # Управление всеми рассылками
+            if self.manager.broadcast_tasks:
+                for code_name in list(self.manager.broadcast_tasks.keys()):
+                    await self._stop_broadcast(code_name)
                 await utils.answer(message, self.strings["all_stopped"])
             else:
-                await self._manager.start_broadcasts()
-                self.save_broadcast_status()
-                await utils.answer(message, self.strings["all_started"])
-        else:
-            code_name = args[0]
-            if code_name not in self._manager.config.codes:
-                return await utils.answer(
-                    message, self.strings["code_not_found"].format(code_name)
-                )
-            if code_name in self._manager.broadcast_tasks:
-                task = self._manager.broadcast_tasks.pop(code_name)
-                task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await task
-                self._manager.db.set(
-                    "broadcast",
-                    "BroadcastStatus",
-                    {
-                        k: v
-                        for k, v in self._manager.db.get(
-                            "broadcast", "BroadcastStatus", {}
-                        ).items()
-                        if k != code_name
-                    },
-                )
+                success = True
+                for code_name in self.manager.codes:
+                    if not await self._start_broadcast(code_name):
+                        success = False
                 await utils.answer(
-                    message, self.strings["broadcast_stopped"].format(code_name)
+                    message, 
+                    self.strings["all_started"] if success else "Не все рассылки удалось запустить"
+                )
+            return
+
+        # Управление конкретной рассылкой
+        code_name = args[0]
+        if code_name not in self.manager.codes:
+            return await utils.answer(
+                message,
+                self.strings["code_not_found"].format(code_name)
+            )
+
+        if code_name in self.manager.broadcast_tasks:
+            await self._stop_broadcast(code_name)
+            await utils.answer(
+                message,
+                self.strings["broadcast_stopped"].format(code_name)
+            )
+        else:
+            if await self._start_broadcast(code_name):
+                await utils.answer(
+                    message,
+                    self.strings["broadcast_started"].format(code_name)
                 )
             else:
-                try:
-                    self._manager.broadcast_tasks[code_name] = (
-                        asyncio.create_task(
-                            self._manager._broadcast_loop(code_name)
-                        )
-                    )
-                    broadcast_status = self._manager.db.get(
-                        "broadcast", "BroadcastStatus", {}
-                    )
-                    broadcast_status[code_name] = True
-                    self._manager.db.set(
-                        "broadcast", "BroadcastStatus", broadcast_status
-                    )
-                    await utils.answer(
-                        message,
-                        self.strings["broadcast_started"].format(code_name),
-                    )
-                except Exception:
-                    logger.exception(
-                        f"Failed to start broadcast loop for {code_name}"
-                    )
-                    await utils.answer(
-                        message,
-                        self.strings["broadcast_start_failed"].format(
-                            code_name
-                        ),
-                    )
+                await utils.answer(
+                    message,
+                    self.strings["broadcast_start_failed"].format(code_name)
+                )
 
     async def chatcmd(self, message: Message):
-        """Команда добавления/удаления чата из рассылки."""
-
+        """Добавить/удалить чат из рассылки."""
         args = utils.get_args(message)
         if len(args) != 2:
             return await utils.answer(message, self.strings["chat_usage"])
+            
         try:
             code_name, chat_id = args[0], int(args[1])
         except ValueError:
             return await utils.answer(message, self.strings["chat_id_numeric"])
-        code_name = await self._validate_broadcast_code(message, code_name)
+            
+        code_name = await self._validate_code(message, code_name)
         if not code_name:
             return
-        code = self._manager.config.codes[code_name]
-        action_str, method = (
-            ("удален", code.chats.remove)
-            if chat_id in code.chats
-            else ("добавлен", code.chats.add)
-        )
-        method(chat_id)
-        self._manager.save_config()
+            
+        code = self.manager.codes[code_name]
+        if chat_id in code.chats:
+            code.chats.remove(chat_id)
+            result = "removed"
+        else:
+            code.chats.add(chat_id)
+            result = "added"
+            
+        self.manager.save_config()
         await utils.answer(
             message,
-            self.strings[
-                f"chat_{'added' if action_str == 'добавлен' else 'removed'}"
-            ].format(chat_id, code_name),
+            self.strings[f"chat_{result}"].format(chat_id, code_name)
         )
 
     async def delcodecmd(self, message: Message):
-        """Команда удаления кода рассылки."""
-        await self._manager.cleanup_manager()
-        code_name = await self._validate_broadcast_code(message)
+        """Удалить код рассылки."""
+        code_name = await self._validate_code(message)
         if not code_name:
             return
-        if code_name in self._manager.broadcast_tasks:
-            task = self._manager.broadcast_tasks.pop(code_name)
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
-        await self._manager.config.remove_code(code_name)
-        self._manager.message_indices.pop(code_name, None)
-        self._manager._message_cache.clear()
-        self._manager.save_config()
+
+        await self._stop_broadcast(code_name)
+        del self.manager.codes[code_name]
+        self.manager.message_indices.pop(code_name, None)
+        self.manager._message_cache.clear()
+        self.manager.save_config()
+        
         await utils.answer(
             message,
-            self.strings["success"].format(
-                self.strings["delcode_success"].format(code_name)
-            ),
+            self.strings["delcode_success"].format(code_name)
         )
 
     async def delmsgcmd(self, message: Message):
-        """Команда удаления сообщения из рассылки."""
-
-        args = utils.get_args(message)
-        code_name = await self._validate_broadcast_code(message)
+        """Удалить сообщение из рассылки."""
+        code_name = await self._validate_code(message)
         if not code_name:
             return
+
+        args = utils.get_args(message)
         reply = await message.get_reply_message()
+        code = self.manager.codes[code_name]
 
         if reply:
-            code = self._manager.config.codes[code_name]
+            # Удаление по ответу на сообщение
             initial_len = len(code.messages)
             code.messages = [
-                msg
-                for msg in code.messages
-                if not (
-                    msg.message_id == reply.id and msg.chat_id == reply.chat_id
-                )
+                msg for msg in code.messages
+                if not (msg.message_id == reply.id and msg.chat_id == reply.chat_id)
             ]
             if len(code.messages) < initial_len:
-                self._manager._message_cache.clear()
-                self._manager.save_config()
+                self.manager._message_cache.clear()
+                self.manager.save_config()
                 await utils.answer(message, self.strings["delmsg_deleted"])
             else:
                 await utils.answer(message, self.strings["delmsg_not_found"])
         elif len(args) == 2:
+            # Удаление по индексу
             try:
                 index = int(args[1]) - 1
-                code = self._manager.config.codes[code_name]
                 if 0 <= index < len(code.messages):
                     del code.messages[index]
-                    self._manager._message_cache.clear()
-                    self._manager.save_config()
+                    self.manager._message_cache.clear()
+                    self.manager.save_config()
                     await utils.answer(message, self.strings["delmsg_deleted"])
                 else:
-                    await utils.answer(
-                        message, self.strings["delmsg_invalid_index"]
-                    )
+                    await utils.answer(message, self.strings["delmsg_invalid_index"])
             except ValueError:
-                await utils.answer(
-                    message, self.strings["delmsg_index_numeric"]
-                )
+                await utils.answer(message, self.strings["delmsg_index_numeric"])
         else:
             await utils.answer(message, self.strings["delmsg_index_usage"])
 
     async def intervalcmd(self, message: Message):
-        """Команда изменения интервала рассылки."""
-
+        """Изменить интервал рассылки."""
         args = utils.get_args(message)
         if len(args) != 3:
             return await utils.answer(message, self.strings["interval_usage"])
-        code_name = await self._validate_broadcast_code(message)
+            
+        code_name = await self._validate_code(message)
         if not code_name:
             return
+            
         try:
             min_minutes, max_minutes = map(int, args[1:])
             if not (1 <= min_minutes < max_minutes <= 1440):
-                return await utils.answer(
-                    message, self.strings["interval_invalid_range"]
-                )
-            self._manager.config.codes[code_name].interval = (
-                min_minutes,
-                max_minutes,
-            )
-            self._manager.save_config()
+                return await utils.answer(message, self.strings["interval_invalid_range"])
+                
+            self.manager.codes[code_name].interval = (min_minutes, max_minutes)
+            self.manager.save_config()
+            
             await utils.answer(
                 message,
-                self.strings["success"].format(
-                    self.strings["interval_set"].format(
-                        code_name, min_minutes, max_minutes
-                    )
-                ),
+                self.strings["interval_set"].format(code_name, min_minutes, max_minutes)
             )
         except ValueError:
             await utils.answer(message, self.strings["interval_numeric"])
 
     async def listcmd(self, message: Message):
-        """Команда для получения списка кодов рассылок и их статусов."""
-
-        if not self._manager.config.codes:
-            return await utils.answer(message, "Нет настроенных кодов рассылки")
+        """Показать список рассылок."""
+        if not self.manager.codes:
+            return await utils.answer(message, self.strings["no_codes"])
+            
         text = [
             "<b>Рассылка:</b>",
-            f"🔄 Управление чатами: {'Включено' if self._wat_mode else 'Выключено'}\n",
+            f"🔄 Управление чатами: {'Включено' if self.wat_mode else 'Выключено'}\n",
             "<b>Коды рассылок:</b>",
         ]
 
-        for code_name, code in self._manager.config.codes.items():
+        for code_name, code in self.manager.codes.items():
             chat_list = ", ".join(map(str, code.chats)) or "(пусто)"
             min_interval, max_interval = code.interval
             message_count = len(code.messages)
-            running = code_name in self._manager.broadcast_tasks
+            running = code_name in self.manager.broadcast_tasks
 
             text.append(
                 f"+ <code>{code_name}</code>:\n"
