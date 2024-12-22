@@ -68,6 +68,54 @@ class BroadcastManager:
         self._active = True
         self._lock = asyncio.Lock()
 
+    def _create_broadcast_code_from_dict(
+        self, code_data: dict
+    ) -> BroadcastCode:
+        """Creates BroadcastCode object from dictionary."""
+        if not isinstance(code_data, dict):
+            raise ValueError("Invalid code data format")
+
+        chats = set(code_data.get("chats", []))
+        if not all(isinstance(chat_id, int) for chat_id in chats):
+            raise ValueError("Invalid chat ID format")
+
+        messages = []
+        for msg_data in code_data.get("messages", []):
+            if not isinstance(msg_data, dict):
+                continue
+            try:
+                messages.append(
+                    BroadcastMessage(
+                        chat_id=msg_data["chat_id"],
+                        message_id=msg_data["message_id"],
+                        grouped_id=msg_data.get("grouped_id"),
+                        album_ids=tuple(msg_data.get("album_ids", [])),
+                    )
+                )
+            except (KeyError, TypeError):
+                logger.warning(f"Invalid message data: {msg_data}")
+                continue
+
+        interval = tuple(code_data.get("interval", (10, 13)))
+        send_mode = code_data.get("send_mode", "auto")
+
+        return BroadcastCode(
+            chats=chats,
+            messages=messages,
+            interval=interval,
+            send_mode=send_mode,
+        )
+
+    def _load_config_from_dict(self, data: dict):
+        """Loads broadcast configuration from dictionary."""
+        for code_name, code_data in data.get("codes", {}).items():
+            try:
+                self.codes[code_name] = self._create_broadcast_code_from_dict(
+                    code_data
+                )
+            except Exception:
+                logger.error(f"Error loading broadcast code {code_name}")
+
     async def _fetch_messages(
         self, msg_data: BroadcastMessage
     ) -> Optional[Union[Message, List[Message]]]:
@@ -613,6 +661,50 @@ class BroadcastMod(loader.Module):
             message, self.strings["delcode_success"].format(code_name)
         )
 
+    async def delmsgcmd(self, message: Message):
+        """Удалить сообщение из рассылки."""
+        code_name = await self._validate_code(message)
+        if not code_name:
+            return
+
+        args = utils.get_args(message)
+        reply = await message.get_reply_message()
+        code = self.manager.codes[code_name]
+
+        if reply:
+            initial_len = len(code.messages)
+            code.messages = [
+                msg
+                for msg in code.messages
+                if not (
+                    msg.message_id == reply.id and msg.chat_id == reply.chat_id
+                )
+            ]
+            if len(code.messages) < initial_len:
+                self.manager._message_cache.clear()
+                self.manager.save_config()
+                await utils.answer(message, self.strings["delmsg_deleted"])
+            else:
+                await utils.answer(message, self.strings["delmsg_not_found"])
+        elif len(args) == 2:
+            try:
+                index = int(args[1]) - 1
+                if 0 <= index < len(code.messages):
+                    del code.messages[index]
+                    self.manager._message_cache.clear()
+                    self.manager.save_config()
+                    await utils.answer(message, self.strings["delmsg_deleted"])
+                else:
+                    await utils.answer(
+                        message, self.strings["delmsg_invalid_index"]
+                    )
+            except ValueError:
+                await utils.answer(
+                    message, self.strings["delmsg_index_numeric"]
+                )
+        else:
+            await utils.answer(message, self.strings["delmsg_index_usage"])
+
     async def intervalcmd(self, message: Message):
         """Изменить интервал рассылки: .interval код мин макс"""
         args = utils.get_args(message)
@@ -667,6 +759,39 @@ class BroadcastMod(loader.Module):
                 f"  📊 Статус: {'🟢 Работает' if running else '🔴 Остановлен'}\n"
             )
         await utils.answer(message, "\n".join(text))
+
+    async def listmsgcmd(self, message: Message):
+        """Команда для просмотра списка сообщений в определенном коде рассылки."""
+
+        code_name = await self._validate_code(message)
+        if not code_name:
+            return
+        messages = self.manager.codes[code_name].messages
+        if not messages:
+            return await utils.answer(
+                message, self.strings["no_messages_in_code"].format(code_name)
+            )
+        text = [f"<b>Сообщения в '{code_name}':</b>"]
+        for i, msg in enumerate(messages, 1):
+            try:
+                chat_id = abs(msg.chat_id)
+                base_link = f"t.me/c/{chat_id % 10**10}"
+
+                if msg.grouped_id is not None:
+                    album_links = ", ".join(
+                        f"<a href='{base_link}/{album_id}'>{album_id}</a>"
+                        for album_id in msg.album_ids
+                    )
+                    text.append(
+                        f"{i}. Альбом в чате {msg.chat_id} (Изображений: {len(msg.album_ids)}):\n   {album_links}"
+                    )
+                else:
+                    text.append(
+                        f"{i}. Сообщение ID: {msg.message_id} в чате {msg.chat_id}:\n   <a href='{base_link}/{msg.message_id}'>{msg.message_id}</a>"
+                    )
+            except Exception as e:
+                text.append(f"{i}. Ошибка получения информации: {e}")
+        await utils.answer(message, "\n\n".join(text))
 
     async def sendmodecmd(self, message: Message):
         """Изменить режим отправки: .sendmode код режим"""
