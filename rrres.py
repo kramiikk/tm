@@ -116,18 +116,6 @@ class BroadcastManager:
             except Exception:
                 logger.error(f"Error loading broadcast code {code_name}")
 
-    async def _get_message_size(message: Message) -> int:
-        """Calculate media size in bytes."""
-        if not message.media:
-            return 0
-
-        if hasattr(message.media, "document") and hasattr(
-            message.media.document, "size"
-        ):
-            return message.media.document.size
-
-        return 0
-
     async def _fetch_messages(
         self, msg_data: BroadcastMessage, max_size: int = 10 * 1024 * 1024
     ) -> Optional[Union[Message, List[Message]]]:
@@ -150,6 +138,17 @@ class BroadcastManager:
 
             if not messages:
                 return None
+            
+            def _get_message_size(message: Message) -> int:
+                if not message.media:
+                    return 0
+
+                if hasattr(message.media, "document") and hasattr(
+                    message.media.document, "size"
+                ):
+                    return message.media.document.size
+
+                return 0
 
             for msg in messages:
                 if msg:
