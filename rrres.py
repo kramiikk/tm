@@ -116,42 +116,58 @@ class BroadcastManager:
             except Exception:
                 logger.error(f"Error loading broadcast code {code_name}")
 
+    async def _get_message_size(message: Message) -> int:
+        """Calculate media size in bytes."""
+        if not message.media:
+            return 0
+            
+        # Проверяем только документы
+        if hasattr(message.media, 'document') and hasattr(message.media.document, 'size'):
+            return message.media.document.size
+                
+        return 0
+
     async def _fetch_messages(
-        self, msg_data: BroadcastMessage
+        self, 
+        msg_data: BroadcastMessage, 
+        max_size: int = 10 * 1024 * 1024
     ) -> Optional[Union[Message, List[Message]]]:
-        """Fetches messages with caching."""
+        """Fetch messages with media size limitation."""
         try:
-            cached = await self._message_cache.get(
-                (msg_data.chat_id, msg_data.message_id)
-            )
+            cached = await self._message_cache.get((msg_data.chat_id, msg_data.message_id))
             if cached:
                 return cached
 
-            message_ids = (
-                list(msg_data.album_ids)
-                if msg_data.grouped_id
-                else [msg_data.message_id]
-            )
-            messages = await self.client.get_messages(
-                msg_data.chat_id, ids=message_ids
-            )
+            message_ids = list(msg_data.album_ids) if msg_data.grouped_id else [msg_data.message_id]
+            messages = await self.client.get_messages(msg_data.chat_id, ids=message_ids)
+            
+            if not messages:
+                return None
+
+            for msg in messages:
+                if msg:
+                    media_size = await _get_message_size(msg)
+                    if media_size > max_size:
+                        logger.warning(
+                            f"Media too large: {media_size} bytes "
+                            f"(limit: {max_size} bytes) in chat {msg_data.chat_id}, "
+                            f"message {msg.id}"
+                        )
+                        return None
 
             if msg_data.grouped_id:
                 messages = [msg for msg in messages if msg]
                 messages.sort(key=lambda x: x.id)
 
-            if messages:
-                await self._message_cache.set(
-                    (msg_data.chat_id, msg_data.message_id), messages
-                )
-                return messages
+            await self._message_cache.set((msg_data.chat_id, msg_data.message_id), messages)
+            return messages
 
         except Exception as e:
             logger.error(
-                f"Failed to fetch message from {msg_data.chat_id}: {e}"
+                f"Failed to fetch message from {msg_data.chat_id}: {e}",
+                exc_info=True
             )
-
-        return None
+            return None
 
     async def add_message(self, code_name: str, message: Message) -> bool:
         """Adds message to broadcast list with validation."""
@@ -350,12 +366,13 @@ class BroadcastManager:
 class MessageCache:
     """Thread-safe message cache implementation with TTL."""
 
-    def __init__(self, ttl: int = 3600):
+    def __init__(self, ttl: int = 3600, max_size: int = 13):
         self.cache: Dict[
             Tuple[int, int], Tuple[float, Union[Message, List[Message]]]
         ] = {}
         self._lock = asyncio.Lock()
         self.ttl = ttl
+        self.max_size = max_size
 
     async def get(
         self, key: Tuple[int, int]
@@ -377,6 +394,9 @@ class MessageCache:
     ):
         """Cache message with timestamp."""
         async with self._lock:
+            if len(self.cache) >= self.max_size:
+                sorted_items = sorted(self.cache.items(), key=lambda x: x[1][0])
+                self.cache = dict(sorted_items[-(self.max_size - 1):])
             self.cache[key] = (time.time(), value)
 
     def clear(self):
