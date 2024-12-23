@@ -93,7 +93,7 @@ class BroadcastManager:
                     )
                 )
             except (KeyError, TypeError):
-                logger.warning(f"Invalid message data: {msg_data}")
+                logger.error(f"Invalid message data: {msg_data}")
                 continue
 
         interval = tuple(code_data.get("interval", (10, 13)))
@@ -229,7 +229,7 @@ class BroadcastManager:
                 return True
 
         except Exception as e:
-            logger.exception(f"Error adding message to {code_name}: {e}")
+            logger.error(f"Error adding message to {code_name}: {e}")
             return False
 
     @sleep_and_retry
@@ -337,7 +337,7 @@ class BroadcastManager:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.exception(
+                logger.error(
                     f"Critical error in broadcast loop {code_name}: {e}"
                 )
                 await asyncio.sleep(60)
@@ -368,7 +368,7 @@ class BroadcastManager:
             }
             self.db.set("broadcast", "config", config)
         except Exception as e:
-            logger.exception(f"Failed to save config: {e}")
+            logger.error(f"Failed to save config: {e}")
 
 
 class MessageCache:
@@ -532,7 +532,7 @@ class BroadcastMod(loader.Module):
                 )
                 return True
         except Exception as e:
-            logger.exception(f"Failed to start broadcast {code_name}: {e}")
+            logger.error(f"Failed to start broadcast {code_name}: {e}")
         return False
 
     async def _stop_broadcast(self, code_name: str):
