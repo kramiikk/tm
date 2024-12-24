@@ -883,3 +883,4 @@ class BroadcastMod(loader.Module):
             await self._stop_broadcast(code_name)
 
         self.manager._message_cache.clear()
+        logger.info("Все правильно очищено, после удаления")
