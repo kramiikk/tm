@@ -332,11 +332,14 @@ class BroadcastManager:
                 message_to_send = messages_to_send[
                     msg_index % len(messages_to_send)
                 ]
+                if not messages_to_send:
+                    logger.warning(
+                        f"No valid messages to send for code {code_name}"
+                    )
+                    continue
                 self.message_indices[code_name] = (msg_index + 1) % len(
                     messages_to_send
                 )
-
-                schedule_time = datetime.now() + timedelta(seconds=60)
                 failed_chats = set()
 
                 for chat_id in chats:
@@ -346,7 +349,7 @@ class BroadcastManager:
                             chat_id,
                             message_to_send,
                             code.send_mode,
-                            schedule_time,
+                            datetime.now() + timedelta(seconds=60),
                         )
                         if not success:
                             failed_chats.add(chat_id)
@@ -632,6 +635,35 @@ class BroadcastMod(loader.Module):
                     self.strings["broadcast_start_failed"].format(code_name),
                 )
 
+    async def cachescmd(self, message: Message):
+        """Показать статистику кэша сообщений."""
+        try:
+            stats = await self.manager._message_cache.get_stats()
+
+            text = [
+                "<b>📊 Статистика кэша сообщений:</b>\n",
+                f"📈 Всего записей: {stats['total_entries']}/{stats['max_size']}",
+                f"✅ Активных записей: {stats['active_entries']}",
+                f"❌ Просроченных записей: {stats['expired_entries']}",
+                f"💾 Заполненность: {stats['usage_percent']}%",
+                f"⏳ Время жизни записи: {stats['ttl_seconds'] // 60} минут",
+            ]
+
+            if "oldest_entry_age" in stats:
+                text.extend(
+                    [
+                        f"\n⌛️ Возраст записей:",
+                        f"• Старейшая: {stats['oldest_entry_age']} минут",
+                        f"• Новейшая: {stats['newest_entry_age']} минут",
+                    ]
+                )
+
+            await utils.answer(message, "\n".join(text))
+
+        except Exception as e:
+            logger.error(f"Error getting cache stats: {e}")
+            await utils.answer(message, f"❌ Ошибка получения статистики: {e}")
+
     async def chatcmd(self, message: Message):
         """Добавить/удалить чат из рассылки: .chat код id_чата"""
         args = utils.get_args(message)
@@ -769,6 +801,12 @@ class BroadcastMod(loader.Module):
         ]
 
         for code_name, code in self.manager.codes.items():
+            last_time = self.manager.last_broadcast_time.get(code_name, 0)
+            last_broadcast = (
+                datetime.fromtimestamp(last_time).strftime("%Y-%m-%d %H:%M:%S")
+                if last_time
+                else "Never"
+            )
             chat_list = ", ".join(map(str, code.chats)) or "(пусто)"
             min_interval, max_interval = code.interval
             message_count = len(code.messages)
@@ -780,6 +818,7 @@ class BroadcastMod(loader.Module):
                 f"  ⏱ Интервал: {min_interval} - {max_interval} минут\n"
                 f"  📨 Сообщений: {message_count}\n"
                 f"  📊 Статус: {'🟢 Работает' if running else '🔴 Остановлен'}\n"
+                f"  ⏳ Time: {last_broadcast}"
             )
         await utils.answer(message, "\n".join(text))
 
@@ -928,3 +967,40 @@ class MessageCache:
             ]
             for key in expired_keys:
                 del self.cache[key]
+
+    async def get_stats(self) -> dict:
+        """Get cache statistics."""
+        async with self._lock:
+            current_time = time.time()
+            active_entries = {
+                k: (t, v)
+                for k, (t, v) in self.cache.items()
+                if current_time - t <= self.ttl
+            }
+            expired_entries = len(self.cache) - len(active_entries)
+
+            stats = {
+                "total_entries": len(self.cache),
+                "active_entries": len(active_entries),
+                "expired_entries": expired_entries,
+                "max_size": self.max_size,
+                "ttl_seconds": self.ttl,
+                "usage_percent": round(
+                    len(self.cache) / self.max_size * 100, 1
+                ),
+            }
+
+            if active_entries:
+                timestamps = [t for t, _ in active_entries.values()]
+                stats.update(
+                    {
+                        "oldest_entry_age": round(
+                            (current_time - min(timestamps)) / 60, 1
+                        ),
+                        "newest_entry_age": round(
+                            (current_time - max(timestamps)) / 60, 1
+                        ),
+                    }
+                )
+
+            return stats
