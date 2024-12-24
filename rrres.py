@@ -138,28 +138,20 @@ class BroadcastManager:
 
             if not messages:
                 return None
-            
-            def _get_message_size(message: Message) -> int:
-                if not message.media:
-                    return 0
-
-                if hasattr(message.media, "document") and hasattr(
-                    message.media.document, "size"
-                ):
-                    return message.media.document.size
-
-                return 0
 
             for msg in messages:
-                if msg:
-                    media_size = await _get_message_size(msg)
-                    if media_size > max_size:
-                        logger.warning(
-                            f"Media too large: {media_size} bytes "
-                            f"(limit: {max_size} bytes) in chat {msg_data.chat_id}, "
-                            f"message {msg.id}"
-                        )
-                        return None
+                if msg and msg.media:
+                    if hasattr(msg.media, "document") and hasattr(
+                        msg.media.document, "size"
+                    ):
+                        media_size = msg.media.document.size
+                        if media_size > max_size:
+                            logger.warning(
+                                f"Media too large: {media_size} bytes "
+                                f"(limit: {max_size} bytes) in chat {msg_data.chat_id}, "
+                                f"message {msg.id}"
+                            )
+                            return None
 
             if msg_data.grouped_id:
                 messages = [msg for msg in messages if msg]
