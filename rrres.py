@@ -68,6 +68,39 @@ class BroadcastManager:
         self._active = True
         self._lock = asyncio.Lock()
 
+    def _load_last_broadcast_times(self):
+        """Загружает времена последних рассылок из БД."""
+        try:
+            saved_times = self.db.get("broadcast", "last_broadcast_times", {})
+            self.last_broadcast_time.update(
+                {
+                    code: float(time_)
+                    for code, time_ in saved_times.items()
+                    if isinstance(time_, (int, float))
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to load last broadcast times: {e}")
+
+    def _save_last_broadcast_time(self, code_name: str, timestamp: float):
+        """Сохраняет время последней рассылки в БД."""
+        try:
+            saved_times = self.db.get("broadcast", "last_broadcast_times", {})
+            saved_times[code_name] = timestamp
+            self.db.set("broadcast", "last_broadcast_times", saved_times)
+        except Exception as e:
+            logger.error(f"Failed to save last broadcast time: {e}")
+
+    def clear_last_broadcast_time(self, code_name: str):
+        """Очищает время последней рассылки из БД и памяти."""
+        try:
+            saved_times = self.db.get("broadcast", "last_broadcast_times", {})
+            saved_times.pop(code_name, None)
+            self.db.set("broadcast", "last_broadcast_times", saved_times)
+            self.last_broadcast_time.pop(code_name, None)
+        except Exception as e:
+            logger.error(f"Failed to clear last broadcast time: {e}")
+
     def _create_broadcast_code_from_dict(
         self, code_data: dict
     ) -> BroadcastCode:
@@ -108,13 +141,16 @@ class BroadcastManager:
 
     def _load_config_from_dict(self, data: dict):
         """Loads broadcast configuration from dictionary."""
+
         for code_name, code_data in data.get("codes", {}).items():
             try:
                 self.codes[code_name] = self._create_broadcast_code_from_dict(
                     code_data
                 )
-            except Exception:
-                logger.error(f"Error loading broadcast code {code_name}")
+            except Exception as e:
+                logger.error(f"Error loading broadcast code {code_name}: {e}")
+
+        self._load_last_broadcast_times()
 
     async def _fetch_messages(
         self, msg_data: BroadcastMessage, max_size: int = 10 * 1024 * 1024
@@ -323,7 +359,10 @@ class BroadcastManager:
                     code.chats -= failed_chats
                     self.save_config()
 
-                self.last_broadcast_time[code_name] = time.time()
+                current_time = time.time()
+                self.last_broadcast_time[code_name] = current_time
+                self._save_last_broadcast_time(code_name, current_time)
+
                 await asyncio.sleep(60)
 
             except asyncio.CancelledError:
@@ -359,60 +398,12 @@ class BroadcastManager:
                 },
             }
             self.db.set("broadcast", "config", config)
+
+            self.db.set(
+                "broadcast", "last_broadcast_times", self.last_broadcast_time
+            )
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
-
-
-class MessageCache:
-    """Thread-safe message cache implementation with TTL."""
-
-    def __init__(self, ttl: int = 3600, max_size: int = 13):
-        self.cache: Dict[
-            Tuple[int, int], Tuple[float, Union[Message, List[Message]]]
-        ] = {}
-        self._lock = asyncio.Lock()
-        self.ttl = ttl
-        self.max_size = max_size
-
-    async def get(
-        self, key: Tuple[int, int]
-    ) -> Optional[Union[Message, List[Message]]]:
-        """Get cached message if not expired."""
-        async with self._lock:
-            if key not in self.cache:
-                return None
-
-            timestamp, value = self.cache[key]
-            if time.time() - timestamp > self.ttl:
-                del self.cache[key]
-                return None
-
-            return value
-
-    async def set(
-        self, key: Tuple[int, int], value: Union[Message, List[Message]]
-    ):
-        """Cache message with timestamp."""
-        async with self._lock:
-            if len(self.cache) >= self.max_size:
-                sorted_items = sorted(self.cache.items(), key=lambda x: x[1][0])
-                self.cache = dict(sorted_items[-(self.max_size - 1) :])
-            self.cache[key] = (time.time(), value)
-
-    def clear(self):
-        """Clear all cached data."""
-        self.cache.clear()
-
-    async def clean_expired(self):
-        """Removes expired entries from the cache."""
-        async with self._lock:
-            expired_keys = [
-                k
-                for k, (timestamp, _) in self.cache.items()
-                if time.time() - timestamp > self.ttl
-            ]
-            for key in expired_keys:
-                del self.cache[key]
 
 
 @loader.tds
@@ -541,6 +532,7 @@ class BroadcastMod(loader.Module):
             self.manager.db.set(
                 "broadcast", "BroadcastStatus", broadcast_status
             )
+            self.manager.clear_last_broadcast_time(code_name)
 
     async def _validate_code(
         self, message: Message, code_name: Optional[str] = None
@@ -884,3 +876,55 @@ class BroadcastMod(loader.Module):
 
         self.manager._message_cache.clear()
         logger.info("Все правильно очищено, после удаления")
+
+
+class MessageCache:
+    """Thread-safe message cache implementation with TTL."""
+
+    def __init__(self, ttl: int = 3600, max_size: int = 13):
+        self.cache: Dict[
+            Tuple[int, int], Tuple[float, Union[Message, List[Message]]]
+        ] = {}
+        self._lock = asyncio.Lock()
+        self.ttl = ttl
+        self.max_size = max_size
+
+    async def get(
+        self, key: Tuple[int, int]
+    ) -> Optional[Union[Message, List[Message]]]:
+        """Get cached message if not expired."""
+        async with self._lock:
+            if key not in self.cache:
+                return None
+
+            timestamp, value = self.cache[key]
+            if time.time() - timestamp > self.ttl:
+                del self.cache[key]
+                return None
+
+            return value
+
+    async def set(
+        self, key: Tuple[int, int], value: Union[Message, List[Message]]
+    ):
+        """Cache message with timestamp."""
+        async with self._lock:
+            if len(self.cache) >= self.max_size:
+                sorted_items = sorted(self.cache.items(), key=lambda x: x[1][0])
+                self.cache = dict(sorted_items[-(self.max_size - 1) :])
+            self.cache[key] = (time.time(), value)
+
+    def clear(self):
+        """Clear all cached data."""
+        self.cache.clear()
+
+    async def clean_expired(self):
+        """Removes expired entries from the cache."""
+        async with self._lock:
+            expired_keys = [
+                k
+                for k, (timestamp, _) in self.cache.items()
+                if time.time() - timestamp > self.ttl
+            ]
+            for key in expired_keys:
+                del self.cache[key]
