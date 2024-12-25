@@ -1,4 +1,4 @@
-# meta developers: @amm1e & @AmeMods, @me_rne
+# meta developers: @amm1e & @kramiikk
 
 
 from .. import loader, utils
@@ -56,7 +56,9 @@ class AmeChangeLoaderText(loader.Module):
                         f"{prev_line_indent}{logging_indent}logging.debug("
                     )
 
-            new_content = re.sub(pattern, replace_handler, content, flags=re.DOTALL)
+            new_content = re.sub(
+                pattern, replace_handler, content, flags=re.DOTALL
+            )
 
             try:
                 with open(main_file_path, "w", encoding="utf-8") as f:

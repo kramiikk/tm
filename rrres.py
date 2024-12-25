@@ -1,3 +1,5 @@
+""" Author: @kramiikk """
+
 import asyncio
 import logging
 import random
@@ -632,7 +634,7 @@ class BroadcastMod(loader.Module):
             else:
                 await utils.answer(
                     message,
-                    self.strings["broadcast_start_failed"].format(code_name),
+                    f"{self.strings['broadcast_start_failed'].format(code_name)}\n\n<code>Author: @kramiikk</code>",
                 )
 
     async def cachescmd(self, message: Message):
@@ -658,22 +660,34 @@ class BroadcastMod(loader.Module):
                     ]
                 )
 
-            await utils.answer(message, "\n".join(text))
+            await utils.answer(
+                message,
+                f"{chr(10).join(text)}\n\n<code>Author: @kramiikk</code>",
+            )
 
         except Exception as e:
             logger.error(f"Error getting cache stats: {e}")
-            await utils.answer(message, f"❌ Ошибка получения статистики: {e}")
+            await utils.answer(
+                message,
+                f"❌ Ошибка получения статистики: {e}\n\n<code>Author: @kramiikk</code>",
+            )
 
     async def chatcmd(self, message: Message):
         """Добавить/удалить чат из рассылки: .chat код id_чата"""
         args = utils.get_args(message)
         if len(args) != 2:
-            return await utils.answer(message, self.strings["chat_usage"])
+            return await utils.answer(
+                message,
+                f"{self.strings['chat_usage']}\n\n<code>Author: @kramiikk</code>",
+            )
 
         try:
             code_name, chat_id = args[0], int(args[1])
         except ValueError:
-            return await utils.answer(message, self.strings["chat_id_numeric"])
+            await utils.answer(
+                message,
+                f"{self.strings['chat_id_numeric']}\n\n<code>Author: @kramiikk</code>",
+            )
 
         code_name = await self._validate_code(message, code_name)
         if not code_name:
@@ -688,9 +702,7 @@ class BroadcastMod(loader.Module):
             if len(code.chats) >= self.manager.MAX_CHATS_PER_CODE:
                 return await utils.answer(
                     message,
-                    self.strings["max_chats_reached"].format(
-                        code_name, self.manager.MAX_CHATS_PER_CODE
-                    ),
+                    f"{self.strings['max_chats_reached'].format(code_name, self.manager.MAX_CHATS_PER_CODE)}\n\n<code>Author: @kramiikk</code>",
                 )
             code.chats.add(chat_id)
             result = "added"
@@ -704,6 +716,9 @@ class BroadcastMod(loader.Module):
         """Удалить код рассылки: .delcode код"""
         code_name = await self._validate_code(message)
         if not code_name:
+            await utils.answer(
+                message, "Нет такого кода\n\n<code>Author: @kramiikk</code>"
+            )
             return
 
         await self._stop_broadcast(code_name)
@@ -740,7 +755,10 @@ class BroadcastMod(loader.Module):
                 self.manager.save_config()
                 await utils.answer(message, self.strings["delmsg_deleted"])
             else:
-                await utils.answer(message, self.strings["delmsg_not_found"])
+                await utils.answer(
+                    message,
+                    f"{self.strings['delmsg_not_found']}\n\n<code>Author: @kramiikk</code>",
+                )
         elif len(args) == 2:
             try:
                 index = int(args[1]) - 1
@@ -751,20 +769,28 @@ class BroadcastMod(loader.Module):
                     await utils.answer(message, self.strings["delmsg_deleted"])
                 else:
                     await utils.answer(
-                        message, self.strings["delmsg_invalid_index"]
+                        message,
+                        f"{self.strings['delmsg_invalid_index']}\n\n<code>Author: @kramiikk</code>",
                     )
             except ValueError:
                 await utils.answer(
-                    message, self.strings["delmsg_index_numeric"]
+                    message,
+                    f"{self.strings['delmsg_index_numeric']}\n\n<code>Author: @kramiikk</code>",
                 )
         else:
-            await utils.answer(message, self.strings["delmsg_index_usage"])
+            await utils.answer(
+                message,
+                f"{self.strings['delmsg_index_usage']}\n\n<code>Author: @kramiikk</code>",
+            )
 
     async def intervalcmd(self, message: Message):
         """Изменить интервал рассылки: .interval код мин макс"""
         args = utils.get_args(message)
         if len(args) != 3:
-            return await utils.answer(message, self.strings["interval_usage"])
+            return await utils.answer(
+                message,
+                f"{self.strings['interval_usage']}\n\n<code>Author: @kramiikk</code>",
+            )
 
         code_name = await self._validate_code(message, args[0])
         if not code_name:
@@ -774,7 +800,8 @@ class BroadcastMod(loader.Module):
             min_minutes, max_minutes = map(int, args[1:])
             if not (1 <= min_minutes < max_minutes <= 1440):
                 return await utils.answer(
-                    message, self.strings["interval_invalid_range"]
+                    message,
+                    f"{self.strings['interval_invalid_range']}\n\n<code>Author: @kramiikk</code>",
                 )
 
             self.manager.codes[code_name].interval = (min_minutes, max_minutes)
@@ -782,12 +809,13 @@ class BroadcastMod(loader.Module):
 
             await utils.answer(
                 message,
-                self.strings["interval_set"].format(
-                    code_name, min_minutes, max_minutes
-                ),
+                f"{self.strings['interval_set'].format(code_name, min_minutes, max_minutes)}\n\n<code>Author: @kramiikk</code>",
             )
         except ValueError:
-            await utils.answer(message, self.strings["interval_numeric"])
+            await utils.answer(
+                message,
+                f"{self.strings['interval_numeric']}\n\n<code>Author: @kramiikk</code>",
+            )
 
     async def listcmd(self, message: Message):
         """Показать список рассылок."""
@@ -820,7 +848,9 @@ class BroadcastMod(loader.Module):
                 f"  📊 Статус: {'🟢 Работает' if running else '🔴 Остановлен'}\n"
                 f"  ⏳ Time: {last_broadcast}"
             )
-        await utils.answer(message, "\n".join(text))
+        await utils.answer(
+            message, f"{chr(10).join(text)}\n\n<code>Author: @kramiikk</code>"
+        )
 
     async def listmsgcmd(self, message: Message):
         """Команда для просмотра списка сообщений в определенном коде рассылки."""
@@ -831,7 +861,8 @@ class BroadcastMod(loader.Module):
         messages = self.manager.codes[code_name].messages
         if not messages:
             return await utils.answer(
-                message, self.strings["no_messages_in_code"].format(code_name)
+                message,
+                f"{self.strings['no_messages_in_code'].format(code_name)}\n\n<code>Author: @kramiikk</code>",
             )
         text = [f"<b>Сообщения в '{code_name}':</b>"]
         for i, msg in enumerate(messages, 1):
@@ -855,13 +886,19 @@ class BroadcastMod(loader.Module):
                 text.append(
                     f"{i}. Ошибка получения информации о сообщении в чате {msg.chat_id} с ID {msg.message_id}: {e}"
                 )
-        await utils.answer(message, "\n\n".join(text))
+        await utils.answer(
+            message,
+            f"{chr(10 * 2).join(text)}\n\n<code>Author: @kramiikk</code>",
+        )
 
     async def sendmodecmd(self, message: Message):
         """Изменить режим отправки: .sendmode код режим"""
         args = utils.get_args(message)
         if len(args) != 2 or args[1] not in ["auto", "normal", "forward"]:
-            return await utils.answer(message, self.strings["sendmode_usage"])
+            return await utils.answer(
+                message,
+                f"{self.strings['sendmode_usage']}\n\n<code>Author: @kramiikk</code>",
+            )
 
         code_name = await self._validate_code(message, args[0])
         if not code_name:
@@ -879,9 +916,7 @@ class BroadcastMod(loader.Module):
         self.wat_mode = not self.wat_mode
         await utils.answer(
             message,
-            self.strings["wat_status"].format(
-                "включено" if self.wat_mode else "выключено"
-            ),
+            f"{self.strings['wat_status'].format('включено' if self.wat_mode else 'выключено')}\n\n<code>Author: @kramiikk</code>",
         )
 
     async def watcher(self, message: Message):
