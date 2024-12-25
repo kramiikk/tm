@@ -1009,7 +1009,7 @@ class BroadcastMod(loader.Module):
 
         text = message.text.strip()
         for code_name in self.manager.codes:
-            if text.endswith(code_name):
+            if text.startswith(code_name):
                 try:
                     code = self.manager.codes[code_name]
                     if message.chat_id not in code.chats:
