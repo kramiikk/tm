@@ -175,6 +175,7 @@ class BroadcastManager:
             )
 
             if not messages:
+                logger.warning(f"Проблема с сообщением {msg_data.message_id} из {msg_data.chat_id}")
                 return None
 
             for msg in messages:
@@ -479,11 +480,20 @@ class BroadcastMod(loader.Module):
         """Периодическая очистка ресурсов."""
         while True:
             try:
-                for code_name in list(self.manager.broadcast_tasks.keys()):
-                    task = self.manager.broadcast_tasks[code_name]
-                    if task.done():
-                        await task
-                        del self.manager.broadcast_tasks[code_name]
+                tasks_to_await = list(self.manager.broadcast_tasks.values())
+                if tasks_to_await:
+                    completed_tasks = await asyncio.gather(*tasks_to_await, return_exceptions=True)
+
+                    for code_name, task in list(self.manager.broadcast_tasks.items()):
+                        if task.done():
+                            try:
+                                await task
+                            except asyncio.CancelledError:
+                                pass
+                            except Exception as e:
+                                logger.error(f"Error in completed broadcast task {code_name}: {e}")
+                            finally:
+                                del self.manager.broadcast_tasks[code_name]
 
                 await self.manager._message_cache.clean_expired()
 
