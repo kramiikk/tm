@@ -411,8 +411,6 @@ class BroadcastManager:
                 self.last_broadcast_time[code_name] = current_time
                 self._save_last_broadcast_time(code_name, current_time)
 
-                await asyncio.sleep(60)
-
             except asyncio.CancelledError:
                 break
             except Exception as e:
