@@ -59,10 +59,6 @@ class AuthorizationManager:
 
         return user_id in self._authorized_users
 
-    def reload_auth_data(self):
-        """Force reload of authorization data."""
-        self._authorized_users = self._load_authorized_users()
-
 
 @dataclass(frozen=True)
 class BroadcastMessage:
