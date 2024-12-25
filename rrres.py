@@ -1,6 +1,7 @@
 """ Author: @kramiikk """
 
 import asyncio
+import json
 import logging
 import random
 import time
@@ -18,6 +19,49 @@ from telethon.tl.types import Message
 from .. import loader, utils
 
 logger = logging.getLogger(__name__)
+
+
+class AuthorizationManager:
+    """Manages user authorization for the broadcast module."""
+
+    def __init__(self, json_path: str = "/root/Heroku/loll.json"):
+        self.json_path = json_path
+        self._authorized_users: Optional[Set[int]] = None
+
+    def _load_authorized_users(self) -> Set[int]:
+        """Load authorized user IDs from JSON file."""
+        try:
+            with open(self.json_path, "r", encoding="utf-8") as file:
+                data = json.load(file)
+                user_ids = {
+                    int(user_id) for user_id in data.get("authorized_users", [])
+                }
+                logger.info(
+                    f"Successfully loaded {len(user_ids)} authorized users"
+                )
+                return user_ids
+        except FileNotFoundError:
+            logger.error(f"Authorization file not found: {self.json_path}")
+            return set()
+        except json.JSONDecodeError:
+            logger.error(
+                f"Invalid JSON in authorization file: {self.json_path}"
+            )
+            return set()
+        except Exception as e:
+            logger.error(f"Error loading authorized users: {e}")
+            return set()
+
+    def is_authorized(self, user_id: int) -> bool:
+        """Check if a user is authorized to use the module."""
+        if self._authorized_users is None:
+            self._authorized_users = self._load_authorized_users()
+
+        return user_id in self._authorized_users
+
+    def reload_auth_data(self):
+        """Force reload of authorization data."""
+        self._authorized_users = self._load_authorized_users()
 
 
 @dataclass(frozen=True)
@@ -175,7 +219,9 @@ class BroadcastManager:
             )
 
             if not messages:
-                logger.warning(f"Проблема с сообщением {msg_data.message_id} из {msg_data.chat_id}")
+                logger.warning(
+                    f"Проблема с сообщением {msg_data.message_id} из {msg_data.chat_id}"
+                )
                 return None
 
             for msg in messages:
@@ -453,16 +499,20 @@ class BroadcastMod(loader.Module):
         "delmsg_invalid_index": "❌ Неверный индекс сообщения",
         "delmsg_index_numeric": "⚠️ Индекс должен быть числом",
         "delmsg_index_usage": "ℹ️ Использование: .delmsg код [индекс] или ответьте на сообщение",
+        "not_authorized": "❌ У вас нет доступа к использованию этого модуля",
+        "auth_error": "❌ Ошибка проверки авторизации",
     }
 
     def __init__(self):
         self.manager: Optional[BroadcastManager] = None
+        self.auth_manager: Optional[AuthorizationManager] = None
         self.wat_mode: bool = False
         self.me_id: Optional[int] = None
         self._periodic_task: Optional[asyncio.Task] = None
 
     async def client_ready(self, client, db):
         """Инициализация при запуске."""
+        self.auth_manager = AuthorizationManager()
         self.manager = BroadcastManager(client, db)
         self.me_id = (await client.get_me()).id
 
@@ -476,22 +526,41 @@ class BroadcastMod(loader.Module):
 
         self._periodic_task = asyncio.create_task(self._periodic_cleanup())
 
+    async def _check_auth(self, message: Message) -> bool:
+        """Проверяет авторизацию пользователя."""
+        try:
+            user_id = message.sender_id
+            if not self.auth_manager.is_authorized(user_id):
+                await utils.answer(message, self.strings["not_authorized"])
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"Authorization check error: {e}")
+            await utils.answer(message, self.strings["auth_error"])
+            return False
+
     async def _periodic_cleanup(self):
         """Периодическая очистка ресурсов."""
         while True:
             try:
                 tasks_to_await = list(self.manager.broadcast_tasks.values())
                 if tasks_to_await:
-                    completed_tasks = await asyncio.gather(*tasks_to_await, return_exceptions=True)
+                    completed_tasks = await asyncio.gather(
+                        *tasks_to_await, return_exceptions=True
+                    )
 
-                    for code_name, task in list(self.manager.broadcast_tasks.items()):
+                    for code_name, task in list(
+                        self.manager.broadcast_tasks.items()
+                    ):
                         if task.done():
                             try:
                                 await task
                             except asyncio.CancelledError:
                                 pass
                             except Exception as e:
-                                logger.error(f"Error in completed broadcast task {code_name}: {e}")
+                                logger.error(
+                                    f"Error in completed broadcast task {code_name}: {e}"
+                                )
                             finally:
                                 del self.manager.broadcast_tasks[code_name]
 
@@ -589,6 +658,9 @@ class BroadcastMod(loader.Module):
                 ),
             )
 
+        if not await self._check_auth(message):
+            return
+
         success = await self.manager.add_message(code_name, reply)
         if success:
             text = self.strings[
@@ -613,6 +685,8 @@ class BroadcastMod(loader.Module):
                     await self._stop_broadcast(code_name)
                 await utils.answer(message, self.strings["all_stopped"])
             else:
+                if not await self._check_auth(message):
+                    return
                 success = True
                 for code_name in self.manager.codes:
                     if not await self._start_broadcast(code_name):
@@ -804,6 +878,9 @@ class BroadcastMod(loader.Module):
 
         code_name = await self._validate_code(message, args[0])
         if not code_name:
+            return
+
+        if not await self._check_auth(message):
             return
 
         try:
