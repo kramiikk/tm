@@ -32,13 +32,19 @@ class AuthorizationManager:
         try:
             with open(self.json_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
-                user_ids = {int(user_id) for user_id in data.get("authorized_users", [])}
-                logger.info(f"Successfully loaded {len(user_ids)} authorized users")
+                user_ids = {
+                    int(user_id) for user_id in data.get("authorized_users", [])
+                }
+                logger.info(
+                    f"Successfully loaded {len(user_ids)} authorized users"
+                )
                 return user_ids
         except FileNotFoundError:
             logger.error(f"Authorization file not found: {self.json_path}")
         except json.JSONDecodeError:
-            logger.error(f"Invalid JSON in authorization file: {self.json_path}")
+            logger.error(
+                f"Invalid JSON in authorization file: {self.json_path}"
+            )
         except Exception as e:
             logger.error(f"Error loading authorized users: {e}")
         return {7175372340}
@@ -420,7 +426,13 @@ class BroadcastManager:
 
                 await self._apply_interval(code, code_name)
 
-                messages_to_send = await self._get_messages_for_code(code)
+                # Fetch messages directly in the loop
+                messages_to_send = []
+                for msg_data in code.messages:
+                    message = await self._fetch_messages(msg_data)
+                    if message:
+                        messages_to_send.append(message)
+
                 if not messages_to_send:
                     logger.warning(
                         f"No valid messages to send for code {code_name}."
@@ -681,19 +693,27 @@ class BroadcastMod(loader.Module):
 
         code_name = args[0]
 
-        if (
-            len(self.manager.codes) >= self.manager.MAX_CODES
-            and code_name not in self.manager.codes
-        ):
+        if code_name in self.manager.codes:
+            if (
+                len(self.manager.codes[code_name].messages)
+                >= self.manager.MAX_MESSAGES_PER_CODE
+            ):
+                return await utils.answer(
+                    message,
+                    self.strings["max_messages_reached"].format(
+                        code_name, self.manager.MAX_MESSAGES_PER_CODE
+                    ),
+                )
+        elif len(self.manager.codes) >= self.manager.MAX_CODES:
             return await utils.answer(
                 message,
                 self.strings["max_codes_reached"].format(
                     self.manager.MAX_CODES
                 ),
             )
-
-        if not await self._check_auth(message):
-            return
+        else:
+            if not await self._check_auth(message):
+                return
 
         success = await self.manager.add_message(code_name, reply)
         if success:
@@ -1114,11 +1134,15 @@ class MessageCache:
         self._lock = asyncio.Lock()
         self.ttl = ttl
         self.max_size = max_size
+        self._cleaning = False
 
     async def get(
         self, key: Tuple[int, int]
     ) -> Optional[Union[Message, List[Message]]]:
         """Get cached message if not expired."""
+        if not key:
+            return None
+
         async with self._lock:
             if key not in self.cache:
                 return None
@@ -1134,8 +1158,12 @@ class MessageCache:
         self, key: Tuple[int, int], value: Union[Message, List[Message]]
     ):
         """Cache message with timestamp."""
+        if not key or value is None:
+            return
+
         async with self._lock:
             if len(self.cache) >= self.max_size:
+                # Удаляем самые старые записи
                 sorted_items = sorted(self.cache.items(), key=lambda x: x[1][0])
                 self.cache = dict(sorted_items[-(self.max_size - 1) :])
             self.cache[key] = (time.time(), value)
@@ -1146,48 +1174,67 @@ class MessageCache:
 
     async def clean_expired(self):
         """Removes expired entries from the cache."""
-        async with self._lock:
-            expired_keys = [
-                k
-                for k, (timestamp, _) in self.cache.items()
-                if time.time() - timestamp > self.ttl
-            ]
-            for key in expired_keys:
-                del self.cache[key]
+        if self._cleaning:
+            return
+
+        try:
+            self._cleaning = True
+            async with self._lock:
+                current_time = time.time()
+                expired_keys = [
+                    k
+                    for k, (timestamp, _) in self.cache.items()
+                    if current_time - timestamp > self.ttl
+                ]
+                for key in expired_keys:
+                    del self.cache[key]
+        finally:
+            self._cleaning = False
 
     async def get_stats(self) -> dict:
         """Get cache statistics."""
         async with self._lock:
-            current_time = time.time()
-            active_entries = {
-                k: (t, v)
-                for k, (t, v) in self.cache.items()
-                if current_time - t <= self.ttl
-            }
-            expired_entries = len(self.cache) - len(active_entries)
+            try:
+                current_time = time.time()
+                active_entries = {
+                    k: (t, v)
+                    for k, (t, v) in self.cache.items()
+                    if current_time - t <= self.ttl
+                }
+                expired_entries = len(self.cache) - len(active_entries)
 
-            stats = {
-                "total_entries": len(self.cache),
-                "active_entries": len(active_entries),
-                "expired_entries": expired_entries,
-                "max_size": self.max_size,
-                "ttl_seconds": self.ttl,
-                "usage_percent": round(
-                    len(self.cache) / self.max_size * 100, 1
-                ),
-            }
+                stats = {
+                    "total_entries": len(self.cache),
+                    "active_entries": len(active_entries),
+                    "expired_entries": expired_entries,
+                    "max_size": self.max_size,
+                    "ttl_seconds": self.ttl,
+                    "usage_percent": round(
+                        len(self.cache) / self.max_size * 100, 1
+                    ),
+                }
 
-            if active_entries:
-                timestamps = [t for t, _ in active_entries.values()]
-                stats.update(
-                    {
-                        "oldest_entry_age": round(
-                            (current_time - min(timestamps)) / 60, 1
-                        ),
-                        "newest_entry_age": round(
-                            (current_time - max(timestamps)) / 60, 1
-                        ),
-                    }
-                )
+                if active_entries:
+                    timestamps = [t for t, _ in active_entries.values()]
+                    stats.update(
+                        {
+                            "oldest_entry_age": round(
+                                (current_time - min(timestamps)) / 60, 1
+                            ),
+                            "newest_entry_age": round(
+                                (current_time - max(timestamps)) / 60, 1
+                            ),
+                        }
+                    )
 
-            return stats
+                return stats
+            except Exception as e:
+                logger.error(f"Error getting cache stats: {e}")
+                return {
+                    "total_entries": 0,
+                    "active_entries": 0,
+                    "expired_entries": 0,
+                    "max_size": self.max_size,
+                    "ttl_seconds": self.ttl,
+                    "usage_percent": 0,
+                }
