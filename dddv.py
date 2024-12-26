@@ -426,7 +426,6 @@ class BroadcastManager:
 
                 await self._apply_interval(code, code_name)
 
-                # Fetch messages directly in the loop
                 messages_to_send = []
                 for msg_data in code.messages:
                     message = await self._fetch_messages(msg_data)
@@ -1163,7 +1162,6 @@ class MessageCache:
 
         async with self._lock:
             if len(self.cache) >= self.max_size:
-                # Удаляем самые старые записи
                 sorted_items = sorted(self.cache.items(), key=lambda x: x[1][0])
                 self.cache = dict(sorted_items[-(self.max_size - 1) :])
             self.cache[key] = (time.time(), value)
