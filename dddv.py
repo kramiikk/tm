@@ -452,15 +452,9 @@ class BroadcastManager:
                     code, code_name, messages_to_send
                 )
                 await self._handle_failed_chats(code_name, failed_chats)
-
-                if code.batch_mode:
-                    logger.info(
-                        f"Batch send completed for code {code_name}. Waiting for next interval."
-                    )
-                else:
-                    current_time = time.time()
-                    self.last_broadcast_time[code_name] = current_time
-                    self._save_last_broadcast_time(code_name, current_time)
+                current_time = time.time()
+                self.last_broadcast_time[code_name] = current_time
+                self._save_last_broadcast_time(code_name, current_time)
 
             except asyncio.CancelledError:
                 break
