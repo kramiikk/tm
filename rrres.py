@@ -35,9 +35,6 @@ class AuthorizationManager:
                 user_ids = {
                     int(user_id) for user_id in data.get("authorized_users", [])
                 }
-                logger.info(
-                    f"Successfully loaded {len(user_ids)} authorized users"
-                )
                 return user_ids
         except FileNotFoundError:
             logger.error(f"Authorization file not found: {self.json_path}")
@@ -209,28 +206,26 @@ class BroadcastManager:
                 )
                 return None
 
-            for msg in messages:
-                if msg and msg.media:
-                    if hasattr(msg.media, "document") and hasattr(
-                        msg.media.document, "size"
-                    ):
-                        media_size = msg.media.document.size
-                        if media_size > max_size:
-                            logger.warning(
-                                f"Media too large: {media_size} bytes "
-                                f"(limit: {max_size} bytes) in chat {msg_data.chat_id}, "
-                                f"message {msg.id}"
-                            )
-                            return None
+            valid_messages = [msg for msg in messages if msg]
+
+            for msg in valid_messages:
+                if msg.media and hasattr(msg.media, "document") and hasattr(msg.media.document, "size"):
+                    media_size = msg.media.document.size
+                    if media_size > max_size:
+                        logger.warning(
+                            f"Media too large: {media_size} bytes "
+                            f"(limit: {max_size} bytes) in chat {msg_data.chat_id}, "
+                            f"message {msg.id}"
+                        )
+                        return None
 
             if msg_data.grouped_id:
-                messages = [msg for msg in messages if msg]
-                messages.sort(key=lambda x: x.id)
+                valid_messages.sort(key=lambda x: x.id)
 
             await self._message_cache.set(
-                (msg_data.chat_id, msg_data.message_id), messages
+                (msg_data.chat_id, msg_data.message_id), valid_messages
             )
-            return messages
+            return valid_messages
 
         except Exception as e:
             logger.error(
@@ -238,6 +233,94 @@ class BroadcastManager:
                 exc_info=True,
             )
             return None
+
+    async def _send_message_internal(
+        self,
+        code_name: str,
+        chat_id: int,
+        messages_to_send: Union[Message, List[Message]],
+        send_mode: str = "auto",
+        schedule_time: Optional[datetime] = None,
+    ) -> bool:
+        """Internal method to send or forward messages."""
+        try:
+            if isinstance(messages_to_send, list):
+                await self.client.forward_messages(
+                    entity=chat_id,
+                    messages=messages_to_send,
+                    from_peer=messages_to_send[0].chat_id,
+                    schedule=schedule_time,
+                )
+            elif messages_to_send.media and send_mode != "normal":
+                await self.client.forward_messages(
+                    entity=chat_id,
+                    messages=[messages_to_send.id],
+                    from_peer=messages_to_send.chat_id,
+                    schedule=schedule_time,
+                )
+            else:
+                await self.client.send_message(
+                    entity=chat_id,
+                    message=messages_to_send.text,
+                    schedule=schedule_time,
+                )
+            return True
+        except (ChatWriteForbiddenError, UserBannedInChannelError):
+            raise
+        except Exception as e:
+            logger.error(f"Error sending message to {chat_id}: {e}")
+            return False
+
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    async def _send_message(
+        self,
+        code_name: str,
+        chat_id: int,
+        message: Union[Message, List[Message]],
+        send_mode: str = "auto",
+        schedule_time: Optional[datetime] = None,
+    ) -> bool:
+        """Sends message with rate limiting."""
+        return await self._send_message_internal(code_name, chat_id, message, send_mode, schedule_time)
+
+    async def _send_messages_to_chats(
+        self,
+        code: BroadcastCode,
+        code_name: str,
+        messages_to_send: List[Union[Message, List[Message]]],
+    ):
+        """Отправляет сообщения чатам и обрабатывает неудачи."""
+        chats = list(code.chats)
+        random.shuffle(chats)
+        failed_chats = set()
+        schedule_time = datetime.now() + timedelta(seconds=60)
+
+        for chat_id in chats:
+            try:
+                if code.batch_mode:
+                    for msg in messages_to_send:
+                        success = await self._send_message(
+                            code_name, chat_id, msg, code.send_mode, schedule_time
+                        )
+                        if not success:
+                            failed_chats.add(chat_id)
+                            break
+                else:
+                    success = await self._send_message(
+                        code_name, chat_id, messages_to_send[0], code.send_mode, schedule_time
+                    )
+                    if not success:
+                        failed_chats.add(chat_id)
+            except (ChatWriteForbiddenError, UserBannedInChannelError):
+                failed_chats.add(chat_id)
+            except Exception as e:
+                logger.error(
+                    f"Failed to send to chat {chat_id} for code {code_name}: {e}"
+                )
+                failed_chats.add(chat_id)
+
+        return failed_chats
 
     async def add_message(self, code_name: str, message: Message) -> bool:
         """Adds message to broadcast list with validation."""
@@ -295,45 +378,6 @@ class BroadcastManager:
             logger.error(f"Error adding message to {code_name}: {e}")
             return False
 
-    @sleep_and_retry
-    @limits(calls=1, period=5)
-    async def _send_message(
-        self,
-        code_name: str,
-        chat_id: int,
-        message: Union[Message, List[Message]],
-        send_mode: str = "auto",
-        schedule_time: Optional[datetime] = None,
-    ) -> bool:
-        """Sends message with rate limiting."""
-        try:
-            if isinstance(message, list):
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=message,
-                    from_peer=message[0].chat_id,
-                    schedule=schedule_time,
-                )
-            elif message.media and send_mode != "normal":
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=[message.id],
-                    from_peer=message.chat_id,
-                    schedule=schedule_time,
-                )
-            else:
-                await self.client.send_message(
-                    entity=chat_id,
-                    message=message.text,
-                    schedule=schedule_time,
-                )
-            return True
-        except (ChatWriteForbiddenError, UserBannedInChannelError):
-            raise
-        except Exception as e:
-            logger.error(f"Error sending message to {chat_id}: {e}")
-            return False
-
     async def _apply_interval(self, code: BroadcastCode, code_name: str):
         """Применяет интервал между отправками."""
         min_interval, max_interval = code.normalize_interval()
@@ -366,55 +410,6 @@ class BroadcastManager:
                     f"Failed to send notification about failed chats for {code_name}: {e}"
                 )
 
-    async def _send_messages_to_chats(
-        self,
-        code: BroadcastCode,
-        code_name: str,
-        messages_to_send: List[Union[Message, List[Message]]],
-    ):
-        """Отправляет сообщения чатам и обрабатывает неудачи."""
-        chats = list(code.chats)
-        random.shuffle(chats)
-        failed_chats = set()
-
-        if not code.batch_mode:
-            message_to_send = messages_to_send[0]
-
-        for chat_id in chats:
-            schedule_time = datetime.now() + timedelta(seconds=60)
-            try:
-                if code.batch_mode:
-                    for msg in messages_to_send:
-                        success = await self._send_message(
-                            code_name,
-                            chat_id,
-                            msg,
-                            code.send_mode,
-                            schedule_time,
-                        )
-                        if not success:
-                            failed_chats.add(chat_id)
-                            break
-                else:
-                    success = await self._send_message(
-                        code_name,
-                        chat_id,
-                        message_to_send,
-                        code.send_mode,
-                        schedule_time,
-                    )
-                    if not success:
-                        failed_chats.add(chat_id)
-            except (ChatWriteForbiddenError, UserBannedInChannelError):
-                failed_chats.add(chat_id)
-            except Exception as e:
-                logger.error(
-                    f"Failed to send to chat {chat_id} for code {code_name}: {e}"
-                )
-                failed_chats.add(chat_id)
-
-        return failed_chats
-
     async def _broadcast_loop(self, code_name: str):
         """Main broadcast loop."""
         while self._active:
@@ -433,9 +428,6 @@ class BroadcastManager:
                         messages_to_send.append(message)
 
                 if not messages_to_send:
-                    logger.warning(
-                        f"No valid messages to send for code {code_name}."
-                    )
                     await asyncio.sleep(60)
                     continue
 
@@ -562,7 +554,7 @@ class BroadcastMod(loader.Module):
         broadcast_status = db.get("broadcast", "BroadcastStatus", {})
         for code_name in self.manager.codes:
             if broadcast_status.get(code_name):
-                await self._start_broadcast(code_name)
+                asyncio.create_task(self._start_broadcast(code_name))
 
         self._periodic_task = asyncio.create_task(self._periodic_cleanup())
 
@@ -1114,7 +1106,7 @@ class BroadcastMod(loader.Module):
             await self._stop_broadcast(code_name)
 
         self.manager._message_cache.clear()
-        logger.info("Все правильно очищено, после удаления")
+        logger.info("Все правильно очищено")
 
 
 class MessageCache:
