@@ -209,7 +209,11 @@ class BroadcastManager:
             valid_messages = [msg for msg in messages if msg]
 
             for msg in valid_messages:
-                if msg.media and hasattr(msg.media, "document") and hasattr(msg.media.document, "size"):
+                if (
+                    msg.media
+                    and hasattr(msg.media, "document")
+                    and hasattr(msg.media.document, "size")
+                ):
                     media_size = msg.media.document.size
                     if media_size > max_size:
                         logger.warning(
@@ -282,7 +286,9 @@ class BroadcastManager:
         schedule_time: Optional[datetime] = None,
     ) -> bool:
         """Sends message with rate limiting."""
-        return await self._send_message_internal(code_name, chat_id, message, send_mode, schedule_time)
+        return await self._send_message_internal(
+            code_name, chat_id, message, send_mode, schedule_time
+        )
 
     async def _send_messages_to_chats(
         self,
@@ -301,14 +307,22 @@ class BroadcastManager:
                 if code.batch_mode:
                     for msg in messages_to_send:
                         success = await self._send_message(
-                            code_name, chat_id, msg, code.send_mode, schedule_time
+                            code_name,
+                            chat_id,
+                            msg,
+                            code.send_mode,
+                            schedule_time,
                         )
                         if not success:
                             failed_chats.add(chat_id)
                             break
                 else:
                     success = await self._send_message(
-                        code_name, chat_id, messages_to_send[0], code.send_mode, schedule_time
+                        code_name,
+                        chat_id,
+                        messages_to_send[0],
+                        code.send_mode,
+                        schedule_time,
                     )
                     if not success:
                         failed_chats.add(chat_id)
