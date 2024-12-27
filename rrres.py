@@ -49,7 +49,6 @@ class AuthorizationManager:
     def is_authorized(self, user_id: int) -> bool:
         """Check if a user is authorized to use the module."""
         authorized = user_id in self._authorized_users
-        logger.debug(f"Authorization check for user {user_id}: {authorized}")
         return authorized
 
 
@@ -83,7 +82,10 @@ class BroadcastCode:
         )
 
     def normalize_interval(self) -> Tuple[int, int]:
-        return self.interval if self.is_valid_interval() else (10, 13)
+        if self.is_valid_interval():
+            return self.interval
+        else:
+            return (10, 13)
 
 
 class BroadcastManager:
@@ -103,29 +105,6 @@ class BroadcastManager:
         self._message_cache = MessageCache(ttl=7200, max_size=50)
         self._active = True
         self._lock = asyncio.Lock()
-
-    def _load_last_broadcast_times(self):
-        """Загружает времена последних рассылок из БД."""
-        try:
-            saved_times = self.db.get("broadcast", "last_broadcast_times", {})
-            self.last_broadcast_time.update(
-                {
-                    code: float(time_)
-                    for code, time_ in saved_times.items()
-                    if isinstance(time_, (int, float))
-                }
-            )
-        except Exception as e:
-            logger.error(f"Failed to load last broadcast times: {e}")
-
-    def _save_last_broadcast_time(self, code_name: str, timestamp: float):
-        """Сохраняет время последней рассылки в БД."""
-        try:
-            saved_times = self.db.get("broadcast", "last_broadcast_times", {})
-            saved_times[code_name] = timestamp
-            self.db.set("broadcast", "last_broadcast_times", saved_times)
-        except Exception as e:
-            logger.error(f"Failed to save last broadcast time: {e}")
 
     def _create_broadcast_code_from_dict(
         self, code_data: dict
@@ -178,7 +157,14 @@ class BroadcastManager:
             except Exception as e:
                 logger.error(f"Error loading broadcast code {code_name}: {e}")
 
-        self._load_last_broadcast_times()
+        saved_times = self.db.get("broadcast", "last_broadcast_times", {})
+        self.last_broadcast_time.update(
+            {
+                code: float(time_)
+                for code, time_ in saved_times.items()
+                if isinstance(time_, (int, float))
+            }
+        )
 
     async def _fetch_messages(
         self, msg_data: BroadcastMessage, max_size: int = 10 * 1024 * 1024
@@ -238,7 +224,9 @@ class BroadcastManager:
             )
             return None
 
-    async def _send_message_internal(
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    async def _send_message(
         self,
         code_name: str,
         chat_id: int,
@@ -246,49 +234,33 @@ class BroadcastManager:
         send_mode: str = "auto",
         schedule_time: Optional[datetime] = None,
     ) -> bool:
-        """Internal method to send or forward messages."""
+        """Sends message with rate limiting."""
         try:
             if isinstance(messages_to_send, list):
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=messages_to_send,
-                    from_peer=messages_to_send[0].chat_id,
-                    schedule=schedule_time,
-                )
+                messages = messages_to_send
+                from_peer = messages_to_send[0].chat_id
             elif messages_to_send.media and send_mode != "normal":
-                await self.client.forward_messages(
-                    entity=chat_id,
-                    messages=[messages_to_send.id],
-                    from_peer=messages_to_send.chat_id,
-                    schedule=schedule_time,
-                )
+                messages = [messages_to_send.id]
+                from_peer = messages_to_send.chat_id
             else:
                 await self.client.send_message(
                     entity=chat_id,
                     message=messages_to_send.text,
                     schedule=schedule_time,
                 )
+                return True
+            await self.client.forward_messages(
+                entity=chat_id,
+                messages=messages,
+                from_peer=from_peer,
+                schedule=schedule_time,
+            )
             return True
         except (ChatWriteForbiddenError, UserBannedInChannelError):
             raise
         except Exception as e:
             logger.error(f"Error sending message to {chat_id}: {e}")
             return False
-
-    @sleep_and_retry
-    @limits(calls=1, period=5)
-    async def _send_message(
-        self,
-        code_name: str,
-        chat_id: int,
-        message: Union[Message, List[Message]],
-        send_mode: str = "auto",
-        schedule_time: Optional[datetime] = None,
-    ) -> bool:
-        """Sends message with rate limiting."""
-        return await self._send_message_internal(
-            code_name, chat_id, message, send_mode, schedule_time
-        )
 
     async def _send_messages_to_chats(
         self,
@@ -460,7 +432,16 @@ class BroadcastManager:
                 await self._handle_failed_chats(code_name, failed_chats)
                 current_time = time.time()
                 self.last_broadcast_time[code_name] = current_time
-                self._save_last_broadcast_time(code_name, current_time)
+                try:
+                    saved_times = self.db.get(
+                        "broadcast", "last_broadcast_times", {}
+                    )
+                    saved_times[code_name] = current_time
+                    self.db.set(
+                        "broadcast", "last_broadcast_times", saved_times
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to save last broadcast time: {e}")
 
             except asyncio.CancelledError:
                 break
@@ -1166,9 +1147,10 @@ class MessageCache:
                 self.cache = dict(sorted_items[-(self.max_size - 1) :])
             self.cache[key] = (time.time(), value)
 
-    def clear(self):
+    async def clear(self):
         """Clear all cached data."""
-        self.cache.clear()
+        async with self._lock:
+            self.cache.clear()
 
     async def clean_expired(self):
         """Removes expired entries from the cache."""
