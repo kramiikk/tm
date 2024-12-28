@@ -373,8 +373,12 @@ class BroadcastManager:
         """Применяет интервал между отправками."""
         min_interval, max_interval = code.normalize_interval()
         schedule_minutes = getattr(self, "last_schedule_delay", 60) / 60
-        adjusted_min = max(1, min_interval - schedule_minutes)
-        adjusted_max = max(adjusted_min + 1, max_interval - schedule_minutes)
+        if min_interval < schedule_minutes:
+            adjusted_min = schedule_minutes
+            adjusted_max = max(schedule_minutes + 1, max_interval)
+        else:
+            adjusted_min = min_interval
+            adjusted_max = max_interval
         interval = random.uniform(adjusted_min, adjusted_max) * 60
         last_broadcast = self.last_broadcast_time.get(code_name, 0)
 
