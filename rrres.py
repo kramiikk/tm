@@ -102,6 +102,7 @@ class BroadcastManager:
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
         self.message_indices: Dict[str, int] = {}
         self.last_broadcast_time: Dict[str, float] = {}
+        self.last_schedule_delay: int = 60
         self._message_cache = MessageCache(ttl=7200, max_size=50)
         self._active = True
         self._lock = asyncio.Lock()
@@ -272,7 +273,11 @@ class BroadcastManager:
         chats = list(code.chats)
         random.shuffle(chats)
         failed_chats = set()
-        schedule_time = datetime.now() + timedelta(seconds=60)
+
+        schedule_options = [60, 120, 180]  # 1, 2 или 3 минуты в секундах
+        schedule_delay = random.choice(schedule_options)
+        schedule_time = datetime.now() + timedelta(seconds=schedule_delay)
+        self.last_schedule_delay = schedule_delay
 
         for chat_id in chats:
             try:
@@ -367,7 +372,10 @@ class BroadcastManager:
     async def _apply_interval(self, code: BroadcastCode, code_name: str):
         """Применяет интервал между отправками."""
         min_interval, max_interval = code.normalize_interval()
-        interval = random.uniform(min_interval, max_interval) * 60
+        schedule_minutes = getattr(self, "last_schedule_delay", 60) / 60
+        adjusted_min = max(1, min_interval - schedule_minutes)
+        adjusted_max = max(adjusted_min + 1, max_interval - schedule_minutes)
+        interval = random.uniform(adjusted_min, adjusted_max) * 60
         last_broadcast = self.last_broadcast_time.get(code_name, 0)
 
         time_since_last_broadcast = time.time() - last_broadcast
