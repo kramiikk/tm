@@ -1,8 +1,8 @@
 """
 ╔══════════════════════════════════════════════════════╗
-║                    Profile Photo Repeater                      ║
-║                    Developer: @xdesai                          ║
-║                    Optimized: @kramiikk                        ║
+                     Profile Photo Repeater                       
+                     Developer: @xdesai                           
+                     Optimized: @kramiikk                         
 ╚══════════════════════════════════════════════════════╝
 
 Этот модуль позволяет автоматически обновлять фотографию профиля
