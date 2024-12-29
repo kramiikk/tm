@@ -1,15 +1,24 @@
-#meta developer: @xdesai
+"""
+╔════════════════════════════════════════════════════════════════╗
+║                    Profile Photo Repeater                      ║
+║                    Developer: @xdesai                          ║
+║                    Optimized: @kramiikk                        ║
+╚════════════════════════════════════════════════════════════════╝
 
-# This module is for setting a profile photo and repeating it every 15 minutes.
+Этот модуль позволяет автоматически обновлять фотографию профиля
+каждые 15 минут.
 
-# Commands:
-# .pfp <path> - Start repeating profile photo every 15 minutes.
-# .pfpstop - Stop repeating profile photo.
+📝 Команды:
+    • .pfp <путь> - Запустить автообновление фото профиля
+    • .pfpstop - Остановить автообновление
 
-# You can also reply to a photo with .pfp to set it as the profile photo.
+💡 Совет: Вы также можете ответить на фото командой .pfp, 
+    чтобы установить его как фото профиля
 
-
-# Disclaimer: I am not responsible for any issues that may arise with your account.
+⚠️ Отказ от ответственности:
+    Разработчик не несет ответственности за любые проблемы,
+    которые могут возникнуть с вашим аккаунтом.
+"""
 
 import asyncio
 from telethon import functions
