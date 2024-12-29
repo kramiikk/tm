@@ -22,7 +22,7 @@
 
 import asyncio
 from telethon import functions
-from .. import loader
+from .. import loader, utils
 
 @loader.tds
 class PfpRepeaterMod(loader.Module):
@@ -31,9 +31,9 @@ class PfpRepeaterMod(loader.Module):
 
     def __init__(self):
         self.config = loader.ModuleConfig(
-            "DELAY",
-            900,
-            validator=loader.validators.Integer(),
+            "DELAY", # Config key
+            900,    # Default value
+            "Delay between profile photo updates in seconds" # Description
         )
         self.running = False
         self.task = None
@@ -43,16 +43,20 @@ class PfpRepeaterMod(loader.Module):
 
     async def set_profile_photo(self, photo_path):
         while self.running:
-            file = await self.client.upload_file(photo_path)
-            await self.client(functions.photos.UploadProfilePhotoRequest(file=file))
-            await asyncio.sleep(self.config["DELAY"])
+            try:
+                file = await self.client.upload_file(photo_path)
+                await self.client(functions.photos.UploadProfilePhotoRequest(file=file))
+                await asyncio.sleep(self.config["DELAY"])
+            except Exception as e:
+                self.running = False
+                raise e
 
     async def _get_photo_path(self, message):
         reply = await message.get_reply_message()
         if reply and reply.photo:
-            return await message.client.download_media(reply.photo)
+            return await self.client.download_media(reply.photo)
         elif message.media and message.photo:
-            return await message.client.download_media(message)
+            return await self.client.download_media(message)
         return None
 
     @loader.command()
