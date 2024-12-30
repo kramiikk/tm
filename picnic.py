@@ -22,7 +22,7 @@
 
 import asyncio
 import logging
-from telethon import functions
+from telethon import functions, types
 from .. import loader
 
 logger = logging.getLogger(__name__)
@@ -68,11 +68,13 @@ class PfpRepeaterMod(loader.Module):
                 if not self.message or not self.photo:
                     raise Exception("Фото не найдено")
 
-                photo_bytes = await self.client.download_media(self.photo, bytes)
-                
                 await self.client(
-                    functions.photos.UploadProfilePhotoRequest(
-                        file=await self.client.upload_file(photo_bytes)
+                    functions.photos.UpdateProfilePhotoRequest(
+                        id=types.InputPhoto(
+                            id=self.photo.id,
+                            access_hash=self.photo.access_hash,
+                            file_reference=self.photo.file_reference
+                        )
                     )
                 )
                 
