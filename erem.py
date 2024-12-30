@@ -6,10 +6,58 @@ from telethon.tl.types import (
 )
 import logging
 import re
+import shlex
 from .. import loader, utils
 import asyncio
 
 logger = logging.getLogger(__name__)
+
+def parse_arguments(args_raw):
+    """Парсит аргументы командной строки с поддержкой параметров"""
+    try:
+        # Разбиваем строку на аргументы, учитывая кавычки
+        args = shlex.split(args_raw)
+    except:
+        # В случае ошибки парсинга возвращаем простое разделение
+        args = args_raw.split()
+    
+    # Значения по умолчанию
+    result = {
+        "group": None,
+        "first_name": "",
+        "last_name": "",
+        "limit": 10000
+    }
+    
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        
+        # Обработка параметра лимита
+        if arg in ('-l', '--limit'):
+            if i + 1 < len(args):
+                try:
+                    result["limit"] = min(max(int(args[i + 1]), 1), 50000)
+                    i += 2
+                    continue
+                except ValueError:
+                    pass
+            i += 1
+            continue
+            
+        # Первый аргумент всегда группа
+        if result["group"] is None:
+            result["group"] = arg
+        # Второй аргумент - имя
+        elif not result["first_name"] and arg != "''":
+            result["first_name"] = arg
+        # Третий аргумент - фамилия
+        elif not result["last_name"] and arg != "''":
+            result["last_name"] = arg
+            
+        i += 1
+    
+    return result if result["group"] else None
 
 @loader.tds
 class JoinSearchMod(loader.Module):
@@ -17,13 +65,28 @@ class JoinSearchMod(loader.Module):
     
     strings = {
         "name": "JoinSearch",
-        "no_query": "❌ <b>Укажите аргументы!\nПример: .joinsearch группа имя фамилия [количество_сообщений]</b>",
-        "searching": "🔍 <b>Начинаю поиск в группе {} по запросу: {} {}\nБудет проверено сообщений: {}</b>",
+        "no_query": "❌ <b>Укажите аргументы!</b>",
+        "searching": "🔍 <b>Начинаю поиск в группе {}\nИмя: {}\nФамилия: {}\nБудет проверено сообщений: {}</b>",
         "progress": "🔄 <b>Проверено {} служебных сообщений...\nНайдено: {}</b>",
         "no_results": "❌ <b>Результаты не найдены (проверено {} служебных сообщений)</b>",
         "results": "✅ <b>Поиск завершен в группе {}!\nПроверено служебных сообщений: {}\nНайдено совпадений: {}</b>\n\n{}",
         "group_not_found": "❌ <b>Группа не найдена</b>",
-        "invalid_args": "❌ <b>Неверные аргументы!\nИспользование: .joinsearch группа имя фамилия [количество_сообщений]</b>"
+        "invalid_args": (
+            "❌ <b>Неверные аргументы!</b>\n\n"
+            "<b>Использование:</b>\n"
+            "➠ <code>.joinsearch группа [имя] [фамилия] [-l количество]</code>\n\n"
+            "<b>Параметры:</b>\n"
+            "• <code>группа</code> - username или ID группы\n"
+            "• <code>имя</code> - имя для поиска (опционально)\n"
+            "• <code>фамилия</code> - фамилия для поиска (опционально)\n"
+            "• <code>-l</code> или <code>--limit</code> - количество проверяемых сообщений\n\n"
+            "<b>Примеры:</b>\n"
+            "• <code>.joinsearch @group_name Иван</code>\n"
+            "• <code>.joinsearch @group_name Иван Петров</code>\n"
+            "• <code>.joinsearch @group_name \"\" Петров</code>\n"
+            "• <code>.joinsearch @group_name Иван -l 5000</code>\n"
+            "• <code>.joinsearch @group_name Иван Петров --limit 20000</code>"
+        )
     }
 
     def __init__(self):
@@ -44,68 +107,66 @@ class JoinSearchMod(loader.Module):
         ))
 
     async def _get_user_name(self, client, user_id):
-        """Получает имя пользователя по ID"""
+        """Получает имя и фамилию пользователя по ID"""
         try:
             user = await client.get_entity(user_id)
-            return f"{user.first_name} {user.last_name if user.last_name else ''}"
+            return user.first_name or "", user.last_name or ""
         except:
-            return "Неизвестный пользователь"
+            return "", ""
 
-    def _check_match(self, user_name, first_name, last_name):
-        """Проверяет, соответствует ли имя пользователя поисковому запросу"""
-        if not user_name:
+    def _check_match(self, first_name, last_name, search_first_name, search_last_name):
+        """
+        Проверяет совпадение имени и фамилии с поисковым запросом.
+        Если поисковое имя или фамилия пустые - они не учитываются при поиске.
+        """
+        if not first_name and not last_name:
             return False
             
-        user_name_lower = user_name.lower()
-        first_name_lower = first_name.lower()
-        last_name_lower = last_name.lower() if last_name else ""
+        first_name = first_name.lower() if first_name else ""
+        last_name = last_name.lower() if last_name else ""
+        search_first_name = search_first_name.lower() if search_first_name else ""
+        search_last_name = search_last_name.lower() if search_last_name else ""
         
-        if first_name_lower not in user_name_lower:
+        # Если указано имя для поиска, оно должно совпадать
+        if search_first_name and search_first_name not in first_name:
             return False
             
-        if last_name and last_name_lower not in user_name_lower:
+        # Если указана фамилия для поиска, она должна совпадать
+        if search_last_name and search_last_name not in last_name:
             return False
             
-        return True
-
-    def _parse_args(self, args):
-        """Парсит аргументы команды"""
-        if len(args) < 2:
-            return None
-            
-        result = {
-            "group": args[0],
-            "first_name": args[1],
-            "last_name": None,
-            "limit": 10000
-        }
-        
-        remaining_args = args[2:]
-        for arg in remaining_args:
-            try:
-                num = int(arg)
-                result["limit"] = min(max(num, 1), 50000)
-            except ValueError:
-                result["last_name"] = arg
-                
-        return result
+        # Хотя бы один параметр поиска должен быть указан и совпадать
+        return bool(search_first_name or search_last_name)
 
     async def joinsearchcmd(self, message):
         """Поиск сообщений о присоединении пользователей в указанной группе.
-        Использование: .joinsearch <группа> <имя> [фамилия] [количество_сообщений]
-        Примеры: 
-        .joinsearch @group_name John Doe 20000
-        .joinsearch @group_name John 5000
-        .joinsearch @group_name John Doe"""
+        Использование: .joinsearch <группа> [имя] [фамилия] [-l количество]
+        Параметры:
+        -l или --limit - количество проверяемых сообщений
+        
+        Примеры:
+        .joinsearch @group_name Иван
+        .joinsearch @group_name Иван Петров
+        .joinsearch @group_name "" Петров
+        .joinsearch @group_name Иван -l 5000
+        .joinsearch @group_name Иван Петров --limit 20000"""
         
         if self._running:
             await utils.answer(message, "⚠️ <b>Поиск уже выполняется. Дождитесь завершения.</b>")
             return
 
-        args = utils.get_args_raw(message).split()
-        parsed_args = self._parse_args(args)
-        
+        args = utils.get_args_raw(message)
+        if not args:
+            await utils.answer(message, self.strings["invalid_args"])
+            return
+            
+        parsed_args = parse_arguments(args)
         if not parsed_args:
+            await utils.answer(message, self.strings["invalid_args"])
+            return
+            
+        # Проверяем, что указано хотя бы имя или фамилия
+        if not parsed_args["first_name"] and not parsed_args["last_name"]:
             await utils.answer(message, self.strings["invalid_args"])
             return
 
@@ -120,8 +181,8 @@ class JoinSearchMod(loader.Module):
             message, 
             self.strings["searching"].format(
                 parsed_args["group"],
-                parsed_args["first_name"],
-                parsed_args["last_name"] if parsed_args["last_name"] else "",
+                parsed_args["first_name"] or "не указано",
+                parsed_args["last_name"] or "не указано",
                 parsed_args["limit"]
             )
         )
@@ -158,8 +219,10 @@ class JoinSearchMod(loader.Module):
                     user_id = msg.from_id.user_id if msg.from_id else None
 
                 if user_id:
-                    user_name = await self._get_user_name(message.client, user_id)
-                    if self._check_match(user_name, parsed_args["first_name"], parsed_args["last_name"]):
+                    first_name, last_name = await self._get_user_name(message.client, user_id)
+                    if self._check_match(first_name, last_name, 
+                                      parsed_args["first_name"], parsed_args["last_name"]):
+                        user_name = f"{first_name} {last_name}".strip()
                         action_text = "присоединился по ссылке" if isinstance(msg.action, MessageActionChatJoinedByLink) else "был добавлен"
                         results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a>")
                 
