@@ -22,7 +22,7 @@
 
 import asyncio
 import logging
-from telethon import functions, types
+from telethon import functions, types, errors
 from .. import loader
 
 logger = logging.getLogger(__name__)
@@ -68,17 +68,30 @@ class PfpRepeaterMod(loader.Module):
                 if not self.message or not self.photo:
                     raise Exception("Фото не найдено")
 
-                await self.client(
-                    functions.photos.UpdateProfilePhotoRequest(
-                        id=types.InputPhoto(
-                            id=self.photo.id,
-                            access_hash=self.photo.access_hash,
-                            file_reference=self.photo.file_reference
+                try:
+                    await self.client(
+                        functions.photos.UpdateProfilePhotoRequest(
+                            id=types.InputPhoto(
+                                id=self.photo.id,
+                                access_hash=self.photo.access_hash,
+                                file_reference=self.photo.file_reference
+                            )
                         )
                     )
-                )
-                
-                await asyncio.sleep(self.config["DELAY"])
+                    await asyncio.sleep(self.config["DELAY"])
+                    
+                except errors.FloodWaitError as e:
+                    wait_time = e.seconds
+                    await self.client.send_message(
+                        self.db.get(self.strings["name"], "chat_id"),
+                        f"⚠️ Telegram требует ожидания {wait_time} секунд перед следующим обновлением фото. Продолжим после ожидания."
+                    )
+                    await asyncio.sleep(wait_time + self.config["DELAY"])
+                    continue
+                    
+            except errors.FloodWaitError as e:
+                await asyncio.sleep(e.seconds)
+                continue
                 
             except Exception as e:
                 self.running = False
