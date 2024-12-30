@@ -24,16 +24,16 @@ import asyncio
 from telethon import functions, types
 from .. import loader, utils
 
+
 @loader.tds
 class PfpRepeaterMod(loader.Module):
     """Profile Photo Repeater Module"""
+
     strings = {"name": "PfpRepeater"}
 
     def __init__(self):
         self.config = loader.ModuleConfig(
-            "DELAY",
-            900,
-            "Delay between profile photo updates in seconds"
+            "DELAY", 900, "Delay between profile photo updates in seconds"
         )
         self.running = False
         self.task = None
@@ -54,45 +54,64 @@ class PfpRepeaterMod(loader.Module):
         while self.running:
             try:
                 if self.photo_id:
-                    input_photo = types.InputPhoto(
-                        id=self.photo_id
+                    photos = await self.client(
+                        functions.photos.GetUserPhotosRequest(
+                            user_id="me", offset=0, max_id=0, limit=1
+                        )
                     )
-                    
-                    await self.client(functions.photos.UpdateProfilePhotoRequest(
-                        id=input_photo
-                    ))
-                    
+
+                    photo = None
+                    for p in photos.photos:
+                        if p.id == self.photo_id:
+                            photo = p
+                            break
+                    if not photo:
+                        raise Exception("Фото не найдено")
+                    input_photo = types.InputPhoto(
+                        id=photo.id,
+                        access_hash=photo.access_hash,
+                        file_reference=photo.file_reference,
+                    )
+
+                    await self.client(
+                        functions.photos.UpdateProfilePhotoRequest(id=input_photo)
+                    )
                 await asyncio.sleep(self.config["DELAY"])
             except Exception as e:
                 self.running = False
                 self.db.set(self.strings["name"], "running", False)
                 await self.client.send_message(
                     self.db.get(self.strings["name"], "chat_id"),
-                    "❌ Ошибка доступа к фото. Возможно, оно было удалено. Остановка модуля."
+                    f"❌ Ошибка при обновлении фото: {str(e)}. Остановка модуля.",
                 )
-                raise e
+                break
 
     @loader.command()
     async def pfp(self, message):
         """Запустить автообновление фото профиля. Отправьте команду с фото или ответом на фото."""
         reply = await message.get_reply_message()
-        
-        target_message = reply if reply and reply.photo else message if message.photo else None
-        
-        if not target_message or not target_message.photo:
-            await message.edit("❌ Пожалуйста, отправьте команду с фото или ответом на сообщение с фото.")
-            return
 
+        target_message = (
+            reply if reply and reply.photo else message if message.photo else None
+        )
+
+        if not target_message or not target_message.photo:
+            await message.edit(
+                "❌ Пожалуйста, отправьте команду с фото или ответом на сообщение с фото."
+            )
+            return
         if not self.running:
             self.photo_id = target_message.photo.id
             self.running = True
-            
+
             self.db.set(self.strings["name"], "photo_id", self.photo_id)
             self.db.set(self.strings["name"], "chat_id", message.chat_id)
             self.db.set(self.strings["name"], "running", True)
-            
+
             self.task = asyncio.create_task(self.set_profile_photo())
-            await message.edit(f"✅ Запущено автообновление фото профиля каждые {self.config['DELAY']} секунд.")
+            await message.edit(
+                f"✅ Запущено автообновление фото профиля каждые {self.config['DELAY']} секунд."
+            )
         else:
             await message.edit("⚠️ Автообновление фото уже запущено.")
 
