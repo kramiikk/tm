@@ -35,7 +35,7 @@ class JoinSearchMod(loader.Module):
 
     def _is_join_message(self, msg):
         """Проверяет, является ли сообщение сообщением о входе в группу"""
-        if not isinstance(msg, MessageService) or not msg.action:
+        if not isinstance(msg, MessageService):
             return False
             
         return isinstance(msg.action, (
@@ -43,19 +43,27 @@ class JoinSearchMod(loader.Module):
             MessageActionChatAddUser        # Добавление пользователя
         ))
 
-    def _check_match(self, msg, first_name, last_name):
-        """Проверяет, соответствует ли сообщение поисковому запросу"""
-        if not msg.action_message:
+    async def _get_user_name(self, client, user_id):
+        """Получает имя пользователя по ID"""
+        try:
+            user = await client.get_entity(user_id)
+            return f"{user.first_name} {user.last_name if user.last_name else ''}"
+        except:
+            return "Неизвестный пользователь"
+
+    def _check_match(self, user_name, first_name, last_name):
+        """Проверяет, соответствует ли имя пользователя поисковому запросу"""
+        if not user_name:
             return False
             
-        message_lower = msg.action_message.lower()
+        user_name_lower = user_name.lower()
         first_name_lower = first_name.lower()
         last_name_lower = last_name.lower() if last_name else ""
         
-        if first_name_lower not in message_lower:
+        if first_name_lower not in user_name_lower:
             return False
             
-        if last_name and last_name_lower not in message_lower:
+        if last_name and last_name_lower not in user_name_lower:
             return False
             
         return True
@@ -141,10 +149,19 @@ class JoinSearchMod(loader.Module):
                         )
                     )
                     await asyncio.sleep(0.3)
-                
-                if self._check_match(msg, parsed_args["first_name"], parsed_args["last_name"]):
-                    user_info = f"ID: {msg.from_id.user_id}" if msg.from_id else "ID не доступен"
-                    results.append(f"• {msg.action_message} | {user_info} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a>")
+
+                # Получаем ID пользователя из действия
+                user_id = None
+                if isinstance(msg.action, MessageActionChatAddUser):
+                    user_id = msg.action.users[0] if msg.action.users else None
+                elif isinstance(msg.action, MessageActionChatJoinedByLink):
+                    user_id = msg.from_id.user_id if msg.from_id else None
+
+                if user_id:
+                    user_name = await self._get_user_name(message.client, user_id)
+                    if self._check_match(user_name, parsed_args["first_name"], parsed_args["last_name"]):
+                        action_text = "присоединился по ссылке" if isinstance(msg.action, MessageActionChatJoinedByLink) else "был добавлен"
+                        results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a>")
                 
                 if messages_checked % 50 == 0:
                     await asyncio.sleep(0.1)
