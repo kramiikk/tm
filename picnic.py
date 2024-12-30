@@ -47,7 +47,6 @@ class PfpRepeaterMod(loader.Module):
         self.client = client
         self.db = db
         
-        # Восстанавливаем состояние после перезапуска
         was_running = self.db.get(self.strings["name"], "running", False)
         if was_running:
             message_id = self.db.get(self.strings["name"], "message_id")
@@ -69,17 +68,14 @@ class PfpRepeaterMod(loader.Module):
                 if not self.message or not self.photo:
                     raise Exception("Фото не найдено")
 
-                # Загружаем фото в байты
                 photo_bytes = await self.client.download_media(self.photo, bytes)
                 
-                # Обновляем фото профиля
                 await self.client(
                     functions.photos.UploadProfilePhotoRequest(
                         file=await self.client.upload_file(photo_bytes)
                     )
                 )
                 
-                # Ждем указанное время
                 await asyncio.sleep(self.config["DELAY"])
                 
             except Exception as e:
@@ -106,17 +102,14 @@ class PfpRepeaterMod(loader.Module):
             return
 
         try:
-            # Сохраняем информацию о сообщении и фото
             self.message = target_message
             self.photo = target_message.photo
             self.running = True
 
-            # Сохраняем данные в базу
             self.db.set(self.strings["name"], "message_id", target_message.id)
             self.db.set(self.strings["name"], "chat_id", message.chat_id)
             self.db.set(self.strings["name"], "running", True)
 
-            # Запускаем задачу
             self.task = asyncio.create_task(self.set_profile_photo())
             
             await message.edit(
