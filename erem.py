@@ -1,8 +1,6 @@
-from telethon import events, types
+from telethon import types
 from telethon.tl.types import (
     MessageService,
-    PeerChannel,
-    PeerChat,
     MessageActionChatJoinedByLink,
     MessageActionChatAddUser
 )
@@ -19,17 +17,17 @@ class JoinSearchMod(loader.Module):
     
     strings = {
         "name": "JoinSearch",
-        "no_query": "❌ <b>Укажите поисковый запрос (текст или ID пользователя)</b>",
-        "searching": "🔍 <b>Начинаю поиск в {} сообщениях...</b>",
+        "no_query": "❌ <b>Укажите аргументы!\nПример: .joinsearch группа имя фамилия [количество_сообщений]</b>",
+        "searching": "🔍 <b>Начинаю поиск в группе {} по запросу: {} {}\nБудет проверено сообщений: {}</b>",
         "progress": "🔄 <b>Проверено {} служебных сообщений...\nНайдено: {}</b>",
         "no_results": "❌ <b>Результаты не найдены (проверено {} служебных сообщений)</b>",
-        "results": "✅ <b>Поиск завершен!\nПроверено служебных сообщений: {}\nНайдено совпадений: {}</b>\n\n{}"
+        "results": "✅ <b>Поиск завершен в группе {}!\nПроверено служебных сообщений: {}\nНайдено совпадений: {}</b>\n\n{}",
+        "group_not_found": "❌ <b>Группа не найдена</b>",
+        "invalid_args": "❌ <b>Неверные аргументы!\nИспользование: .joinsearch группа имя фамилия [количество_сообщений]</b>"
     }
 
     def __init__(self):
         self.name = self.strings["name"]
-        self._lock = asyncio.Lock()
-        self._task = None
         self._running = False
 
     async def client_ready(self, client, db):
@@ -45,40 +43,80 @@ class JoinSearchMod(loader.Module):
             MessageActionChatAddUser        # Добавление пользователя
         ))
 
-    def _check_match(self, msg, query):
+    def _check_match(self, msg, first_name, last_name):
         """Проверяет, соответствует ли сообщение поисковому запросу"""
-        try:
-            user_id = int(query)
-            if isinstance(msg.action, MessageActionChatAddUser):
-                return user_id in msg.action.users
-            if msg.from_id:
-                return user_id == msg.from_id.user_id
+        if not msg.action_message:
             return False
-        except ValueError:
-            return re.search(query.lower(), msg.action_message.lower())
+            
+        message_lower = msg.action_message.lower()
+        first_name_lower = first_name.lower()
+        last_name_lower = last_name.lower() if last_name else ""
+        
+        if first_name_lower not in message_lower:
+            return False
+            
+        if last_name and last_name_lower not in message_lower:
+            return False
+            
+        return True
+
+    def _parse_args(self, args):
+        """Парсит аргументы команды"""
+        if len(args) < 2:
+            return None
+            
+        result = {
+            "group": args[0],
+            "first_name": args[1],
+            "last_name": None,
+            "limit": 10000
+        }
+        
+        remaining_args = args[2:]
+        for arg in remaining_args:
+            try:
+                num = int(arg)
+                result["limit"] = min(max(num, 1), 50000)
+            except ValueError:
+                result["last_name"] = arg
+                
+        return result
 
     async def joinsearchcmd(self, message):
-        """Поиск сообщений о присоединении пользователей к группе. 
-        Использование: .joinsearch <запрос/ID> [количество_сообщений]
-        Запрос может быть текстом или ID пользователя"""
+        """Поиск сообщений о присоединении пользователей в указанной группе.
+        Использование: .joinsearch <группа> <имя> [фамилия] [количество_сообщений]
+        Примеры: 
+        .joinsearch @group_name John Doe 20000
+        .joinsearch @group_name John 5000
+        .joinsearch @group_name John Doe"""
         
         if self._running:
             await utils.answer(message, "⚠️ <b>Поиск уже выполняется. Дождитесь завершения.</b>")
             return
 
         args = utils.get_args_raw(message).split()
-        if not args:
-            await utils.answer(message, self.strings["no_query"])
+        parsed_args = self._parse_args(args)
+        
+        if not parsed_args:
+            await utils.answer(message, self.strings["invalid_args"])
             return
 
-        query = args[0]
         try:
-            limit = min(int(args[1]) if len(args) > 1 else 10000, 50000)
-        except ValueError:
-            limit = 10000
+            target_group = await message.client.get_entity(parsed_args["group"])
+        except Exception:
+            await utils.answer(message, self.strings["group_not_found"])
+            return
 
         self._running = True
-        status_message = await utils.answer(message, self.strings["searching"].format(limit))
+        status_message = await utils.answer(
+            message, 
+            self.strings["searching"].format(
+                parsed_args["group"],
+                parsed_args["first_name"],
+                parsed_args["last_name"] if parsed_args["last_name"] else "",
+                parsed_args["limit"]
+            )
+        )
         
         try:
             results = []
@@ -86,8 +124,8 @@ class JoinSearchMod(loader.Module):
             last_update = 0
             
             async for msg in message.client.iter_messages(
-                message.chat_id,
-                limit=limit,
+                target_group,
+                limit=parsed_args["limit"],
                 filter=types.InputMessagesFilterEmpty()
             ):
                 if not self._is_join_message(msg):
@@ -104,9 +142,9 @@ class JoinSearchMod(loader.Module):
                     )
                     await asyncio.sleep(0.3)
                 
-                if self._check_match(msg, query):
+                if self._check_match(msg, parsed_args["first_name"], parsed_args["last_name"]):
                     user_info = f"ID: {msg.from_id.user_id}" if msg.from_id else "ID не доступен"
-                    results.append(f"• {msg.action_message} | {user_info} | <a href='t.me/{message.chat.username}/{msg.id}'>Ссылка</a>")
+                    results.append(f"• {msg.action_message} | {user_info} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a>")
                 
                 if messages_checked % 50 == 0:
                     await asyncio.sleep(0.1)
@@ -115,6 +153,7 @@ class JoinSearchMod(loader.Module):
                 await utils.answer(status_message, self.strings["no_results"].format(messages_checked))
             else:
                 result_text = self.strings["results"].format(
+                    parsed_args["group"],
                     messages_checked,
                     len(results),
                     "\n".join(results[:50])
