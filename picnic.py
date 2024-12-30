@@ -9,11 +9,11 @@
 каждые 15 минут.
 
 📝 Команды:
-    • .pfp <путь> - Запустить автообновление фото профиля
+    • .pfp - Запустить автообновление фото профиля
     • .pfpstop - Остановить автообновление
 
-💡 Совет: Вы также можете ответить на фото командой .pfp, 
-    чтобы установить его как фото профиля
+💡 Совет: Ответьте на фото командой .pfp или отправьте фото 
+    с командой .pfp для установки его как фото профиля
 
 ⚠️ Отказ от ответственности:
     Разработчик не несет ответственности за любые проблемы,
@@ -21,7 +21,7 @@
 """
 
 import asyncio
-from telethon import functions
+from telethon import functions, types
 from .. import loader, utils
 
 @loader.tds
@@ -31,56 +31,79 @@ class PfpRepeaterMod(loader.Module):
 
     def __init__(self):
         self.config = loader.ModuleConfig(
-            "DELAY", # Config key
-            900,    # Default value
-            "Delay between profile photo updates in seconds" # Description
+            "DELAY",
+            900,
+            "Delay between profile photo updates in seconds"
         )
         self.running = False
         self.task = None
+        self.photo_id = None
 
     async def client_ready(self, client, db):
         self.client = client
+        self.db = db
+        saved_id = self.db.get(self.strings["name"], "photo_id")
+        if saved_id:
+            self.photo_id = saved_id
+            was_running = self.db.get(self.strings["name"], "running", False)
+            if was_running:
+                self.running = True
+                self.task = asyncio.create_task(self.set_profile_photo())
 
-    async def set_profile_photo(self, photo_path):
+    async def set_profile_photo(self):
         while self.running:
             try:
-                file = await self.client.upload_file(photo_path)
-                await self.client(functions.photos.UploadProfilePhotoRequest(file=file))
+                if self.photo_id:
+                    input_photo = types.InputPhoto(
+                        id=self.photo_id
+                    )
+                    
+                    await self.client(functions.photos.UpdateProfilePhotoRequest(
+                        id=input_photo
+                    ))
+                    
                 await asyncio.sleep(self.config["DELAY"])
             except Exception as e:
                 self.running = False
+                self.db.set(self.strings["name"], "running", False)
+                await self.client.send_message(
+                    self.db.get(self.strings["name"], "chat_id"),
+                    "❌ Ошибка доступа к фото. Возможно, оно было удалено. Остановка модуля."
+                )
                 raise e
-
-    async def _get_photo_path(self, message):
-        reply = await message.get_reply_message()
-        if reply and reply.photo:
-            return await self.client.download_media(reply.photo)
-        elif message.media and message.photo:
-            return await self.client.download_media(message)
-        return None
 
     @loader.command()
     async def pfp(self, message):
-        """Start repeating profile photo every 15 minutes"""
-        photo_path = await self._get_photo_path(message)
-        if not photo_path:
-            await message.edit("Please provide the photo or reply to a photo.")
+        """Запустить автообновление фото профиля. Отправьте команду с фото или ответом на фото."""
+        reply = await message.get_reply_message()
+        
+        target_message = reply if reply and reply.photo else message if message.photo else None
+        
+        if not target_message or not target_message.photo:
+            await message.edit("❌ Пожалуйста, отправьте команду с фото или ответом на сообщение с фото.")
             return
 
         if not self.running:
+            self.photo_id = target_message.photo.id
             self.running = True
-            self.task = asyncio.create_task(self.set_profile_photo(photo_path))
-            await message.edit(f"Started repeating profile photo every {self.config['DELAY']} seconds.")
+            
+            self.db.set(self.strings["name"], "photo_id", self.photo_id)
+            self.db.set(self.strings["name"], "chat_id", message.chat_id)
+            self.db.set(self.strings["name"], "running", True)
+            
+            self.task = asyncio.create_task(self.set_profile_photo())
+            await message.edit(f"✅ Запущено автообновление фото профиля каждые {self.config['DELAY']} секунд.")
         else:
-            await message.edit("Profile photo repeater is already running.")
+            await message.edit("⚠️ Автообновление фото уже запущено.")
 
     @loader.command()
     async def pfpstop(self, message):
-        """Stop repeating profile photo"""
+        """Остановить автообновление фото профиля"""
         if self.running:
             self.running = False
             if self.task:
                 self.task.cancel()
-            await message.edit("Stopped repeating profile photo.")
+            self.db.set(self.strings["name"], "running", False)
+            await message.edit("🛑 Автообновление фото остановлено.")
         else:
-            await message.edit("Profile photo repeater is not running.")
+            await message.edit("⚠️ Автообновление фото не запущено.")
