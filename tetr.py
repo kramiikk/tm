@@ -316,7 +316,7 @@ class BroadcastManager:
 
         return failed_chats
 
-    async def add_message(self, code_name: str, message: Message) -> bool:
+    async def add_message(self, code_name: str, message) -> bool:
         """Добавляет сообщение в список рассылки с валидацией."""
         try:
             async with self._lock:
@@ -590,7 +590,7 @@ class BroadcastMod(loader.Module):
         # Запускаем одну задачу очистки
         self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
 
-    async def _check_auth(self, message: Message) -> bool:
+    async def _check_auth(self, message) -> bool:
         """Проверяет авторизацию пользователя."""
         try:
             user_id = message.sender_id
@@ -651,7 +651,7 @@ class BroadcastMod(loader.Module):
             )
 
     async def _validate_code(
-        self, message: Message, code_name: Optional[str] = None
+        self, message, code_name: Optional[str] = None
     ) -> Optional[str]:
         """Проверяет существование кода рассылки."""
         if code_name is None:
@@ -979,7 +979,7 @@ class BroadcastMod(loader.Module):
             ),
         )
 
-    async def listcmd(self, message: Message):
+    async def listcmd(self, message):
         """Показывает список активных кодов рассылки"""
         if not await self._check_auth(message):
             return
@@ -1007,7 +1007,7 @@ class BroadcastMod(loader.Module):
 
         await utils.answer(message, "\n\n".join(result))
 
-    async def listmsgcmd(self, message: Message):
+    async def listmsgcmd(self, message):
         """Показывает сообщения в коде рассылки: .listmsg <код>"""
         if not await self._check_auth(message):
             return
@@ -1044,7 +1044,7 @@ class BroadcastMod(loader.Module):
 
         await utils.answer(message, "\n".join(result))
 
-    async def sendmodecmd(self, message: Message):
+    async def sendmodecmd(self, message):
         """Устанавливает режим отправки: .sendmode <код> <режим>
         Режимы: auto (по умолчанию), normal (обычная отправка), forward (форвард)
         """
@@ -1075,7 +1075,7 @@ class BroadcastMod(loader.Module):
             message, self.strings["sendmode_set"].format(code_name, mode)
         )
 
-    async def watcmd(self, message: Message):
+    async def watcmd(self, message):
         """Переключает режим автоматического управления чатами"""
         if not await self._check_auth(message):
             return
