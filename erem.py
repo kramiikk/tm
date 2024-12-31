@@ -21,7 +21,7 @@ def parse_arguments(args_raw):
         "group": args[0],
         "first_name": "",
         "last_name": "",
-        "limit": 10000,
+        "limit": 100000,
         "exact_match": False,
         "show_all": False
     }
