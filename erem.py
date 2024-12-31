@@ -1,14 +1,16 @@
+import asyncio
+import logging
+import shlex
+import time
 from telethon import types
 from telethon.tl.types import (
     MessageService,
     MessageActionChatJoinedByLink,
     MessageActionChatAddUser,
 )
-import shlex
-from .. import loader, utils, logging
-import asyncio
+
+from .. import loader, utils
 from typing import Optional, Dict, List, Tuple
-import time
 from collections import deque
 
 logger = logging.getLogger(__name__)
