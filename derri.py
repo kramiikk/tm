@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 from telethon.tl.types import Message
-from ratelimit import limits, sleep_and_retry
 from telethon.errors import (
     ChatWriteForbiddenError,
     UserBannedInChannelError,
