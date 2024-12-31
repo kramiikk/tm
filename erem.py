@@ -6,12 +6,17 @@ from telethon.tl.types import (
 )
 import shlex
 from .. import loader, utils
+import asyncio
+from typing import Optional, Dict, List
 
-def parse_arguments(args_raw):
+def parse_arguments(args_raw: str) -> Optional[Dict]:
     """Парсит аргументы командной строки с поддержкой параметров"""
+    if not args_raw:
+        return None
+        
     try:
         args = shlex.split(args_raw)
-    except:
+    except ValueError:
         args = args_raw.split()
     
     if not args:
@@ -46,14 +51,14 @@ def parse_arguments(args_raw):
                 result["show_all"] = True
             else:
                 result["first_name"] = arg
-                if args_raw.find(f'"{arg}"') != -1 or args_raw.find(f"'{arg}'") != -1:
+                if f'"{arg}"' in args_raw or f"'{arg}'" in args_raw:
                     result["exact_match"] = True
         elif not result["last_name"]:
             if arg in ['""', "''", '" "', "' '"]:
                 result["show_all"] = True
             else:
                 result["last_name"] = arg
-                if args_raw.find(f'"{arg}"') != -1 or args_raw.find(f"'{arg}'") != -1:
+                if f'"{arg}"' in args_raw or f"'{arg}'" in args_raw:
                     result["exact_match"] = True
             
         i += 1
@@ -73,53 +78,65 @@ class JoinSearchMod(loader.Module):
         "results": "✅ <b>Промежуточные результаты поиска в группе {}!\nПроверено: {}\nНайдено: {}</b>\n\n{}",
         "final_results": "✅ <b>Поиск завершен в группе {}!\nВсего проверено: {}\nВсего найдено: {}</b>",
         "group_not_found": "❌ <b>Группа не найдена</b>",
-        "invalid_args": "❌ <b>Неверные аргументы!</b>"
+        "invalid_args": "❌ <b>Неверные аргументы!</b>",
+        "search_already_running": "⚠️ <b>Поиск уже выполняется</b>"
     }
 
     def __init__(self):
         self.name = self.strings["name"]
         self._running = False
+        self._user_cache = {}
 
     async def client_ready(self, client, db):
         self._client = client
 
-    async def _get_user_name(self, client, user_id):
-        """Получает имя и фамилию пользователя по ID"""
+    async def _get_user_name(self, client, user_id: int) -> tuple[str, str]:
+        """Получает имя и фамилию пользователя по ID с кэшированием"""
+        if user_id in self._user_cache:
+            return self._user_cache[user_id]
+            
         try:
             user = await client.get_entity(user_id)
-            return (user.first_name or "").lower(), (user.last_name or "").lower()
-        except:
+            result = ((user.first_name or "").lower(), (user.last_name or "").lower())
+            self._user_cache[user_id] = result
+            return result
+        except Exception:
             return "", ""
 
-    def _check_match(self, first_name, last_name, search_first_name, search_last_name, exact_match=False):
+    def _check_match(self, first_name: str, last_name: str, 
+                    search_first_name: str, search_last_name: str, 
+                    exact_match: bool = False) -> bool:
         """Проверяет совпадение имени и фамилии с поисковым запросом"""
         if exact_match:
-            if (search_first_name and first_name != search_first_name.lower()) or \
-               (search_last_name and last_name != search_last_name.lower()):
-                return False
-        else:
-            if (search_first_name and search_first_name.lower() not in first_name) or \
-               (search_last_name and search_last_name.lower() not in last_name):
-                return False
-        return True
+            return (not search_first_name or first_name == search_first_name.lower()) and \
+                   (not search_last_name or last_name == search_last_name.lower())
+        
+        return (not search_first_name or search_first_name.lower() in first_name) and \
+               (not search_last_name or search_last_name.lower() in last_name)
 
-    async def _send_results_chunk(self, message, group, messages_checked, results, is_final=False):
+    async def _send_results_chunk(self, message, group: str, 
+                                messages_checked: int, results: List[str], 
+                                is_final: bool = False) -> None:
         """Отправляет chunk результатов"""
-        if is_final:
-            text = self.strings["final_results"].format(group, messages_checked, len(results))
-        else:
-            text = self.strings["results"].format(
-                group, 
-                messages_checked, 
-                len(results),
-                "\n".join(results[-30:])
-            )
+        text = self.strings["final_results" if is_final else "results"].format(
+            group, 
+            messages_checked, 
+            len(results),
+            "\n".join(results[-30:]) if not is_final else ""
+        )
         await message.respond(text)
 
     async def joinsearchcmd(self, message):
-        """Поиск сообщений о присоединении пользователей в указанной группе"""
+        """Поиск сообщений о присоединении пользователей в указанной группе
+        Аргументы: <группа> [имя] [фамилия] [-l|--limit <число>]
+        Примеры:
+        .joinsearch @group "Иван" - точное совпадение по имени
+        .joinsearch @group Иван - частичное совпадение
+        .joinsearch @group "" - показать всех пользователей
+        .joinsearch @group -l 1000 - ограничить поиск 1000 сообщениями"""
+        
         if self._running:
-            await utils.answer(message, "⚠️ <b>Поиск уже выполняется</b>")
+            await utils.answer(message, self.strings["search_already_running"])
             return
 
         args = utils.get_args_raw(message)
@@ -156,7 +173,9 @@ class JoinSearchMod(loader.Module):
                 limit=parsed_args["limit"],
                 filter=types.InputMessagesFilterEmpty()
             ):
-                if not isinstance(msg, MessageService) or not isinstance(msg.action, (MessageActionChatJoinedByLink, MessageActionChatAddUser)):
+                if not isinstance(msg, MessageService) or not isinstance(
+                    msg.action, (MessageActionChatJoinedByLink, MessageActionChatAddUser)
+                ):
                     continue
                     
                 messages_checked += 1
@@ -179,21 +198,32 @@ class JoinSearchMod(loader.Module):
                 if parsed_args["show_all"]:
                     first_name, last_name = await self._get_user_name(message.client, user_id)
                     user_name = f"{first_name} {last_name}".strip()
-                    results.append(f"• {user_name} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a> | {msg.date.strftime('%d.%m.%Y %H:%M:%S')}")
+                    results.append(
+                        f"• {user_name} | ID: {user_id} | "
+                        f"<a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a> | "
+                        f"{msg.date.strftime('%d.%m.%Y %H:%M:%S')}"
+                    )
                 else:
                     if not (parsed_args["first_name"] or parsed_args["last_name"]):
                         continue
                         
                     first_name, last_name = await self._get_user_name(message.client, user_id)
-                    if self._check_match(first_name, last_name, 
-                                      parsed_args["first_name"], parsed_args["last_name"],
-                                      parsed_args["exact_match"]):
+                    if self._check_match(
+                        first_name, last_name,
+                        parsed_args["first_name"], parsed_args["last_name"],
+                        parsed_args["exact_match"]
+                    ):
                         user_name = f"{first_name} {last_name}".strip()
-                        results.append(f"• {user_name} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a> | {msg.date.strftime('%d.%m.%Y %H:%M:%S')}")
+                        results.append(
+                            f"• {user_name} | ID: {user_id} | "
+                            f"<a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a> | "
+                            f"{msg.date.strftime('%d.%m.%Y %H:%M:%S')}"
+                        )
 
                 if len(results) >= last_results_count + 30:
                     await self._send_results_chunk(message, parsed_args["group"], messages_checked, results)
                     last_results_count = len(results)
+                    await asyncio.sleep(0.1)
 
             if not results:
                 await utils.answer(status_message, self.strings["no_results"].format(messages_checked))
@@ -204,3 +234,4 @@ class JoinSearchMod(loader.Module):
             await utils.answer(status_message, f"❌ <b>Ошибка:</b>\n{str(e)}")
         finally:
             self._running = False
+            self._user_cache.clear()
