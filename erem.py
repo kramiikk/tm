@@ -15,13 +15,10 @@ logger = logging.getLogger(__name__)
 def parse_arguments(args_raw):
     """Парсит аргументы командной строки с поддержкой параметров"""
     try:
-        # Разбиваем строку на аргументы, учитывая кавычки
         args = shlex.split(args_raw)
     except:
-        # В случае ошибки парсинга возвращаем простое разделение
         args = args_raw.split()
     
-    # Значения по умолчанию
     result = {
         "group": None,
         "first_name": "",
@@ -35,7 +32,6 @@ def parse_arguments(args_raw):
     while i < len(args):
         arg = args[i]
         
-        # Обработка параметра лимита
         if arg in ('-l', '--limit'):
             if i + 1 < len(args):
                 try:
@@ -47,27 +43,20 @@ def parse_arguments(args_raw):
             i += 1
             continue
             
-        # Первый аргумент всегда группа
         if result["group"] is None:
             result["group"] = arg
-        # Второй аргумент - имя
         elif not result["first_name"]:
-            # Проверяем на пустые кавычки
             if arg == "''" or arg == '""' or arg == '" "' or arg == "' '":
                 result["show_all"] = True
             else:
                 result["first_name"] = arg
-                # Проверяем, было ли имя в кавычках
                 if args_raw.find(f'"{arg}"') != -1 or args_raw.find(f"'{arg}'") != -1:
                     result["exact_match"] = True
-        # Третий аргумент - фамилия
         elif not result["last_name"]:
-            # Проверяем на пустые кавычки
             if arg == "''" or arg == '""' or arg == '" "' or arg == "' '":
                 result["show_all"] = True
             else:
                 result["last_name"] = arg
-                # Проверяем, была ли фамилия в кавычках
                 if args_raw.find(f'"{arg}"') != -1 or args_raw.find(f"'{arg}'") != -1:
                     result["exact_match"] = True
             
@@ -85,7 +74,8 @@ class JoinSearchMod(loader.Module):
         "searching": "🔍 <b>Начинаю поиск в группе {}\nИмя: {}\nФамилия: {}\nБудет проверено сообщений: {}</b>",
         "progress": "🔄 <b>Проверено {} служебных сообщений...\nНайдено: {}</b>",
         "no_results": "❌ <b>Результаты не найдены (проверено {} служебных сообщений)</b>",
-        "results": "✅ <b>Поиск завершен в группе {}!\nПроверено служебных сообщений: {}\nНайдено совпадений: {}</b>\n\n{}",
+        "results": "✅ <b>Промежуточные результаты поиска в группе {}!\nПроверено служебных сообщений: {}\nНайдено совпадений: {}</b>\n\n{}",
+        "final_results": "✅ <b>Поиск завершен в группе {}!\nВсего проверено служебных сообщений: {}\nВсего найдено совпадений: {}</b>",
         "group_not_found": "❌ <b>Группа не найдена</b>",
         "invalid_args": (
             "❌ <b>Неверные аргументы!</b>\n\n"
@@ -118,8 +108,8 @@ class JoinSearchMod(loader.Module):
             return False
             
         return isinstance(msg.action, (
-            MessageActionChatJoinedByLink,  # Вход по ссылке
-            MessageActionChatAddUser        # Добавление пользователя
+            MessageActionChatJoinedByLink,
+            MessageActionChatAddUser
         ))
 
     async def _get_user_name(self, client, user_id):
@@ -131,11 +121,7 @@ class JoinSearchMod(loader.Module):
             return "", ""
 
     def _check_match(self, first_name, last_name, search_first_name, search_last_name, exact_match=False):
-        """
-        Проверяет совпадение имени и фамилии с поисковым запросом.
-        Если поисковое имя или фамилия пустые - они не учитываются при поиске.
-        При exact_match=True проверяется точное совпадение.
-        """
+        """Проверяет совпадение имени и фамилии с поисковым запросом"""
         if not first_name and not last_name:
             return False
             
@@ -145,43 +131,39 @@ class JoinSearchMod(loader.Module):
         search_last_name = search_last_name.lower() if search_last_name else ""
         
         if exact_match:
-            # Если указано имя для поиска, оно должно точно совпадать
             if search_first_name and first_name != search_first_name:
                 return False
-                
-            # Если указана фамилия для поиска, она должна точно совпадать
             if search_last_name and last_name != search_last_name:
                 return False
         else:
-            # Если указано имя для поиска, оно должно содержаться
             if search_first_name and search_first_name not in first_name:
                 return False
-                
-            # Если указана фамилия для поиска, она должна содержаться
             if search_last_name and search_last_name not in last_name:
                 return False
             
-        # Хотя бы один параметр поиска должен быть указан и совпадать
         return bool(search_first_name or search_last_name)
 
+    async def _send_results_chunk(self, message, group, messages_checked, results, is_final=False):
+        """Отправляет chunk результатов"""
+        if is_final:
+            result_text = self.strings["final_results"].format(
+                group,
+                messages_checked,
+                len(results)
+            )
+        else:
+            result_text = self.strings["results"].format(
+                group,
+                messages_checked,
+                len(results),
+                "\n".join(results[-50:])  # Берем последние 50 результатов
+            )
+        
+        await message.respond(result_text)
+        await asyncio.sleep(0.3)
+
     async def joinsearchcmd(self, message):
-        """Поиск сообщений о присоединении пользователей в указанной группе.
-        Использование: .joinsearch <группа> [имя] [фамилия] [-l количество]
-        Параметры:
-        -l или --limit - количество проверяемых сообщений
-        
-        Специальные случаи:
-        - При указании " " или пустых кавычек будут показаны все сообщения о входе
-        - При указании имени/фамилии в кавычках будет выполнен поиск точного совпадения
-        
-        Примеры:
-        .joinsearch @group_name " " - показать все входы
-        .joinsearch @group_name Иван - поиск подстроки
-        .joinsearch @group_name "Иван" "Петров" - поиск точного совпадения
-        .joinsearch @group_name "" Петров
-        .joinsearch @group_name Иван -l 5000
-        .joinsearch @group_name "Иван" "Петров" --limit 20000"""
-        
+        """Поиск сообщений о присоединении пользователей в указанной группе"""
         if self._running:
             await utils.answer(message, "⚠️ <b>Поиск уже выполняется. Дождитесь завершения.</b>")
             return
@@ -196,7 +178,6 @@ class JoinSearchMod(loader.Module):
             await utils.answer(message, self.strings["invalid_args"])
             return
             
-        # Проверяем аргументы: либо должен быть show_all, либо указано имя/фамилия
         if not parsed_args["show_all"] and not (parsed_args["first_name"] or parsed_args["last_name"]):
             await utils.answer(message, self.strings["invalid_args"])
             return
@@ -222,6 +203,7 @@ class JoinSearchMod(loader.Module):
             results = []
             messages_checked = 0
             last_update = 0
+            last_results_count = 0
             
             async for msg in message.client.iter_messages(
                 target_group,
@@ -242,7 +224,6 @@ class JoinSearchMod(loader.Module):
                     )
                     await asyncio.sleep(0.1)
 
-                # Получаем ID пользователя из действия
                 user_id = None
                 if isinstance(msg.action, MessageActionChatAddUser):
                     user_id = msg.action.users[0] if msg.action.users else None
@@ -266,6 +247,11 @@ class JoinSearchMod(loader.Module):
                                 results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a> | {msg.date.strftime('%d.%m.%Y %H:%M:%S')}")
                             else:
                                 results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a>")
+
+                # Отправляем промежуточные результаты каждые 50 найденных сообщений
+                if len(results) >= last_results_count + 50:
+                    await self._send_results_chunk(message, parsed_args["group"], messages_checked, results)
+                    last_results_count = len(results)
                 
                 if messages_checked % 100 == 0:
                     await asyncio.sleep(0.05)
@@ -273,20 +259,8 @@ class JoinSearchMod(loader.Module):
             if not results:
                 await utils.answer(status_message, self.strings["no_results"].format(messages_checked))
             else:
-                chunks = [results[i:i + 50] for i in range(0, len(results), 50)]
-                for i, chunk in enumerate(chunks):
-                    result_text = self.strings["results"].format(
-                        parsed_args["group"],
-                        messages_checked,
-                        len(results),
-                        "\n".join(chunk)
-                    )
-                    
-                    if i == 0:
-                        await utils.answer(status_message, result_text)
-                    else:
-                        await message.respond(result_text)
-                    await asyncio.sleep(0.3)
+                # Отправляем финальное сообщение
+                await self._send_results_chunk(message, parsed_args["group"], messages_checked, results, is_final=True)
 
         except Exception as e:
             await utils.answer(status_message, f"❌ <b>Произошла ошибка:</b>\n{str(e)}")
