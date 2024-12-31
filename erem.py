@@ -16,7 +16,7 @@ from collections import deque
 logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 100000
-UPDATE_INTERVAL = 1
+UPDATE_INTERVAL = 10
 STATUS_CHECK_INTERVAL = 100
 RESULTS_CHUNK_SIZE = 30
 
