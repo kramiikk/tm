@@ -4,12 +4,8 @@ from telethon.tl.types import (
     MessageActionChatJoinedByLink,
     MessageActionChatAddUser
 )
-import logging
 import shlex
 from .. import loader, utils
-import asyncio
-
-logger = logging.getLogger(__name__)
 
 def parse_arguments(args_raw):
     """Парсит аргументы командной строки с поддержкой параметров"""
@@ -87,10 +83,6 @@ class JoinSearchMod(loader.Module):
     async def client_ready(self, client, db):
         self._client = client
 
-    def _is_join_message(self, msg):
-        """Проверяет, является ли сообщение сообщением о входе в группу"""
-        return isinstance(msg, MessageService) and isinstance(msg.action, (MessageActionChatJoinedByLink, MessageActionChatAddUser))
-
     async def _get_user_name(self, client, user_id):
         """Получает имя и фамилию пользователя по ID"""
         try:
@@ -164,7 +156,7 @@ class JoinSearchMod(loader.Module):
                 limit=parsed_args["limit"],
                 filter=types.InputMessagesFilterEmpty()
             ):
-                if not self._is_join_message(msg):
+                if not isinstance(msg, MessageService) or not isinstance(msg.action, (MessageActionChatJoinedByLink, MessageActionChatAddUser)):
                     continue
                     
                 messages_checked += 1
@@ -175,7 +167,6 @@ class JoinSearchMod(loader.Module):
                         self.strings["progress"].format(messages_checked, len(results))
                     )
 
-                # Получаем ID пользователя
                 user_id = None
                 if isinstance(msg.action, MessageActionChatAddUser) and msg.action.users:
                     user_id = msg.action.users[0]
