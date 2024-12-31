@@ -1,7 +1,7 @@
-import asyncio
 import logging
 import shlex
 import time
+import asyncio
 from telethon import types
 from telethon.tl.types import (
     MessageService,
@@ -15,10 +15,11 @@ from collections import deque
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LIMIT = 100000
-UPDATE_INTERVAL = 10
-STATUS_CHECK_INTERVAL = 100
-RESULTS_CHUNK_SIZE = 30
+DEFAULT_LIMIT = 500000
+UPDATE_INTERVAL = 30
+STATUS_CHECK_INTERVAL = 250
+RESULTS_CHUNK_SIZE = 50
+MAX_CONCURRENT_TASKS = 10
 
 
 def parse_arguments(args_raw: str) -> Optional[Dict]:
@@ -94,6 +95,7 @@ class JoinSearchMod(loader.Module):
         self._running = False
         self._user_cache = {}
         self._results_buffer = deque(maxlen=RESULTS_CHUNK_SIZE)
+        self._semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
     async def client_ready(self, client, db):
         self._client = client
@@ -201,6 +203,18 @@ class JoinSearchMod(loader.Module):
         except Exception as e:
             logger.exception(f"Ошибка при обновлении статуса: {str(e)}")
 
+    async def _process_messages_batch(self, messages, message, target_group, parsed_args):
+        """Обработка пакета сообщений параллельно"""
+        tasks = []
+        async with self._semaphore:
+            for msg in messages:
+                task = asyncio.create_task(
+                    self._process_message(msg, message, target_group, parsed_args)
+                )
+                tasks.append(task)
+            results = await asyncio.gather(*tasks)
+            return [r for r in results if r is not None]
+
     async def joinsearchcmd(self, message):
         """Поиск сообщений о присоединении пользователей в указанной группе
         Аргументы: <группа> [имя] [фамилия] [-l|--limit <число>]
@@ -215,7 +229,7 @@ class JoinSearchMod(loader.Module):
         if not message:
             return
         if self._running:
-            self._running = False  # Останавливаем текущий поиск
+            self._running = False
             await utils.answer(message, self.strings["search_already_running"])
             return
         args = utils.get_args_raw(message)
@@ -231,6 +245,7 @@ class JoinSearchMod(loader.Module):
         except Exception:
             await utils.answer(message, self.strings["group_not_found"])
             return
+        
         self._running = True
         status_message = None
 
@@ -239,6 +254,7 @@ class JoinSearchMod(loader.Module):
             messages_checked = 0
             last_progress_time = time.time()
             start_time = last_progress_time
+            message_batch = []
 
             status_message = await utils.answer(
                 message,
@@ -259,7 +275,18 @@ class JoinSearchMod(loader.Module):
             ):
                 if not self._running:
                     break
+                
                 messages_checked += 1
+                message_batch.append(msg)
+
+                if len(message_batch) >= MAX_CONCURRENT_TASKS:
+                    batch_results = await self._process_messages_batch(
+                        message_batch, message, target_group, parsed_args
+                    )
+                    results.extend(batch_results)
+                    for result in batch_results:
+                        self._results_buffer.append(result)
+                    message_batch = []
 
                 current_time = time.time()
                 if (
@@ -270,14 +297,8 @@ class JoinSearchMod(loader.Module):
                     await self._update_status(
                         status_message, messages_checked, results, start_time
                     )
-                result = await self._process_message(
-                    msg, message, target_group, parsed_args
-                )
-                if result:
-                    results.append(result)
-                    self._results_buffer.append(result)
 
-                    if len(results) % RESULTS_CHUNK_SIZE == 0:
+                    if len(self._results_buffer) >= RESULTS_CHUNK_SIZE:
                         try:
                             await message.respond(
                                 self.strings["results"].format(
@@ -287,11 +308,21 @@ class JoinSearchMod(loader.Module):
                                     "\n".join(list(self._results_buffer)),
                                 )
                             )
-                            await asyncio.sleep(0.1)
+                            self._results_buffer.clear()
                         except Exception as e:
                             logger.exception(
                                 f"Ошибка при отправке промежуточных результатов: {str(e)}"
                             )
+
+            # Обработка оставшихся сообщений
+            if message_batch:
+                batch_results = await self._process_messages_batch(
+                    message_batch, message, target_group, parsed_args
+                )
+                results.extend(batch_results)
+                for result in batch_results:
+                    self._results_buffer.append(result)
+
             total_time = round(time.time() - start_time, 1)
 
             if not self._running:
@@ -305,6 +336,17 @@ class JoinSearchMod(loader.Module):
                     self.strings["no_results"].format(messages_checked, total_time),
                 )
             else:
+                # Отправка оставшихся результатов
+                if self._results_buffer:
+                    await message.respond(
+                        self.strings["results"].format(
+                            parsed_args["group"],
+                            messages_checked,
+                            len(results),
+                            "\n".join(list(self._results_buffer)),
+                        )
+                    )
+                
                 await message.respond(
                     self.strings["final_results"].format(
                         parsed_args["group"], messages_checked, len(results), total_time
