@@ -26,7 +26,9 @@ def parse_arguments(args_raw):
         "group": None,
         "first_name": "",
         "last_name": "",
-        "limit": 10000
+        "limit": 10000,
+        "exact_match": False,
+        "show_all": False
     }
     
     i = 0
@@ -49,11 +51,25 @@ def parse_arguments(args_raw):
         if result["group"] is None:
             result["group"] = arg
         # Второй аргумент - имя
-        elif not result["first_name"] and arg != "''":
-            result["first_name"] = arg
+        elif not result["first_name"]:
+            # Проверяем на пустые кавычки
+            if arg == "''" or arg == '""' or arg == '" "' or arg == "' '":
+                result["show_all"] = True
+            else:
+                result["first_name"] = arg
+                # Проверяем, было ли имя в кавычках
+                if args_raw.find(f'"{arg}"') != -1 or args_raw.find(f"'{arg}'") != -1:
+                    result["exact_match"] = True
         # Третий аргумент - фамилия
-        elif not result["last_name"] and arg != "''":
-            result["last_name"] = arg
+        elif not result["last_name"]:
+            # Проверяем на пустые кавычки
+            if arg == "''" or arg == '""' or arg == '" "' or arg == "' '":
+                result["show_all"] = True
+            else:
+                result["last_name"] = arg
+                # Проверяем, была ли фамилия в кавычках
+                if args_raw.find(f'"{arg}"') != -1 or args_raw.find(f"'{arg}'") != -1:
+                    result["exact_match"] = True
             
         i += 1
     
@@ -114,10 +130,11 @@ class JoinSearchMod(loader.Module):
         except:
             return "", ""
 
-    def _check_match(self, first_name, last_name, search_first_name, search_last_name):
+    def _check_match(self, first_name, last_name, search_first_name, search_last_name, exact_match=False):
         """
         Проверяет совпадение имени и фамилии с поисковым запросом.
         Если поисковое имя или фамилия пустые - они не учитываются при поиске.
+        При exact_match=True проверяется точное совпадение.
         """
         if not first_name and not last_name:
             return False
@@ -127,13 +144,22 @@ class JoinSearchMod(loader.Module):
         search_first_name = search_first_name.lower() if search_first_name else ""
         search_last_name = search_last_name.lower() if search_last_name else ""
         
-        # Если указано имя для поиска, оно должно совпадать
-        if search_first_name and search_first_name not in first_name:
-            return False
-            
-        # Если указана фамилия для поиска, она должна совпадать
-        if search_last_name and search_last_name not in last_name:
-            return False
+        if exact_match:
+            # Если указано имя для поиска, оно должно точно совпадать
+            if search_first_name and first_name != search_first_name:
+                return False
+                
+            # Если указана фамилия для поиска, она должна точно совпадать
+            if search_last_name and last_name != search_last_name:
+                return False
+        else:
+            # Если указано имя для поиска, оно должно содержаться
+            if search_first_name and search_first_name not in first_name:
+                return False
+                
+            # Если указана фамилия для поиска, она должна содержаться
+            if search_last_name and search_last_name not in last_name:
+                return False
             
         # Хотя бы один параметр поиска должен быть указан и совпадать
         return bool(search_first_name or search_last_name)
@@ -144,12 +170,17 @@ class JoinSearchMod(loader.Module):
         Параметры:
         -l или --limit - количество проверяемых сообщений
         
+        Специальные случаи:
+        - При указании " " или пустых кавычек будут показаны все сообщения о входе
+        - При указании имени/фамилии в кавычках будет выполнен поиск точного совпадения
+        
         Примеры:
-        .joinsearch @group_name Иван
-        .joinsearch @group_name Иван Петров
+        .joinsearch @group_name " " - показать все входы
+        .joinsearch @group_name Иван - поиск подстроки
+        .joinsearch @group_name "Иван" "Петров" - поиск точного совпадения
         .joinsearch @group_name "" Петров
         .joinsearch @group_name Иван -l 5000
-        .joinsearch @group_name Иван Петров --limit 20000"""
+        .joinsearch @group_name "Иван" "Петров" --limit 20000"""
         
         if self._running:
             await utils.answer(message, "⚠️ <b>Поиск уже выполняется. Дождитесь завершения.</b>")
@@ -165,8 +196,8 @@ class JoinSearchMod(loader.Module):
             await utils.answer(message, self.strings["invalid_args"])
             return
             
-        # Проверяем, что указано хотя бы имя или фамилия
-        if not parsed_args["first_name"] and not parsed_args["last_name"]:
+        # Проверяем аргументы: либо должен быть show_all, либо указано имя/фамилия
+        if not parsed_args["show_all"] and not (parsed_args["first_name"] or parsed_args["last_name"]):
             await utils.answer(message, self.strings["invalid_args"])
             return
 
@@ -219,12 +250,22 @@ class JoinSearchMod(loader.Module):
                     user_id = msg.from_id.user_id if msg.from_id else None
 
                 if user_id:
-                    first_name, last_name = await self._get_user_name(message.client, user_id)
-                    if self._check_match(first_name, last_name, 
-                                      parsed_args["first_name"], parsed_args["last_name"]):
+                    if parsed_args["show_all"]:
+                        first_name, last_name = await self._get_user_name(message.client, user_id)
                         user_name = f"{first_name} {last_name}".strip()
                         action_text = "присоединился по ссылке" if isinstance(msg.action, MessageActionChatJoinedByLink) else "был добавлен"
-                        results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a>")
+                        results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a> | {msg.date.strftime('%d.%m.%Y %H:%M:%S')}")
+                    else:
+                        first_name, last_name = await self._get_user_name(message.client, user_id)
+                        if self._check_match(first_name, last_name, 
+                                          parsed_args["first_name"], parsed_args["last_name"],
+                                          parsed_args["exact_match"]):
+                            user_name = f"{first_name} {last_name}".strip()
+                            action_text = "присоединился по ссылке" if isinstance(msg.action, MessageActionChatJoinedByLink) else "был добавлен"
+                            if parsed_args["exact_match"]:
+                                results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a> | {msg.date.strftime('%d.%m.%Y %H:%M:%S')}")
+                            else:
+                                results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a>")
                 
                 if messages_checked % 100 == 0:
                     await asyncio.sleep(0.05)
