@@ -37,7 +37,7 @@ def parse_arguments(args_raw):
         if arg in ('-l', '--limit'):
             if i + 1 < len(args):
                 try:
-                    result["limit"] = min(max(int(args[i + 1]), 1), 50000)
+                    result["limit"] = max(int(args[i + 1]), 1)
                     i += 2
                     continue
                 except ValueError:
@@ -202,14 +202,14 @@ class JoinSearchMod(loader.Module):
                     
                 messages_checked += 1
                 
-                if messages_checked % 100 == 0 and messages_checked != last_update:
+                if messages_checked % 250 == 0 and messages_checked != last_update:
                     last_update = messages_checked
                     await status_message.edit(
                         self.strings["progress"].format(
                             messages_checked, len(results)
                         )
                     )
-                    await asyncio.sleep(0.3)
+                    await asyncio.sleep(0.1)
 
                 # Получаем ID пользователя из действия
                 user_id = None
@@ -226,23 +226,26 @@ class JoinSearchMod(loader.Module):
                         action_text = "присоединился по ссылке" if isinstance(msg.action, MessageActionChatJoinedByLink) else "был добавлен"
                         results.append(f"• {user_name} {action_text} | ID: {user_id} | <a href='t.me/{target_group.username}/{msg.id}'>Ссылка</a>")
                 
-                if messages_checked % 50 == 0:
-                    await asyncio.sleep(0.1)
+                if messages_checked % 100 == 0:
+                    await asyncio.sleep(0.05)
 
             if not results:
                 await utils.answer(status_message, self.strings["no_results"].format(messages_checked))
             else:
-                result_text = self.strings["results"].format(
-                    parsed_args["group"],
-                    messages_checked,
-                    len(results),
-                    "\n".join(results[:50])
-                )
-                
-                if len(results) > 50:
-                    result_text += f"\n\n<b>⚠️ Показаны первые 50 из {len(results)} результатов</b>"
-                
-                await utils.answer(status_message, result_text)
+                chunks = [results[i:i + 50] for i in range(0, len(results), 50)]
+                for i, chunk in enumerate(chunks):
+                    result_text = self.strings["results"].format(
+                        parsed_args["group"],
+                        messages_checked,
+                        len(results),
+                        "\n".join(chunk)
+                    )
+                    
+                    if i == 0:
+                        await utils.answer(status_message, result_text)
+                    else:
+                        await message.respond(result_text)
+                    await asyncio.sleep(0.3)
 
         except Exception as e:
             await utils.answer(status_message, f"❌ <b>Произошла ошибка:</b>\n{str(e)}")
