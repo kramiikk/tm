@@ -18,7 +18,6 @@ from telethon.errors import (
     ChannelPrivateError,
     ChatAdminRequiredError,
     FloodWaitError,
-    MessageNotModifiedError,
 )
 
 from .. import loader
@@ -79,7 +78,8 @@ class SimpleCache:
 
 
 def register(cb):
-    BroadcastMod()._register(cb)
+    """Регистрация модуля"""
+    cb(BroadcastMod())
     return []
 
 
@@ -107,7 +107,8 @@ class BroadcastMod(loader.Module):
     async def client_ready(self):
         """Инициализация при загрузке модуля"""
         self.manager = BroadcastManager(self._client, self.db)
-        self.manager.me_id = (await self._client.get_me()).id
+        await self.manager._load_config()
+        self.me_id = (await self._client.get_me()).id
 
     async def broadcastcmd(self, message):
         """Команда для управления рассылкой. Используйте .help Broadcast для справки."""
@@ -213,6 +214,12 @@ class Broadcast:
 class BroadcastManager:
     """Manages broadcast operations and state."""
 
+    # Размеры батчей
+    BATCH_SIZE_SMALL = 5
+    BATCH_SIZE_MEDIUM = 8
+    BATCH_SIZE_LARGE = 10
+    BATCH_SIZE_XLARGE = 15
+
     MAX_MESSAGES_PER_CODE = 100
     MAX_CHATS_PER_CODE = 1000
     MAX_CODES = 50
@@ -221,11 +228,10 @@ class BroadcastManager:
     MAX_CONSECUTIVE_ERRORS = 5
     MAX_MEDIA_SIZE = 10 * 1024 * 1024  # 10MB
 
-    # Размеры батчей
-    BATCH_SIZE_SMALL = 5
-    BATCH_SIZE_MEDIUM = 8
-    BATCH_SIZE_LARGE = 10
-    BATCH_SIZE_XLARGE = 15
+    # Пороги для батчей
+    BATCH_THRESHOLD_SMALL = 20
+    BATCH_THRESHOLD_MEDIUM = 50
+    BATCH_THRESHOLD_LARGE = 100
 
     # Задержки
     RETRY_DELAY_LONG = 300   # 5 минут
@@ -233,11 +239,6 @@ class BroadcastManager:
     RETRY_DELAY_MINI = 3     # 3 секунды
     EXPONENTIAL_DELAY_BASE = 10  # База для экспоненциальной задержки
     NOTIFY_DELAY = 1  # Задержка между уведомлениями
-
-    # Пороги для батчей
-    BATCH_THRESHOLD_SMALL = 20
-    BATCH_THRESHOLD_MEDIUM = 50
-    BATCH_THRESHOLD_LARGE = 100
 
     # Прочие константы
     NOTIFY_GROUP_SIZE = 50  # Размер группы для уведомлений
@@ -259,7 +260,6 @@ class BroadcastManager:
         self._periodic_task = None
         self._authorized_users = self._load_authorized_users()
         self.watcher_enabled = False
-        self._load_config()
 
     @staticmethod
     def _get_message_content(msg: Message) -> Union[str, Message]:
@@ -305,8 +305,6 @@ class BroadcastManager:
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
             )
-
-            self.me_id = (await self.client.get_me()).id
 
         except Exception as e:
             logger.error(f"Ошибка загрузки конфигурации: {e}")
@@ -706,13 +704,13 @@ class BroadcastManager:
         flood_wait_count: int = 0
         consecutive_errors: int = 0
 
-        async def send_to_chat(chat_id: int, base_time: datetime, position_in_batch: int, retry_count: int = 0) -> None:
+        async def send_to_chat(chat_id: int, base_time: datetime, position_in_batch: int, current_batch_size: int, retry_count: int = 0) -> None:
             nonlocal success_count, consecutive_errors, flood_wait_count
             if not self._active or not code._active:
                 return
 
             try:
-                offset_minutes = (position_in_batch * self.OFFSET_MULTIPLIER) // batch_size
+                offset_minutes = (position_in_batch * self.OFFSET_MULTIPLIER) // current_batch_size
                 schedule_time = base_time + timedelta(minutes=offset_minutes)
 
                 for message in messages_to_send:
@@ -743,7 +741,7 @@ class BroadcastManager:
                 await asyncio.sleep(wait_time)
                 
                 if retry_count < self.MAX_RETRY_COUNT:
-                    await send_to_chat(chat_id, base_time, position_in_batch, retry_count + 1)
+                    await send_to_chat(chat_id, base_time, position_in_batch, current_batch_size, retry_count + 1)
 
             except (ChatWriteForbiddenError, UserBannedInChannelError, ChannelPrivateError, ChatAdminRequiredError) as e:
                 error_type = type(e).__name__
@@ -762,7 +760,7 @@ class BroadcastManager:
                     await asyncio.sleep(self.RETRY_DELAY_SHORT * (2 ** retry_count))
                 
                 if retry_count < self.MAX_RETRY_COUNT:
-                    await send_to_chat(chat_id, base_time, position_in_batch, retry_count + 1)
+                    await send_to_chat(chat_id, base_time, position_in_batch, current_batch_size, retry_count + 1)
                 else:
                     failed_chats.add(chat_id)
 
@@ -800,7 +798,7 @@ class BroadcastManager:
             batch = chats[i:i + current_batch_size]
             random.shuffle(batch)
             
-            tasks = [send_to_chat(chat_id, base_time, idx) for idx, chat_id in enumerate(batch)]
+            tasks = [send_to_chat(chat_id, base_time, idx, current_batch_size) for idx, chat_id in enumerate(batch)]
             await asyncio.gather(*tasks)
             
             delay_minutes = min_interval + self.INTERVAL_PADDING
@@ -887,7 +885,7 @@ class BroadcastManager:
             logger.warning(f"FloodWaitError: необходимо подождать {e.seconds} секунд")
             raise
 
-        except (ChatWriteForbiddenError, UserBannedInChannelError, MessageNotModifiedError):
+        except (ChatWriteForbiddenError, UserBannedInChannelError):
             raise
 
         except Exception as e:
@@ -939,7 +937,7 @@ class BroadcastManager:
     @staticmethod
     def _chunk_messages(
         messages: List[Union[Message, List[Message]]], 
-        chunk_size: int = BroadcastManager.BATCH_SIZE_MEDIUM
+        chunk_size: int = 8
     ) -> List[List[Union[Message, List[Message]]]]:
         """Разбивает список сообщений на части оптимального размера."""
         if not messages:
@@ -992,7 +990,7 @@ class BroadcastManager:
             if hasattr(message.media, "document") and hasattr(
                 message.media.document, "size"
             ):
-                return message.media.document.size <= BroadcastManager.MAX_MEDIA_SIZE
+                return message.media.document.size <= 10 * 1024 * 1024  # 10MB
         return True
 
     def _should_continue(self, code: Optional[Broadcast], code_name: str) -> bool:
