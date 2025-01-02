@@ -1,5 +1,4 @@
 from asyncio import sleep, Lock
-from functools import lru_cache
 from typing import Union, Optional, Dict, List, Tuple, Any, TypeVar, Generic
 import aiohttp
 import logging
@@ -12,7 +11,6 @@ from telethon.errors.rpcerrorlist import YouBlockedUserError, FloodWaitError
 from telethon import Button
 from .. import loader, utils
 import time
-import os
 from dataclasses import dataclass
 
 # Настройка логирования
@@ -57,15 +55,6 @@ class Config:
     MAX_RETRIES: int = 3
     METRICS_INTERVAL: int = 300  # 5 минут
     
-    def __post_init__(self):
-        try:
-            self.API_KEY: Optional[str] = os.getenv('USERINFO_API_KEY')
-            if not self.API_KEY:
-                logger.warning("API_KEY не установлен в переменных окружения")
-        except Exception as e:
-            logger.error(f"Ошибка при получении API_KEY: {e}")
-            self.API_KEY = None
-            
 config = Config()  # Создаем единственный экземпляр конфигурации
 
 class AsyncCache(Generic[T]):
@@ -167,7 +156,7 @@ class ConnectionPool:
                     "accept": "*/*",
                     "content-type": "application/x-www-form-urlencoded",
                     "user-agent": "Nicegram/92 CFNetwork/1390 Darwin/22.0.0",
-                    "x-api-key": Config.API_KEY,
+                    "x-api-key": "e758fb28-79be-4d1c-af6b-066633ded128",
                     "accept-language": "en-US,en;q=0.9",
                 }
             )
@@ -180,13 +169,27 @@ class ConnectionPool:
 
 def timed_lru_cache(seconds: int, maxsize: int = 128):
     def wrapper_decorator(func):
-        @lru_cache(maxsize=maxsize)
-        def time_bounded_function(*args, **kwargs):
-            return (time.time() // seconds, func(*args, **kwargs))
+        cache = {}
         
         async def wrapper(*args, **kwargs):
-            result = await time_bounded_function(*args, **kwargs)[1]
-            return result
+            current_time = int(time.time() // seconds)
+            key = (current_time, args, str(kwargs))
+            
+            if key not in cache:
+                cache[key] = await func(*args, **kwargs)
+                
+                # Очистка старых записей
+                current_keys = list(cache.keys())
+                for k in current_keys:
+                    if k[0] != current_time:
+                        del cache[k]
+                        
+                # Ограничение размера кэша
+                if len(cache) > maxsize:
+                    oldest = min(cache.keys(), key=lambda k: k[0])
+                    del cache[oldest]
+                    
+            return cache[key]
             
         return wrapper
     return wrapper_decorator
