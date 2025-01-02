@@ -88,18 +88,17 @@ class BroadcastMod(loader.Module):
     """Модуль для управления рассылками
 
     Команды:
-    • .broadcast create <код> - создать рассылку
-    • .broadcast delete <код> - удалить рассылку
-    • .broadcast add <код> - добавить сообщение (ответом)
-    • .broadcast remove <код> - удалить сообщение (ответом)
-    • .broadcast addchat <код> - добавить текущий чат
-    • .broadcast rmchat <код> - удалить текущий чат
-    • .broadcast int <код> <мин> <макс> - установить интервал
-    • .broadcast mode <код> <режим> - установить режим (auto/normal/schedule)
-    • .broadcast batch <код> <on/off> - включить/выключить пакетный режим
-    • .broadcast start <код> - запустить рассылку
-    • .broadcast stop <код> - остановить рассылку
-    • .broadcast list - список рассылок
+    • .br add <код> - создать рассылку и добавить сообщение (ответом)
+    • .br delete <код> - удалить рассылку
+    • .br remove <код> - удалить сообщение (ответом)
+    • .br addchat <код> - добавить текущий чат
+    • .br rmchat <код> - удалить текущий чат
+    • .br int <код> <мин> <макс> - установить интервал
+    • .br mode <код> <режим> - установить режим (auto/normal/schedule)
+    • .br allmsgs <код> <on/off> - отправлять все сообщения/одно
+    • .br start <код> - запустить рассылку
+    • .br stop <код> - остановить рассылку
+    • .br list - список рассылок
     """
 
     strings = {"name": "Broadcast"}
@@ -110,10 +109,10 @@ class BroadcastMod(loader.Module):
         await self.manager._load_config()
         self.me_id = (await self._client.get_me()).id
 
-    async def broadcastcmd(self, message):
+    async def brcmd(self, message):
         """Команда для управления рассылкой. Используйте .help Broadcast для справки."""
         if not self.manager.is_authorized(message.sender_id):
-            await message.reply("❌ У вас нет доступа к этой команде")
+            await message.edit("❌ У вас нет доступа к этой команде")
             return
         await self.manager.handle_command(message)
 
@@ -128,7 +127,7 @@ class Broadcast:
     send_mode: str = "auto"
     batch_mode: bool = False
     _last_message_index: int = field(default=0, init=False)
-    _active: bool = field(default=True, init=False)
+    _active: bool = field(default=False, init=False)
 
     def add_message(
         self, chat_id: int, message_id: int, grouped_ids: List[int] = None
@@ -335,64 +334,33 @@ class BroadcastManager:
         try:
             args = message.text.split()[1:]
             if not args:
-                await message.reply("❌ Укажите действие и код рассылки")
+                await message.edit("❌ Укажите действие и код рассылки")
                 return
 
             action = args[0].lower()
 
             code_name = args[1] if len(args) > 1 else None
 
-            if action == "create":
+            if action == "add":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
-                    return
-                if code_name in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} уже существует"
-                    )
-                    return
-                self.codes[code_name] = Broadcast()
-                await self.save_config()
-                await message.reply(f"✅ Рассылка {code_name} создана")
-
-            elif action == "delete":
-                if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
-                    return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
-                    return
-                if (
-                    code_name in self.broadcast_tasks
-                    and not self.broadcast_tasks[code_name].done()
-                ):
-                    self.broadcast_tasks[code_name].cancel()
-                del self.codes[code_name]
-                await self.save_config()
-                await message.reply(f"✅ Рассылка {code_name} удалена")
-
-            elif action == "add":
-                if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
-                    return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                    await message.edit("❌ Укажите код рассылки")
                     return
 
                 reply = await message.get_reply_message()
                 if not reply:
-                    await message.reply(
+                    await message.edit(
                         "❌ Ответьте на сообщение, которое нужно добавить в рассылку"
                     )
                     return
 
-                code = self.codes[code_name]
+                code = self.codes.get(code_name)
+                is_new = code is None
+                if is_new:
+                    code = Broadcast()
+                    self.codes[code_name] = code
+
                 if len(code.messages) >= self.MAX_MESSAGES_PER_CODE:
-                    await message.reply(
+                    await message.edit(
                         f"❌ Достигнут лимит сообщений ({self.MAX_MESSAGES_PER_CODE})"
                     )
                     return
@@ -411,52 +379,70 @@ class BroadcastManager:
 
                 if code.add_message(reply.chat_id, reply.id, grouped_ids):
                     await self.save_config()
-                    await message.reply("✅ Сообщение добавлено в рассылку")
+                    await message.edit(
+                        f"✅ {'Рассылка создана и с' if is_new else 'С'}ообщение добавлено"
+                    )
                 else:
-                    await message.reply("❌ Это сообщение уже есть в рассылке")
+                    await message.edit("❌ Это сообщение уже есть в рассылке")
+
+            elif action == "delete":
+                if not code_name:
+                    await message.edit("❌ Укажите код рассылки")
+                    return
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
+                    return
+                
+                if (
+                    code_name in self.broadcast_tasks
+                    and not self.broadcast_tasks[code_name].done()
+                ):
+                    self.broadcast_tasks[code_name].cancel()
+                del self.codes[code_name]
+                await self.save_config()
+                await message.edit(f"✅ Рассылка {code_name} удалена")
 
             elif action == "remove":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
+                    await message.edit("❌ Укажите код рассылки")
                     return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
 
                 reply = await message.get_reply_message()
                 if not reply:
-                    await message.reply(
+                    await message.edit(
                         "❌ Ответьте на сообщение, которое нужно удалить из рассылки"
                     )
                     return
 
-                code = self.codes[code_name]
                 if code.remove_message(reply.id, reply.chat_id):
                     await self.save_config()
-                    await message.reply("✅ Сообщение удалено из рассылки")
+                    await message.edit("✅ Сообщение удалено из рассылки")
                 else:
-                    await message.reply(
+                    await message.edit(
                         "❌ Это сообщение не найдено в рассылке"
                     )
 
             elif action == "addchat":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
+                    await message.edit("❌ Укажите код рассылки")
                     return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-
-                code = self.codes[code_name]
 
                 if len(args) > 2:
                     chat_id = await self._get_chat_id(args[2])
                     if not chat_id:
-                        await message.reply(
+                        await message.edit(
                             "❌ Не удалось получить ID чата. Проверьте ссылку/юзернейм"
                         )
                         return
@@ -464,36 +450,34 @@ class BroadcastManager:
                     chat_id = message.chat_id
 
                 if len(code.chats) >= self.MAX_CHATS_PER_CODE:
-                    await message.reply(
+                    await message.edit(
                         f"❌ Достигнут лимит чатов ({self.MAX_CHATS_PER_CODE})"
                     )
                     return
 
                 if chat_id in code.chats:
-                    await message.reply("❌ Этот чат уже добавлен в рассылку")
+                    await message.edit("❌ Этот чат уже добавлен в рассылку")
                     return
 
                 code.chats.add(chat_id)
                 await self.save_config()
-                await message.reply("✅ Чат добавлен в рассылку")
+                await message.edit("✅ Чат добавлен в рассылку")
 
             elif action == "rmchat":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
+                    await message.edit("❌ Укажите код рассылки")
                     return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
 
-                code = self.codes[code_name]
                 chat_id = None
-
                 if len(args) > 2:
                     chat_id = await self._get_chat_id(args[2])
                     if not chat_id:
-                        await message.reply(
+                        await message.edit(
                             "❌ Не удалось получить ID чата. Проверьте ссылку/юзернейм"
                         )
                         return
@@ -501,25 +485,25 @@ class BroadcastManager:
                     chat_id = message.chat_id
 
                 if chat_id not in code.chats:
-                    await message.reply("❌ Этот чат не найден в рассылке")
+                    await message.edit("❌ Этот чат не найден в рассылке")
                     return
 
                 code.chats.remove(chat_id)
                 await self.save_config()
-                await message.reply("✅ Чат удален из рассылки")
+                await message.edit("✅ Чат удален из рассылки")
 
             elif action == "int":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
+                    await message.edit("❌ Укажите код рассылки")
                     return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
 
                 if len(args) < 4:
-                    await message.reply(
+                    await message.edit(
                         "❌ Укажите минимальный и максимальный интервал в минутах"
                     )
                     return
@@ -528,87 +512,91 @@ class BroadcastManager:
                     min_val = int(args[2])
                     max_val = int(args[3])
                 except ValueError:
-                    await message.reply("❌ Интервалы должны быть числами")
+                    await message.edit("❌ Интервалы должны быть числами")
                     return
 
-                code = self.codes[code_name]
                 code.interval = (min_val, max_val)
-
                 if not code.is_valid_interval():
-                    await message.reply(
+                    await message.edit(
                         "❌ Некорректный интервал (0 < min < max <= 1440)"
                     )
                     return
 
                 await self.save_config()
-                await message.reply(
+                await message.edit(
                     f"✅ Установлен интервал {min_val}-{max_val} минут"
                 )
 
             elif action == "mode":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
+                    await message.edit("❌ Укажите код рассылки")
                     return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
 
                 if len(args) < 3:
-                    await message.reply(
+                    await message.edit(
                         "❌ Укажите режим отправки (auto/normal/schedule)"
                     )
                     return
 
                 mode = args[2].lower()
                 if mode not in ["auto", "normal", "schedule"]:
-                    await message.reply(
+                    await message.edit(
                         "❌ Неверный режим. Доступные режимы: auto, normal, schedule"
                     )
                     return
 
-                code = self.codes[code_name]
                 code.send_mode = mode
                 await self.save_config()
-                await message.reply(f"✅ Установлен режим отправки: {mode}")
+                await message.edit(f"✅ Установлен режим отправки: {mode}")
 
-            elif action == "batch":
+            elif action == "allmsgs":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
+                    await message.edit("❌ Укажите код рассылки")
                     return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
 
                 if len(args) < 3:
-                    await message.reply("❌ Укажите режим (on/off)")
+                    await message.edit("❌ Укажите on или off")
                     return
 
                 mode = args[2].lower()
                 if mode not in ["on", "off"]:
-                    await message.reply("❌ Укажите on или off")
+                    await message.edit("❌ Укажите on или off")
                     return
 
-                code = self.codes[code_name]
                 code.batch_mode = mode == "on"
                 await self.save_config()
-                await message.reply(
-                    f"✅ Пакетный режим {'включен' if code.batch_mode else 'выключен'}"
+                await message.edit(
+                    f"✅ Отправка всех сообщений {'включена' if code.batch_mode else 'выключена'}"
                 )
 
             elif action == "start":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
+                    await message.edit("❌ Укажите код рассылки")
                     return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-                self.codes[code_name]._active = True
+                
+                if not code.messages:
+                    await message.edit("❌ Добавьте хотя бы одно сообщение в рассылку")
+                    return
+                if not code.chats:
+                    await message.edit("❌ Добавьте хотя бы один чат в рассылку")
+                    return
+                
+                code._active = True
                 if (
                     code_name not in self.broadcast_tasks
                     or self.broadcast_tasks[code_name].done()
@@ -616,71 +604,86 @@ class BroadcastManager:
                     self.broadcast_tasks[code_name] = asyncio.create_task(
                         self._broadcast_loop(code_name)
                     )
-                await message.reply(f"✅ Рассылка {code_name} запущена")
+                await message.edit(f"✅ Рассылка {code_name} запущена")
 
             elif action == "stop":
                 if not code_name:
-                    await message.reply("❌ Укажите код рассылки")
+                    await message.edit("❌ Укажите код рассылки")
                     return
-                if code_name not in self.codes:
-                    await message.reply(
-                        f"❌ Код рассылки {code_name} не найден"
-                    )
+                
+                code = self.codes.get(code_name)
+                if not code:
+                    await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-                self.codes[code_name]._active = False
+                
+                code._active = False
                 if (
                     code_name in self.broadcast_tasks
                     and not self.broadcast_tasks[code_name].done()
                 ):
                     self.broadcast_tasks[code_name].cancel()
-                await message.reply(f"✅ Рассылка {code_name} остановлена")
+                await message.edit(f"✅ Рассылка {code_name} остановлена")
 
             elif action == "watcher":
                 if len(args) < 2:
                     status = "включен" if self.watcher_enabled else "выключен"
-                    await message.reply(
-                        f"❌ Укажите on/off\nТекущий статус: {status}"
+                    await message.edit(
+                        "ℹ️ Автодобавление чатов\n"
+                        f"Текущий статус: {status}\n\n"
+                        "Использование: .br watcher <on/off>"
                     )
                     return
 
                 mode = args[1].lower()
                 if mode not in ["on", "off"]:
-                    await message.reply("❌ Укажите on или off")
+                    await message.edit("❌ Укажите on или off")
                     return
 
                 self.watcher_enabled = mode == "on"
-                await message.reply(
+                await message.edit(
                     f"✅ Автодобавление чатов {'включено' if self.watcher_enabled else 'выключено'}"
                 )
 
             elif action == "list":
                 if not self.codes:
-                    await message.reply("❌ Нет активных рассылок")
+                    await message.edit("❌ Нет активных рассылок")
                     return
                 response = "📝 Список рассылок:\n\n"
+                current_time = time.time()
                 for name, code in self.codes.items():
-                    status = "✅ Активна" if code._active else "❌ Остановлена"
-                    response += f"• {name}: {status}\n"
-                    response += f"  - Чатов: {len(code.chats)}\n"
-                    response += f"  - Сообщений: {len(code.messages)}\n"
-                    response += f"  - Интервал: {code.interval[0]}-{code.interval[1]} мин\n"
-                    response += f"  - Режим: {code.send_mode}\n"
-                    response += f"  - Пакетный режим: {'включен' if code.batch_mode else 'выключен'}\n"
-                await message.reply(response)
+                    is_running = name in self.broadcast_tasks and not self.broadcast_tasks[name].done()
+                    status = "✅ Активна" if code._active and is_running else "❌ Не запущена"
+                    last_time = self.last_broadcast_time.get(name, 0)
+                    
+                    if last_time and current_time > last_time:
+                        minutes_ago = int((current_time - last_time) / 60)
+                        if minutes_ago == 0:
+                            last_active = "(последняя активность: менее минуты назад)"
+                        else:
+                            last_active = f"(последняя активность: {minutes_ago} мин назад)"
+                    else:
+                        last_active = ""
+                    
+                    response += f"• {name}: {status} {last_active}\n"
+                    response += f"  ├ Чатов: {len(code.chats)} (активных)\n"
+                    response += f"  ├ Сообщений: {len(code.messages)}\n"
+                    response += f"  ├ Интервал: {code.interval[0]}-{code.interval[1]} мин\n"
+                    response += f"  ├ Режим: {code.send_mode}\n"
+                    response += f"  └ Все сообщения: {'да' if code.batch_mode else 'нет'}\n\n"
+                await message.edit(response)
 
             else:
-                await message.reply(
+                await message.edit(
                     "❌ Неизвестное действие\n\n"
                     "Доступные команды:\n"
-                    "• create <код> - создать рассылку\n"
+                    "• add <код> - создать рассылку и добавить сообщение (ответом)\n"
                     "• delete <код> - удалить рассылку\n"
-                    "• add <код> - добавить сообщение (ответом)\n"
                     "• remove <код> - удалить сообщение (ответом)\n"
                     "• addchat <код> - добавить текущий чат\n"
                     "• rmchat <код> - удалить текущий чат\n"
                     "• int <код> <мин> <макс> - установить интервал\n"
                     "• mode <код> <режим> - установить режим (auto/normal/schedule)\n"
-                    "• batch <код> <on/off> - включить/выключить пакетный режим\n"
+                    "• allmsgs <код> <on/off> - отправлять все сообщения/одно\n"
                     "• start <код> - запустить рассылку\n"
                     "• stop <код> - остановить рассылку\n"
                     "• watcher <on/off> - включить/выключить автодобавление чатов\n"
@@ -689,15 +692,23 @@ class BroadcastManager:
 
         except Exception as e:
             logger.error(f"Error handling command: {e}")
-            await message.reply(f"❌ Произошла ошибка: {str(e)}")
+            await message.edit(f"❌ Произошла ошибка: {str(e)}")
 
     async def _send_messages_to_chats(
         self,
-        code: Broadcast,
+        code: Optional[Broadcast],
         code_name: str,
         messages_to_send: List[Union[Message, List[Message]]],
     ) -> Set[int]:
         """Отправляет сообщения в чаты с оптимизированной обработкой ошибок."""
+        if not code:
+            logger.error(f"Код рассылки {code_name} не найден при отправке сообщений")
+            return set()
+
+        if not messages_to_send:
+            logger.error(f"Нет сообщений для отправки в рассылке {code_name}")
+            return set()
+
         failed_chats: Set[int] = set()
         success_count: int = 0
         error_counts: Dict[str, int] = {}
@@ -905,7 +916,11 @@ class BroadcastManager:
 
         try:
             async with self._lock:
-                code = self.codes[code_name]
+                code = self.codes.get(code_name)
+                if not code:
+                    logger.error(f"Код рассылки {code_name} не найден при обработке ошибок")
+                    return
+                    
                 code.chats -= failed_chats
                 await self.save_config()
 
@@ -916,7 +931,12 @@ class BroadcastManager:
                 ]
 
                 me = await self.client.get_me()
-                base_message = f"⚠️ Рассылка '{code_name}': Не удалось отправить сообщения в чаты:\n"
+                base_message = (
+                    f"⚠️ Рассылка '{code_name}':\n"
+                    f"Не удалось отправить сообщения в {len(failed_chats)} чат(ов).\n"
+                    f"Чаты удалены из рассылки.\n\n"
+                    f"ID чатов:\n"
+                )
 
                 for group in chat_groups:
                     try:
@@ -937,22 +957,26 @@ class BroadcastManager:
     @staticmethod
     def _chunk_messages(
         messages: List[Union[Message, List[Message]]], 
-        chunk_size: int = 8
+        batch_size: int = 8
     ) -> List[List[Union[Message, List[Message]]]]:
         """Разбивает список сообщений на части оптимального размера."""
         if not messages:
             return []
         return [
-            messages[i : i + chunk_size]
-            for i in range(0, len(messages), chunk_size)
+            messages[i : i + batch_size]
+            for i in range(0, len(messages), batch_size)
         ]
 
     async def _process_message_batch(
         self, 
-        code: Broadcast, 
+        code: Optional[Broadcast], 
         messages: List[dict]
     ) -> Tuple[List[Union[Message, List[Message]]], List[dict]]:
         """Обрабатывает пакет сообщений с оптимизированной загрузкой."""
+        if not code:
+            logger.error("Получен пустой объект рассылки при обработке сообщений")
+            return [], messages
+
         messages_to_send = []
         deleted_messages = []
 
@@ -984,8 +1008,11 @@ class BroadcastManager:
         return messages_to_send, deleted_messages
 
     @staticmethod
-    def _check_media_size(message: Message) -> bool:
+    def _check_media_size(message: Optional[Message]) -> bool:
         """Проверяет размер медиафайла."""
+        if not message:
+            return False
+            
         if hasattr(message, "media") and message.media:
             if hasattr(message.media, "document") and hasattr(
                 message.media.document, "size"
@@ -1109,19 +1136,21 @@ class BroadcastManager:
                 return
 
             code_name = parts[0][1:]
+            if not code_name:
+                return
+                
             chat_id = message.chat_id
 
-            if code_name not in self.codes:
+            code = self.codes.get(code_name)
+            if not code:
                 return
-
-            code = self.codes[code_name]
 
             if len(code.chats) >= self.MAX_CHATS_PER_CODE:
                 return
 
             if chat_id not in code.chats:
                 code.chats.add(chat_id)
-                self.save_config()
+                await self.save_config()
 
         except Exception as e:
             logger.error(f"Error in watcher: {e}")
@@ -1130,17 +1159,14 @@ class BroadcastManager:
         """Cleanup on module unload."""
         self._active = False
 
-        if self._cleanup_task:
-            self._cleanup_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self._cleanup_task
+        for task_name in ["_cleanup_task", "_periodic_task"]:
+            task = getattr(self, task_name, None)
+            if task:
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
 
-        if self._periodic_task:
-            self._periodic_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self._periodic_task
-
-        for task in self.broadcast_tasks.values():
+        for task in [t for t in self.broadcast_tasks.values() if t and not t.done()]:
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
