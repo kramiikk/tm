@@ -21,15 +21,15 @@ T = TypeVar('T')
 class Config:
     CACHE_TTL: int = 3600
     CACHE_SIZE: int = 500
-    HTTP_TIMEOUT: int = 10
-    FUNSTAT_TIMEOUT: int = 5  # Уменьшено для лучшей отзывчивости
+    HTTP_TIMEOUT: int = 3
+    FUNSTAT_TIMEOUT: int = 3  # Уменьшено для лучшей отзывчивости
     MAX_ATTEMPTS: int = 3
     RETRY_DELAY: int = 1
     FUNSTAT_BOT: str = "@Suusbdj_bot"
     LOG_LEVEL: int = logging.INFO
     PHOTO_CACHE_TTL: int = 1800
     MAX_RETRIES: int = 3
-    REQUEST_TIMEOUT: int = 30  # Таймаут для запросов
+    REQUEST_TIMEOUT: int = 3  # Таймаут для запросов
     
 config = Config()
 
@@ -243,7 +243,7 @@ class UserInfoMod(loader.Module):
                 try:
                     async with timeout(Config.FUNSTAT_TIMEOUT):
                         await self._client.send_message(chat, str(user_id))
-                        await asyncio.sleep(1)  # Короткая пауза перед чтением
+                        await asyncio.sleep(3)  # Короткая пауза перед чтением
                         
                         messages = await self._client.get_messages(chat, limit=3)
                         for msg in messages:
@@ -417,7 +417,7 @@ class UserInfoMod(loader.Module):
             if funstat_info and not any(err in funstat_info.lower() for err in ["ошибка", "error", "⚠️"]):
                 info_parts.extend([
                     "",
-                    "📊 <b>Статистика:</b>",
+                    "📊 <b>Статистика funstat:</b>",
                     funstat_info
                 ])
             
