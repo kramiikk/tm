@@ -84,8 +84,10 @@ class RetryHandler:
         last_error = None
         for attempt in range(max_retries):
             try:
-                async with asyncio.timeout(Config.REQUEST_TIMEOUT):
-                    return await func(*args, **kwargs)
+                return await asyncio.wait_for(
+                    func(*args, **kwargs),
+                    timeout=Config.REQUEST_TIMEOUT
+                )
             except (FloodWaitError, asyncio.TimeoutError) as e:
                 last_error = e
                 if attempt == max_retries - 1:
@@ -150,13 +152,11 @@ class PhotoCache:
                 if photo := await cls._cache.get(entity_id):
                     return photo
                     
-                photo = await asyncio.wait_for(
-                    RetryHandler.retry_with_delay(
-                        client.download_profile_photo,
-                        entity_id,
-                        bytes
-                    ),
-                    timeout=cls._lock_timeout
+                photo = await RetryHandler.retry_with_delay(
+                    client.download_profile_photo,
+                    entity_id,
+                    bytes,
+                    max_retries=Config.MAX_RETRIES
                 )
                 
                 if photo:
@@ -241,44 +241,47 @@ class UserInfoMod(loader.Module):
             
             for attempt in range(Config.MAX_ATTEMPTS):
                 try:
-                    async with asyncio.timeout(Config.FUNSTAT_TIMEOUT):
-                        await self._client.send_message(chat, str(user_id))
-                        await asyncio.sleep(3)  # Короткая пауза перед чтением
-                        
-                        messages = await self._client.get_messages(chat, limit=3)
-                        for msg in messages:
-                            if not msg.text or str(user_id) not in msg.text:
-                                continue
-                                
-                            if any(err in msg.text.lower() for err in ["не найден", "not found", "error", "ошибка"]):
-                                return "⚠️ Пользователь не найден в базе funstat"
-                            
-                            lines = []
-                            for line in msg.text.split("\n"):
-                                line = line.strip()
-                                if not line or any(x in line for x in ["ID:", "This is", "Это", "usernames:", "имена пользователя:"]) or "@" in line:
-                                    continue
-                                
-                                if ":" in line:
-                                    try:
-                                        label, value = line.split(":", 1)
-                                        value = value.strip().replace(",", "").replace(" ", "")
-                                        if value.isdigit():
-                                            value = f"{int(value):,}"
-                                        lines.append(f"{label}: {value}")
-                                    except Exception:
-                                        continue
-                                else:
-                                    lines.append(line)
-                            
-                            if lines:
-                                result = "\n".join(lines)
-                                await self._funstat_cache.set(user_id, result)
-                                return result
-                        
-                        if attempt < Config.MAX_ATTEMPTS - 1:
-                            await asyncio.sleep(Config.RETRY_DELAY)
+                    await self._client.send_message(chat, str(user_id))
+                    await asyncio.sleep(3)  # Короткая пауза перед чтением
                     
+                    messages = await asyncio.wait_for(
+                        self._client.get_messages(chat, limit=3),
+                        timeout=Config.FUNSTAT_TIMEOUT
+                    )
+                    
+                    for msg in messages:
+                        if not msg.text or str(user_id) not in msg.text:
+                            continue
+                            
+                        if any(err in msg.text.lower() for err in ["не найден", "not found", "error", "ошибка"]):
+                            return "⚠️ Пользователь не найден в базе funstat"
+                        
+                        lines = []
+                        for line in msg.text.split("\n"):
+                            line = line.strip()
+                            if not line or any(x in line for x in ["ID:", "This is", "Это", "usernames:", "имена пользователя:"]) or "@" in line:
+                                continue
+                            
+                            if ":" in line:
+                                try:
+                                    label, value = line.split(":", 1)
+                                    value = value.strip().replace(",", "").replace(" ", "")
+                                    if value.isdigit():
+                                        value = f"{int(value):,}"
+                                    lines.append(f"{label}: {value}")
+                                except Exception:
+                                    continue
+                            else:
+                                lines.append(line)
+                        
+                        if lines:
+                            result = "\n".join(lines)
+                            await self._funstat_cache.set(user_id, result)
+                            return result
+                    
+                    if attempt < Config.MAX_ATTEMPTS - 1:
+                        await asyncio.sleep(Config.RETRY_DELAY)
+                
                 except YouBlockedUserError:
                     return self.strings["unblock_bot"]
                 except FloodWaitError as e:
