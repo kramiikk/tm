@@ -135,7 +135,7 @@ class ConnectionPool:
 
 class PhotoCache:
     _cache = AsyncCache[bytes](Config.PHOTO_CACHE_TTL, max_size=200)
-    _download_locks: Dict[int, asyncio.Lock] = defaultdict(asyncio.Lock)
+    _download_locks: Dict[int, asyncio.Lock] = defaultdict(lambda: asyncio.Lock())
     _cleanup_lock = asyncio.Lock()
     _lock_timeout = 30
     
@@ -150,19 +150,18 @@ class PhotoCache:
                 if photo := await cls._cache.get(entity_id):
                     return photo
                     
-                try:
-                    photo = await asyncio.wait_for(
-                        RetryHandler.retry_with_delay(
-                            client.download_profile_photo,
-                            entity_id,
-                            bytes
-                        ),
-                        timeout=cls._lock_timeout
-                    )
-                    
-                    if photo:
-                        await cls._cache.set(entity_id, photo)
-                    return photo
+                photo = await asyncio.wait_for(
+                    RetryHandler.retry_with_delay(
+                        client.download_profile_photo,
+                        entity_id,
+                        bytes
+                    ),
+                    timeout=cls._lock_timeout
+                )
+                
+                if photo:
+                    await cls._cache.set(entity_id, photo)
+                return photo
                     
         except asyncio.TimeoutError:
             logger.warning(f"Таймаут при загрузке фото для {entity_id}")
@@ -177,16 +176,15 @@ async def get_creation_date(user_id: int) -> str:
         
     session = await ConnectionPool.get_session()
     try:
-        try:
-            async with session.post(
-                "https://restore-access.indream.app/regdate",
-                json={"telegramId": user_id}
-            ) as response:
-                response.raise_for_status()
-                data = await response.json()
-                return data.get("data", {}).get("date", "Ошибка получения данных")
-        except asyncio.TimeoutError:
-            return "Таймаут при получении даты"
+        async with session.post(
+            "https://restore-access.indream.app/regdate",
+            json={"telegramId": user_id}
+        ) as response:
+            response.raise_for_status()
+            data = await response.json()
+            return data.get("data", {}).get("date", "Ошибка получения данных")
+    except asyncio.TimeoutError:
+        return "Таймаут при получении даты"
     except aiohttp.ClientResponseError as e:
         return f"Ошибка сервера: {e.status}"
     except Exception as e:
