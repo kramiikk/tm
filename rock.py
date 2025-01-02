@@ -150,11 +150,14 @@ class PhotoCache:
                 if photo := await cls._cache.get(entity_id):
                     return photo
                     
-                async with asyncio.timeout(cls._lock_timeout):
-                    photo = await RetryHandler.retry_with_delay(
-                        client.download_profile_photo,
-                        entity_id,
-                        bytes
+                try:
+                    photo = await asyncio.wait_for(
+                        RetryHandler.retry_with_delay(
+                            client.download_profile_photo,
+                            entity_id,
+                            bytes
+                        ),
+                        timeout=cls._lock_timeout
                     )
                     
                     if photo:
@@ -174,7 +177,7 @@ async def get_creation_date(user_id: int) -> str:
         
     session = await ConnectionPool.get_session()
     try:
-        async with asyncio.timeout(Config.HTTP_TIMEOUT):
+        try:
             async with session.post(
                 "https://restore-access.indream.app/regdate",
                 json={"telegramId": user_id}
@@ -182,10 +185,10 @@ async def get_creation_date(user_id: int) -> str:
                 response.raise_for_status()
                 data = await response.json()
                 return data.get("data", {}).get("date", "Ошибка получения данных")
+        except asyncio.TimeoutError:
+            return "Таймаут при получении даты"
     except aiohttp.ClientResponseError as e:
         return f"Ошибка сервера: {e.status}"
-    except asyncio.TimeoutError:
-        return "Таймаут при получении даты"
     except Exception as e:
         return f"Ошибка при получении даты: {str(e)}"
 
