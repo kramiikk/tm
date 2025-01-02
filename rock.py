@@ -1,4 +1,4 @@
-from asyncio import sleep, Lock
+from asyncio import Lock, timeout
 from typing import Union, Optional, Dict, List, Tuple, Any, TypeVar, Generic
 import aiohttp
 import logging
@@ -7,331 +7,192 @@ from collections import defaultdict
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.types import Message, Channel, User, UserStatusOnline, UserStatusOffline, UserStatusRecently
-from telethon.errors.rpcerrorlist import YouBlockedUserError, FloodWaitError
-from telethon import Button
+from telethon.errors.rpcerrorlist import YouBlockedUserError, FloodWaitError, UserNotParticipantError
+from telethon.errors.common import MultiError
 from .. import loader, utils
 import time
 from dataclasses import dataclass
 
-# Настройка логирования
 logger = logging.getLogger(__name__)
-
-# Инициализация глобальных объектов
-class Metrics:
-    """Сборщик метрик"""
-    def __init__(self):
-        self._metrics = defaultdict(int)
-        self._start_time = time.time()
-        
-    def increment(self, metric: str):
-        """Увеличение счетчика метрики"""
-        self._metrics[metric] += 1
-        
-    def get_stats(self) -> Dict[str, Any]:
-        """Получение статистики"""
-        uptime = time.time() - self._start_time
-        return {
-            'requests': dict(self._metrics),
-            'uptime': f"{uptime:.0f}s",
-            'rps': sum(self._metrics.values()) / uptime if uptime > 0 else 0
-        }
-
-metrics = Metrics()
 
 T = TypeVar('T')
 
 @dataclass
 class Config:
-    """Конфигурация модуля"""
-    CACHE_TTL: int = 3600  # 1 час
+    CACHE_TTL: int = 3600
     CACHE_SIZE: int = 500
     HTTP_TIMEOUT: int = 10
-    FUNSTAT_TIMEOUT: int = 10
+    FUNSTAT_TIMEOUT: int = 5  # Уменьшено для лучшей отзывчивости
     MAX_ATTEMPTS: int = 3
     RETRY_DELAY: int = 1
     FUNSTAT_BOT: str = "@Suusbdj_bot"
     LOG_LEVEL: int = logging.INFO
-    PHOTO_CACHE_TTL: int = 1800  # 30 минут
+    PHOTO_CACHE_TTL: int = 1800
     MAX_RETRIES: int = 3
-    METRICS_INTERVAL: int = 300  # 5 минут
+    REQUEST_TIMEOUT: int = 30  # Таймаут для запросов
     
-config = Config()  # Создаем единственный экземпляр конфигурации
+config = Config()
 
 class AsyncCache(Generic[T]):
-    """Асинхронный кэш с поддержкой TTL"""
     def __init__(self, ttl: int, max_size: int = 1000):
         self._cache: Dict[Any, Tuple[T, float]] = {}
         self._lock = Lock()
         self._ttl = ttl
         self._max_size = max_size
-        self._metrics = defaultdict(int)
         self._last_cleanup = time.time()
         self._cleanup_interval = 300
         
     async def _cleanup_cache(self):
-        """Очистка устаревших и избыточных записей"""
         now = time.time()
         if now - self._last_cleanup < self._cleanup_interval:
             return
             
         async with self._lock:
-            # Удаляем устаревшие записи
-            expired_keys = [
-                k for k, (_, timestamp) in self._cache.items()
-                if now - timestamp >= self._ttl
-            ]
-            for k in expired_keys:
-                del self._cache[k]
-                
-            # Если после удаления устаревших всё ещё превышен лимит
-            if len(self._cache) > self._max_size:
-                # Сортируем по времени последнего доступа и удаляем старые
-                sorted_items = sorted(self._cache.items(), key=lambda x: x[1][1])
-                items_to_remove = len(self._cache) - self._max_size
-                for old_key, _ in sorted_items[:items_to_remove]:
-                    del self._cache[old_key]
-                    
-            self._last_cleanup = now
-            self._metrics['cleanups'] += 1
-            self._metrics['cleaned_items'] += len(expired_keys)
-        
-    async def get(self, key: Any) -> Optional[Any]:
-        """Получение значения из кэша"""
-        await self._cleanup_cache()
-        async with self._lock:
-            if key not in self._cache:
-                self._metrics['misses'] += 1
-                return None
-                
-            value, _ = self._cache[key]
-            self._metrics['hits'] += 1
-            return value
+            # Очистка по TTL и размеру одновременно
+            items = sorted(
+                [(k, v, t) for k, (v, t) in self._cache.items()],
+                key=lambda x: x[2]
+            )
             
-    async def set(self, key: Any, value: Any):
-        """Установка значения в кэш"""
-        await self._cleanup_cache()
+            # Удаляем устаревшие и оставляем только последние max_size элементов
+            valid_items = [(k, v, t) for k, v, t in items if now - t < self._ttl][-self._max_size:]
+            self._cache = {k: (v, t) for k, v, t in valid_items}
+            self._last_cleanup = now
+        
+    async def get(self, key: Any) -> Optional[T]:
+        try:
+            async with self._lock:
+                if key not in self._cache:
+                    return None
+                value, timestamp = self._cache[key]
+                if time.time() - timestamp >= self._ttl:
+                    del self._cache[key]
+                    return None
+                return value
+        finally:
+            if len(self._cache) > self._max_size or time.time() - self._last_cleanup >= self._cleanup_interval:
+                asyncio.create_task(self._cleanup_cache())
+            
+    async def set(self, key: Any, value: T):
         async with self._lock:
             self._cache[key] = (value, time.time())
-
-    def get_metrics(self) -> Dict[str, Any]:
-        """Получение метрик кэша"""
-        total = self._metrics['hits'] + self._metrics['misses']
-        return {
-            'hits': self._metrics['hits'],
-            'misses': self._metrics['misses'],
-            'hit_rate': f"{(self._metrics['hits'] / total if total else 0):.2%}",
-            'size': len(self._cache)
-        }
+            if len(self._cache) > self._max_size:
+                asyncio.create_task(self._cleanup_cache())
 
 class RetryHandler:
-    """Обработчик повторных попыток"""
     @staticmethod
     async def retry_with_delay(func, *args, max_retries=Config.MAX_RETRIES, **kwargs):
-        """Выполнение функции с повторными попытками"""
+        last_error = None
         for attempt in range(max_retries):
             try:
-                return await func(*args, **kwargs)
-            except FloodWaitError as e:
+                async with timeout(Config.REQUEST_TIMEOUT):
+                    return await func(*args, **kwargs)
+            except (FloodWaitError, asyncio.TimeoutError) as e:
+                last_error = e
                 if attempt == max_retries - 1:
                     raise
-                wait_time = e.seconds
-                logger.warning(f"FloodWaitError: ожидание {wait_time} секунд")
-                await asyncio.sleep(wait_time)
+                if isinstance(e, FloodWaitError):
+                    await asyncio.sleep(e.seconds)
+                else:
+                    await asyncio.sleep(Config.RETRY_DELAY * (2 ** attempt))
             except Exception as e:
+                last_error = e
                 if attempt == max_retries - 1:
                     raise
-                wait_time = Config.RETRY_DELAY * (attempt + 1)
-                logger.warning(f"Ошибка: {str(e)}. Повторная попытка через {wait_time} сек.")
-                await asyncio.sleep(wait_time)
+                await asyncio.sleep(Config.RETRY_DELAY * (2 ** attempt))
+        raise last_error if last_error else RuntimeError("Превышено количество попыток")
 
 class ConnectionPool:
     _session: Optional[aiohttp.ClientSession] = None
+    _lock = Lock()
     
     @classmethod
     async def get_session(cls) -> aiohttp.ClientSession:
-        if cls._session is None or cls._session.closed:
-            cls._session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=Config.HTTP_TIMEOUT),
-                headers={
-                    "accept": "*/*",
-                    "content-type": "application/x-www-form-urlencoded",
-                    "user-agent": "Nicegram/92 CFNetwork/1390 Darwin/22.0.0",
-                    "x-api-key": "e758fb28-79be-4d1c-af6b-066633ded128",
-                    "accept-language": "en-US,en;q=0.9",
-                }
-            )
-        return cls._session
+        async with cls._lock:
+            if cls._session is None or cls._session.closed:
+                timeout = aiohttp.ClientTimeout(
+                    total=Config.HTTP_TIMEOUT,
+                    connect=Config.HTTP_TIMEOUT/2,
+                    sock_read=Config.HTTP_TIMEOUT
+                )
+                cls._session = aiohttp.ClientSession(
+                    timeout=timeout,
+                    headers={
+                        "accept": "*/*",
+                        "content-type": "application/json",
+                        "user-agent": "Nicegram/92 CFNetwork/1390 Darwin/22.0.0",
+                        "x-api-key": "e758fb28-79be-4d1c-af6b-066633ded128",
+                        "accept-language": "en-US,en;q=0.9",
+                    }
+                )
+            return cls._session
 
     @classmethod
     async def close(cls):
-        if cls._session and not cls._session.closed:
-            await cls._session.close()
-            
-    @classmethod
-    async def __aenter__(cls) -> 'ConnectionPool':
-        await cls.get_session()
-        return cls
-        
-    @classmethod
-    async def __aexit__(cls, exc_type, exc_val, exc_tb):
-        await cls.close()
-
-def timed_lru_cache(seconds: int, maxsize: int = 128):
-    def wrapper_decorator(func):
-        cache = {}
-        
-        async def wrapper(*args, **kwargs):
-            current_time = int(time.time() // seconds)
-            key = (current_time, args, str(kwargs))
-            
-            if key not in cache:
-                cache[key] = await func(*args, **kwargs)
-                
-                # Очистка старых записей
-                current_keys = list(cache.keys())
-                for k in current_keys:
-                    if k[0] != current_time:
-                        del cache[k]
-                        
-                # Ограничение размера кэша
-                if len(cache) > maxsize:
-                    oldest = min(cache.keys(), key=lambda k: k[0])
-                    del cache[oldest]
-                    
-            return cache[key]
-            
-        return wrapper
-    return wrapper_decorator
-
-# Настройка уровня логирования
-logging.basicConfig(level=Config.LOG_LEVEL)
+        async with cls._lock:
+            if cls._session and not cls._session.closed:
+                await cls._session.close()
+                cls._session = None
 
 class PhotoCache:
-    """Кэш для фотографий профилей"""
     _cache = AsyncCache[bytes](Config.PHOTO_CACHE_TTL, max_size=200)
     _download_locks: Dict[int, Lock] = defaultdict(Lock)
     _cleanup_lock = Lock()
-    
-    @classmethod
-    async def get(cls, entity_id: int) -> Optional[bytes]:
-        return await cls._cache.get(entity_id)
-    
-    @classmethod
-    async def set(cls, entity_id: int, photo_data: bytes):
-        await cls._cache.set(entity_id, photo_data)
-    
-    @classmethod
-    async def cleanup_locks(cls):
-        """Очистка неиспользуемых блокировок"""
-        async with cls._cleanup_lock:
-            current_time = time.time()
-            to_remove = []
-            for entity_id, lock in cls._download_locks.items():
-                if not lock.locked() and current_time - lock._creation_time > 300:  # 5 минут
-                    to_remove.append(entity_id)
-            for entity_id in to_remove:
-                del cls._download_locks[entity_id]
+    _lock_timeout = 30
     
     @classmethod
     async def get_or_download(cls, client, entity_id: int) -> Optional[bytes]:
         try:
-            # Проверяем кэш только под блокировкой
-            if entity_id not in cls._download_locks:
-                cls._download_locks[entity_id] = Lock()
-                cls._download_locks[entity_id]._creation_time = time.time()
-            
+            if photo := await cls._cache.get(entity_id):
+                return photo
+                
             async with cls._download_locks[entity_id]:
-                if photo := await cls.get(entity_id):
+                # Повторная проверка кэша после получения блокировки
+                if photo := await cls._cache.get(entity_id):
                     return photo
-                
-                photo = await RetryHandler.retry_with_delay(
-                    client.download_profile_photo,
-                    entity_id,
-                    bytes
-                )
-                
-                if photo:
-                    await cls.set(entity_id, photo)
+                    
+                async with timeout(cls._lock_timeout):
+                    photo = await RetryHandler.retry_with_delay(
+                        client.download_profile_photo,
+                        entity_id,
+                        bytes
+                    )
+                    
+                    if photo:
+                        await cls._cache.set(entity_id, photo)
                     return photo
-            
-            await cls.cleanup_locks()
+                    
+        except asyncio.TimeoutError:
+            logger.warning(f"Таймаут при загрузке фото для {entity_id}")
             return None
         except Exception as e:
-            logger.error(f"Ошибка при загрузке фото для {entity_id}: {e}")
+            logger.error(f"Ошибка при загрузке фото для {entity_id}: {e}", exc_info=True)
             return None
 
-@timed_lru_cache(seconds=Config.CACHE_TTL, maxsize=Config.CACHE_SIZE)
 async def get_creation_date(user_id: int) -> str:
-    """Получение даты регистрации аккаунта с кэшированием"""
+    if not user_id:
+        return "Ошибка: ID не указан"
+        
     session = await ConnectionPool.get_session()
     try:
-        async with session.post(
-            "https://restore-access.indream.app/regdate",
-            json={"telegramId": user_id}
-        ) as response:
-            if response.status == 200:
+        async with timeout(Config.HTTP_TIMEOUT):
+            async with session.post(
+                "https://restore-access.indream.app/regdate",
+                json={"telegramId": user_id}
+            ) as response:
+                response.raise_for_status()
                 data = await response.json()
                 return data.get("data", {}).get("date", "Ошибка получения данных")
-            return f"Ошибка сервера: {response.status}"
-    except aiohttp.ClientError as e:
-        return f"Ошибка сети: {str(e)}"
+    except aiohttp.ClientResponseError as e:
+        return f"Ошибка сервера: {e.status}"
+    except asyncio.TimeoutError:
+        return "Таймаут при получении даты"
     except Exception as e:
-        return f"Неизвестная ошибка: {str(e)}"
-    # Не закрываем сессию здесь, так как она управляется ConnectionPool
-
-class DataLoader:
-    """Загрузчик данных с поддержкой параллельного выполнения и кэширования"""
-    _entity_cache = AsyncCache(Config.CACHE_TTL, max_size=500)
-    
-    @classmethod
-    async def load_all_data(cls, entity: Union[User, Channel], client) -> Dict[str, Any]:
-        cache_key = f"{entity.id}_{type(entity).__name__}"
-        
-        # Проверяем кэш
-        if cached_data := await cls._entity_cache.get(cache_key):
-            logger.debug(f"Данные для {entity.id} найдены в кэше")
-            return cached_data
-            
-        tasks = {
-            "creation_date": asyncio.create_task(get_creation_date(entity.id)),
-            "photo": asyncio.create_task(PhotoCache.get_or_download(client, entity.id)),
-            "full_info": asyncio.create_task(
-                client(GetFullUserRequest(entity.id))
-                if isinstance(entity, User)
-                else client(GetFullChannelRequest(entity))
-            )
-        }
-        
-        results = {}
-        errors = []
-        
-        for name, task in tasks.items():
-            try:
-                results[name] = await task
-            except Exception as e:
-                logger.error(f"Ошибка при загрузке {name}: {e}")
-                errors.append(f"{name}: {str(e)}")
-                results[name] = None
-                
-        if errors:
-            logger.warning(f"Ошибки при загрузке данных: {', '.join(errors)}")
-            
-        # Кэшируем результат только если нет критических ошибок
-        if results.get("full_info"):
-            await cls._entity_cache.set(cache_key, results)
-                
-        return results
-
-    @staticmethod
-    def format_errors(errors: List[str]) -> str:
-        """Форматирование списка ошибок для пользователя"""
-        if not errors:
-            return ""
-        return "\n⚠️ Возникли ошибки:\n" + "\n".join(f"• {err}" for err in errors)
+        return f"Ошибка при получении даты: {str(e)}"
 
 @loader.tds
 class UserInfoMod(loader.Module):
-    """Получение информации о пользователе или канале Telegram"""
+    """Модуль для получения информации о пользователе или канале"""
     
     strings = {
         "name": "UserInfo",
@@ -346,25 +207,14 @@ class UserInfoMod(loader.Module):
         self._funstat_cache = AsyncCache(Config.CACHE_TTL, max_size=100)
 
     def _format_details(self, details: List[str]) -> List[str]:
-        """Форматирование списка деталей с разделителями"""
+        if not details:
+            return []
         return [f"├ {detail}" for detail in details[:-1]] + [f"└ {details[-1]}"]
 
     def _format_status_flags(self, flags: List[str]) -> str:
-        """Форматирование флагов статуса"""
         return f"⚜️ {' • '.join(flags)}\n" if flags else ""
 
-    async def _send_message(self, chat_id: int, text: str, photo: Optional[bytes] = None, **kwargs):
-        """Универсальный метод отправки сообщения с фото или без"""
-        try:
-            method = self._client.send_file if photo else self._client.send_message
-            params = {"file": photo, "caption": text} if photo else {"message": text}
-            await RetryHandler.retry_with_delay(method, chat_id, **params, **kwargs)
-        except Exception as e:
-            logger.error(f"Ошибка при отправке сообщения: {e}")
-            raise
-
     def _get_entity_flags(self, entity: Union[User, Channel]) -> List[str]:
-        """Получение флагов статуса для сущности"""
         flags = []
         if getattr(entity, 'verified', False):
             flags.append("✅ Верифицирован")
@@ -377,219 +227,133 @@ class UserInfoMod(loader.Module):
                 flags.append("🤖 Бот")
             if getattr(entity, 'deleted', False):
                 flags.append("♻️ Удалён")
-        elif isinstance(entity, Channel):
-            if getattr(entity, 'restricted', False):
-                restriction_reason = getattr(entity, 'restriction_reason', None)
-                if restriction_reason:
-                    # Нормализуем причину ограничения
-                    reason = restriction_reason.lower()
-                    if any(x in reason for x in ['porn', '18+', 'adult', 'nsfw']):
-                        flags.append("⚠️ Ограничен: 18+")
-                    else:
-                        flags.append(f"⚠️ Ограничен: {restriction_reason}")
-                else:
-                    flags.append("⚠️ Ограничен")
         return flags
 
     async def on_unload(self):
-        """Закрытие соединений при выгрузке модуля"""
         await ConnectionPool.close()
 
     async def get_funstat_info(self, user_id: int) -> str:
-        """Получение информации из funstat с кэшированием"""
-        if cached_info := await self._funstat_cache.get(user_id):
-            return cached_info
-            
         try:
-            # Получаем ID последнего сообщения перед запросом
-            last_messages = await self._client.get_messages(Config.FUNSTAT_BOT, limit=1)
-            last_msg_id = last_messages[0].id if last_messages else 0
+            if cached_info := await self._funstat_cache.get(user_id):
+                return cached_info
+
+            chat = Config.FUNSTAT_BOT
             
-            # Отправляем запрос боту
-            await self._client.send_message(Config.FUNSTAT_BOT, str(user_id))
-            
-            start_time = time.time()
-            best_response = None
-            
-            while time.time() - start_time < Config.FUNSTAT_TIMEOUT:
-                # Получаем только новые сообщения после нашего запроса
-                messages = await self._client.get_messages(
-                    Config.FUNSTAT_BOT,
-                    min_id=last_msg_id,
-                    limit=2
-                )
-                
-                for msg in messages:
-                    if not msg.text or str(user_id) not in msg.text:
-                        continue
+            for attempt in range(Config.MAX_ATTEMPTS):
+                try:
+                    async with timeout(Config.FUNSTAT_TIMEOUT):
+                        await self._client.send_message(chat, str(user_id))
+                        await asyncio.sleep(1)  # Короткая пауза перед чтением
                         
-                    # Проверяем наличие ошибок
-                    if any(err in msg.text.lower() for err in [
-                        "не найден", "not found",
-                        "error", "ошибка",
-                        "произошла ошибка"
-                    ]):
-                        best_response = "⚠️ Пользователь не найден в базе funstat"
-                        continue
-                        
-                    # Обрабатываем ответ
-                    lines = []
-                    for line in msg.text.split("\n"):
-                        line = line.strip()
-                        
-                        # Пропускаем пустые строки и служебную информацию
-                        if not line or "ID:" in line or "This is" in line or "Это" in line:
-                            continue
+                        messages = await self._client.get_messages(chat, limit=3)
+                        for msg in messages:
+                            if not msg.text or str(user_id) not in msg.text:
+                                continue
+                                
+                            if any(err in msg.text.lower() for err in ["не найден", "not found", "error", "ошибка"]):
+                                return "⚠️ Пользователь не найден в базе funstat"
                             
-                        # Пропускаем ненужные секции и юзернеймы
-                        if any(x in line.lower() for x in [
-                            "usernames:", "first name / last name:",
-                            "имена пользователя:", "имя / фамилия:"
-                        ]) or "@" in line:
-                            continue
+                            lines = []
+                            for line in msg.text.split("\n"):
+                                line = line.strip()
+                                if not line or any(x in line for x in ["ID:", "This is", "Это", "usernames:", "имена пользователя:"]) or "@" in line:
+                                    continue
+                                
+                                if ":" in line:
+                                    try:
+                                        label, value = line.split(":", 1)
+                                        value = value.strip().replace(",", "").replace(" ", "")
+                                        if value.isdigit():
+                                            value = f"{int(value):,}"
+                                        lines.append(f"{label}: {value}")
+                                    except Exception:
+                                        continue
+                                else:
+                                    lines.append(line)
+                            
+                            if lines:
+                                result = "\n".join(lines)
+                                await self._funstat_cache.set(user_id, result)
+                                return result
                         
-                        # Форматируем числовые значения
-                        if ":" in line:
-                            try:
-                                label, value = line.split(":", 1)
-                                value = value.strip().replace(",", "").replace(" ", "")
-                                if value.isdigit():
-                                    value = f"{int(value):,}"
-                                line = f"{label}: {value}"
-                            except:
-                                pass
-                        
-                        lines.append(line)
+                        if attempt < Config.MAX_ATTEMPTS - 1:
+                            await asyncio.sleep(Config.RETRY_DELAY)
                     
-                    if lines:
-                        # Обновляем лучший ответ
-                        best_response = "\n".join(lines)
-                
-                # Если есть полный ответ, кэшируем и возвращаем его
-                if best_response and not best_response.startswith("⚠️"):
-                    await self._funstat_cache.set(user_id, best_response)
-                    return best_response
+                except YouBlockedUserError:
+                    return self.strings["unblock_bot"]
+                except FloodWaitError as e:
+                    if attempt == Config.MAX_ATTEMPTS - 1:
+                        raise
+                    await asyncio.sleep(e.seconds)
+                except asyncio.TimeoutError:
+                    if attempt == Config.MAX_ATTEMPTS - 1:
+                        return "⚠️ Таймаут при получении статистики"
+                    continue
                     
-                await asyncio.sleep(0.5)
-            
-            return best_response or "⚠️ Превышено время ожидания ответа от funstat"
+            return "⚠️ Не удалось получить ответ от funstat"
                     
-        except YouBlockedUserError:
-            return self.strings["unblock_bot"]
         except Exception as e:
-            logger.error(f"Ошибка при получении funstat: {e}")
+            logger.error(f"Ошибка при получении funstat: {e}", exc_info=True)
             return f"⚠️ Ошибка при получении статистики: {str(e)}"
 
     async def send_info_message(self, message: Message, entity: Union[User, Channel], info_text: str):
-        """Отправка сообщения с информацией и фото"""
         try:
             photo = await PhotoCache.get_or_download(self._client, entity.id)
-            buttons = [[Button.inline("🔄 Обновить", data=f"refresh:{entity.id}")]]
-            
-            if photo:
-                await message.respond(
-                    info_text,
-                    file=photo,
-                    buttons=buttons
-                )
-            else:
-                await message.respond(
-                    info_text,
-                    buttons=buttons
-                )
-            
+            await message.respond(info_text, file=photo if photo else None)
             await message.delete()
-            
         except Exception as e:
-            logger.error(f"Ошибка при отправке сообщения: {e}")
+            logger.error(f"Ошибка при отправке сообщения: {e}", exc_info=True)
             raise
 
     async def userinfocmd(self, message: Message):
-        """Получить информацию о пользователе или канале"""
-        start_time = time.time()
+        """Получить информацию о пользователе или канале
+        Использование: .userinfo [@ или ID] или ответ на сообщение"""
         await utils.answer(message, self.strings["loading"])
         
         try:
             args = utils.get_args_raw(message)
             reply = await message.get_reply_message()
             
-            entity = await self.get_entity_safe(
-                args or (reply.sender_id if reply else None)
-            )
+            if not args and not reply:
+                await utils.answer(message, "❌ Укажите пользователя/канал или ответьте на сообщение")
+                return
             
-            if not entity:
+            entity = None
+            try:
+                entity_id = args or (reply.sender_id if reply else None)
+                if not entity_id:
+                    raise ValueError("Не указан ID")
+                    
+                entity = await self._client.get_entity(entity_id)
+            except (ValueError, AttributeError) as e:
+                logger.debug(f"Ошибка получения сущности: {e}")
                 await utils.answer(message, self.strings["not_found"])
                 return
                 
-            data = await DataLoader.load_all_data(entity, self._client)
-            
-            if isinstance(entity, Channel):
-                info_text = await self.format_channel_info(entity, data['full_info'])
-            else:
-                info_text = await self.format_user_info(entity, data['full_info'])
+            try:
+                if isinstance(entity, Channel):
+                    full_info = await self._client(GetFullChannelRequest(entity))
+                    info_text = await self.format_channel_info(entity, full_info)
+                else:
+                    full_info = await self._client(GetFullUserRequest(entity))
+                    info_text = await self.format_user_info(entity, full_info)
+                    
+                await self.send_info_message(message, entity, info_text)
                 
-            if errors := DataLoader.format_errors(data.get('errors', [])):
-                info_text += errors
-                
-            await self.send_info_message(message, entity, info_text)
-            
-            execution_time = time.time() - start_time
-            logger.info(f"Команда выполнена за {execution_time:.2f}с")
-            metrics.increment('successful_requests')
+            except UserNotParticipantError:
+                await utils.answer(message, "⚠️ Нет доступа к информации")
+            except MultiError as e:
+                if any(isinstance(err, UserNotParticipantError) for err in e.exceptions):
+                    await utils.answer(message, "⚠️ Нет доступа к информации")
+                else:
+                    raise
+            except Exception as e:
+                logger.error(f"Ошибка при получении информации: {e}", exc_info=True)
+                await utils.answer(message, self.strings["error_fetching"].format(str(e)))
             
         except Exception as e:
-            logger.error(f"Ошибка при выполнении команды: {e}")
-            metrics.increment('failed_requests')
-            await utils.answer(
-                message,
-                self.strings["error_fetching"].format(str(e))
-            )
-    async def refresh_callback_handler(self, call):
-        """Обработчик нажатия кнопки обновления"""
-        logger.debug("Запуск обработчика обновления")
-        try:
-            entity_id = int(call.data.decode().split(":")[1])
-            logger.debug(f"Обновление информации для {entity_id}")
-            
-            entity = await self.get_entity_safe(entity_id)
-            if not entity:
-                logger.warning(f"Сущность {entity_id} не найдена при обновлении")
-                await call.answer("❌ Не удалось получить информацию", show_alert=True)
-                return
-            
-            if isinstance(entity, Channel):
-                channel = await self._client(GetFullChannelRequest(entity))
-                info_text = await self.format_channel_info(entity, channel)
-            else:
-                user = await self._client(GetFullUserRequest(entity.id))
-                info_text = await self.format_user_info(entity, user)
-            
-            photo = await PhotoCache.get_or_download(self._client, entity.id)
-            buttons = [[Button.inline("🔄 Обновить", data=f"refresh:{entity.id}")]]
-            
-            if photo:
-                await call.edit(
-                    text=info_text,
-                    file=photo,
-                    buttons=buttons
-                )
-            else:
-                await call.edit(
-                    text=info_text,
-                buttons=buttons
-            )
-            
-            logger.debug("Обновление успешно выполнено")
-            await call.answer("✅ Информация обновлена!")
-            
-        except Exception as e:
-            logger.error(f"Ошибка при обновлении: {e}")
-            await call.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
-
-    async def callback_handler(self, call):
-        """Маршрутизация callback-запросов"""
-        if call.data.decode().startswith("refresh:"):
-            await self.refresh_callback_handler(call)
+            logger.error(f"Ошибка при выполнении команды: {e}", exc_info=True)
+            await utils.answer(message, self.strings["error_fetching"].format(str(e)))
 
     def _format_status(self, status) -> str:
         """Форматирование статуса пользователя"""
@@ -601,27 +365,8 @@ class UserInfoMod(loader.Module):
             return "🔵 Недавно"
         return "⚫️ Давно"
 
-    async def get_entity_safe(self, entity_id: Union[str, int]) -> Optional[Union[User, Channel]]:
-        """Безопасное получение сущности"""
-        if not entity_id:
-            return None
-        try:
-            return await self._client.get_entity(
-                int(entity_id) if str(entity_id).isdigit() else entity_id
-            )
-        except ValueError as e:
-            logger.error(f"Неверный формат ID: {e}")
-            return None
-        except (TypeError, AttributeError) as e:
-            logger.error(f"Ошибка при обработке entity_id: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Непредвиденная ошибка при получении сущности: {e}")
-            return None
-
     async def format_user_info(self, user: User, full_user: GetFullUserRequest) -> str:
         """Форматирование информации о пользователе"""
-        metrics.increment('user_info_requests')
         info_parts = []
         
         try:
@@ -637,13 +382,13 @@ class UserInfoMod(loader.Module):
             # Детальная информация
             details = [
                 f"🆔 ID: <code>{user.id}</code>",
-                f"📝 Username: @{getattr(user, 'username', '🚫')}",
+                f"📝 Username: @{user.username or '🚫'}",
                 f"📅 Регистрация: <code>{await get_creation_date(user.id)}</code>",
-                f"👥 Общие чаты: {getattr(full_user.full_user, 'common_chats_count', 0)}",
-                f"⭐️ Статус: {self._format_status(getattr(user, 'status', None))}"
+                f"👥 Общие чаты: {full_user.full_user.common_chats_count}",
+                f"⭐️ Статус: {self._format_status(user.status)}"
             ]
             
-            # Объединяем проверку звонков
+            # Проверка звонков
             if hasattr(full_user.full_user, 'phone_calls_available'):
                 calls_available = full_user.full_user.phone_calls_available and getattr(full_user.full_user, 'video_calls_available', False)
                 details.append(f"📞 Звонки: {'✅' if calls_available else '❌'}")
@@ -651,7 +396,7 @@ class UserInfoMod(loader.Module):
             info_parts.extend(self._format_details(details))
             
             # Описание
-            if getattr(full_user.full_user, 'about', None):
+            if full_user.full_user.about:
                 info_parts.extend([
                     "",
                     "📋 <b>О пользователе:</b>",
@@ -659,7 +404,7 @@ class UserInfoMod(loader.Module):
                 ])
             
             # Ссылки
-            if getattr(user, 'username', None):
+            if user.username:
                 info_parts.extend([
                     "",
                     "🔗 <b>Ссылки:</b>",
@@ -679,12 +424,11 @@ class UserInfoMod(loader.Module):
             return "\n".join(info_parts)
             
         except Exception as e:
-            logger.error(f"Ошибка при форматировании информации о пользователе: {e}")
+            logger.error(f"Ошибка при форматировании информации о пользователе: {e}", exc_info=True)
             return f"❌ Ошибка при форматировании информации: {str(e)}"
 
     async def format_channel_info(self, channel: Channel, full_channel: GetFullChannelRequest) -> str:
         """Форматирование информации о канале"""
-        metrics.increment('channel_info_requests')
         info_parts = []
         
         try:
@@ -699,24 +443,20 @@ class UserInfoMod(loader.Module):
             # Детальная информация
             details = [
                 f"🆔 ID: <code>{channel.id}</code>",
-                f"📝 Username: @{getattr(channel, 'username', '🚫')}",
+                f"📝 Username: @{channel.username or '🚫'}",
                 f"📅 Создан: <code>{await get_creation_date(channel.id)}</code>",
-                f"👥 Подписчиков: {getattr(full_channel.full_chat, 'participants_count', 0):,}"
+                f"👥 Подписчиков: {full_channel.full_chat.participants_count:,}"
             ]
             
-            if getattr(full_channel.full_chat, 'slowmode_seconds', None):
+            if full_channel.full_chat.slowmode_seconds:
                 details.append(f"⏱ Медленный режим: {full_channel.full_chat.slowmode_seconds} сек.")
-            if getattr(full_channel.full_chat, 'linked_chat_id', None):
+            if full_channel.full_chat.linked_chat_id:
                 details.append(f"🔗 Связанный чат: {full_channel.full_chat.linked_chat_id}")
-            if hasattr(full_channel.full_chat, 'can_view_stats') and full_channel.full_chat.can_view_stats:
-                details.append("📊 Доступна статистика: ✅")
             
-            if hasattr(full_channel.full_chat, 'online_count'):
-                online_count = getattr(full_channel.full_chat, 'online_count', 0)
-                if online_count:
-                    details.append(f"🟢 Онлайн: {online_count:,}")
+            if full_channel.full_chat.online_count:
+                details.append(f"🟢 Онлайн: {full_channel.full_chat.online_count:,}")
             
-            if hasattr(full_channel.full_chat, 'messages_count'):
+            if full_channel.full_chat.messages_count:
                 details.append(f"💬 Сообщений: {full_channel.full_chat.messages_count:,}")
                 
             details.append(f"📂 Тип: {self._get_channel_type(channel)}")
@@ -735,7 +475,7 @@ class UserInfoMod(loader.Module):
             links = []
             if channel.username:
                 links.append(f"├ Канал: https://t.me/{channel.username}")
-            if hasattr(full_channel.full_chat, 'invite_link') and full_channel.full_chat.invite_link:
+            if full_channel.full_chat.invite_link:
                 links.append(f"└ Приглашение: {full_channel.full_chat.invite_link}")
                 
             if links:
@@ -747,12 +487,10 @@ class UserInfoMod(loader.Module):
             
             # Возможности
             features = []
-            if getattr(channel, "signatures", False):
+            if channel.signatures:
                 features.append("✍️ Подписи авторов")
-            if getattr(channel, "has_link", False):
+            if channel.has_link:
                 features.append("🔗 Публичные ссылки")
-            if getattr(full_channel.full_chat, "can_set_stickers", False):
-                features.append("🎨 Стикеры")
             
             if features:
                 info_parts.extend([
@@ -764,7 +502,7 @@ class UserInfoMod(loader.Module):
             return "\n".join(info_parts)
             
         except Exception as e:
-            logger.error(f"Ошибка при форматировании информации о канале: {e}")
+            logger.error(f"Ошибка при форматировании информации о канале: {e}", exc_info=True)
             return f"❌ Ошибка при форматировании информации: {str(e)}"
 
     def _get_channel_type(self, channel: Channel) -> str:
