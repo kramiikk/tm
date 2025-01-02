@@ -1,8 +1,7 @@
-from asyncio import Lock, timeout
+import asyncio
 from typing import Union, Optional, Dict, List, Tuple, Any, TypeVar, Generic
 import aiohttp
 import logging
-import asyncio
 from collections import defaultdict
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.functions.channels import GetFullChannelRequest
@@ -36,7 +35,7 @@ config = Config()
 class AsyncCache(Generic[T]):
     def __init__(self, ttl: int, max_size: int = 1000):
         self._cache: Dict[Any, Tuple[T, float]] = {}
-        self._lock = Lock()
+        self._lock = asyncio.Lock()
         self._ttl = ttl
         self._max_size = max_size
         self._last_cleanup = time.time()
@@ -85,7 +84,7 @@ class RetryHandler:
         last_error = None
         for attempt in range(max_retries):
             try:
-                async with timeout(Config.REQUEST_TIMEOUT):
+                async with asyncio.timeout(Config.REQUEST_TIMEOUT):
                     return await func(*args, **kwargs)
             except (FloodWaitError, asyncio.TimeoutError) as e:
                 last_error = e
@@ -104,7 +103,7 @@ class RetryHandler:
 
 class ConnectionPool:
     _session: Optional[aiohttp.ClientSession] = None
-    _lock = Lock()
+    _lock = asyncio.Lock()
     
     @classmethod
     async def get_session(cls) -> aiohttp.ClientSession:
@@ -136,8 +135,8 @@ class ConnectionPool:
 
 class PhotoCache:
     _cache = AsyncCache[bytes](Config.PHOTO_CACHE_TTL, max_size=200)
-    _download_locks: Dict[int, Lock] = defaultdict(Lock)
-    _cleanup_lock = Lock()
+    _download_locks: Dict[int, asyncio.Lock] = defaultdict(asyncio.Lock)
+    _cleanup_lock = asyncio.Lock()
     _lock_timeout = 30
     
     @classmethod
@@ -151,7 +150,7 @@ class PhotoCache:
                 if photo := await cls._cache.get(entity_id):
                     return photo
                     
-                async with timeout(cls._lock_timeout):
+                async with asyncio.timeout(cls._lock_timeout):
                     photo = await RetryHandler.retry_with_delay(
                         client.download_profile_photo,
                         entity_id,
@@ -175,7 +174,7 @@ async def get_creation_date(user_id: int) -> str:
         
     session = await ConnectionPool.get_session()
     try:
-        async with timeout(Config.HTTP_TIMEOUT):
+        async with asyncio.timeout(Config.HTTP_TIMEOUT):
             async with session.post(
                 "https://restore-access.indream.app/regdate",
                 json={"telegramId": user_id}
@@ -241,7 +240,7 @@ class UserInfoMod(loader.Module):
             
             for attempt in range(Config.MAX_ATTEMPTS):
                 try:
-                    async with timeout(Config.FUNSTAT_TIMEOUT):
+                    async with asyncio.timeout(Config.FUNSTAT_TIMEOUT):
                         await self._client.send_message(chat, str(user_id))
                         await asyncio.sleep(3)  # Короткая пауза перед чтением
                         
