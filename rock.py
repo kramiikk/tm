@@ -166,6 +166,15 @@ class ConnectionPool:
     async def close(cls):
         if cls._session and not cls._session.closed:
             await cls._session.close()
+            
+    @classmethod
+    async def __aenter__(cls) -> 'ConnectionPool':
+        await cls.get_session()
+        return cls
+        
+    @classmethod
+    async def __aexit__(cls, exc_type, exc_val, exc_tb):
+        await cls.close()
 
 def timed_lru_cache(seconds: int, maxsize: int = 128):
     def wrapper_decorator(func):
@@ -392,82 +401,84 @@ class UserInfoMod(loader.Module):
             return cached_info
             
         try:
-            await RetryHandler.retry_with_delay(
-                self._client.send_message,
-                Config.FUNSTAT_BOT,
-                str(user_id)
-            )
+            # Получаем ID последнего сообщения перед запросом
+            last_messages = await self._client.get_messages(Config.FUNSTAT_BOT, limit=1)
+            last_msg_id = last_messages[0].id if last_messages else 0
+            
+            # Отправляем запрос боту
+            await self._client.send_message(Config.FUNSTAT_BOT, str(user_id))
             
             start_time = time.time()
-            attempts = 0
-            max_attempts = 10  # Максимальное количество попыток
+            best_response = None
             
-            while time.time() - start_time < Config.FUNSTAT_TIMEOUT and attempts < max_attempts:
-                attempts += 1
-                messages = await RetryHandler.retry_with_delay(
-                    self._client.get_messages,
+            while time.time() - start_time < Config.FUNSTAT_TIMEOUT:
+                # Получаем только новые сообщения после нашего запроса
+                messages = await self._client.get_messages(
                     Config.FUNSTAT_BOT,
-                    limit=5
+                    min_id=last_msg_id,
+                    limit=2
                 )
                 
                 for msg in messages:
-                    if not msg.text:
+                    if not msg.text or str(user_id) not in msg.text:
                         continue
                         
-                    if str(user_id) in msg.text:
-                        # Проверяем наличие ошибок в ответе
-                        if any(err in msg.text.lower() for err in [
-                            "не найден", "not found",
-                            "error", "ошибка",
-                            "произошла ошибка"
-                        ]):
-                            return "⚠️ Пользователь не найден в базе funstat"
-                            
-                        # Обрабатываем успешный ответ
-                        lines = []
+                    # Проверяем наличие ошибок
+                    if any(err in msg.text.lower() for err in [
+                        "не найден", "not found",
+                        "error", "ошибка",
+                        "произошла ошибка"
+                    ]):
+                        best_response = "⚠️ Пользователь не найден в базе funstat"
+                        continue
                         
-                        for line in msg.text.split("\n"):
-                            line = line.strip()
-                            
-                            # Пропускаем служебные строки
-                            if not line or "ID:" in line or any(x in line for x in ["This is", "Это"]):
-                                continue
-                                
-                            # Пропускаем неиспользуемые секции
-                            if any(x in line.lower() for x in ["usernames:", "first name / last name:"]):
-                                continue
-                                
-                            # Форматируем числа с разделителями
-                            if any(x in line.lower() for x in [
-                                "messages in", "сообщений в",
-                                "circles:", "кругов:",
-                                "admin in", "админ в"
-                            ]):
-                                try:
-                                    label, value = line.split(":", 1)
-                                    if value.strip().replace(",", "").isdigit():
-                                        value = int(value.strip().replace(",", ""))
-                                    line = f"{label}: {value:,}"
-                                except:
-                                    pass
-                                    
-                            lines.append(line)
-                            
-                        if not lines:
-                            return "⚠️ Нет данных в ответе funstat"
-                            
-                        info = "\n".join(lines)
-                        await self._funstat_cache.set(user_id, info)
-                        return info
+                    # Обрабатываем ответ
+                    lines = []
+                    for line in msg.text.split("\n"):
+                        line = line.strip()
                         
-                await sleep(1)
+                        # Пропускаем пустые строки и служебную информацию
+                        if not line or "ID:" in line or "This is" in line or "Это" in line:
+                            continue
+                            
+                        # Пропускаем ненужные секции и юзернеймы
+                        if any(x in line.lower() for x in [
+                            "usernames:", "first name / last name:",
+                            "имена пользователя:", "имя / фамилия:"
+                        ]) or "@" in line:
+                            continue
+                        
+                        # Форматируем числовые значения
+                        if ":" in line:
+                            try:
+                                label, value = line.split(":", 1)
+                                value = value.strip().replace(",", "").replace(" ", "")
+                                if value.isdigit():
+                                    value = f"{int(value):,}"
+                                line = f"{label}: {value}"
+                            except:
+                                pass
+                        
+                        lines.append(line)
+                    
+                    if lines:
+                        # Обновляем лучший ответ
+                        best_response = "\n".join(lines)
                 
-            return "⚠️ Превышено время ожидания ответа"
+                # Если есть полный ответ, кэшируем и возвращаем его
+                if best_response and not best_response.startswith("⚠️"):
+                    await self._funstat_cache.set(user_id, best_response)
+                    return best_response
+                    
+                await asyncio.sleep(0.5)
+            
+            return best_response or "⚠️ Превышено время ожидания ответа от funstat"
                     
         except YouBlockedUserError:
             return self.strings["unblock_bot"]
         except Exception as e:
-            return self.strings["error_fetching"].format(str(e))
+            logger.error(f"Ошибка при получении funstat: {e}")
+            return f"⚠️ Ошибка при получении статистики: {str(e)}"
 
     async def send_info_message(self, message: Message, entity: Union[User, Channel], info_text: str):
         """Отправка сообщения с информацией и фото"""
@@ -475,12 +486,17 @@ class UserInfoMod(loader.Module):
             photo = await PhotoCache.get_or_download(self._client, entity.id)
             buttons = [[Button.inline("🔄 Обновить", data=f"refresh:{entity.id}")]]
             
-            await self._send_message(
-                message.chat_id,
-                info_text,
-                photo=photo,
-                buttons=buttons
-            )
+            if photo:
+                await message.respond(
+                    info_text,
+                    file=photo,
+                    buttons=buttons
+                )
+            else:
+                await message.respond(
+                    info_text,
+                    buttons=buttons
+                )
             
             await message.delete()
             
@@ -551,10 +567,15 @@ class UserInfoMod(loader.Module):
             photo = await PhotoCache.get_or_download(self._client, entity.id)
             buttons = [[Button.inline("🔄 Обновить", data=f"refresh:{entity.id}")]]
             
-            await self._send_message(
-                call.chat_id,
-                info_text,
-                photo=photo,
+            if photo:
+                await call.edit(
+                    text=info_text,
+                    file=photo,
+                    buttons=buttons
+                )
+            else:
+                await call.edit(
+                    text=info_text,
                 buttons=buttons
             )
             
@@ -622,10 +643,10 @@ class UserInfoMod(loader.Module):
                 f"⭐️ Статус: {self._format_status(getattr(user, 'status', None))}"
             ]
             
+            # Объединяем проверку звонков
             if hasattr(full_user.full_user, 'phone_calls_available'):
-                details.append(f"📞 Звонки: {'✅' if full_user.full_user.phone_calls_available else '❌'}")
-            if hasattr(full_user.full_user, 'video_calls_available'):
-                details.append(f"📹 Видеозвонки: {'✅' if full_user.full_user.video_calls_available else '❌'}")
+                calls_available = full_user.full_user.phone_calls_available and getattr(full_user.full_user, 'video_calls_available', False)
+                details.append(f"📞 Звонки: {'✅' if calls_available else '❌'}")
                 
             info_parts.extend(self._format_details(details))
             
