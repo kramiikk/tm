@@ -23,7 +23,7 @@
 import asyncio
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from telethon import functions, types, errors
 from .. import loader
 
@@ -44,10 +44,23 @@ class PfpRepeaterMod(loader.Module):
         self.running = False
         self.task = None
         self.message = None
-        self.photo = None
         self.current_delay = None
         self.error_count = 0
         self.last_update = None
+        self.chat_id = None
+        self.message_id = None
+
+    async def get_fresh_photo(self):
+        """Получение актуального сообщения с фото"""
+        try:
+            fresh_message = await self.client.get_messages(self.chat_id, ids=self.message_id)
+            if fresh_message and fresh_message.photo:
+                self.message = fresh_message  # Обновляем self.message свежим сообщением
+                return fresh_message.photo
+            return None
+        except Exception as e:
+            logger.error(f"Ошибка при получении свежего фото: {str(e)}")
+            return None
 
     async def client_ready(self, client, db):
         """Инициализация при запуске"""
@@ -56,13 +69,12 @@ class PfpRepeaterMod(loader.Module):
         
         was_running = self.db.get(self.strings["name"], "running", False)
         if was_running:
-            message_id = self.db.get(self.strings["name"], "message_id")
-            chat_id = self.db.get(self.strings["name"], "chat_id")
-            if message_id and chat_id:
+            self.message_id = self.db.get(self.strings["name"], "message_id")
+            self.chat_id = self.db.get(self.strings["name"], "chat_id")
+            if self.message_id and self.chat_id:
                 try:
-                    self.message = await self.client.get_messages(chat_id, ids=message_id)
-                    if self.message and self.message.photo:
-                        self.photo = self.message.photo
+                    fresh_photo = await self.get_fresh_photo()  # Используем get_fresh_photo вместо get_messages
+                    if fresh_photo:  # self.message уже обновлен в get_fresh_photo
                         self.running = True
                         self.task = asyncio.create_task(self.set_profile_photo())
                 except Exception as e:
@@ -75,8 +87,8 @@ class PfpRepeaterMod(loader.Module):
         
         while self.running:
             try:
-                if not self.message or not self.photo:
-                    raise Exception("Фото не найдено")
+                if not self.message_id or not self.chat_id:
+                    raise Exception("Данные сообщения не найдены")
 
                 # Проверка времени с последнего обновления
                 if self.last_update:
@@ -84,13 +96,18 @@ class PfpRepeaterMod(loader.Module):
                     if time_since_update < self.current_delay:
                         await asyncio.sleep(self.current_delay - time_since_update)
 
+                # Получаем свежее фото перед каждым обновлением
+                fresh_photo = await self.get_fresh_photo()
+                if not fresh_photo:
+                    raise Exception("Не удалось получить актуальное фото")
+
                 try:
                     await self.client(
                         functions.photos.UpdateProfilePhotoRequest(
                             id=types.InputPhoto(
-                                id=self.photo.id,
-                                access_hash=self.photo.access_hash,
-                                file_reference=self.photo.file_reference
+                                id=fresh_photo.id,
+                                access_hash=fresh_photo.access_hash,
+                                file_reference=fresh_photo.file_reference
                             )
                         )
                     )
@@ -121,7 +138,7 @@ class PfpRepeaterMod(loader.Module):
                     
                     wait_time = max(e.seconds, self.current_delay)
                     await self.client.send_message(
-                        self.db.get(self.strings["name"], "chat_id"),
+                        self.chat_id,
                         f"⚠️ Обнаружено ограничение Telegram. Увеличиваем задержку до {wait_time//3600} часов."
                     )
                     await asyncio.sleep(wait_time)
@@ -141,7 +158,7 @@ class PfpRepeaterMod(loader.Module):
                     self.running = False
                     self.db.set(self.strings["name"], "running", False)
                     await self.client.send_message(
-                        self.db.get(self.strings["name"], "chat_id"),
+                        self.chat_id,
                         "❌ Слишком много ошибок подряд. Модуль остановлен."
                     )
                     break
@@ -164,7 +181,8 @@ class PfpRepeaterMod(loader.Module):
 
         try:
             self.message = target_message
-            self.photo = target_message.photo
+            self.chat_id = message.chat_id
+            self.message_id = target_message.id
             self.running = True
             self.last_update = None
             self.error_count = 0
