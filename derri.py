@@ -652,14 +652,18 @@ class BroadcastManager:
                     await message.edit("❌ Добавьте хотя бы один чат в рассылку")
                     return
                 
+                # Отменяем существующую задачу если она есть
+                if code_name in self.broadcast_tasks and not self.broadcast_tasks[code_name].done():
+                    self.broadcast_tasks[code_name].cancel()
+                    try:
+                        await self.broadcast_tasks[code_name]
+                    except asyncio.CancelledError:
+                        pass
+                
                 code._active = True
-                if (
-                    code_name not in self.broadcast_tasks
-                    or self.broadcast_tasks[code_name].done()
-                ):
-                    self.broadcast_tasks[code_name] = asyncio.create_task(
-                        self._broadcast_loop(code_name)
-                    )
+                self.broadcast_tasks[code_name] = asyncio.create_task(
+                    self._broadcast_loop(code_name)
+                )
                 await message.edit(f"✅ Рассылка {code_name} запущена")
 
             elif action == "stop":
@@ -678,6 +682,10 @@ class BroadcastManager:
                     and not self.broadcast_tasks[code_name].done()
                 ):
                     self.broadcast_tasks[code_name].cancel()
+                    try:
+                        await self.broadcast_tasks[code_name]
+                    except asyncio.CancelledError:
+                        pass
                 await message.edit(f"✅ Рассылка {code_name} остановлена")
 
             elif action == "watcher":
@@ -1098,8 +1106,13 @@ class BroadcastManager:
                 messages_to_send = []
                 deleted_messages = []
 
-                # Используем _chunk_messages для разбивки на батчи
-                batches = self._chunk_messages(code.messages, batch_size=self.BATCH_SIZE_LARGE)
+                # Создаем копию сообщений для безопасной работы
+                async with self._lock:
+                    current_messages = code.messages.copy()
+
+                # Используем копию для создания батчей
+                batches = self._chunk_messages(current_messages, batch_size=self.BATCH_SIZE_LARGE)
+                
                 for batch in batches:
                     if not self._should_continue(code, code_name):
                         break
@@ -1111,10 +1124,11 @@ class BroadcastManager:
                     deleted_messages.extend(deleted)
 
                 if deleted_messages:
-                    code.messages = [
-                        m for m in code.messages if m not in deleted_messages
-                    ]
-                    await self.save_config()
+                    async with self._lock:
+                        code.messages = [
+                            m for m in code.messages if m not in deleted_messages
+                        ]
+                        await self.save_config()
 
                 if not self._should_continue(code, code_name) or not messages_to_send:
                     retry_count += 1
@@ -1131,10 +1145,10 @@ class BroadcastManager:
                 retry_count = 0
 
                 if not code.batch_mode:
-                    next_index = code.get_next_message_index()
-                    messages_to_send = [
-                        messages_to_send[next_index % len(messages_to_send)]
-                    ]
+                    async with self._lock:
+                        next_index = code.get_next_message_index()
+                        # Используем модуль для корректной работы с отрицательными числами
+                        messages_to_send = [messages_to_send[next_index % len(messages_to_send)]]
 
                 failed_chats = await self._send_messages_to_chats(
                     code, code_name, messages_to_send
