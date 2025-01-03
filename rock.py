@@ -364,16 +364,19 @@ class UserInfoMod(loader.Module):
             await self._client.send_message(chat, str(user_id))
             await asyncio.sleep(Config.TIMEOUT)
             
-            messages = await self._client.get_messages(chat, limit=2)
+            messages = await self._client.get_messages(chat, limit=3)
             
-            if len(messages) < 2 or not messages[1].text:
-                return None
-                
-            second_message = messages[1].text
-            if "Аккаунт создан" in second_message:
-                # Извлекаем дату создания из второго сообщения
-                creation_date = second_message.split("создан в ~")[1].strip()
-                return creation_date
+            for msg in messages:
+                if not msg or not msg.text:
+                    continue
+                    
+                text = msg.text
+                if "~" in text:
+                    try:
+                        creation_date = text.split("~")[1].split()[0].strip()
+                        return creation_date
+                    except:
+                        continue
             
             return None
                     
@@ -427,7 +430,7 @@ class UserInfoMod(loader.Module):
                 add_section("📋 <b>О пользователе:</b>", f"<i>{full_user.full_user.about}</i>")
             
             # Ссылки
-            links = [f"├ Permalink: <code>tg://user?id={user.id}</code>"]
+            links = [f"├ Permalink: <a href='tg://user?id={user.id}'>click</a>"]
             if user.username:
                 links.append(f"└ Username: @{user.username}")
             else:
