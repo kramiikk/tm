@@ -1,6 +1,5 @@
 import asyncio
 from typing import Union, Optional, Dict, List, Tuple, Any, TypeVar, Generic
-import aiohttp
 import logging
 from collections import defaultdict
 from telethon.tl.functions.users import GetFullUserRequest
@@ -18,28 +17,40 @@ T = TypeVar('T')
 
 @dataclass
 class Config:
-    CACHE_TTL: int = 3600
+    # Временные константы (в секундах)
+    CLEANUP_INTERVAL: int = 300  # Интервал очистки кэша (5 минут)
+    
+    # Размеры кэша
     CACHE_SIZE: int = 500
-    HTTP_TIMEOUT: int = 3
-    FUNSTAT_TIMEOUT: int = 3  # Уменьшено для лучшей отзывчивости
-    MAX_ATTEMPTS: int = 3
-    RETRY_DELAY: int = 1
+    
+    # Таймауты и задержки
+    TIMEOUT: int = 1  # Базовый таймаут для всех операций
+    
+    # Количество попыток
+    MAX_ATTEMPTS: int = 3     # Максимальное количество попыток для всех операций
+    
+    # Настройки ботов и логирования
     FUNSTAT_BOT: str = "@Suusbdj_bot"
-    LOG_LEVEL: int = logging.INFO
-    PHOTO_CACHE_TTL: int = 1800
-    MAX_RETRIES: int = 3
-    REQUEST_TIMEOUT: int = 3  # Таймаут для запросов
+    HISTORY_BOT: str = "@tgprofile_history_bot"
+    
+    # Базовые маркеры
+    BASE_MARKERS: tuple = ("this is", "это")
+    
+    # Маркеры для обработки ответов
+    ERROR_MARKERS: tuple = ("не найден", "not found", "error", "ошибка", "⚠️")
+    VALID_RESPONSE_MARKERS: tuple = BASE_MARKERS
+    SKIP_LINE_MARKERS: tuple = ("id:",) + BASE_MARKERS + ("usernames:", "имена пользователя:")
     
 config = Config()
 
 class AsyncCache(Generic[T]):
-    def __init__(self, ttl: int, max_size: int = 1000):
+    def __init__(self, ttl: int, max_size: int = Config.CACHE_SIZE):
         self._cache: Dict[Any, Tuple[T, float]] = {}
         self._lock = asyncio.Lock()
         self._ttl = ttl
         self._max_size = max_size
         self._last_cleanup = time.time()
-        self._cleanup_interval = 300
+        self._cleanup_interval = Config.CLEANUP_INTERVAL
         
     async def _cleanup_cache(self):
         now = time.time()
@@ -54,8 +65,12 @@ class AsyncCache(Generic[T]):
             )
             
             # Удаляем устаревшие и оставляем только последние max_size элементов
-            valid_items = [(k, v, t) for k, v, t in items if now - t < self._ttl][-self._max_size:]
-            self._cache = {k: (v, t) for k, v, t in valid_items}
+            valid_items = [(k, v, t) for k, v, t in items if now - t < self._ttl]
+            if valid_items:
+                valid_items = valid_items[-self._max_size:]
+                self._cache = {k: (v, t) for k, v, t in valid_items}
+            else:
+                self._cache.clear()
             self._last_cleanup = now
         
     async def get(self, key: Any) -> Optional[T]:
@@ -80,13 +95,13 @@ class AsyncCache(Generic[T]):
 
 class RetryHandler:
     @staticmethod
-    async def retry_with_delay(func, *args, max_retries=Config.MAX_RETRIES, **kwargs):
+    async def retry_with_delay(func, *args, max_retries=Config.MAX_ATTEMPTS, **kwargs):
         last_error = None
         for attempt in range(max_retries):
             try:
                 return await asyncio.wait_for(
                     func(*args, **kwargs),
-                    timeout=Config.REQUEST_TIMEOUT
+                    timeout=Config.TIMEOUT
                 )
             except (FloodWaitError, asyncio.TimeoutError) as e:
                 last_error = e
@@ -95,55 +110,29 @@ class RetryHandler:
                 if isinstance(e, FloodWaitError):
                     await asyncio.sleep(e.seconds)
                 else:
-                    await asyncio.sleep(Config.RETRY_DELAY * (2 ** attempt))
+                    # Ограничиваем максимальную задержку 5 секундами
+                    delay = min(Config.TIMEOUT * (2 ** attempt), 5)
+                    await asyncio.sleep(delay)
             except Exception as e:
                 last_error = e
                 if attempt == max_retries - 1:
                     raise
-                await asyncio.sleep(Config.RETRY_DELAY * (2 ** attempt))
+                # Ограничиваем максимальную задержку 5 секундами
+                delay = min(Config.TIMEOUT * (2 ** attempt), 5)
+                await asyncio.sleep(delay)
         raise last_error if last_error else RuntimeError("Превышено количество попыток")
 
-class ConnectionPool:
-    _session: Optional[aiohttp.ClientSession] = None
-    _lock = asyncio.Lock()
-    
-    @classmethod
-    async def get_session(cls) -> aiohttp.ClientSession:
-        async with cls._lock:
-            if cls._session is None or cls._session.closed:
-                timeout = aiohttp.ClientTimeout(
-                    total=Config.HTTP_TIMEOUT,
-                    connect=Config.HTTP_TIMEOUT/2,
-                    sock_read=Config.HTTP_TIMEOUT
-                )
-                cls._session = aiohttp.ClientSession(
-                    timeout=timeout,
-                    headers={
-                        "accept": "*/*",
-                        "content-type": "application/json",
-                        "user-agent": "Nicegram/92 CFNetwork/1390 Darwin/22.0.0",
-                        "x-api-key": "e758fb28-79be-4d1c-af6b-066633ded128",
-                        "accept-language": "en-US,en;q=0.9",
-                    }
-                )
-            return cls._session
-
-    @classmethod
-    async def close(cls):
-        async with cls._lock:
-            if cls._session and not cls._session.closed:
-                await cls._session.close()
-                cls._session = None
-
 class PhotoCache:
-    _cache = AsyncCache[bytes](Config.PHOTO_CACHE_TTL, max_size=200)
+    _cache = AsyncCache[bytes](Config.CLEANUP_INTERVAL, max_size=200)
     _download_locks: Dict[int, asyncio.Lock] = defaultdict(lambda: asyncio.Lock())
-    _cleanup_lock = asyncio.Lock()
-    _lock_timeout = 30
+    _last_used: Dict[int, float] = {}
     
     @classmethod
     async def get_or_download(cls, client, entity_id: int) -> Optional[bytes]:
         try:
+            # Обновляем время последнего использования
+            cls._last_used[entity_id] = time.time()
+            
             if photo := await cls._cache.get(entity_id):
                 return photo
                 
@@ -155,8 +144,7 @@ class PhotoCache:
                 photo = await RetryHandler.retry_with_delay(
                     client.download_profile_photo,
                     entity_id,
-                    bytes,
-                    max_retries=Config.MAX_RETRIES
+                    bytes
                 )
                 
                 if photo:
@@ -169,26 +157,13 @@ class PhotoCache:
         except Exception as e:
             logger.error(f"Ошибка при загрузке фото для {entity_id}: {e}", exc_info=True)
             return None
-
-async def get_creation_date(user_id: int) -> str:
-    if not user_id:
-        return "Ошибка: ID не указан"
-        
-    session = await ConnectionPool.get_session()
-    try:
-        async with session.post(
-            "https://restore-access.indream.app/regdate",
-            json={"telegramId": user_id}
-        ) as response:
-            response.raise_for_status()
-            data = await response.json()
-            return data.get("data", {}).get("date", "Ошибка получения данных")
-    except asyncio.TimeoutError:
-        return "Таймаут при получении даты"
-    except aiohttp.ClientResponseError as e:
-        return f"Ошибка сервера: {e.status}"
-    except Exception as e:
-        return f"Ошибка при получении даты: {str(e)}"
+        finally:
+            # Очищаем старые локи
+            now = time.time()
+            old_locks = [k for k, v in cls._last_used.items() if now - v > Config.CLEANUP_INTERVAL]
+            for k in old_locks:
+                cls._download_locks.pop(k, None)
+                cls._last_used.pop(k, None)
 
 @loader.tds
 class UserInfoMod(loader.Module):
@@ -204,7 +179,7 @@ class UserInfoMod(loader.Module):
 
     def __init__(self):
         self.name = self.strings["name"]
-        self._funstat_cache = AsyncCache(Config.CACHE_TTL, max_size=100)
+        self._funstat_cache = AsyncCache(Config.CLEANUP_INTERVAL, max_size=100)
 
     def _format_details(self, details: List[str]) -> List[str]:
         if not details:
@@ -230,70 +205,83 @@ class UserInfoMod(loader.Module):
         return flags
 
     async def on_unload(self):
-        await ConnectionPool.close()
+        pass
 
     async def get_funstat_info(self, user_id: int) -> str:
+        """Получение информации о пользователе от funstat бота"""
         try:
             if cached_info := await self._funstat_cache.get(user_id):
                 return cached_info
 
             chat = Config.FUNSTAT_BOT
+            error_msg = "⚠️ Не удалось получить ответ от funstat"
             
             for attempt in range(Config.MAX_ATTEMPTS):
                 try:
                     await self._client.send_message(chat, str(user_id))
-                    await asyncio.sleep(3)  # Короткая пауза перед чтением
+                    await asyncio.sleep(Config.TIMEOUT)
                     
                     messages = await asyncio.wait_for(
                         self._client.get_messages(chat, limit=3),
-                        timeout=Config.FUNSTAT_TIMEOUT
+                        timeout=Config.TIMEOUT
                     )
                     
+                    found_valid_response = False
                     for msg in messages:
                         if not msg.text or str(user_id) not in msg.text:
                             continue
                             
-                        if any(err in msg.text.lower() for err in ["не найден", "not found", "error", "ошибка"]):
+                        text_lower = msg.text.lower()
+                        
+                        # Проверяем ошибки
+                        if any(err in text_lower for err in Config.ERROR_MARKERS):
                             return "⚠️ Пользователь не найден в базе funstat"
                         
-                        lines = []
-                        for line in msg.text.split("\n"):
-                            line = line.strip()
-                            if not line or any(x in line for x in ["ID:", "This is", "Это", "usernames:", "имена пользователя:"]) or "@" in line:
-                                continue
-                            
-                            if ":" in line:
-                                try:
-                                    label, value = line.split(":", 1)
-                                    value = value.strip().replace(",", "").replace(" ", "")
-                                    if value.isdigit():
-                                        value = f"{int(value):,}"
-                                    lines.append(f"{label}: {value}")
-                                except Exception:
+                        # Проверяем наличие маркеров корректного ответа
+                        if any(marker in text_lower for marker in Config.VALID_RESPONSE_MARKERS):
+                            found_valid_response = True
+                            lines = []
+                            for line in msg.text.split("\n"):
+                                line = line.strip()
+                                if not line or any(x in line.lower() for x in Config.SKIP_LINE_MARKERS) or "@" in line:
                                     continue
-                            else:
-                                lines.append(line)
-                        
-                        if lines:
-                            result = "\n".join(lines)
-                            await self._funstat_cache.set(user_id, result)
-                            return result
+                                
+                                if ":" in line:
+                                    try:
+                                        label, value = line.split(":", 1)
+                                        value = value.strip().replace(",", "").replace(" ", "")
+                                        if value.isdigit():
+                                            value = f"{int(value):,}"
+                                        lines.append(f"{label}: {value}")
+                                    except Exception:
+                                        continue
+                                else:
+                                    lines.append(line)
+                            
+                            if lines:
+                                result = "\n".join(lines)
+                                await self._funstat_cache.set(user_id, result)
+                                return result
                     
-                    if attempt < Config.MAX_ATTEMPTS - 1:
-                        await asyncio.sleep(Config.RETRY_DELAY)
+                    # Если не нашли валидный ответ и есть еще попытки
+                    if not found_valid_response and attempt < Config.MAX_ATTEMPTS - 1:
+                        await asyncio.sleep(Config.TIMEOUT)
+                        continue
                 
                 except YouBlockedUserError:
                     return self.strings["unblock_bot"]
                 except FloodWaitError as e:
-                    if attempt == Config.MAX_ATTEMPTS - 1:
-                        raise
-                    await asyncio.sleep(e.seconds)
+                    if attempt < Config.MAX_ATTEMPTS - 1:
+                        await asyncio.sleep(e.seconds)
+                        continue
+                    raise
                 except asyncio.TimeoutError:
-                    if attempt == Config.MAX_ATTEMPTS - 1:
-                        return "⚠️ Таймаут при получении статистики"
-                    continue
-                    
-            return "⚠️ Не удалось получить ответ от funstat"
+                    if attempt < Config.MAX_ATTEMPTS - 1:
+                        await asyncio.sleep(Config.TIMEOUT)
+                        continue
+                    return f"{error_msg} (таймаут)"
+            
+            return f"{error_msg} (все попытки исчерпаны)"
                     
         except Exception as e:
             logger.error(f"Ошибка при получении funstat: {e}", exc_info=True)
@@ -368,11 +356,44 @@ class UserInfoMod(loader.Module):
             return "🔵 Недавно"
         return "⚫️ Давно"
 
+    async def get_account_creation_date(self, user_id: int) -> Optional[str]:
+        """Получение даты создания аккаунта от tgprofile_history_bot"""
+        try:
+            chat = Config.HISTORY_BOT
+            
+            await self._client.send_message(chat, str(user_id))
+            await asyncio.sleep(Config.TIMEOUT)
+            
+            messages = await self._client.get_messages(chat, limit=2)
+            
+            if len(messages) < 2 or not messages[1].text:
+                return None
+                
+            second_message = messages[1].text
+            if "Аккаунт создан" in second_message:
+                # Извлекаем дату создания из второго сообщения
+                creation_date = second_message.split("создан в ~")[1].strip()
+                return creation_date
+            
+            return None
+                    
+        except YouBlockedUserError:
+            return "❌ Разблокируйте бота @tgprofile_history_bot"
+        except Exception as e:
+            logger.error(f"Ошибка при получении даты создания: {e}", exc_info=True)
+            return None
+
     async def format_user_info(self, user: User, full_user: GetFullUserRequest) -> str:
         """Форматирование информации о пользователе"""
-        info_parts = []
-        
         try:
+            def add_section(title: str = "", *lines: str) -> None:
+                if title:
+                    info_parts.extend(["", f"{title}"])
+                if lines:
+                    info_parts.extend(lines)
+
+            info_parts = []
+            
             # Заголовок
             name = " ".join(filter(None, [user.first_name, user.last_name])) or "🚫"
             info_parts.append(f"👤 <b>{name}</b>")
@@ -385,11 +406,14 @@ class UserInfoMod(loader.Module):
             # Детальная информация
             details = [
                 f"🆔 ID: <code>{user.id}</code>",
-                f"📝 Username: @{user.username or '🚫'}",
-                f"📅 Регистрация: <code>{await get_creation_date(user.id)}</code>",
                 f"👥 Общие чаты: {full_user.full_user.common_chats_count}",
                 f"⭐️ Статус: {self._format_status(user.status)}"
             ]
+            
+            # Получаем дату создания аккаунта
+            creation_date = await self.get_account_creation_date(user.id)
+            if creation_date:
+                details.append(f"📅 Дата создания: {creation_date}")
             
             # Проверка звонков
             if hasattr(full_user.full_user, 'phone_calls_available'):
@@ -400,29 +424,20 @@ class UserInfoMod(loader.Module):
             
             # Описание
             if full_user.full_user.about:
-                info_parts.extend([
-                    "",
-                    "📋 <b>О пользователе:</b>",
-                    f"<i>{full_user.full_user.about}</i>"
-                ])
+                add_section("📋 <b>О пользователе:</b>", f"<i>{full_user.full_user.about}</i>")
             
             # Ссылки
+            links = [f"├ Permalink: <code>tg://user?id={user.id}</code>"]
             if user.username:
-                info_parts.extend([
-                    "",
-                    "🔗 <b>Ссылки:</b>",
-                    f"├ Telegram: @{user.username}",
-                    f"└ Профиль: <a href='tg://user?id={user.id}'>открыть</a>"
-                ])
+                links.append(f"└ Username: @{user.username}")
+            else:
+                links[0] = links[0].replace("├", "└")
+            add_section("🔗 <b>Ссылки:</b>", *links)
             
             # Статистика
             funstat_info = await self.get_funstat_info(user.id)
-            if funstat_info and not any(err in funstat_info.lower() for err in ["ошибка", "error", "⚠️"]):
-                info_parts.extend([
-                    "",
-                    "📊 <b>Статистика funstat:</b>",
-                    funstat_info
-                ])
+            if funstat_info and not any(err in funstat_info.lower() for err in Config.ERROR_MARKERS):
+                add_section("📊 <b>Статистика funstat:</b>", funstat_info)
             
             return "\n".join(info_parts)
             
@@ -447,7 +462,6 @@ class UserInfoMod(loader.Module):
             details = [
                 f"🆔 ID: <code>{channel.id}</code>",
                 f"📝 Username: @{channel.username or '🚫'}",
-                f"📅 Создан: <code>{await get_creation_date(channel.id)}</code>",
                 f"👥 Подписчиков: {full_channel.full_chat.participants_count:,}"
             ]
             
