@@ -1,20 +1,16 @@
 import asyncio
-import bisect
 import html
 import logging
 import os
 import re
 import time
 from asyncio import Queue
-from typing import List, Dict
-
-import mmh3
-from bloom_filter import BloomFilter
-from telethon import errors, types, utils as telethon_utils
 
 import firebase_admin
 from firebase_admin import credentials, db as firebase_db
-from .. import loader, utils
+from telethon import errors, types
+
+from .. import loader
 
 logging.basicConfig(
     format="[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s", level=logging.WARNING
@@ -23,46 +19,124 @@ log = logging.getLogger(__name__)
 
 
 class BatchProcessor:
-    """Handles batched writes to Firebase to reduce overhead."""
+    """Handles batched writes of n-grams to Firebase to reduce overhead."""
 
     def __init__(
-        self, db_ref: firebase_db.Reference, max_hashes: int, batch_size: int = 50
+        self, db_ref: firebase_db.Reference, max_entries: int, batch_size: int = 50
     ):
         self.db_ref = db_ref
-        self.max_hashes = max_hashes
+        self.max_entries = max_entries
         self.batch_size = batch_size
         self.batch = []
 
-    async def add(self, hash_data: dict):
-        """Adds a hash to the batch. Flushes the batch if it's full."""
-        self.batch.append(hash_data)
+    async def add(self, ngram_data: dict):
+        """Adds n-gram data to the batch. Flushes the batch if it's full."""
+        self.batch.append(ngram_data)
         if len(self.batch) >= self.batch_size:
             await self.flush()
 
     async def flush(self):
-        """Writes the accumulated batch of hashes to Firebase."""
+        """Writes the accumulated n-gram data to Firebase."""
         if not self.batch:
             return
         try:
             current_batch = self.batch[:]
             self.batch.clear()
 
-            hashes_ref = self.db_ref.child("hashes/hash_list")
-            current_hashes = hashes_ref.get() or []
+            ngrams_ref = self.db_ref.child("hashes/hash_list")
+            current_entries = ngrams_ref.get() or []
 
-            if not isinstance(current_hashes, list):
+            if not isinstance(current_entries, list):
                 log.warning(
-                    "Invalid data type received from Firebase. Resetting hash list."
+                    "Invalid data type received from Firebase. Resetting entries list."
                 )
-                current_hashes = []
-            current_hashes.extend(current_batch)
+                current_entries = []
+            current_entries.extend(current_batch)
 
-            if len(current_hashes) > self.max_hashes:
-                current_hashes = current_hashes[-self.max_hashes :]
-            hashes_ref.set(current_hashes)
+            if len(current_entries) > self.max_entries:
+                current_entries = current_entries[-self.max_entries :]
+            ngrams_ref.set(current_entries)
         except Exception as e:
-            log.error(f"Error flushing batch to Firebase: {e}", exc_info=True)
+            log.error(f"Error flushing n-grams to Firebase: {e}", exc_info=True)
             self.batch.extend(current_batch)
+
+
+class NgramSimilarityChecker:
+    """Handles message similarity detection using n-grams."""
+
+    def __init__(
+        self,
+        db_ref: firebase_db.Reference,
+        n: int = 3,
+        similarity_threshold: float = 0.7,
+        max_entries: int = 1000,
+        retention_period: float = 86400,
+    ):
+        self.n = n
+        self.similarity_threshold = similarity_threshold
+        self.retention_period = retention_period
+        self.ngram_cache = {}
+        self.firebase_handler = BatchProcessor(db_ref, max_entries)
+
+    def generate_ngrams(self, text: str) -> set[str]:
+        """Generate n-grams from input text."""
+        text = text.lower().strip()
+        padded = f"{'_' * (self.n-1)}{text}{'_' * (self.n-1)}"
+        return {padded[i : i + self.n] for i in range(len(padded) - self.n + 1)}
+
+    def calculate_similarity(self, ngrams1: set[str], ngrams2: set[str]) -> float:
+        """Calculate Jaccard similarity between two sets of n-grams."""
+        if not ngrams1 or not ngrams2:
+            return 0.0
+        intersection = len(ngrams1.intersection(ngrams2))
+        union = len(ngrams1.union(ngrams2))
+        return intersection / union if union > 0 else 0.0
+
+    async def initialize(self) -> None:
+        """Load existing n-grams from Firebase."""
+        try:
+            hashes_ref = self.firebase_handler.db_ref.child("hashes/hash_list")
+            all_hashes = hashes_ref.get() or []
+            current_time = time.time()
+
+            for hash_data in all_hashes:
+                if isinstance(hash_data, dict):
+                    timestamp = hash_data.get("timestamp", 0)
+                    if current_time - timestamp < self.retention_period:
+                        ngrams = set(hash_data.get("ngrams", []))
+                        if ngrams:
+                            self.ngram_cache[hash(frozenset(ngrams))] = (ngrams, timestamp)
+        except Exception as e:
+            log.error(f"Error loading n-grams: {e}", exc_info=True)
+
+    async def is_similar_to_cached(self, text: str, timestamp: float) -> bool:
+        """Check if text is similar to any cached messages."""
+        current_ngrams = self.generate_ngrams(text)
+        
+        # Обновляем кэш, удаляя устаревшие записи
+        self.ngram_cache = {
+            hash_val: (ngrams, ts)
+            for hash_val, (ngrams, ts) in self.ngram_cache.items()
+            if timestamp - ts < self.retention_period
+        }
+
+        # Проверяем схожесть с существующими n-граммами
+        for ngrams, _ in self.ngram_cache.values():
+            similarity = self.calculate_similarity(current_ngrams, ngrams)
+            if similarity >= self.similarity_threshold:
+                return True
+
+        # Добавляем новые n-граммы в кэш и Firebase
+        cache_key = hash(frozenset(current_ngrams))
+        self.ngram_cache[cache_key] = (current_ngrams, timestamp)
+
+        ngram_data = {
+            "hash": cache_key,
+            "ngrams": list(current_ngrams),
+            "timestamp": timestamp,
+        }
+        await self.firebase_handler.add(ngram_data)
+        return False
 
 
 @loader.tds
@@ -74,14 +148,19 @@ class BroadMod(loader.Module):
         "cfg_firebase_path": "Путь к файлу учетных данных Firebase",
         "cfg_firebase_url": "URL базы данных Firebase",
         "cfg_forward_channel": "ID канала для пересылки сообщений",
-        "cfg_bloom_capacity": "Емкость Bloom-фильтра",
-        "cfg_bloom_error": "Допустимая погрешность Bloom-фильтра",
         "cfg_cleanup_interval": "Интервал очистки кэша (в секундах)",
-        "cfg_hash_retention": "Время хранения хэшей (в секундах)",
-        "cfg_max_firebase_hashes": "Максимальное количество хэшей в Firebase",
+        "cfg_ngram_retention": "Время хранения n-грамм (в секундах)",
+        "cfg_max_ngrams": "Максимальное количество n-грамм в Firebase",
         "cfg_min_text_length": "Минимальная длина текста для обработки",
         "firebase_init_error": "❌ Ошибка инициализации Firebase: {error}",
         "sender_info": "<a href='{sender_url}'>👤 {sender_name}</a> [{sender_id}]\n{scam_warning}\n<a href='{message_url}'>🍜 жмяк</a>",
+        "cfg_ngram_size": "Размер n-грамм для сравнения сообщений",
+        "cfg_similarity_threshold": "Порог схожести сообщений (от 0 до 1)",
+        "reconnecting": "Переподключение к Firebase...",
+        "reconnection_success": "Переподключение успешно завершено.",
+        "reconnection_failed": "Переподключение не удалось: {error}",
+        "cleanup_success": "Старые n-граммы успешно очищены.",
+        "cleanup_failed": "Очистка старых n-грамм не удалась: {error}",
     }
 
     def __init__(self):
@@ -95,24 +174,27 @@ class BroadMod(loader.Module):
             "forward_channel_id",
             2498567519,
             lambda: self.strings("cfg_forward_channel"),
-            "bloom_filter_capacity",
-            1000,
-            lambda: self.strings("cfg_bloom_capacity"),
-            "bloom_filter_error_rate",
-            0.001,
-            lambda: self.strings("cfg_bloom_error"),
             "cleanup_interval",
             3600,
             lambda: self.strings("cfg_cleanup_interval"),
-            "hash_retention_period",
+            "ngram_retention_period",
             86400,
-            lambda: self.strings("cfg_hash_retention"),
-            "max_firebase_hashes",
+            lambda: self.strings("cfg_ngram_retention"),
+            "max_ngrams",
             1000,
-            lambda: self.strings("cfg_max_firebase_hashes"),
+            lambda: self.strings("cfg_max_ngrams"),
             "min_text_length",
             18,
             lambda: self.strings("cfg_min_text_length"),
+            "max_cleanup_attempts",
+            3,
+            lambda: "Максимальное количество попыток очистки",
+            "max_reconnection_attempts",
+            5,
+            lambda: "Максимальное количество попыток переподключения",
+            "reconnection_cooldown",
+            300,
+            lambda: "Время ожидания между попытками переподключения (в секундах)",
             "trading_keywords",
             [
                 "акк",
@@ -143,6 +225,12 @@ class BroadMod(loader.Module):
                 "кто",
             ],
             lambda: "Keywords to trigger forwarding (list of strings)",
+            "ngram_size",
+            3,
+            lambda: self.strings("cfg_ngram_size"),
+            "similarity_threshold",
+            0.7,
+            lambda: self.strings("cfg_similarity_threshold"),
         )
 
         self.message_queue = Queue()
@@ -150,25 +238,12 @@ class BroadMod(loader.Module):
         self.allowed_chats = []
         self.firebase_app = None
         self.db_ref = None
-        self.bloom_filter = None
-        self.hash_cache = {}
         self.last_cleanup_time = 0
-        self.batch_processor = None
         self.initialized = False
+        self.similarity_checker = None
+        self.reconnection_attempts = 0
+        self.last_reconnection_time = 0
         super().__init__()
-
-    def init_bloom_filter(self) -> bool:
-        """Initializes the Bloom filter for duplicate detection."""
-        try:
-            self.bloom_filter = BloomFilter(
-                self.config["bloom_filter_capacity"],
-                self.config["bloom_filter_error_rate"],
-            )
-            return True
-        except Exception as e:
-            log.error(f"Bloom filter initialization failed, using set instead: {e}")
-            self.bloom_filter = set()
-            return False
 
     async def client_ready(self, client, db):
         """Initializes the module when the Telethon client is ready."""
@@ -185,19 +260,14 @@ class BroadMod(loader.Module):
         if not await self._initialize_firebase():
             return
         try:
-            self.db_ref = firebase_db.reference("/")
-
-            self.batch_processor = BatchProcessor(
+            self.similarity_checker = NgramSimilarityChecker(
                 db_ref=self.db_ref,
-                max_hashes=self.config["max_firebase_hashes"],
-                batch_size=50,
+                n=self.config["ngram_size"],
+                similarity_threshold=self.config["similarity_threshold"],
+                max_entries=self.config["max_ngrams"],
+                retention_period=self.config["ngram_retention_period"],
             )
-
-            if not self.init_bloom_filter():
-                self.initialized = False
-                log.warning("❌ Bloom filter initialization failed. Module disabled.")
-                return
-            await self._load_recent_hashes()
+            await self.similarity_checker.initialize()
 
             chats_ref = self.db_ref.child("allowed_chats")
             chats_data = chats_ref.get()
@@ -223,56 +293,6 @@ class BroadMod(loader.Module):
         except Exception as e:
             log.error(self.strings["firebase_init_error"].format(error=str(e)))
             return False
-
-    async def _load_recent_hashes(self):
-        """Load recent hashes from Firebase"""
-        try:
-            hashes_ref = self.db_ref.child("hashes/hash_list")
-            all_hashes = hashes_ref.get() or []
-
-            current_time = time.time()
-            self.hash_cache = {}
-
-            for hash_data in all_hashes[-self.config["max_firebase_hashes"] :]:
-                if isinstance(hash_data, dict):
-                    hash_value = hash_data.get("hash")
-                    timestamp = hash_data.get("timestamp")
-                    if (
-                        hash_value
-                        and timestamp
-                        and current_time - timestamp
-                        < self.config["hash_retention_period"]
-                    ):
-                        self.hash_cache[hash_value] = timestamp
-                        if self.bloom_filter:
-                            self.bloom_filter.add(hash_value)
-        except Exception as e:
-            log.error(f"Error loading recent hashes: {e}", exc_info=True)
-            self.hash_cache = {}
-
-    async def _clear_expired_hashes(self):
-        """Clear expired hashes from cache"""
-        current_time = time.time()
-        if current_time - self.last_cleanup_time < self.config["cleanup_interval"]:
-            return
-        self.last_cleanup_time = current_time
-        expiration_time = current_time - self.config["hash_retention_period"]
-
-        self.hash_cache = {
-            h: ts for h, ts in self.hash_cache.items() if ts >= expiration_time
-        }
-
-        if self.bloom_filter is not None and isinstance(self.bloom_filter, BloomFilter):
-            self.bloom_filter = BloomFilter(
-                self.config["bloom_filter_capacity"],
-                self.config["bloom_filter_error_rate"],
-            )
-            for h, ts in self.hash_cache.items():
-                self.bloom_filter.add(h)
-        elif isinstance(self.bloom_filter, set):
-            self.bloom_filter = set(
-                h for h, ts in self.hash_cache.items() if ts >= expiration_time
-            )
 
     async def process_queue(self):
         """Processes messages from the queue with a delay."""
@@ -402,43 +422,39 @@ class BroadMod(loader.Module):
             or message.chat_id not in self.allowed_chats
             or (sender := getattr(message, "sender", None)) is None
             or getattr(sender, "bot", False)
+            or not self.similarity_checker
         ):
             return
+
+        if not await self._ensure_firebase_connection():
+            log.error("Firebase connection lost and reconnection failed")
+            return
+
         try:
             text_to_check = message.text or ""
             if len(text_to_check) < self.config["min_text_length"]:
                 return
+
             low = text_to_check.lower()
             found_keywords = [kw for kw in self.config["trading_keywords"] if kw in low]
             if not found_keywords:
                 return
+
             normalized_text = html.unescape(
                 re.sub(r"<[^>]+>|[^\w\s,.!?;:—]|\s+", " ", low)
             ).strip()
             if not normalized_text:
                 return
-            message_hash = str(mmh3.hash(normalized_text))
-            if message_hash in self.hash_cache:
-                await self._clear_expired_hashes()
-                return
-            current_time = time.time()
-            self.hash_cache[message_hash] = current_time
 
-            if self.bloom_filter is not None:
-                if isinstance(self.bloom_filter, BloomFilter):
-                    self.bloom_filter.add(message_hash)
-                elif isinstance(self.bloom_filter, set):
-                    self.bloom_filter.add(message_hash)
-            try:
-                hash_data = {"hash": message_hash, "timestamp": current_time}
-                if self.batch_processor:
-                    await self.batch_processor.add(hash_data)
-            except Exception as e:
-                log.error(f"Error adding hash to Firebase: {e}", exc_info=True)
-                self.hash_cache.pop(message_hash, None)
+            current_time = time.time()
+            
+            # Проверяем схожесть с существующими сообщениями
+            if await self.similarity_checker.is_similar_to_cached(normalized_text, current_time):
                 return
+
             messages = []
             if hasattr(message, "grouped_id") and message.grouped_id:
+                grouped_messages = []
                 async for msg in self.client.iter_messages(
                     message.chat_id, limit=10, offset_date=message.date
                 ):
@@ -446,10 +462,113 @@ class BroadMod(loader.Module):
                         hasattr(msg, "grouped_id")
                         and msg.grouped_id == message.grouped_id
                     ):
-                        bisect.insort(messages, msg, key=lambda m: m.id)
+                        grouped_messages.append(msg)
+                # Сортируем сообщения по ID
+                messages = sorted(grouped_messages, key=lambda m: m.id)
             else:
                 messages = [message]
+
             sender_info = await self._get_sender_info(message)
             await self.message_queue.put((messages, sender_info))
+
         except Exception as e:
             log.error(f"Error in watcher: {e}", exc_info=True)
+
+    async def _ensure_firebase_connection(self) -> bool:
+        """
+        Проверяет соединение с Firebase и пытается переподключиться при необходимости.
+        """
+        if self.initialized and self.db_ref:
+            try:
+                self.db_ref.child("test_connection").get()
+                return True
+            except Exception as e:
+                log.warning(f"Firebase connection test failed: {e}")
+
+        current_time = time.time()
+        if (
+            self.reconnection_attempts >= self.config["max_reconnection_attempts"]
+            or current_time - self.last_reconnection_time < self.config["reconnection_cooldown"]
+        ):
+            return False
+
+        try:
+            log.info(self.strings["reconnecting"])
+            self.reconnection_attempts += 1
+            self.last_reconnection_time = current_time
+
+            if await self._initialize_firebase():
+                await self.similarity_checker.initialize()
+                
+                chats_ref = self.db_ref.child("allowed_chats")
+                chats_data = chats_ref.get()
+                self.allowed_chats = chats_data if isinstance(chats_data, list) else []
+
+                self.initialized = True
+                self.reconnection_attempts = 0
+                log.info(self.strings["reconnection_success"])
+                return True
+        except Exception as e:
+            log.error(self.strings["reconnection_failed"].format(error=str(e)))
+        return False
+
+    async def _cleanup_old_ngrams(self) -> bool:
+        """
+        Очищает старые n-граммы из Firebase.
+        """
+        current_time = time.time()
+        if current_time - self.last_cleanup_time < self.config["cleanup_interval"]:
+            return True
+
+        for attempt in range(self.config["max_cleanup_attempts"]):
+            try:
+                ngrams_ref = self.db_ref.child("hashes/hash_list")  # оставляем для совместимости
+                all_entries = ngrams_ref.get() or []
+
+                if not isinstance(all_entries, list):
+                    log.warning("Invalid data type for n-grams in Firebase during cleanup")
+                    return False
+
+                filtered_entries = [
+                    entry for entry in all_entries
+                    if isinstance(entry, dict)
+                    and current_time - entry.get("timestamp", 0) < self.config["ngram_retention_period"]
+                ]
+
+                if len(filtered_entries) == len(all_entries):
+                    return True
+
+                ngrams_ref.set(filtered_entries)
+                self.last_cleanup_time = current_time
+
+                log.info(f"Cleaned up {len(all_entries) - len(filtered_entries)} old n-grams")
+                return True
+
+            except Exception as e:
+                log.error(f"Cleanup attempt {attempt + 1} failed: {e}")
+                await asyncio.sleep(2**attempt)
+        return False
+
+    @loader.command
+    async def cleanupcmd(self, message: types.Message) -> None:
+        """Очищает старые n-граммы из базы данных."""
+        if not self.initialized:
+            await message.reply("❌ Модуль не инициализирован.")
+            return
+
+        try:
+            if not await self._ensure_firebase_connection():
+                await message.reply("❌ Нет подключения к Firebase.")
+                return
+
+            await message.reply("🔄 Начинаю очистку старых n-грамм...")
+            success = await self._cleanup_old_ngrams()
+
+            if success:
+                await message.reply(self.strings["cleanup_success"])
+            else:
+                await message.reply(self.strings["cleanup_failed"].format(
+                    error="превышено количество попыток"
+                ))
+        except Exception as e:
+            await message.reply(self.strings["cleanup_failed"].format(error=str(e)))
