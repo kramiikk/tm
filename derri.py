@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class SimpleCache:
-    """Простой кэш с TTL и ограничением размера"""
+    """Улучшенный кэш с автоочисткой"""
 
     def __init__(self, ttl: int = 3600, max_size: int = 50):
         self.cache = OrderedDict()
@@ -35,9 +35,10 @@ class SimpleCache:
         self._lock = asyncio.Lock()
         self._last_cleanup = time.time()
         self._cleanup_interval = 3000
+        self._cleaning = False
 
     async def get(self, key):
-        """Получает значение из кэша"""
+        """Получает значение из кэша с проверкой на очистку"""
         async with self._lock:
             await self._maybe_cleanup()
             if key not in self.cache:
@@ -46,14 +47,16 @@ class SimpleCache:
             if time.time() - timestamp > self.ttl:
                 del self.cache[key]
                 return None
+            # Перемещаем использованный элемент в конец для LRU
             self.cache.move_to_end(key)
             return value
 
     async def set(self, key, value):
-        """Устанавливает значение в кэш"""
+        """Устанавливает значение в кэш с оптимизированной очисткой"""
         async with self._lock:
             await self._maybe_cleanup()
             if len(self.cache) >= self.max_size:
+                # Удаляем 25% старых записей при переполнении
                 to_remove = max(1, len(self.cache) // 4)
                 for _ in range(to_remove):
                     self.cache.popitem(last=False)
@@ -67,14 +70,60 @@ class SimpleCache:
             self._last_cleanup = current_time
 
     async def clean_expired(self):
-        """Очищает устаревшие записи"""
+        """Оптимизированная очистка устаревших записей"""
+        if self._cleaning:
+            return
+        try:
+            self._cleaning = True
+            async with self._lock:
+                current_time = time.time()
+                self.cache = OrderedDict(
+                    (k, v)
+                    for k, v in self.cache.items()
+                    if current_time - v[0] <= self.ttl
+                )
+        finally:
+            self._cleaning = False
+
+    async def get_stats(self) -> dict:
+        """Получение статистики кэша"""
         async with self._lock:
-            current_time = time.time()
-            self.cache = OrderedDict(
-                (k, v)
-                for k, v in self.cache.items()
-                if current_time - v[0] <= self.ttl
-            )
+            try:
+                current_time = time.time()
+                active_entries = {
+                    k: (t, v)
+                    for k, (t, v) in self.cache.items()
+                    if current_time - t <= self.ttl
+                }
+                expired_entries = len(self.cache) - len(active_entries)
+
+                stats = {
+                    "total_entries": len(self.cache),
+                    "active_entries": len(active_entries),
+                    "expired_entries": expired_entries,
+                    "max_size": self.max_size,
+                    "ttl_seconds": self.ttl,
+                    "usage_percent": round(len(self.cache) / self.max_size * 100, 1),
+                }
+
+                if active_entries:
+                    timestamps = [t for t, _ in active_entries.values()]
+                    stats.update({
+                        "oldest_entry_age": round((current_time - min(timestamps)) / 60, 1),
+                        "newest_entry_age": round((current_time - max(timestamps)) / 60, 1),
+                    })
+
+                return stats
+            except Exception as e:
+                logger.error(f"Error getting cache stats: {e}")
+                return {
+                    "total_entries": 0,
+                    "active_entries": 0,
+                    "expired_entries": 0,
+                    "max_size": self.max_size,
+                    "ttl_seconds": self.ttl,
+                    "usage_percent": 0,
+                }
 
 
 def register(cb):
@@ -365,17 +414,24 @@ class BroadcastManager:
                     )
                     return
 
+                # Улучшенная обработка альбомов
                 grouped_id = getattr(reply, "grouped_id", None)
                 grouped_ids = []
 
                 if grouped_id:
-                    async for msg in message.client.iter_messages(
+                    album_messages = []
+                    async for album_msg in message.client.iter_messages(
                         reply.chat_id,
                         min_id=max(0, reply.id - 10),
                         max_id=reply.id + 10,
+                        limit=30,
                     ):
-                        if getattr(msg, "grouped_id", None) == grouped_id:
-                            grouped_ids.append(msg.id)
+                        if getattr(album_msg, "grouped_id", None) == grouped_id:
+                            album_messages.append(album_msg)
+
+                    # Сортировка и удаление дубликатов
+                    album_messages.sort(key=lambda m: m.id)
+                    grouped_ids = list(dict.fromkeys(msg.id for msg in album_messages))
 
                 if code.add_message(reply.chat_id, reply.id, grouped_ids):
                     await self.save_config()
