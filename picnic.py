@@ -64,7 +64,7 @@ class ProfileChangerMod(loader.Module):
             "• Время работы: {uptime}\n"
             "• Всего обновлений: {count}\n"
             "• Обновлений в час: {hourly:.1f}\n"
-            "• Текущая задержка: {delay} мин\n"
+            "• Текущая задержка: {delay}\n"
             "• Последнее обновление: {last}\n"
             "• Ошибок: {errors}\n"
             "• Флудвейтов: {floods}"
