@@ -123,7 +123,10 @@ class ProfileChangerMod(loader.Module):
 
     async def _check_photo_size(self, photo) -> bool:
         """Проверка размера фото"""
-        return bool(photo and hasattr(photo, 'sizes') and all(s.w >= self.config["min_photo_size"] and s.h >= self.config["min_photo_size"] for s in photo.sizes))
+        return bool(photo and hasattr(photo, 'sizes') and all(
+            (isinstance(s, types.PhotoSize) and s.w >= self.config["min_photo_size"] and s.h >= self.config["min_photo_size"]) or isinstance(s, types.PhotoStrippedSize)
+            for s in photo.sizes
+        ))
 
     async def _get_photo(self) -> Optional[types.Photo]:
         """Получение фото"""
