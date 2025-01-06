@@ -150,46 +150,53 @@ class ProfileChangerMod(loader.Module):
 
     def _get_state(self) -> Dict:
         """Получение текущего состояния модуля для сохранения."""
-        state = {key: getattr(self, key) for key in self._state_keys}
-        if state.get("start_time"):
-            state["start_time"] = state["start_time"].isoformat()
-        if state.get("last_update"):
-            state["last_update"] = state["last_update"].isoformat()
-        if state.get("last_error_time"):
-            state["last_error_time"] = state["last_error_time"].isoformat()
-        if state.get("floods"):
-            state["floods"] = list(state["floods"])
+        floods = list(self.floods) if hasattr(self, 'floods') else []
+        
+        state = {
+            "running": self.running,
+            "start_time": self.start_time.isoformat() if self.start_time else None,
+            "last_update": self.last_update.isoformat() if self.last_update else None,
+            "update_count": self.update_count,
+            "error_count": self.error_count,
+            "flood_count": self.flood_count,
+            "delay": self.delay,
+            "chat_id": self.chat_id,
+            "message_id": self.message_id,
+            "success_streak": self.success_streak,
+            "floods": [t.isoformat() for t in floods],
+            "retries": self._retries,
+            "last_error_time": self.last_error_time.isoformat() if self.last_error_time else None
+        }
         return state
 
     def _load_state(self) -> None:
         """Загрузка состояния модуля из базы данных."""
-        state_json = self._db.get(self.strings["name"], "state")
-        if not state_json:
-            return
         try:
+            state_json = self._db.get(self.strings["name"], "state")
+            if not state_json:
+                return
+
             state = json.loads(state_json)
+            
+            if state.get("start_time"):
+                state["start_time"] = datetime.fromisoformat(state["start_time"])
+            if state.get("last_update"):
+                state["last_update"] = datetime.fromisoformat(state["last_update"])
+            if state.get("last_error_time"):
+                state["last_error_time"] = datetime.fromisoformat(state["last_error_time"])
+            
+            if "floods" in state:
+                floods_list = [datetime.fromisoformat(t) for t in state["floods"]]
+                state["floods"] = deque(floods_list, maxlen=10)
+            
             for key, value in state.items():
-                if key == "start_time" and value:
-                    setattr(self, key, datetime.fromisoformat(value))
-                elif key == "last_update" and value:
-                    setattr(self, key, datetime.fromisoformat(value))
-                elif key == "last_error_time" and value:
-                    setattr(self, key, datetime.fromisoformat(value))
-                elif key == "floods":
-                    setattr(
-                        self,
-                        key,
-                        deque([datetime.fromisoformat(t) for t in value], maxlen=10),
-                    )
-                else:
-                    setattr(self, key, value)
+                setattr(self, key, value)
+                
         except json.JSONDecodeError as e:
             logger.error(f"Ошибка декодирования JSON при загрузке состояния: {e}")
             self._reset()
         except Exception as e:
-            logger.error(
-                f"Непредвиденная ошибка при загрузке состояния: {type(e).__name__}: {e}"
-            )
+            logger.error(f"Непредвиденная ошибка при загрузке состояния: {type(e).__name__}: {e}")
             self._reset()
 
     async def _get_photo(self) -> Optional[types.Photo]:
