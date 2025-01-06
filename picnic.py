@@ -3,30 +3,22 @@
 ➕ Developer: @xdesai
 ♻️ Optimized: @kramiikk
 
-Модуль для автоматического обновления фото профиля
+Модуль автоматического обновления фото профиля
 с адаптивной системой защиты от ограничений.
-
-🛠️ Команды:
-• .pfp <reply to photo> - Запустить смену фото
-• .pfpstop - Остановить смену фото
-• .pfpstats - Статистика работы
-
-ℹ️ Возможности:
-• Частое обновление фото профиля
-• Защита от флудвейтов и блокировок
-• Умное управление задержками
-• Статистика работы
-• Сохранение состояния после перезапуска
 """
 
 import asyncio
 import logging
-import random
 from datetime import datetime
 from collections import deque
-from typing import Optional, Deque, Dict
+from typing import Optional, Dict
 from telethon import functions, types, errors
-from telethon.errors.rpcerrorlist import MessageIdInvalidError
+from telethon.errors.rpcerrorlist import (
+    MessageIdInvalidError,
+    PhotoInvalidDimensionsError,
+    PhotoCropSizeSmallError,
+    PhotoSaveFileInvalidError,
+)
 from .. import loader, utils
 
 logger = logging.getLogger(__name__)
@@ -34,107 +26,73 @@ logger = logging.getLogger(__name__)
 
 @loader.tds
 class ProfileChangerMod(loader.Module):
-    """Автоматическое обновление фото профиля"""
+    """Автоматическое обновление фото профиля с адаптивной системой защиты"""
 
     strings = {
         "name": "ProfileChanger",
-        "starting": (
-            "🔄 <b>Запуск смены фото профиля</b>\n\n"
-            "• Начальная задержка: <code>{delay_minutes}</code> мин\n"
-            "• Примерно <code>{updates_per_hour}</code> обновлений в час (начальное значение)\n"
-            "• Режим работы: {mode}\n\n"
-            "<i>Используйте .pfpstats для просмотра статистики</i>"
-        ),
-        "stopping": (
-            "🛑 <b>Остановка смены фото</b>\n\n"
-            "• Всего обновлений: {count}\n"
-            "• Время работы: {uptime}\n"
-            "• Ошибок: {errors}\n\n"
-            "<i>Смена фото остановлена пользователем.</i>"
-        ),
-        "stats": (
-            "📊 <b>Статистика Profile Changer</b>\n\n"
-            "• Статус: {status}\n"
-            "• Время работы: {uptime}\n"
-            "• Всего обновлений: {count}\n"
-            "• Обновлений в час: {hourly:.1f}\n"
-            "• Текущая задержка: {current_delay_minutes} мин\n"
-            "• Последнее обновление: {last}\n"
-            "• Ошибок: {errors}\n"
-            "• Флудвейтов: {floods}"
-        ),
-        "no_photo": "❌ <b>Ответьте на фото или отправьте фото с командой</b>",
-        "already_running": "⚠️ <b>Смена фото уже запущена</b>",
-        "not_running": "⚠️ <b>Смена фото не запущена</b>",
-        "error": "❌ <b>Произошла ошибка:</b> <code>{error}</code>",
-        "flood_wait": (
-            "⚠️ <b>Получено ограничение от Telegram</b>\n"
-            "• Новая задержка: {new_delay_minutes} мин\n"
-            "• Восстановление через: {wait_minutes} мин"
-        ),
-        "photo_deleted": "📸 <b>Сообщение с фото было удалено. Остановка смены фото.</b>",
+        "starting": "🔄 <b>Запуск смены фото профиля</b>\n\n• Задержка: {delay_minutes} мин\n• ~{updates_per_hour} обновлений/час\n• Режим: {mode}",
+        "stopping": "🛑 <b>Остановка</b>\n\n• Обновлений: {count}\n• Время: {uptime}\n• Ошибок: {errors}",
+        "stats": "📊 <b>Статистика</b>\n\n• Статус: {status}\n• Время: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}",
+        "no_photo": "❌ <b>Ответьте на фото</b>",
+        "already_running": "⚠️ <b>Уже запущено</b>",
+        "not_running": "⚠️ <b>Не запущено</b>",
+        "error": "❌ <b>Ошибка:</b> {error}",
+        "flood_wait": "⚠️ <b>Флудвейт</b>\n\n• Новая задержка: {delay} мин\n• Ожидание: {wait} мин",
+        "photo_invalid": "⚠️ <b>Неверный формат фото:</b> {error}",
+        "photo_too_small": "⚠️ <b>Фото слишком маленькое</b>",
     }
 
     def __init__(self):
         self.config = loader.ModuleConfig(
-            "safe_mode",
-            True,
-            "Безопасный режим работы (рекомендуется)",
-            "adaptive_delay",
-            True,
-            "Умное управление задержками",
-            "notify_errors",
-            True,
-            "Уведомлять об ошибках",
-            "default_delay",
-            780,
-            "Начальная задержка (сек)",
-            "min_delay",
-            420,
-            "Минимальная задержка (сек)",
-            "max_delay",
-            1980,
-            "Максимальная задержка (сек)",
-            "jitter",
-            0.3,
-            "Случайность задержки",
-            "error_threshold",
-            2,
-            "Порог ошибок до остановки",
-            "retry_delay",
-            330,
-            "Начальная задержка повтора (сек)",
-            "max_retry_delay",
-            3600,
-            "Макс. задержка повтора (сек)",
-            "min_adaptive_delay",
-            300,
-            "Мин. задержка адаптивного режима (сек)",
+            "safe_mode", True, "Безопасный режим",
+            "adaptive_delay", True, "Адаптивные задержки",
+            "notify_errors", True, "Уведомления об ошибках", 
+            "default_delay", 780, "Начальная задержка (сек)",
+            "min_delay", 420, "Минимальная задержка (сек)",
+            "max_delay", 1980, "Максимальная задержка (сек)",
+            "jitter", 0.3, "Случайность (0.0-1.0)",
+            "error_threshold", 2, "Порог ошибок",
+            "flood_multiplier", 1.2, "Множитель флудвейта",
+            "success_reduction", 0.9, "Снижение при успехе",
+            "min_photo_size", 512, "Минимальный размер фото (px)"
         )
-        self._reset_state(initial=True)
-        self._running_lock = asyncio.Lock()
+        self._reset()
+
+    def _reset(self) -> None:
+        """Сброс состояния"""
+        self.running = False
+        self._task = None
+        self.start_time = None
+        self.last_update = None
+        self.update_count = 0
+        self.error_count = 0
+        self.flood_count = 0
+        self.delay = self.config["default_delay"]
+        self.chat_id = None
+        self.message_id = None
+        self.floods = deque(maxlen=10)
+        self.success_streak = 0
+        self._retries = 0
+        self._lock = asyncio.Lock()
+        self._last_command_time = None
 
     async def client_ready(self, client, db):
-        """Инициализация при запуске клиента."""
-        self.client = client
-        self.db = db
+        self._client = client
+        self._db = db
         self._me = await client.get_me()
         self._load_state()
         if self.running:
-            self.task = asyncio.create_task(self._main_loop())
+            self._task = asyncio.create_task(self._loop())
+        logger.info("ProfileChanger loaded")
 
-    def _load_state(self):
-        """Загрузка состояния модуля из базы данных."""
-        saved_state = self.db.get(self.strings["name"], "state", None)
-        if saved_state:
-            self._apply_state(saved_state)
+    async def on_unload(self):
+        """Выгрузка модуля"""
+        if self.running:
+            await self._stop("модуль выгружен")
+        logger.info("ProfileChanger unloaded")
 
-    def _save_state(self):
-        """Сохранение текущего состояния модуля."""
-        self.db.set(self.strings["name"], "state", self._get_current_state())
-
-    def _get_current_state(self) -> Dict:
-        """Получение текущего состояния модуля для сохранения."""
+    def _get_state(self) -> Dict:
+        """Получение состояния"""
         return {
             "running": self.running,
             "start_time": self.start_time.isoformat() if self.start_time else None,
@@ -142,343 +100,312 @@ class ProfileChangerMod(loader.Module):
             "update_count": self.update_count,
             "error_count": self.error_count,
             "flood_count": self.flood_count,
-            "current_delay": self.current_delay,
+            "delay": self.delay,
             "chat_id": self.chat_id,
             "message_id": self.message_id,
             "success_streak": self.success_streak,
-            "_retry_delay": self._retry_delay,
+            "floods": [t.isoformat() for t in self.floods]
         }
 
-    def _apply_state(self, state: Dict):
-        """Применение сохраненного состояния модуля."""
-        self.running = state.get("running", False)
+    def _save_state(self) -> None:
+        """Сохранение состояния"""
         try:
-            self.start_time = (
-                datetime.fromisoformat(state.get("start_time"))
-                if state.get("start_time")
-                else None
-            )
-            self.last_update = (
-                datetime.fromisoformat(state.get("last_update"))
-                if state.get("last_update")
-                else None
-            )
-        except ValueError as e:
-            logger.warning(
-                f"Ошибка при загрузке даты из сохраненного состояния: {e}. Состояние будет сброшено."
-            )
+            self._db.set(self.strings["name"], "state", self._get_state())
+        except Exception as e:
+            logger.error(f"Ошибка сохранения состояния: {e}")
+
+    def _load_state(self) -> None:
+        """Загрузка состояния"""
+        state = self._db.get(self.strings["name"], "state")
+        if not state:
             return
-        self.update_count = state.get("update_count", 0)
-        self.error_count = state.get("error_count", 0)
-        self.flood_count = state.get("flood_count", 0)
-        self.current_delay = state.get("current_delay", self.config["default_delay"])
-        self.chat_id = state.get("chat_id")
-        self.message_id = state.get("message_id")
-        self.success_streak = state.get("success_streak", 0)
-        self._retry_delay = state.get("_retry_delay", self.config["retry_delay"])
+
+        try:
+            self.running = state["running"]
+            self.start_time = datetime.fromisoformat(state["start_time"]) if state["start_time"] else None
+            self.last_update = datetime.fromisoformat(state["last_update"]) if state["last_update"] else None
+            self.update_count = state["update_count"]
+            self.error_count = state["error_count"]
+            self.flood_count = state["flood_count"]
+            self.delay = state["delay"]
+            self.chat_id = state["chat_id"]
+            self.message_id = state["message_id"]
+            self.success_streak = state["success_streak"]
+            self.floods = deque(
+                [datetime.fromisoformat(t) for t in state.get("floods", [])],
+                maxlen=10
+            )
+        except Exception as e:
+            logger.error(f"Ошибка загрузки состояния: {e}")
+            self._reset()
+
+    async def _check_photo_size(self, photo) -> bool:
+        """Проверка размера фото"""
+        if not photo or not hasattr(photo, 'sizes'):
+            return False
+        
+        min_size = self.config["min_photo_size"]
+        for size in photo.sizes:
+            if size.w < min_size or size.h < min_size:
+                return False
+        return True
 
     async def _get_photo(self) -> Optional[types.Photo]:
-        """Получение фото из сохраненного сообщения"""
-        if not self.chat_id or not self.message_id:
+        """Получение фото"""
+        if not self.running:
             return None
+            
         try:
-            message = await self.client.get_messages(self.chat_id, ids=self.message_id)
-            return message.photo if message and message.photo else None
+            message = await self._client.get_messages(self.chat_id, ids=self.message_id)
+            if not message or not message.photo:
+                await self._stop("фото удалено")
+                return None
+                
+            if not await self._check_photo_size(message.photo):
+                await self._stop("фото слишком маленькое")
+                return None
+                
+            return message.photo
+            
         except MessageIdInvalidError:
-            logger.warning("Сообщение с фото не найдено.")
-            if self.running:
-                await self._handle_photo_deletion()
+            await self._stop("фото удалено")
             return None
         except Exception as e:
-            logger.error(f"Ошибка при получении фото: {e}")
+            logger.error(f"Ошибка получения фото: {e}")
             return None
 
-    async def _handle_photo_deletion(self):
-        """Обработка ситуации, когда фото удалено."""
-        await self._stop_pfp(notify=True, reason="удаления сообщения с фото")
-        self.chat_id = None
-        self.message_id = None
-        self._save_state()
+    async def _update(self) -> bool:
+        """Обновление фото"""
+        if not self.running:
+            return False
 
-    async def _update_photo(self) -> bool:
-        """Обновление фото профиля"""
         photo = await self._get_photo()
         if not photo:
             return False
+
         try:
-            await self.client(
-                functions.photos.UpdateProfilePhotoRequest(
-                    id=types.InputPhoto(
-                        id=photo.id,
-                        access_hash=photo.access_hash,
-                        file_reference=photo.file_reference,
-                    )
+            await self._client(functions.photos.UpdateProfilePhotoRequest(
+                id=types.InputPhoto(
+                    id=photo.id,
+                    access_hash=photo.access_hash,
+                    file_reference=photo.file_reference
                 )
-            )
-            self._on_photo_updated()
+            ))
+            
+            self.last_update = datetime.now()
+            self.update_count += 1
+            self.success_streak += 1
+            self._retries = 0
+            logger.info(f"Photo updated successfully. Total updates: {self.update_count}")
             return True
+
         except errors.FloodWaitError as e:
-            await self._handle_flood_wait(e)
-            return False
-        except Exception as e:
-            await self._handle_update_error(e)
-            return False
-
-    def _on_photo_updated(self):
-        """Действия после успешного обновления фото."""
-        self.last_update = datetime.now()
-        self.update_count += 1
-        self.success_streak += 1
-        self._retry_delay = self.config["retry_delay"]
-        self._retries_attempted = 0
-        self._save_state()
-
-    async def _handle_flood_wait(self, error: errors.FloodWaitError):
-        """Обработка ошибки FloodWait."""
-        self._update_state(flood_count=self.flood_count + 1, success_streak=0)
-        self.flood_history.append(datetime.now())
-        new_delay = min(self.config["max_delay"], self.current_delay * 1.5)
-        wait_time = error.seconds / 60
-        logger.warning(
-            f"FloodWaitError encountered. New delay: {new_delay / 60:.1f} min, Wait time: {wait_time:.1f} min"
-        )
-        if self.config["notify_errors"]:
-            asyncio.create_task(
-                self.client.send_message(
+            self.flood_count += 1
+            self.floods.append(datetime.now())
+            self.success_streak = 0
+            self.delay = min(self.config["max_delay"], self.delay * self.config["flood_multiplier"])
+            
+            if self.config["notify_errors"]:
+                await self._client.send_message(
                     self.chat_id,
                     self.strings["flood_wait"].format(
-                        new_delay_minutes=f"{new_delay/60:.1f}",
-                        wait_minutes=f"{wait_time:.1f}",
-                    ),
+                        delay=f"{self.delay/60:.1f}",
+                        wait=f"{e.seconds/60:.1f}"
+                    )
                 )
-            )
-        self.current_delay = new_delay
-        self._save_state()
-        asyncio.create_task(asyncio.sleep(error.seconds))
+            logger.warning(f"FloodWait error: {e.seconds}s. New delay: {self.delay}s")
+            await asyncio.sleep(e.seconds)
+            return False
 
-    async def _handle_update_error(self, error: Exception):
-        """Обработка ошибок при обновлении фото."""
-        logger.error(f"Ошибка обновления фото пользователя {self._me.id}: {error}")
-        self._update_state(error_count=self.error_count + 1, success_streak=0)
-        self._retries_attempted += 1
-        self._retry_delay = min(self._retry_delay * 2, self.config["max_retry_delay"])
-        logger.info(
-            f"Ошибка обновления, увеличена задержка повторной попытки до {self._retry_delay} секунд."
-        )
-        if self.config["notify_errors"]:
-            asyncio.create_task(
-                self.client.send_message(
-                    self.chat_id, self.strings["error"].format(error=str(error))
+        except (PhotoInvalidDimensionsError, PhotoCropSizeSmallError, PhotoSaveFileInvalidError) as e:
+            self.error_count += 1
+            if self.config["notify_errors"]:
+                await self._client.send_message(
+                    self.chat_id,
+                    self.strings["photo_invalid"].format(error=str(e))
                 )
-            )
-        self._save_state()
+            await self._stop(f"неверный формат: {e}")
+            return False
 
-    def _update_state(self, **kwargs):
-        """Обновление состояния модуля и сохранение."""
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-        self._save_state()
+        except Exception as e:
+            self.error_count += 1
+            self.success_streak = 0
+            self._retries += 1
+            
+            if self.config["notify_errors"]:
+                await self._client.send_message(
+                    self.chat_id,
+                    self.strings["error"].format(error=str(e))
+                )
+            logger.error(f"Update error: {e}")
+            return False
 
     def _calculate_delay(self) -> float:
-        """Расчет адаптивной задержки"""
+        """Расчет задержки"""
         if not self.config["adaptive_delay"]:
-            return self.current_delay
-        base_delay = self.current_delay
+            return self.delay
+
+        delay = self.delay
+
+        # Очищаем старые флудвейты
+        now = datetime.now()
+        while self.floods and (now - self.floods[0]).total_seconds() > 3600:
+            self.floods.popleft()
 
         if self.success_streak >= 5:
-            base_delay = max(self.config["min_delay"], base_delay * 0.9)
-        time_since_last_flood = float("inf")
-        if self.flood_history:
-            time_since_last_flood = (
-                datetime.now() - self.flood_history[-1]
-            ).total_seconds()
-        if time_since_last_flood < 3600 * 3:
-            recent_floods = sum(
-                1
-                for t in self.flood_history
-                if (datetime.now() - t).total_seconds() < 3600
+            delay = max(
+                self.config["min_delay"],
+                delay * self.config["success_reduction"]
             )
-            if recent_floods > 0:
-                base_delay = min(
-                    self.config["max_delay"], base_delay * (1 + recent_floods * 0.2)
-                )
-        jitter = random.uniform(1 - self.config["jitter"], 1 + self.config["jitter"])
-        calculated_delay = base_delay * jitter
-        calculated_delay = max(self.config["min_adaptive_delay"], calculated_delay)
-        logger.debug(
-            f"Рассчитанная задержка: {calculated_delay:.1f}с, success_streak: {self.success_streak}, time_since_last_flood: {time_since_last_flood:.1f}"
-        )
-        return calculated_delay
 
-    async def _main_loop(self) -> None:
-        """Основной цикл работы модуля"""
+        if self.floods:
+            recent = len(self.floods)  # Уже отфильтрованы старые
+            delay = min(
+                self.config["max_delay"],
+                delay * (self.config["flood_multiplier"] ** recent)
+            )
+
+        import random
+        jitter = random.uniform(1 - self.config["jitter"], 1 + self.config["jitter"])
+        return max(self.config["min_delay"], delay * jitter)
+
+    async def _loop(self) -> None:
+        """Основной цикл"""
         while self.running:
             try:
-                if await self._update_photo():
+                if await self._update():
                     await asyncio.sleep(self._calculate_delay())
                 else:
-                    if self._retries_attempted >= self.config["error_threshold"]:
-                        logger.warning(
-                            f"Смена фото остановлена из-за {self._retries_attempted} неудачных попыток или достижения порога ошибок."
-                        )
-                        await self._stop_pfp()
+                    if self._retries >= self.config["error_threshold"]:
+                        await self._stop("превышен порог ошибок")
                         break
-                    logger.info(
-                        f"Повторная попытка обновления через {self.config['retry_delay']} секунд."
-                    )
-                    await asyncio.sleep(self.config["retry_delay"])
+                    await asyncio.sleep(self.config["min_delay"])
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.exception(
-                    f"Ошибка в главном цикле пользователя {self._me.id}: {e}"
-                )
-                await asyncio.sleep(self.config["retry_delay"])
+                logger.exception(f"Ошибка в цикле: {e}")
+                await asyncio.sleep(self.config["min_delay"])
 
     def _format_time(self, seconds: float) -> str:
         """Форматирование времени"""
         minutes, seconds = divmod(seconds, 60)
         hours, minutes = divmod(minutes, 60)
         if hours:
-            return f"{hours:.0f}ч {minutes:.0f}м"
+            return f"{int(hours)}ч {int(minutes)}м"
         elif minutes:
-            return f"{minutes:.0f}м {seconds:.0f}с"
-        else:
-            return f"{seconds:.0f}с"
+            return f"{int(minutes)}м {int(seconds)}с"
+        return f"{int(seconds)}с"
 
     def _get_stats(self) -> Dict[str, str]:
-        """Получение статистики работы"""
+        """Получение статистики"""
         now = datetime.now()
-        uptime_seconds = (
-            (now - self.start_time).total_seconds() if self.start_time else 0
-        )
-        last_update_seconds = (
-            (now - self.last_update).total_seconds() if self.last_update else 0
-        )
+        uptime = (now - self.start_time).total_seconds() if self.start_time else 0
+        last = (now - self.last_update).total_seconds() if self.last_update else 0
 
         return {
             "status": "✅ Работает" if self.running else "🛑 Остановлен",
-            "uptime": self._format_time(uptime_seconds),
+            "uptime": self._format_time(uptime),
             "count": str(self.update_count),
-            "hourly": (
-                f"{self.update_count / (uptime_seconds / 3600):.1f}"
-                if uptime_seconds > 0
-                else "0"
-            ),
-            "current_delay_minutes": f"{self.current_delay / 60:.1f}",
-            "last": (
-                self._format_time(last_update_seconds)
-                if self.last_update
-                else "никогда"
-            ),
+            "hourly": f"{self.update_count / (uptime/3600):.1f}" if uptime > 0 else "0",
+            "delay": f"{self.delay/60:.1f}",
+            "last": self._format_time(last) if self.last_update else "никогда",
             "errors": str(self.error_count),
-            "floods": str(self.flood_count),
+            "floods": str(self.flood_count)
         }
 
-    @loader.command()
-    async def pfp(self, message):
-        """Запустить смену фото (ответьте на фото)"""
-        async with self._running_lock:
-            if self.running:
-                await utils.answer(message, self.strings["already_running"])
-                return
-            reply = await message.get_reply_message()
-            target = (
-                reply if reply and reply.photo else message if message.photo else None
-            )
-
-            if not target or not target.photo:
-                await utils.answer(message, self.strings["no_photo"])
-                return
-            try:
-                self._start_pfp(message.chat_id, target.id)
-                await utils.answer(
-                    message,
-                    self.strings["starting"].format(
-                        delay_minutes=f"{self.current_delay/60:.1f}",
-                        updates_per_hour=f"{3600 / self.current_delay:.1f}",
-                        mode=f"{'Безопасный' if self.config['safe_mode'] else 'Стандартный'}",
-                    ),
-                )
-                logger.info(f"Profile changer started by user {self._me.id}.")
-                self.task = asyncio.create_task(self._main_loop())
-            except Exception as e:
-                logger.exception(
-                    f"Ошибка при запуске смены фото пользователем {self._me.id}: {e}"
-                )
-                await utils.answer(message, self.strings["error"].format(error=str(e)))
-                self._reset_state()
-                logger.error("Ошибка при запуске смены фото, состояние сброшено.")
-
-    def _start_pfp(self, chat_id: int, message_id: int):
-        """Запуск смены фото."""
+    async def _start(self, chat_id: int, message_id: int) -> None:
+        """Запуск смены фото"""
         self.running = True
         self.start_time = datetime.now()
         self.chat_id = chat_id
         self.message_id = message_id
+        self._retries = 0
         self._save_state()
-        self._retry_delay = self.config["retry_delay"]
-        self._retries_attempted = 0
+        self._task = asyncio.create_task(self._loop())
+        logger.info("Profile changer started")
+
+    async def _stop(self, reason: Optional[str] = None) -> None:
+        """Остановка смены фото"""
+        if self.running:
+            self.running = False
+            self._save_state()
+            if self._task:
+                self._task.cancel()
+            await self._client.send_message(
+                self.chat_id,
+                self.strings["stopping"].format(
+                    count=self.update_count,
+                    uptime=self._format_time(
+                        (datetime.now() - self.start_time).total_seconds()
+                    ) if self.start_time else "0с",
+                    errors=self.error_count
+                ) + (f"\n\nПричина: {reason}" if reason else "")
+            )
+            logger.info(f"Profile changer stopped. {reason if reason else ''}")
+            self._reset()
+
+    @loader.command()
+    async def pfp(self, message):
+        """Запустить смену фото (ответ на фото)"""
+        async with self._lock:
+            if hasattr(self, '_last_command_time'):
+                if (datetime.now() - self._last_command_time).total_seconds() < 3:
+                    return  # Игнорируем слишком частые команды
+            self._last_command_time = datetime.now()
+
+            if self.running:
+                await utils.answer(message, self.strings["already_running"])
+                return
+
+            reply = await message.get_reply_message()
+            target = reply if reply and reply.photo else message if message.photo else None
+
+            if not target or not target.photo:
+                await utils.answer(message, self.strings["no_photo"])
+                return
+
+            if not await self._check_photo_size(target.photo):
+                await utils.answer(message, self.strings["photo_too_small"])
+                return
+
+            await self._start(message.chat_id, target.id)
+            await utils.answer(message, self.strings["starting"].format(
+                delay_minutes=f"{self.delay/60:.1f}",
+                updates_per_hour=f"{3600/self.delay:.1f}",
+                mode="Безопасный" if self.config["safe_mode"] else "Стандартный"
+            ))
 
     @loader.command()
     async def pfpstop(self, message):
         """Остановить смену фото"""
-        async with self._running_lock:
+        async with self._lock:
             if not self.running:
                 await utils.answer(message, self.strings["not_running"])
                 return
-            await self._stop_pfp(notify=True)
-
-    async def _stop_pfp(self, notify: bool = True, reason: Optional[str] = None):
-        """Остановка смены фото."""
-        if self.running:
-            self.running = False
-            self._save_state()
-            if self.task:
-                self.task.cancel()
-                self.task = None
-            if notify:
-                uptime = (
-                    self._format_time(
-                        (datetime.now() - self.start_time).total_seconds()
-                    )
-                    if self.start_time
-                    else "0с"
-                )
-                await self.client.send_message(
-                    self.chat_id,
-                    self.strings["stopping"].format(
-                        count=self.update_count, uptime=uptime, errors=self.error_count
-                    ),
-                )
-            log_message = f"Profile changer stopped by user {self._me.id}."
-            if reason:
-                log_message += f" Reason: {reason}"
-            logger.info(log_message)
-            self._reset_state()
-
-    def _reset_state(self, initial: bool = False) -> None:
-        """Сброс состояния модуля."""
-        self.running = False
-        if self.task:
-            self.task.cancel()
-            self.task = None
-        self.start_time: Optional[datetime] = None
-        self.last_update: Optional[datetime] = None
-        self.update_count = 0
-        self.error_count = 0
-        self.flood_count = 0
-        self.current_delay = self.config["default_delay"]
-        self.chat_id: Optional[int] = None
-        self.message_id: Optional[int] = None
-        self.flood_history: Deque[datetime] = deque(maxlen=10)
-        self.success_streak = 0
-        self._retry_delay = self.config["retry_delay"]
-        self._retries_attempted = 0
-        if not initial:
-            self.db.set(self.strings["name"], "state", None)
+            await self._stop("остановлено пользователем")
 
     @loader.command()
     async def pfpstats(self, message):
-        """Показать статистику работы"""
+        """Показать статистику"""
         await utils.answer(message, self.strings["stats"].format(**self._get_stats()))
+
+    @loader.command()
+    async def pfpdelay(self, message):
+        """Установить задержку в секундах (реплай)"""
+        if not message.reply_to_message_id:
+            return await utils.answer(message, "Ответьте на сообщение с числом (секунды)")
+            
+        try:
+            delay = float((await message.get_reply_message()).text)
+            if delay < self.config["min_delay"] or delay > self.config["max_delay"]:
+                return await utils.answer(
+                    message, 
+                    f"Задержка должна быть от {self.config['min_delay']} до {self.config['max_delay']} секунд"
+                )
+                
+            self.delay = delay
+            self._save_state()
+            await utils.answer(message, f"✅ Установлена задержка {delay} секунд")
+            
+        except ValueError:
+            await utils.answer(message, "❌ Неверный формат числа")
