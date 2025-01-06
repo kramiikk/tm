@@ -158,7 +158,7 @@ class ProfileChangerMod(loader.Module):
         if state.get("last_error_time"):
             state["last_error_time"] = state["last_error_time"].isoformat()
         if state.get("floods"):
-            state["floods"] = [t.isoformat() for t in state["floods"]]
+            state["floods"] = list(state["floods"])
         return state
 
     def _load_state(self) -> None:
