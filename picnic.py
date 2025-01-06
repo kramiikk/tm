@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # Константы для настройки модуля
 DEFAULT_DELAY = 900  # 15 минут
 MIN_DELAY = 600     # 10 минут
-MAX_DELAY = 3600    # 1 час
+MAX_DELAY = 1800    # 30 минут
 JITTER = 0.05       # Случайности в задержке
 ERROR_THRESHOLD = 3 # Количество ошибок до остановки
 RETRY_DELAY = 300   # Задержка между повторными попытками
