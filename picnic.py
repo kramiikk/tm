@@ -24,7 +24,7 @@ class ProfileChangerMod(loader.Module):
 
     strings = {
         "name": "ProfileChanger",
-        "starting": "🔄 <b>Запуск смены фото профиля</b>\n\n• Задержка: {delay_minutes:.1f} мин\n• ~{updates_per_hour} обновлений/час",
+        "starting": "🔄 <b>Запуск смены фото профиля</b>\n\n• Задержка: {delay_minutes:.0f} мин\n• ~{updates_per_hour} обновлений/час",
         "stopping": "🛑 <b>Остановка</b>\n\n• Обновлений: {count}\n• Время: {uptime}\n• Ошибок: {errors}",
         "stats": "📊 <b>Статистика</b>\n\n• Статус: {status}\n• Время: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay:.1f} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}",
         "no_photo": "❌ <b>Ответьте на фото</b>",
@@ -153,8 +153,13 @@ class ProfileChangerMod(loader.Module):
                     )
                 else:
                     setattr(self, key, value)
+        except json.JSONDecodeError as e:
+            logger.error(f"Ошибка декодирования JSON при загрузке состояния: {e}")
+            self._reset()
         except Exception as e:
-            logger.error(f"Ошибка загрузки состояния: {type(e).__name__}: {e}")
+            logger.error(
+                f"Непредвиденная ошибка при загрузке состояния: {type(e).__name__}: {e}"
+            )
             self._reset()
 
     async def _get_photo(self) -> Optional[types.Photo]:
@@ -164,11 +169,11 @@ class ProfileChangerMod(loader.Module):
         try:
             message = await self._client.get_messages(self.chat_id, ids=self.message_id)
             if not message or not message.photo:
-                await self._stop("фото удалено")
+                await self._stop()
                 return None
             return message.photo
         except MessageIdInvalidError:
-            await self._stop("фото удалено")
+            await self._stop()
             return None
         except Exception as e:
             logger.error(f"Ошибка получения фото: {e}")
@@ -229,7 +234,7 @@ class ProfileChangerMod(loader.Module):
                 self.chat_id,
                 self.strings["photo_invalid"].format(error=str(error)),
             )
-        await self._stop(f"Неверный формат фото: {error}")
+        await self._stop()
 
     async def _handle_generic_error(self, error):
         """Обработка общих ошибок при обновлении фото."""
@@ -251,6 +256,7 @@ class ProfileChangerMod(loader.Module):
             self.update_count += 1
             self.success_streak += 1
             self._retries = 0
+            self._save_state()
             logger.info(
                 f"Фото профиля успешно обновлено. Всего обновлений: {self.update_count}"
             )
@@ -318,9 +324,7 @@ class ProfileChangerMod(loader.Module):
                     await asyncio.sleep(self._calculate_delay())
                 else:
                     if self._retries >= self.config["error_threshold"]:
-                        await self._stop(
-                            f"превышен порог ошибок ({self.config['error_threshold']})"
-                        )
+                        await self._stop()
                         break
                     await asyncio.sleep(self.config["min_delay"])
             except asyncio.CancelledError:
@@ -387,7 +391,7 @@ class ProfileChangerMod(loader.Module):
             ),
         )
 
-    async def _stop(self, reason: Optional[str] = None) -> None:
+    async def _stop(self) -> None:
         """Остановка смены фото"""
         if self.running:
             self.running = False
@@ -395,7 +399,7 @@ class ProfileChangerMod(loader.Module):
             if self._task:
                 self._task.cancel()
             await self._send_stopping_message()
-            logger.info(f"Profile changer stopped. {reason if reason else ''}")
+            logger.info("Profile changer stopped.")
             self._reset()
 
     @loader.command()
@@ -415,7 +419,7 @@ class ProfileChangerMod(loader.Module):
             await utils.answer(
                 message,
                 self.strings["starting"].format(
-                    delay_minutes=self.delay / 60,
+                    delay_minutes=round(self.delay / 60),
                     updates_per_hour=round(3600 / self.delay),
                 ),
             )
@@ -427,7 +431,7 @@ class ProfileChangerMod(loader.Module):
             if not self.running:
                 await utils.answer(message, self.strings["not_running"])
                 return
-            await self._stop("остановлено пользователем")
+            await self._stop()
 
     @loader.command()
     async def pfpstats(self, message):
