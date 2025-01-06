@@ -6,7 +6,6 @@
 Модуль автоматического обновления фото профиля
 с адаптивной системой защиты от ограничений.
 """
-
 import asyncio
 import logging
 from datetime import datetime
@@ -29,17 +28,22 @@ class ProfileChangerMod(loader.Module):
 
     strings = {
         "name": "ProfileChanger",
-        "starting": "🔄 <b>Запуск смены фото профиля</b>\n\n• Задержка: {delay_minutes} мин\n• ~{updates_per_hour} обновлений/час\n• Режим: {mode}",
+        "starting": "🔄 <b>Запуск смены фото профиля</b>\n\n• Задержка: {delay_minutes:.1f} мин\n• ~{updates_per_hour:.1f} обновлений/час\n• Режим: {mode}",
         "stopping": "🛑 <b>Остановка</b>\n\n• Обновлений: {count}\n• Время: {uptime}\n• Ошибок: {errors}",
-        "stats": "📊 <b>Статистика</b>\n\n• Статус: {status}\n• Время: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}",
+        "stats": "📊 <b>Статистика</b>\n\n• Статус: {status}\n• Время: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay:.1f} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}",
         "no_photo": "❌ <b>Ответьте на фото</b>",
         "already_running": "⚠️ <b>Уже запущено</b>",
         "not_running": "⚠️ <b>Не запущено</b>",
         "error": "❌ <b>Ошибка:</b> {error}",
-        "flood_wait": "⚠️ <b>Флудвейт</b>\n\n• Новая задержка: {delay} мин\n• Ожидание: {wait} мин",
+        "flood_wait": "⚠️ <b>Флудвейт</b>\n\n• Новая задержка: {delay:.1f} мин\n• Ожидание: {wait:.1f} мин",
         "photo_invalid": "⚠️ <b>Неверный формат фото:</b> {error}",
         "photo_too_small": "⚠️ <b>Одно или несколько размеров фото слишком малы</b>",
     }
+
+    _state_keys = [
+        "running", "start_time", "last_update", "update_count", "error_count",
+        "flood_count", "delay", "chat_id", "message_id", "success_streak", "floods"
+    ]
 
     def __init__(self):
         self.config = loader.ModuleConfig(
@@ -91,63 +95,35 @@ class ProfileChangerMod(loader.Module):
         logger.info("ProfileChanger unloaded")
 
     def _get_state(self) -> Dict:
-        """Получение состояния"""
-        return {
-            "running": self.running,
-            "start_time": self.start_time.isoformat() if self.start_time else None,
-            "last_update": self.last_update.isoformat() if self.last_update else None,
-            "update_count": self.update_count,
-            "error_count": self.error_count,
-            "flood_count": self.flood_count,
-            "delay": self.delay,
-            "chat_id": self.chat_id,
-            "message_id": self.message_id,
-            "success_streak": self.success_streak,
-            "floods": [t.isoformat() for t in self.floods]
-        }
+        return {key: getattr(self, key) for key in self._state_keys}
 
     def _save_state(self) -> None:
-        """Сохранение состояния"""
         try:
             self._db.set(self.strings["name"], "state", self._get_state())
         except Exception as e:
             logger.error(f"Ошибка сохранения состояния: {e}")
 
     def _load_state(self) -> None:
-        """Загрузка состояния"""
         state = self._db.get(self.strings["name"], "state")
         if not state:
             return
-
         try:
-            self.running = state["running"]
-            self.start_time = datetime.fromisoformat(state["start_time"]) if state["start_time"] else None
-            self.last_update = datetime.fromisoformat(state["last_update"]) if state["last_update"] else None
-            self.update_count = state["update_count"]
-            self.error_count = state["error_count"]
-            self.flood_count = state["flood_count"]
-            self.delay = state["delay"]
-            self.chat_id = state["chat_id"]
-            self.message_id = state["message_id"]
-            self.success_streak = state["success_streak"]
-            self.floods = deque(
-                [datetime.fromisoformat(t) for t in state.get("floods", [])],
-                maxlen=10
-            )
+            for key, value in state.items():
+                if key == "start_time" and value:
+                    setattr(self, key, datetime.fromisoformat(value))
+                elif key == "last_update" and value:
+                    setattr(self, key, datetime.fromisoformat(value))
+                elif key == "floods":
+                    setattr(self, key, deque([datetime.fromisoformat(t) for t in value], maxlen=10))
+                else:
+                    setattr(self, key, value)
         except Exception as e:
             logger.error(f"Ошибка загрузки состояния: {e}")
             self._reset()
 
     async def _check_photo_size(self, photo) -> bool:
         """Проверка размера фото"""
-        if not photo or not hasattr(photo, 'sizes'):
-            return False
-
-        min_size = self.config["min_photo_size"]
-        for size in photo.sizes:
-            if size.w < min_size or size.h < min_size:
-                return False
-        return True
+        return bool(photo and hasattr(photo, 'sizes') and all(s.w >= self.config["min_photo_size"] and s.h >= self.config["min_photo_size"] for s in photo.sizes))
 
     async def _get_photo(self) -> Optional[types.Photo]:
         """Получение фото"""
@@ -208,8 +184,8 @@ class ProfileChangerMod(loader.Module):
                 await self._client.send_message(
                     self.chat_id,
                     self.strings["flood_wait"].format(
-                        delay=f"{self.delay/60:.1f}",
-                        wait=f"{e.seconds/60:.1f}"
+                        delay=self.delay / 60,
+                        wait=e.seconds / 60
                     )
                 )
             logger.warning(f"FloodWait error: {e.seconds}s. New delay: {self.delay}s")
@@ -306,7 +282,7 @@ class ProfileChangerMod(loader.Module):
             "uptime": self._format_time(uptime),
             "count": str(self.update_count),
             "hourly": f"{self.update_count / (uptime/3600):.1f}" if uptime > 0 else "0",
-            "delay": f"{self.delay/60:.1f}",
+            "delay": self.delay / 60,
             "last": self._format_time(last) if self.last_update else "никогда",
             "errors": str(self.error_count),
             "floods": str(self.flood_count)
@@ -369,8 +345,8 @@ class ProfileChangerMod(loader.Module):
 
             await self._start(message.chat_id, target.id)
             await utils.answer(message, self.strings["starting"].format(
-                delay_minutes=f"{self.delay/60:.1f}",
-                updates_per_hour=f"{3600/self.delay:.1f}",
+                delay_minutes=self.delay / 60,
+                updates_per_hour=3600 / self.delay,
                 mode="Безопасный" if self.config["safe_mode"] else "Стандартный"
             ))
 
