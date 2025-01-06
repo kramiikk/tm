@@ -102,6 +102,7 @@ class ProfileChangerMod(loader.Module):
             "error_penalty",
             1.1,
         )
+        self._lock = asyncio.Lock()
         self._init_state()
 
     def _reset(self) -> None:
