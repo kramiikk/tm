@@ -17,6 +17,7 @@ import json
 
 logger = logging.getLogger(__name__)
 
+
 @loader.tds
 class ProfileChangerMod(loader.Module):
     """Автоматическое обновление фото профиля с адаптивной системой защиты"""
@@ -52,6 +53,23 @@ class ProfileChangerMod(loader.Module):
         "retries",
     ]
 
+    def _init_state(self):
+        """Инициализация состояния модуля"""
+        self.running = False
+        self._task = None
+        self.start_time = None
+        self.last_update = None
+        self.update_count = 0
+        self.error_count = 0
+        self.flood_count = 0
+        self.delay = self.config["default_delay"]
+        self.chat_id = None
+        self.message_id = None
+        self.floods = deque(maxlen=10)
+        self.success_streak = 0
+        self._retries = 0
+        self._last_command_time = None
+
     def __init__(self):
         self.config = loader.ModuleConfig(
             "adaptive_delay",
@@ -84,25 +102,11 @@ class ProfileChangerMod(loader.Module):
             "error_penalty",
             1.1,
         )
-        self._reset()
+        self._init_state()
 
     def _reset(self) -> None:
         """Сброс состояния"""
-        self.running = False
-        self._task = None
-        self.start_time = None
-        self.last_update = None
-        self.update_count = 0
-        self.error_count = 0
-        self.flood_count = 0
-        self.delay = self.config["default_delay"]
-        self.chat_id = None
-        self.message_id = None
-        self.floods = deque(maxlen=10)
-        self.success_streak = 0
-        self._retries = 0
-        self._lock = asyncio.Lock()
-        self._last_command_time = None
+        self._init_state()
 
     async def client_ready(self, client, db):
         self._client = client
