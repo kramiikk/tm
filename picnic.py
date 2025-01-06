@@ -526,18 +526,15 @@ class ProfileChangerMod(loader.Module):
     async def pfpstop(self, message):
         """Остановить смену фото профиля."""
         try:
-            # Используем wait_for вместо timeout
-
             async with self._lock:
                 if not self.running:
                     await utils.answer(message, self.strings["not_running"])
                     return
-                # Выполняем остановку с таймаутом
-
                 await asyncio.wait_for(self._stop(), timeout=5)
+            await utils.answer(message, "Успешно остановлено")
         except asyncio.TimeoutError:
             await utils.answer(message, "❌ Превышено время ожидания остановки")
-            self._reset()  # Принудительный сброс при таймауте
+            self._reset()
         except Exception as e:
             await utils.answer(message, f"❌ Ошибка при остановке: {str(e)}")
             logger.error(f"Ошибка в pfpstop: {e}")
