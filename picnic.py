@@ -17,7 +17,6 @@ import json
 
 logger = logging.getLogger(__name__)
 
-
 @loader.tds
 class ProfileChangerMod(loader.Module):
     """Автоматическое обновление фото профиля с адаптивной системой защиты"""
@@ -359,11 +358,11 @@ class ProfileChangerMod(loader.Module):
 
     async def _start(self, chat_id: int, message_id: int) -> None:
         """Запуск смены фото"""
+        self._reset()
         self.running = True
         self.start_time = datetime.now()
         self.chat_id = chat_id
         self.message_id = message_id
-        self._retries = 0
         self._save_state()
         self._task = asyncio.create_task(self._loop())
         logger.info("Profile changer started")
