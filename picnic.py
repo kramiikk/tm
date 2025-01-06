@@ -28,6 +28,7 @@ CONFIG_ERROR_THRESHOLD = "error_threshold"
 CONFIG_FLOOD_MULTIPLIER = "flood_multiplier"
 CONFIG_SUCCESS_REDUCTION = "success_reduction"
 CONFIG_ERROR_PENALTY = "error_penalty"
+CONFIG_ERROR_COOLDOWN = "error_cooldown"
 
 
 @loader.tds
@@ -38,7 +39,7 @@ class ProfileChangerMod(loader.Module):
         "name": "ProfileChanger",
         "starting": "🔄 <b>Запуск смены фото профиля</b>\n\n• Задержка: {delay_minutes:.0f} мин\n• ~{updates_per_hour} обновлений/час",
         "stopping": "🛑 <b>Остановка</b>\n\n• Обновлений: {count}\n• Время: {uptime}\n• Ошибок: {errors}",
-        "stats": "📊 <b>Статистика</b>\n\n• Статус: {status}\n• Время: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay:.1f} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}",
+        "stats": "📊 <b>Статистика</b>\n\n• Статус: {status}\n• Время: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay:.1f} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}\n\n⚙️ <b>Адаптация задержки:</b>\n{delay_details}",
         "no_photo": "❌ <b>Ответьте на фото</b>",
         "already_running": "⚠️ <b>Уже запущено</b>",
         "not_running": "⚠️ <b>Не запущено</b>",
@@ -48,6 +49,10 @@ class ProfileChangerMod(loader.Module):
         "pfpone_success": "✅ <b>Аватарка установлена</b>",
         "pfpone_no_reply": "❌ <b>Ответьте на фото, которое хотите установить</b>",
         "pfpone_error": "❌ <b>Ошибка при установке аватарки:</b> {error}",
+        "delay_details_success": "  • Успешные обновления: снижение задержки",
+        "delay_details_recent_flood": "  • Недавний флудвейт: увеличение задержки",
+        "delay_details_recent_error": "  • Недавняя ошибка: увеличение задержки",
+        "delay_details_jitter": "  • Случайность: +/- {jitter_percent:.0f}%",
     }
 
     _state_keys = [
@@ -63,6 +68,7 @@ class ProfileChangerMod(loader.Module):
         "success_streak",
         "floods",
         "retries",
+        "last_error_time",
     ]
 
     def _init_state(self):
@@ -80,6 +86,7 @@ class ProfileChangerMod(loader.Module):
         self.floods = deque(maxlen=10)
         self.success_streak = 0
         self._retries = 0
+        self.last_error_time = None
 
     def __init__(self):
         self.config = loader.ModuleConfig(
@@ -112,13 +119,17 @@ class ProfileChangerMod(loader.Module):
             "Снижение при успехе",
             "error_penalty",
             1.1,
+            "error_cooldown",
+            300,  # 5 минут
+            "Время 'остывания' после ошибки (сек)",
         )
         self._lock = asyncio.Lock()
         self._init_state()
 
     def _reset(self) -> None:
-        """Сброс состояния"""
+        """Сброс состояния модуля, включая остановку текущей задачи."""
         self._init_state()
+        self._task = None
 
     async def client_ready(self, client, db):
         self._client = client
@@ -130,23 +141,28 @@ class ProfileChangerMod(loader.Module):
         logger.info("ProfileChanger loaded")
 
     async def on_unload(self):
-        """Выгрузка модуля"""
+        """Выгрузка модуля."""
         if self.running:
             await self._send_stopping_message()
-            self._task.cancel()
+            if self._task:
+                self._task.cancel()
         logger.info("ProfileChanger unloaded")
 
     def _get_state(self) -> Dict:
+        """Получение текущего состояния модуля для сохранения."""
         state = {key: getattr(self, key) for key in self._state_keys}
         if state.get("start_time"):
             state["start_time"] = state["start_time"].isoformat()
         if state.get("last_update"):
             state["last_update"] = state["last_update"].isoformat()
+        if state.get("last_error_time"):
+            state["last_error_time"] = state["last_error_time"].isoformat()
         if state.get("floods"):
             state["floods"] = [t.isoformat() for t in state["floods"]]
         return state
 
     def _load_state(self) -> None:
+        """Загрузка состояния модуля из базы данных."""
         state_json = self._db.get(self.strings["name"], "state")
         if not state_json:
             return
@@ -156,6 +172,8 @@ class ProfileChangerMod(loader.Module):
                 if key == "start_time" and value:
                     setattr(self, key, datetime.fromisoformat(value))
                 elif key == "last_update" and value:
+                    setattr(self, key, datetime.fromisoformat(value))
+                elif key == "last_error_time" and value:
                     setattr(self, key, datetime.fromisoformat(value))
                 elif key == "floods":
                     setattr(
@@ -175,7 +193,7 @@ class ProfileChangerMod(loader.Module):
             self._reset()
 
     async def _get_photo(self) -> Optional[types.Photo]:
-        """Получение фото"""
+        """Получение фотографии профиля из указанного сообщения."""
         if not self.running:
             return None
         try:
@@ -194,7 +212,7 @@ class ProfileChangerMod(loader.Module):
     async def _set_profile_photo(
         self, photo: types.Photo
     ) -> Union[bool, errors.FloodWaitError, Exception]:
-        """Обновление фотографии профиля"""
+        """Обновление фотографии профиля."""
         try:
             await self._client(
                 functions.photos.UpdateProfilePhotoRequest(
@@ -219,7 +237,7 @@ class ProfileChangerMod(loader.Module):
             return e
 
     async def _handle_flood_wait(self, error: errors.FloodWaitError):
-        """Обработка FloodWaitError."""
+        """Обработка ошибки FloodWait."""
         self.flood_count += 1
         self.floods.append(datetime.now())
         self.success_streak = 0
@@ -240,8 +258,9 @@ class ProfileChangerMod(loader.Module):
         await asyncio.sleep(error.seconds)
 
     async def _handle_photo_invalid_error(self, error):
-        """Обработка ошибок неверного формата фото."""
+        """Обработка ошибок, связанных с неверным форматом фотографии."""
         self.error_count += 1
+        self.last_error_time = datetime.now()
         if self.config[CONFIG_NOTIFY_ERRORS]:
             await self._client.send_message(
                 self.chat_id,
@@ -250,10 +269,11 @@ class ProfileChangerMod(loader.Module):
         await self._stop()
 
     async def _handle_generic_error(self, error):
-        """Обработка общих ошибок при обновлении фото."""
+        """Обработка общих ошибок при обновлении фотографии профиля."""
         self.error_count += 1
         self.success_streak = 0
         self._retries += 1
+        self.last_error_time = datetime.now()
         if self.config[CONFIG_NOTIFY_ERRORS]:
             await self._client.send_message(
                 self.chat_id, self.strings["error"].format(error=str(error))
@@ -263,7 +283,7 @@ class ProfileChangerMod(loader.Module):
     async def _process_set_photo_result(
         self, result: Union[bool, errors.FloodWaitError, Exception]
     ) -> bool:
-        """Обработка результата _set_profile_photo."""
+        """Обработка результата попытки обновления фотографии профиля."""
         if result is True:
             self.last_update = datetime.now()
             self.update_count += 1
@@ -292,7 +312,7 @@ class ProfileChangerMod(loader.Module):
             return False
 
     async def _update(self) -> bool:
-        """Обновление фото"""
+        """Попытка обновить фотографию профиля."""
         if not self.running:
             return False
         photo = await self._get_photo()
@@ -302,37 +322,44 @@ class ProfileChangerMod(loader.Module):
         return await self._process_set_photo_result(result)
 
     def _calculate_delay(self) -> float:
-        """Расчет задержки"""
+        """Расчет задержки между обновлениями с учетом адаптивных параметров."""
         if not self.config[CONFIG_ADAPTIVE_DELAY]:
             return self.delay
         delay = self.delay
-
         now = datetime.now()
-        while self.floods and (now - self.floods[0]).total_seconds() > 3600:
-            self.floods.popleft()
+
+        if (
+            self.last_error_time
+            and (now - self.last_error_time).total_seconds()
+            < self.config[CONFIG_ERROR_COOLDOWN]
+        ):
+            delay *= self.config[CONFIG_ERROR_PENALTY]
         if self.success_streak >= 5:
             delay = max(
                 self.config[CONFIG_MIN_DELAY],
                 delay * self.config[CONFIG_SUCCESS_REDUCTION],
             )
+        while self.floods and (now - self.floods[0]).total_seconds() > 3600:
+            self.floods.popleft()
         if self.floods:
-            recent = len(self.floods)
+            recent_floods = len(self.floods)
             delay = min(
                 self.config[CONFIG_MAX_DELAY],
-                delay * (self.config[CONFIG_FLOOD_MULTIPLIER] ** recent),
+                delay * (self.config[CONFIG_FLOOD_MULTIPLIER] ** recent_floods),
             )
         if self._retries > 0:
             delay *= self.config[CONFIG_ERROR_PENALTY]
         jitter = random.uniform(
             1 - self.config[CONFIG_JITTER], 1 + self.config[CONFIG_JITTER]
         )
+
         return max(
             self.config[CONFIG_MIN_DELAY],
             min(self.config[CONFIG_MAX_DELAY], delay * jitter),
         )
 
     async def _loop(self) -> None:
-        """Основной цикл"""
+        """Основной асинхронный цикл для периодического обновления фотографии."""
         while self.running:
             try:
                 if await self._update():
@@ -349,7 +376,7 @@ class ProfileChangerMod(loader.Module):
                 await asyncio.sleep(self.config[CONFIG_MIN_DELAY])
 
     def _format_time(self, seconds: float) -> str:
-        """Форматирование времени"""
+        """Форматирование времени в человекочитаемый вид."""
         minutes, seconds = divmod(seconds, 60)
         hours, minutes = divmod(minutes, 60)
         if hours:
@@ -358,8 +385,34 @@ class ProfileChangerMod(loader.Module):
             return f"{int(minutes)}м {int(round(seconds))}с"
         return f"{int(round(seconds))}с"
 
+    def _get_delay_details(self) -> str:
+        """Формирование информации о факторах, влияющих на задержку."""
+        details = []
+        now = datetime.now()
+
+        if self.success_streak >= 5:
+            details.append(self.strings["delay_details_success"])
+        recent_flood = any(
+            (now - flood_time).total_seconds() < 3600 for flood_time in self.floods
+        )
+        if recent_flood:
+            details.append(self.strings["delay_details_recent_flood"])
+        if (
+            self.last_error_time
+            and (now - self.last_error_time).total_seconds()
+            < self.config[CONFIG_ERROR_COOLDOWN]
+        ):
+            details.append(self.strings["delay_details_recent_error"])
+        if self.config[CONFIG_JITTER] > 0:
+            details.append(
+                self.strings["delay_details_jitter"].format(
+                    jitter_percent=self.config[CONFIG_JITTER] * 100
+                )
+            )
+        return "\n".join(details) if details else "  • Нет активных факторов адаптации"
+
     def _get_stats(self) -> Dict[str, str]:
-        """Получение статистики"""
+        """Получение статистики работы модуля."""
         now = datetime.now()
         uptime = (now - self.start_time).total_seconds() if self.start_time else 0
         last = (now - self.last_update).total_seconds() if self.last_update else 0
@@ -373,14 +426,18 @@ class ProfileChangerMod(loader.Module):
             "last": self._format_time(last) if self.last_update else "никогда",
             "errors": str(self.error_count),
             "floods": str(self.flood_count),
+            "delay_details": self._get_delay_details(),
         }
 
     def _save_state(self):
-        """Сохранение состояния"""
-        self._db.set(self.strings["name"], "state", json.dumps(self._get_state()))
+        """Сохранение текущего состояния модуля в базу данных."""
+        try:
+            self._db.set(self.strings["name"], "state", json.dumps(self._get_state()))
+        except TypeError as e:
+            logger.error(f"Ошибка сериализации состояния: {e}")
 
     async def _start(self, chat_id: int, message_id: int) -> None:
-        """Запуск смены фото"""
+        """Запуск процесса автоматической смены фотографии."""
         self._reset()
         self.running = True
         self.start_time = datetime.now()
@@ -391,6 +448,7 @@ class ProfileChangerMod(loader.Module):
         logger.info("Profile changer started")
 
     async def _send_stopping_message(self):
+        """Отправка сообщения об остановке процесса."""
         await self._client.send_message(
             self.chat_id,
             self.strings["stopping"].format(
@@ -407,19 +465,20 @@ class ProfileChangerMod(loader.Module):
         )
 
     async def _stop(self) -> None:
-        """Остановка смены фото"""
-        if self.running:
-            self.running = False
-            self._save_state()
-            if self._task:
-                self._task.cancel()
-            await self._send_stopping_message()
-            logger.info("Profile changer stopped.")
-            self._reset()
+        """Остановка процесса автоматической смены фотографии."""
+        async with self._lock:
+            if self.running:
+                self.running = False
+                self._save_state()
+                if self._task:
+                    self._task.cancel()
+                await self._send_stopping_message()
+                logger.info("Profile changer stopped.")
+                self._reset()
 
     @loader.command()
     async def pfp(self, message):
-        """Запустить смену фото (ответ на фото)"""
+        """Запустить смену фото профиля (ответьте на сообщение с фото)."""
         async with self._lock:
             if self.running:
                 await utils.answer(message, self.strings["already_running"])
@@ -441,7 +500,7 @@ class ProfileChangerMod(loader.Module):
 
     @loader.command()
     async def pfpstop(self, message):
-        """Остановить смену фото"""
+        """Остановить смену фото профиля."""
         async with self._lock:
             if not self.running:
                 await utils.answer(message, self.strings["not_running"])
@@ -450,12 +509,15 @@ class ProfileChangerMod(loader.Module):
 
     @loader.command()
     async def pfpstats(self, message):
-        """Показать статистику"""
+        """Показать статистику работы модуля."""
         await utils.answer(message, self.strings["stats"].format(**self._get_stats()))
 
     @loader.command()
     async def pfpdelay(self, message):
-        """Установить задержку в секундах (используйте: .pfpdelay <секунды>)"""
+        """Установить задержку между обновлениями в секундах.
+
+        Используйте: .pfpdelay <секунды>
+        """
         args = utils.get_args_raw(message)
 
         if not args:
@@ -473,11 +535,13 @@ class ProfileChangerMod(loader.Module):
             self._save_state()
             await utils.answer(message, f"✅ Установлена задержка {delay} секунд")
         except ValueError:
-            await utils.answer(message, "❌ Неверный формат числа")
+            await utils.answer(
+                message, "❌ Неверный формат числа. Введите число секунд."
+            )
 
     @loader.command()
     async def pfpon(self, message):
-        """Установить аватарку один раз (ответьте на фото)"""
+        """Установить аватарку один раз (ответьте на сообщение с фото)."""
         reply = await message.get_reply_message()
         if not reply or not reply.photo:
             await utils.answer(message, self.strings["pfpone_no_reply"])
