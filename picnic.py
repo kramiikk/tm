@@ -85,7 +85,7 @@ class ProfileChangerMod(loader.Module):
         self.message_id = None
         self.floods = deque(maxlen=10)
         self.success_streak = 0
-        self._retries = 0
+        self.retries = 0
         self.last_error_time = None
 
     def __init__(self):
@@ -120,7 +120,7 @@ class ProfileChangerMod(loader.Module):
             "error_penalty",
             1.1,
             "error_cooldown",
-            300,  # 5 минут
+            300,
             "Время 'остывания' после ошибки (сек)",
         )
         self._lock = asyncio.Lock()
@@ -272,7 +272,7 @@ class ProfileChangerMod(loader.Module):
         """Обработка общих ошибок при обновлении фотографии профиля."""
         self.error_count += 1
         self.success_streak = 0
-        self._retries += 1
+        self.retries += 1
         self.last_error_time = datetime.now()
         if self.config[CONFIG_NOTIFY_ERRORS]:
             await self._client.send_message(
@@ -288,7 +288,7 @@ class ProfileChangerMod(loader.Module):
             self.last_update = datetime.now()
             self.update_count += 1
             self.success_streak += 1
-            self._retries = 0
+            self.retries = 0
             self._save_state()
             logger.info(
                 f"Фото профиля успешно обновлено. Всего обновлений: {self.update_count}"
@@ -347,7 +347,7 @@ class ProfileChangerMod(loader.Module):
                 self.config[CONFIG_MAX_DELAY],
                 delay * (self.config[CONFIG_FLOOD_MULTIPLIER] ** recent_floods),
             )
-        if self._retries > 0:
+        if self.retries > 0:
             delay *= self.config[CONFIG_ERROR_PENALTY]
         jitter = random.uniform(
             1 - self.config[CONFIG_JITTER], 1 + self.config[CONFIG_JITTER]
@@ -365,7 +365,7 @@ class ProfileChangerMod(loader.Module):
                 if await self._update():
                     await asyncio.sleep(self._calculate_delay())
                 else:
-                    if self._retries >= self.config[CONFIG_ERROR_THRESHOLD]:
+                    if self.retries >= self.config[CONFIG_ERROR_THRESHOLD]:
                         await self._stop()
                         break
                     await asyncio.sleep(self.config[CONFIG_MIN_DELAY])
