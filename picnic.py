@@ -6,6 +6,7 @@
 Модуль автоматического обновления фото профиля
 с адаптивной системой защиты от ограничений.
 """
+
 import asyncio
 import logging
 from datetime import datetime
@@ -22,6 +23,7 @@ from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
+
 @loader.tds
 class ProfileChangerMod(loader.Module):
     """Автоматическое обновление фото профиля с адаптивной системой защиты"""
@@ -37,27 +39,54 @@ class ProfileChangerMod(loader.Module):
         "error": "❌ <b>Ошибка:</b> {error}",
         "flood_wait": "⚠️ <b>Флудвейт</b>\n\n• Новая задержка: {delay:.1f} мин\n• Ожидание: {wait:.1f} мин",
         "photo_invalid": "⚠️ <b>Неверный формат фото:</b> {error}",
-        "photo_too_small": "⚠️ <b>Одно или несколько размеров фото слишком малы</b>",
     }
 
     _state_keys = [
-        "running", "start_time", "last_update", "update_count", "error_count",
-        "flood_count", "delay", "chat_id", "message_id", "success_streak", "floods"
+        "running",
+        "start_time",
+        "last_update",
+        "update_count",
+        "error_count",
+        "flood_count",
+        "delay",
+        "chat_id",
+        "message_id",
+        "success_streak",
+        "floods",
     ]
 
     def __init__(self):
         self.config = loader.ModuleConfig(
-            "safe_mode", True, "Безопасный режим",
-            "adaptive_delay", True, "Адаптивные задержки",
-            "notify_errors", True, "Уведомления об ошибках",
-            "default_delay", 780, "Начальная задержка (сек)",
-            "min_delay", 420, "Минимальная задержка (сек)",
-            "max_delay", 1980, "Максимальная задержка (сек)",
-            "jitter", 0.3, "Случайность (0.0-1.0)",
-            "error_threshold", 2, "Порог ошибок",
-            "flood_multiplier", 1.2, "Множитель флудвейта",
-            "success_reduction", 0.9, "Снижение при успехе",
-            "min_photo_size", 512, "Минимальный размер фото (px)"
+            "safe_mode",
+            True,
+            "Безопасный режим",
+            "adaptive_delay",
+            True,
+            "Адаптивные задержки",
+            "notify_errors",
+            True,
+            "Уведомления об ошибках",
+            "default_delay",
+            780,
+            "Начальная задержка (сек)",
+            "min_delay",
+            420,
+            "Минимальная задержка (сек)",
+            "max_delay",
+            1980,
+            "Максимальная задержка (сек)",
+            "jitter",
+            0.3,
+            "Случайность (0.0-1.0)",
+            "error_threshold",
+            2,
+            "Порог ошибок",
+            "flood_multiplier",
+            1.2,
+            "Множитель флудвейта",
+            "success_reduction",
+            0.9,
+            "Снижение при успехе",
         )
         self._reset()
 
@@ -114,37 +143,27 @@ class ProfileChangerMod(loader.Module):
                 elif key == "last_update" and value:
                     setattr(self, key, datetime.fromisoformat(value))
                 elif key == "floods":
-                    setattr(self, key, deque([datetime.fromisoformat(t) for t in value], maxlen=10))
+                    setattr(
+                        self,
+                        key,
+                        deque([datetime.fromisoformat(t) for t in value], maxlen=10),
+                    )
                 else:
                     setattr(self, key, value)
         except Exception as e:
             logger.error(f"Ошибка загрузки состояния: {e}")
             self._reset()
 
-    async def _check_photo_size(self, photo) -> bool:
-        """Проверка размера фото"""
-        return bool(photo and hasattr(photo, 'sizes') and all(
-            (isinstance(s, types.PhotoSize) and s.w >= self.config["min_photo_size"] and s.h >= self.config["min_photo_size"]) or isinstance(s, types.PhotoStrippedSize)
-            for s in photo.sizes
-        ))
-
     async def _get_photo(self) -> Optional[types.Photo]:
         """Получение фото"""
         if not self.running:
             return None
-
         try:
             message = await self._client.get_messages(self.chat_id, ids=self.message_id)
             if not message or not message.photo:
                 await self._stop("фото удалено")
                 return None
-
-            if not await self._check_photo_size(message.photo):
-                await self._stop("фото слишком маленькое")
-                return None
-
             return message.photo
-
         except MessageIdInvalidError:
             await self._stop("фото удалено")
             return None
@@ -156,55 +175,58 @@ class ProfileChangerMod(loader.Module):
         """Обновление фото"""
         if not self.running:
             return False
-
         photo = await self._get_photo()
         if not photo:
             return False
-
         try:
-            await self._client(functions.photos.UpdateProfilePhotoRequest(
-                id=types.InputPhoto(
-                    id=photo.id,
-                    access_hash=photo.access_hash,
-                    file_reference=photo.file_reference
+            await self._client(
+                functions.photos.UpdateProfilePhotoRequest(
+                    id=types.InputPhoto(
+                        id=photo.id,
+                        access_hash=photo.access_hash,
+                        file_reference=photo.file_reference,
+                    )
                 )
-            ))
+            )
 
             self.last_update = datetime.now()
             self.update_count += 1
             self.success_streak += 1
             self._retries = 0
-            logger.info(f"Photo updated successfully. Total updates: {self.update_count}")
+            logger.info(
+                f"Photo updated successfully. Total updates: {self.update_count}"
+            )
             return True
-
         except errors.FloodWaitError as e:
             self.flood_count += 1
             self.floods.append(datetime.now())
             self.success_streak = 0
-            self.delay = min(self.config["max_delay"], self.delay * self.config["flood_multiplier"])
+            self.delay = min(
+                self.config["max_delay"], self.delay * self.config["flood_multiplier"]
+            )
 
             if self.config["notify_errors"]:
                 await self._client.send_message(
                     self.chat_id,
                     self.strings["flood_wait"].format(
-                        delay=self.delay / 60,
-                        wait=e.seconds / 60
-                    )
+                        delay=self.delay / 60, wait=e.seconds / 60
+                    ),
                 )
             logger.warning(f"FloodWait error: {e.seconds}s. New delay: {self.delay}s")
             await asyncio.sleep(e.seconds)
             return False
-
-        except (PhotoInvalidDimensionsError, PhotoCropSizeSmallError, PhotoSaveFileInvalidError) as e:
+        except (
+            PhotoInvalidDimensionsError,
+            PhotoCropSizeSmallError,
+            PhotoSaveFileInvalidError,
+        ) as e:
             self.error_count += 1
             if self.config["notify_errors"]:
                 await self._client.send_message(
-                    self.chat_id,
-                    self.strings["photo_invalid"].format(error=str(e))
+                    self.chat_id, self.strings["photo_invalid"].format(error=str(e))
                 )
             await self._stop(f"неверный формат: {e}")
             return False
-
         except Exception as e:
             self.error_count += 1
             self.success_streak = 0
@@ -212,8 +234,7 @@ class ProfileChangerMod(loader.Module):
 
             if self.config["notify_errors"]:
                 await self._client.send_message(
-                    self.chat_id,
-                    self.strings["error"].format(error=str(e))
+                    self.chat_id, self.strings["error"].format(error=str(e))
                 )
             logger.error(f"Update error: {e}")
             return False
@@ -222,28 +243,23 @@ class ProfileChangerMod(loader.Module):
         """Расчет задержки"""
         if not self.config["adaptive_delay"]:
             return self.delay
-
         delay = self.delay
 
-        # Очищаем старые флудвейты
         now = datetime.now()
         while self.floods and (now - self.floods[0]).total_seconds() > 3600:
             self.floods.popleft()
-
         if self.success_streak >= 5:
             delay = max(
-                self.config["min_delay"],
-                delay * self.config["success_reduction"]
+                self.config["min_delay"], delay * self.config["success_reduction"]
             )
-
         if self.floods:
-            recent = len(self.floods)  # Уже отфильтрованы старые
+            recent = len(self.floods)
             delay = min(
                 self.config["max_delay"],
-                delay * (self.config["flood_multiplier"] ** recent)
+                delay * (self.config["flood_multiplier"] ** recent),
             )
-
         import random
+
         jitter = random.uniform(1 - self.config["jitter"], 1 + self.config["jitter"])
         return max(self.config["min_delay"], delay * jitter)
 
@@ -288,7 +304,7 @@ class ProfileChangerMod(loader.Module):
             "delay": self.delay / 60,
             "last": self._format_time(last) if self.last_update else "никогда",
             "errors": str(self.error_count),
-            "floods": str(self.flood_count)
+            "floods": str(self.flood_count),
         }
 
     async def _start(self, chat_id: int, message_id: int) -> None:
@@ -313,11 +329,16 @@ class ProfileChangerMod(loader.Module):
                 self.chat_id,
                 self.strings["stopping"].format(
                     count=self.update_count,
-                    uptime=self._format_time(
-                        (datetime.now() - self.start_time).total_seconds()
-                    ) if self.start_time else "0с",
-                    errors=self.error_count
-                ) + (f"\n\nПричина: {reason}" if reason else "")
+                    uptime=(
+                        self._format_time(
+                            (datetime.now() - self.start_time).total_seconds()
+                        )
+                        if self.start_time
+                        else "0с"
+                    ),
+                    errors=self.error_count,
+                )
+                + (f"\n\nПричина: {reason}" if reason else ""),
             )
             logger.info(f"Profile changer stopped. {reason if reason else ''}")
             self._reset()
@@ -329,24 +350,21 @@ class ProfileChangerMod(loader.Module):
             if self.running:
                 await utils.answer(message, self.strings["already_running"])
                 return
-
             target = await message.get_reply_message() if message.is_reply else message
             photo_entity = target.photo if target else None
 
             if not photo_entity:
                 await utils.answer(message, self.strings["no_photo"])
                 return
-
-            if not await self._check_photo_size(photo_entity):
-                await utils.answer(message, self.strings["photo_too_small"])
-                return
-
             await self._start(message.chat_id, target.id)
-            await utils.answer(message, self.strings["starting"].format(
-                delay_minutes=self.delay / 60,
-                updates_per_hour=3600 / self.delay,
-                mode="Безопасный" if self.config["safe_mode"] else "Стандартный"
-            ))
+            await utils.answer(
+                message,
+                self.strings["starting"].format(
+                    delay_minutes=self.delay / 60,
+                    updates_per_hour=3600 / self.delay,
+                    mode="Безопасный" if self.config["safe_mode"] else "Стандартный",
+                ),
+            )
 
     @loader.command()
     async def pfpstop(self, message):
@@ -368,19 +386,18 @@ class ProfileChangerMod(loader.Module):
         args = utils.get_args_raw(message)
 
         if not args:
-            return await utils.answer(message, "Укажите задержку в секундах после команды.")
-
+            return await utils.answer(
+                message, "Укажите задержку в секундах после команды."
+            )
         try:
             delay = float(args)
             if delay < self.config["min_delay"] or delay > self.config["max_delay"]:
                 return await utils.answer(
                     message,
-                    f"Задержка должна быть от {self.config['min_delay']} до {self.config['max_delay']} секунд"
+                    f"Задержка должна быть от {self.config['min_delay']} до {self.config['max_delay']} секунд",
                 )
-
             self.delay = delay
             self._save_state()
             await utils.answer(message, f"✅ Установлена задержка {delay} секунд")
-
         except ValueError:
             await utils.answer(message, "❌ Неверный формат числа")
