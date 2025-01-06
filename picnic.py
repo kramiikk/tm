@@ -323,10 +323,10 @@ class ProfileChangerMod(loader.Module):
     async def pfp(self, message):
         """Запустить смену фото (ответ на фото)"""
         async with self._lock:
+            self._last_command_time = datetime.now()  # Set the time before the check
             if hasattr(self, '_last_command_time'):
                 if (datetime.now() - self._last_command_time).total_seconds() < 3:
                     return  # Игнорируем слишком частые команды
-            self._last_command_time = datetime.now()
 
             if self.running:
                 await utils.answer(message, self.strings["already_running"])
