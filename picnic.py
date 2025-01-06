@@ -366,12 +366,14 @@ class ProfileChangerMod(loader.Module):
 
     @loader.command()
     async def pfpdelay(self, message):
-        """Установить задержку в секундах (реплай)"""
-        if not message.reply_to_message_id:
-            return await utils.answer(message, "Ответьте на сообщение с числом (секунды)")
+        """Установить задержку в секундах (используйте: .pfpdelay <секунды>)"""
+        args = utils.get_args_raw(message)
+
+        if not args:
+            return await utils.answer(message, "Укажите задержку в секундах после команды.")
 
         try:
-            delay = float((await message.get_reply_message()).text)
+            delay = float(args)
             if delay < self.config["min_delay"] or delay > self.config["max_delay"]:
                 return await utils.answer(
                     message,
