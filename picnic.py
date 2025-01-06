@@ -11,7 +11,7 @@ import asyncio
 import logging
 from datetime import datetime
 from collections import deque
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 from telethon import functions, types, errors
 from telethon.errors.rpcerrorlist import (
     MessageIdInvalidError,
@@ -39,6 +39,10 @@ class ProfileChangerMod(loader.Module):
         "error": "❌ <b>Ошибка:</b> {error}",
         "flood_wait": "⚠️ <b>Флудвейт</b>\n\n• Новая задержка: {delay:.1f} мин\n• Ожидание: {wait:.1f} мин",
         "photo_invalid": "⚠️ <b>Неверный формат фото:</b> {error}",
+        "pfpone_success": "✅ <b>Аватарка установлена</b>",
+        "pfpone_no_reply": "❌ <b>Ответьте на фото, которое хотите установить</b>",
+        "pfpone_error": "❌ <b>Ошибка при установке аватарки:</b> {error}",
+        "pfpone_msg_not_found": "❌ <b>Сообщение с фото не найдено</b>",
     }
 
     _state_keys = [
@@ -124,13 +128,14 @@ class ProfileChangerMod(loader.Module):
         logger.info("ProfileChanger unloaded")
 
     def _get_state(self) -> Dict:
-        return {key: getattr(self, key) for key in self._state_keys}
-
-    def _save_state(self) -> None:
-        try:
-            self._db.set(self.strings["name"], "state", self._get_state())
-        except Exception as e:
-            logger.error(f"Ошибка сохранения состояния: {e}")
+        state = {key: getattr(self, key) for key in self._state_keys}
+        if state.get("start_time"):
+            state["start_time"] = state["start_time"].isoformat()
+        if state.get("last_update"):
+            state["last_update"] = state["last_update"].isoformat()
+        if state.get("floods"):
+            state["floods"] = [t.isoformat() for t in state["floods"]]
+        return state
 
     def _load_state(self) -> None:
         state = self._db.get(self.strings["name"], "state")
@@ -171,13 +176,10 @@ class ProfileChangerMod(loader.Module):
             logger.error(f"Ошибка получения фото: {e}")
             return None
 
-    async def _update(self) -> bool:
-        """Обновление фото"""
-        if not self.running:
-            return False
-        photo = await self._get_photo()
-        if not photo:
-            return False
+    async def _set_profile_photo(
+        self, photo: types.Photo
+    ) -> Union[bool, errors.FloodWaitError, Exception]:
+        """Обновление фотографии профиля"""
         try:
             await self._client(
                 functions.photos.UpdateProfilePhotoRequest(
@@ -188,56 +190,99 @@ class ProfileChangerMod(loader.Module):
                     )
                 )
             )
-
-            self.last_update = datetime.now()
-            self.update_count += 1
-            self.success_streak += 1
-            self._retries = 0
-            logger.info(
-                f"Photo updated successfully. Total updates: {self.update_count}"
-            )
             return True
         except errors.FloodWaitError as e:
-            self.flood_count += 1
-            self.floods.append(datetime.now())
-            self.success_streak = 0
-            self.delay = min(
-                self.config["max_delay"], self.delay * self.config["flood_multiplier"]
-            )
-
-            if self.config["notify_errors"]:
-                await self._client.send_message(
-                    self.chat_id,
-                    self.strings["flood_wait"].format(
-                        delay=self.delay / 60, wait=e.seconds / 60
-                    ),
-                )
-            logger.warning(f"FloodWait error: {e.seconds}s. New delay: {self.delay}s")
-            await asyncio.sleep(e.seconds)
-            return False
+            return e
         except (
             PhotoInvalidDimensionsError,
             PhotoCropSizeSmallError,
             PhotoSaveFileInvalidError,
         ) as e:
-            self.error_count += 1
-            if self.config["notify_errors"]:
-                await self._client.send_message(
-                    self.chat_id, self.strings["photo_invalid"].format(error=str(e))
-                )
-            await self._stop(f"неверный формат: {e}")
-            return False
+            return e
         except Exception as e:
-            self.error_count += 1
-            self.success_streak = 0
-            self._retries += 1
+            logger.error(f"Ошибка при обновлении фото профиля: {e}")
+            return e
 
-            if self.config["notify_errors"]:
-                await self._client.send_message(
-                    self.chat_id, self.strings["error"].format(error=str(e))
-                )
-            logger.error(f"Update error: {e}")
+    async def _handle_flood_wait(self, error: errors.FloodWaitError):
+        """Обработка FloodWaitError."""
+        self.flood_count += 1
+        self.floods.append(datetime.now())
+        self.success_streak = 0
+        self.delay = min(
+            self.config["max_delay"], self.delay * self.config["flood_multiplier"]
+        )
+        if self.config["notify_errors"]:
+            await self._client.send_message(
+                self.chat_id,
+                self.strings["flood_wait"].format(
+                    delay=self.delay / 60, wait=error.seconds / 60
+                ),
+            )
+        logger.warning(
+            f"Получен FloodWait: {error.seconds}s. Новая задержка: {self.delay}s"
+        )
+        await asyncio.sleep(error.seconds)
+
+    async def _handle_photo_invalid_error(self, error):
+        """Обработка ошибок неверного формата фото."""
+        self.error_count += 1
+        if self.config["notify_errors"]:
+            await self._client.send_message(
+                self.chat_id,
+                self.strings["photo_invalid"].format(error=str(error)),
+            )
+        await self._stop(f"Неверный формат фото: {error}")
+
+    async def _handle_generic_error(self, error):
+        """Обработка общих ошибок при обновлении фото."""
+        self.error_count += 1
+        self.success_streak = 0
+        self._retries += 1
+        if self.config["notify_errors"]:
+            await self._client.send_message(
+                self.chat_id, self.strings["error"].format(error=str(error))
+            )
+        logger.error(f"Ошибка при обновлении фото: {error}")
+
+    async def _process_set_photo_result(
+        self, result: Union[bool, errors.FloodWaitError, Exception]
+    ) -> bool:
+        """Обработка результата _set_profile_photo."""
+        if result is True:
+            self.last_update = datetime.now()
+            self.update_count += 1
+            self.success_streak += 1
+            self._retries = 0
+            logger.info(
+                f"Фото профиля успешно обновлено. Всего обновлений: {self.update_count}"
+            )
+            return True
+        elif isinstance(result, errors.FloodWaitError):
+            await self._handle_flood_wait(result)
             return False
+        elif isinstance(
+            result,
+            (
+                PhotoInvalidDimensionsError,
+                PhotoCropSizeSmallError,
+                PhotoSaveFileInvalidError,
+            ),
+        ):
+            await self._handle_photo_invalid_error(result)
+            return False
+        else:
+            await self._handle_generic_error(result)
+            return False
+
+    async def _update(self) -> bool:
+        """Обновление фото"""
+        if not self.running:
+            return False
+        photo = await self._get_photo()
+        if not photo:
+            return False
+        result = await self._set_profile_photo(photo)
+        return await self._process_set_photo_result(result)
 
     def _calculate_delay(self) -> float:
         """Расчет задержки"""
@@ -306,6 +351,10 @@ class ProfileChangerMod(loader.Module):
             "errors": str(self.error_count),
             "floods": str(self.flood_count),
         }
+
+    def _save_state(self):
+        """Сохранение состояния"""
+        self._db.set(self.strings["name"], "state", self._get_state())
 
     async def _start(self, chat_id: int, message_id: int) -> None:
         """Запуск смены фото"""
@@ -401,3 +450,37 @@ class ProfileChangerMod(loader.Module):
             await utils.answer(message, f"✅ Установлена задержка {delay} секунд")
         except ValueError:
             await utils.answer(message, "❌ Неверный формат числа")
+
+    @loader.command()
+    async def pfpone(self, message):
+        """Установить аватарку один раз (ответьте на фото)"""
+        reply = await message.get_reply_message()
+        if not reply or not reply.photo:
+            await utils.answer(message, self.strings["pfpone_no_reply"])
+            return
+        photo = reply.photo
+        result = await self._set_profile_photo(photo)
+        await self._process_pfpone_result(result, message)
+
+    async def _process_pfpone_result(self, result, message):
+        """Обработка результата _set_profile_photo для команды pfpone."""
+        if result is True:
+            await utils.answer(message, self.strings["pfpone_success"])
+        elif isinstance(result, errors.FloodWaitError):
+            await self._handle_flood_wait(result)
+        elif isinstance(
+            result,
+            (
+                PhotoInvalidDimensionsError,
+                PhotoCropSizeSmallError,
+                PhotoSaveFileInvalidError,
+            ),
+        ):
+            await self._handle_photo_invalid_error(result)
+        elif isinstance(result, MessageIdInvalidError):
+            await utils.answer(message, self.strings["pfpone_msg_not_found"])
+        else:
+            await utils.answer(
+                message, self.strings["pfpone_error"].format(error=str(result))
+            )
+
