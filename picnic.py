@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import random
 from datetime import datetime
 from collections import deque
 from typing import Optional, Dict, Union
@@ -16,6 +17,17 @@ from .. import loader, utils
 import json
 
 logger = logging.getLogger(__name__)
+
+CONFIG_ADAPTIVE_DELAY = "adaptive_delay"
+CONFIG_NOTIFY_ERRORS = "notify_errors"
+CONFIG_DEFAULT_DELAY = "default_delay"
+CONFIG_MIN_DELAY = "min_delay"
+CONFIG_MAX_DELAY = "max_delay"
+CONFIG_JITTER = "jitter"
+CONFIG_ERROR_THRESHOLD = "error_threshold"
+CONFIG_FLOOD_MULTIPLIER = "flood_multiplier"
+CONFIG_SUCCESS_REDUCTION = "success_reduction"
+CONFIG_ERROR_PENALTY = "error_penalty"
 
 
 @loader.tds
@@ -62,13 +74,12 @@ class ProfileChangerMod(loader.Module):
         self.update_count = 0
         self.error_count = 0
         self.flood_count = 0
-        self.delay = self.config["default_delay"]
+        self.delay = self.config[CONFIG_DEFAULT_DELAY]
         self.chat_id = None
         self.message_id = None
         self.floods = deque(maxlen=10)
         self.success_streak = 0
         self._retries = 0
-        self._last_command_time = None
 
     def __init__(self):
         self.config = loader.ModuleConfig(
@@ -213,9 +224,10 @@ class ProfileChangerMod(loader.Module):
         self.floods.append(datetime.now())
         self.success_streak = 0
         self.delay = min(
-            self.config["max_delay"], self.delay * self.config["flood_multiplier"]
+            self.config[CONFIG_MAX_DELAY],
+            self.delay * self.config[CONFIG_FLOOD_MULTIPLIER],
         )
-        if self.config["notify_errors"]:
+        if self.config[CONFIG_NOTIFY_ERRORS]:
             await self._client.send_message(
                 self.chat_id,
                 self.strings["flood_wait"].format(
@@ -230,7 +242,7 @@ class ProfileChangerMod(loader.Module):
     async def _handle_photo_invalid_error(self, error):
         """Обработка ошибок неверного формата фото."""
         self.error_count += 1
-        if self.config["notify_errors"]:
+        if self.config[CONFIG_NOTIFY_ERRORS]:
             await self._client.send_message(
                 self.chat_id,
                 self.strings["photo_invalid"].format(error=str(error)),
@@ -242,7 +254,7 @@ class ProfileChangerMod(loader.Module):
         self.error_count += 1
         self.success_streak = 0
         self._retries += 1
-        if self.config["notify_errors"]:
+        if self.config[CONFIG_NOTIFY_ERRORS]:
             await self._client.send_message(
                 self.chat_id, self.strings["error"].format(error=str(error))
             )
@@ -291,7 +303,7 @@ class ProfileChangerMod(loader.Module):
 
     def _calculate_delay(self) -> float:
         """Расчет задержки"""
-        if not self.config["adaptive_delay"]:
+        if not self.config[CONFIG_ADAPTIVE_DELAY]:
             return self.delay
         delay = self.delay
 
@@ -300,21 +312,23 @@ class ProfileChangerMod(loader.Module):
             self.floods.popleft()
         if self.success_streak >= 5:
             delay = max(
-                self.config["min_delay"], delay * self.config["success_reduction"]
+                self.config[CONFIG_MIN_DELAY],
+                delay * self.config[CONFIG_SUCCESS_REDUCTION],
             )
         if self.floods:
             recent = len(self.floods)
             delay = min(
-                self.config["max_delay"],
-                delay * (self.config["flood_multiplier"] ** recent),
+                self.config[CONFIG_MAX_DELAY],
+                delay * (self.config[CONFIG_FLOOD_MULTIPLIER] ** recent),
             )
         if self._retries > 0:
-            delay *= self.config["error_penalty"]
-        import random
-
-        jitter = random.uniform(1 - self.config["jitter"], 1 + self.config["jitter"])
+            delay *= self.config[CONFIG_ERROR_PENALTY]
+        jitter = random.uniform(
+            1 - self.config[CONFIG_JITTER], 1 + self.config[CONFIG_JITTER]
+        )
         return max(
-            self.config["min_delay"], min(self.config["max_delay"], delay * jitter)
+            self.config[CONFIG_MIN_DELAY],
+            min(self.config[CONFIG_MAX_DELAY], delay * jitter),
         )
 
     async def _loop(self) -> None:
@@ -324,15 +338,15 @@ class ProfileChangerMod(loader.Module):
                 if await self._update():
                     await asyncio.sleep(self._calculate_delay())
                 else:
-                    if self._retries >= self.config["error_threshold"]:
+                    if self._retries >= self.config[CONFIG_ERROR_THRESHOLD]:
                         await self._stop()
                         break
-                    await asyncio.sleep(self.config["min_delay"])
+                    await asyncio.sleep(self.config[CONFIG_MIN_DELAY])
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.exception(f"Ошибка в цикле: {e}")
-                await asyncio.sleep(self.config["min_delay"])
+                logger.exception(f"Ошибка в цикле: {type(e).__name__}: {e}")
+                await asyncio.sleep(self.config[CONFIG_MIN_DELAY])
 
     def _format_time(self, seconds: float) -> str:
         """Форматирование времени"""
