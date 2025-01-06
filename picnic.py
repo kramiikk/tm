@@ -23,7 +23,6 @@ from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
-
 @loader.tds
 class ProfileChangerMod(loader.Module):
     """Автоматическое обновление фото профиля с адаптивной системой защиты"""
@@ -39,14 +38,14 @@ class ProfileChangerMod(loader.Module):
         "error": "❌ <b>Ошибка:</b> {error}",
         "flood_wait": "⚠️ <b>Флудвейт</b>\n\n• Новая задержка: {delay} мин\n• Ожидание: {wait} мин",
         "photo_invalid": "⚠️ <b>Неверный формат фото:</b> {error}",
-        "photo_too_small": "⚠️ <b>Фото слишком маленькое</b>",
+        "photo_too_small": "⚠️ <b>Одно или несколько размеров фото слишком малы</b>",
     }
 
     def __init__(self):
         self.config = loader.ModuleConfig(
             "safe_mode", True, "Безопасный режим",
             "adaptive_delay", True, "Адаптивные задержки",
-            "notify_errors", True, "Уведомления об ошибках", 
+            "notify_errors", True, "Уведомления об ошибках",
             "default_delay", 780, "Начальная задержка (сек)",
             "min_delay", 420, "Минимальная задержка (сек)",
             "max_delay", 1980, "Максимальная задержка (сек)",
@@ -143,7 +142,7 @@ class ProfileChangerMod(loader.Module):
         """Проверка размера фото"""
         if not photo or not hasattr(photo, 'sizes'):
             return False
-        
+
         min_size = self.config["min_photo_size"]
         for size in photo.sizes:
             if size.w < min_size or size.h < min_size:
@@ -154,19 +153,19 @@ class ProfileChangerMod(loader.Module):
         """Получение фото"""
         if not self.running:
             return None
-            
+
         try:
             message = await self._client.get_messages(self.chat_id, ids=self.message_id)
             if not message or not message.photo:
                 await self._stop("фото удалено")
                 return None
-                
+
             if not await self._check_photo_size(message.photo):
                 await self._stop("фото слишком маленькое")
                 return None
-                
+
             return message.photo
-            
+
         except MessageIdInvalidError:
             await self._stop("фото удалено")
             return None
@@ -191,7 +190,7 @@ class ProfileChangerMod(loader.Module):
                     file_reference=photo.file_reference
                 )
             ))
-            
+
             self.last_update = datetime.now()
             self.update_count += 1
             self.success_streak += 1
@@ -204,7 +203,7 @@ class ProfileChangerMod(loader.Module):
             self.floods.append(datetime.now())
             self.success_streak = 0
             self.delay = min(self.config["max_delay"], self.delay * self.config["flood_multiplier"])
-            
+
             if self.config["notify_errors"]:
                 await self._client.send_message(
                     self.chat_id,
@@ -231,7 +230,7 @@ class ProfileChangerMod(loader.Module):
             self.error_count += 1
             self.success_streak = 0
             self._retries += 1
-            
+
             if self.config["notify_errors"]:
                 await self._client.send_message(
                     self.chat_id,
@@ -293,8 +292,8 @@ class ProfileChangerMod(loader.Module):
         if hours:
             return f"{int(hours)}ч {int(minutes)}м"
         elif minutes:
-            return f"{int(minutes)}м {int(seconds)}с"
-        return f"{int(seconds)}с"
+            return f"{int(minutes)}м {round(seconds)}с"
+        return f"{round(seconds)}с"
 
     def _get_stats(self) -> Dict[str, str]:
         """Получение статистики"""
@@ -357,14 +356,14 @@ class ProfileChangerMod(loader.Module):
                 await utils.answer(message, self.strings["already_running"])
                 return
 
-            reply = await message.get_reply_message()
-            target = reply if reply and reply.photo else message if message.photo else None
+            target = await message.get_reply_message() if message.is_reply else message
+            photo_entity = target.photo if target else None
 
-            if not target or not target.photo:
+            if not photo_entity:
                 await utils.answer(message, self.strings["no_photo"])
                 return
 
-            if not await self._check_photo_size(target.photo):
+            if not await self._check_photo_size(photo_entity):
                 await utils.answer(message, self.strings["photo_too_small"])
                 return
 
@@ -394,18 +393,18 @@ class ProfileChangerMod(loader.Module):
         """Установить задержку в секундах (реплай)"""
         if not message.reply_to_message_id:
             return await utils.answer(message, "Ответьте на сообщение с числом (секунды)")
-            
+
         try:
             delay = float((await message.get_reply_message()).text)
             if delay < self.config["min_delay"] or delay > self.config["max_delay"]:
                 return await utils.answer(
-                    message, 
+                    message,
                     f"Задержка должна быть от {self.config['min_delay']} до {self.config['max_delay']} секунд"
                 )
-                
+
             self.delay = delay
             self._save_state()
             await utils.answer(message, f"✅ Установлена задержка {delay} секунд")
-            
+
         except ValueError:
             await utils.answer(message, "❌ Неверный формат числа")
