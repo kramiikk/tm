@@ -475,30 +475,30 @@ class ProfileChangerMod(loader.Module):
 
     async def _stop(self) -> None:
         """Остановка процесса автоматической смены фотографии."""
-        async with self._lock:
-            if not self.running:
-                return
-            self.running = False
+        if not self.running:
+            return
+        self.running = False
+
+        try:
+            if self._task and not self._task.done():
+                self._task.cancel()
+                try:
+                    await self._task
+                except asyncio.CancelledError:
+                    pass
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self._save_state)
 
             try:
-                if self._task and not self._task.done():
-                    self._task.cancel()
-                    try:
-                        await self._task
-                    except asyncio.CancelledError:
-                        pass
-                await asyncio.to_thread(self._save_state)
-
-                try:
-                    await self._send_stopping_message()
-                except Exception as e:
-                    logger.error(f"Ошибка при отправке сообщения об остановке: {e}")
-                await asyncio.to_thread(self._reset)
-
-                logger.info("Profile changer stopped successfully")
+                await self._send_stopping_message()
             except Exception as e:
-                logger.error(f"Ошибка при остановке Profile changer: {e}")
-                self._reset()
+                logger.error(f"Ошибка при отправке сообщения об остановке: {e}")
+            await loop.run_in_executor(None, self._reset)
+
+            logger.info("Profile changer stopped successfully")
+        except Exception as e:
+            logger.error(f"Ошибка при остановке Profile changer: {e}")
+            self._reset()
 
     @loader.command()
     async def pfp(self, message):
@@ -526,13 +526,21 @@ class ProfileChangerMod(loader.Module):
     async def pfpstop(self, message):
         """Остановить смену фото профиля."""
         try:
-            async with asyncio.timeout(5):
+            # Используем wait_for вместо timeout
+
+            async with self._lock:
                 if not self.running:
                     await utils.answer(message, self.strings["not_running"])
                     return
-                await self._stop()
+                # Выполняем остановку с таймаутом
+
+                await asyncio.wait_for(self._stop(), timeout=5)
         except asyncio.TimeoutError:
             await utils.answer(message, "❌ Превышено время ожидания остановки")
+            self._reset()  # Принудительный сброс при таймауте
+        except Exception as e:
+            await utils.answer(message, f"❌ Ошибка при остановке: {str(e)}")
+            logger.error(f"Ошибка в pfpstop: {e}")
             self._reset()
 
     @loader.command()
