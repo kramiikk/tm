@@ -150,8 +150,8 @@ class ProfileChangerMod(loader.Module):
 
     def _get_state(self) -> Dict:
         """Получение текущего состояния модуля для сохранения."""
-        floods = list(self.floods) if hasattr(self, 'floods') else []
-        
+        floods = list(self.floods) if hasattr(self, "floods") else []
+
         state = {
             "running": self.running,
             "start_time": self.start_time.isoformat() if self.start_time else None,
@@ -165,7 +165,9 @@ class ProfileChangerMod(loader.Module):
             "success_streak": self.success_streak,
             "floods": [t.isoformat() for t in floods],
             "retries": self.retries,
-            "last_error_time": self.last_error_time.isoformat() if self.last_error_time else None
+            "last_error_time": (
+                self.last_error_time.isoformat() if self.last_error_time else None
+            ),
         }
         return state
 
@@ -175,28 +177,28 @@ class ProfileChangerMod(loader.Module):
             state_json = self._db.get(self.strings["name"], "state")
             if not state_json:
                 return
-
             state = json.loads(state_json)
-            
+
             if state.get("start_time"):
                 state["start_time"] = datetime.fromisoformat(state["start_time"])
             if state.get("last_update"):
                 state["last_update"] = datetime.fromisoformat(state["last_update"])
             if state.get("last_error_time"):
-                state["last_error_time"] = datetime.fromisoformat(state["last_error_time"])
-            
+                state["last_error_time"] = datetime.fromisoformat(
+                    state["last_error_time"]
+                )
             if "floods" in state:
                 floods_list = [datetime.fromisoformat(t) for t in state["floods"]]
                 state["floods"] = deque(floods_list, maxlen=10)
-            
             for key, value in state.items():
                 setattr(self, key, value)
-                
         except json.JSONDecodeError as e:
             logger.error(f"Ошибка декодирования JSON при загрузке состояния: {e}")
             self._reset()
         except Exception as e:
-            logger.error(f"Непредвиденная ошибка при загрузке состояния: {type(e).__name__}: {e}")
+            logger.error(
+                f"Непредвиденная ошибка при загрузке состояния: {type(e).__name__}: {e}"
+            )
             self._reset()
 
     async def _get_photo(self) -> Optional[types.Photo]:
@@ -474,13 +476,28 @@ class ProfileChangerMod(loader.Module):
     async def _stop(self) -> None:
         """Остановка процесса автоматической смены фотографии."""
         async with self._lock:
-            if self.running:
-                self.running = False
-                self._save_state()
-                if self._task:
+            if not self.running:
+                return
+            self.running = False
+
+            try:
+                if self._task and not self._task.done():
                     self._task.cancel()
-                await self._send_stopping_message()
-                logger.info("Profile changer stopped.")
+                    try:
+                        await self._task
+                    except asyncio.CancelledError:
+                        pass
+                await asyncio.to_thread(self._save_state)
+
+                try:
+                    await self._send_stopping_message()
+                except Exception as e:
+                    logger.error(f"Ошибка при отправке сообщения об остановке: {e}")
+                await asyncio.to_thread(self._reset)
+
+                logger.info("Profile changer stopped successfully")
+            except Exception as e:
+                logger.error(f"Ошибка при остановке Profile changer: {e}")
                 self._reset()
 
     @loader.command()
@@ -508,11 +525,15 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpstop(self, message):
         """Остановить смену фото профиля."""
-        async with self._lock:
-            if not self.running:
-                await utils.answer(message, self.strings["not_running"])
-                return
-            await self._stop()
+        try:
+            async with asyncio.timeout(5):
+                if not self.running:
+                    await utils.answer(message, self.strings["not_running"])
+                    return
+                await self._stop()
+        except asyncio.TimeoutError:
+            await utils.answer(message, "❌ Превышено время ожидания остановки")
+            self._reset()
 
     @loader.command()
     async def pfpstats(self, message):
