@@ -33,9 +33,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_DELAY = 900  # 15 минут
 MIN_DELAY = 600     # 10 минут
 MAX_DELAY = 3600    # 1 час
-JITTER = 0.1       # 10% случайности в задержке
+JITTER = 0.05       # Случайности в задержке
 ERROR_THRESHOLD = 3 # Количество ошибок до остановки
-RETRY_DELAY = 60   # Задержка между повторными попытками
+RETRY_DELAY = 300   # Задержка между повторными попытками
 
 @loader.tds
 class ProfileChangerMod(loader.Module):
