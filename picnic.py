@@ -164,7 +164,7 @@ class ProfileChangerMod(loader.Module):
             "message_id": self.message_id,
             "success_streak": self.success_streak,
             "floods": [t.isoformat() for t in floods],
-            "retries": self._retries,
+            "retries": self.retries,
             "last_error_time": self.last_error_time.isoformat() if self.last_error_time else None
         }
         return state
