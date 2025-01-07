@@ -1,4 +1,4 @@
-""" Author: @kramiikk """
+""" Author: kramiikk - Telegram: @ilvij """
 
 import asyncio
 import logging
@@ -25,21 +25,20 @@ CONFIG_MIN_DELAY = "min_delay"
 CONFIG_MAX_DELAY = "max_delay"
 CONFIG_JITTER = "jitter"
 CONFIG_ERROR_THRESHOLD = "error_threshold"
-CONFIG_FLOOD_MULTIPLIER = "flood_multiplier"
 CONFIG_SUCCESS_REDUCTION = "success_reduction"
-CONFIG_ERROR_PENALTY = "error_penalty"
+CONFIG_DELAY_MULTIPLIER = "delay_multiplier"
 CONFIG_ERROR_COOLDOWN = "error_cooldown"
 
 
 @loader.tds
 class ProfileChangerMod(loader.Module):
-    """Автоматическое обновление фото профиля с адаптивной системой защиты"""
+    """Автоматическое обновление фото профиля с адаптивной системой защиты."""
 
     strings = {
         "name": "ProfileChanger",
         "starting": "🔄 <b>Запуск смены фото профиля</b>\n\n• Задержка: {delay_minutes:.0f} мин\n• ~{updates_per_hour} обновлений/час",
-        "stopping": "🛑 <b>Остановка</b>\n\n• Обновлений: {count}\n• Время: {uptime}\n• Ошибок: {errors}",
-        "stats": "📊 <b>Статистика</b>\n\n• Статус: {status}\n• Время: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay:.1f} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}\n\n⚙️ <b>Адаптация задержки:</b>\n{delay_details}",
+        "stopping": "🛑 <b>Остановка</b>\n• Обновлений: {count}\n• С момента запуска: {uptime}\n• Ошибок: {errors}",
+        "stats": "📊 <b>Статистика</b>\n• Статус: {status}\n• С момента запуска: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay:.1f} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}\n\n⚙️ <b>Адаптация задержки:</b>\n{delay_details}",
         "no_photo": "❌ <b>Ответьте на фото</b>",
         "already_running": "⚠️ <b>Уже запущено</b>",
         "not_running": "⚠️ <b>Не запущено</b>",
@@ -53,6 +52,8 @@ class ProfileChangerMod(loader.Module):
         "delay_details_recent_flood": "  • Недавний флудвейт: увеличение задержки",
         "delay_details_recent_error": "  • Недавняя ошибка: увеличение задержки",
         "delay_details_jitter": "  • Случайность: +/- {jitter_percent:.0f}%",
+        "stopping_timeout": "⏳ <b>Остановка выполняется в фоновом режиме...</b>",
+        "stopped_successfully": "✅ <b>Успешно остановлено</b>",
     }
 
     _state_keys = [
@@ -97,31 +98,29 @@ class ProfileChangerMod(loader.Module):
             True,
             "Уведомления об ошибках",
             "default_delay",
-            780,
+            777,
             "Начальная задержка (сек)",
             "min_delay",
-            420,
+            666,
             "Минимальная задержка (сек)",
             "max_delay",
-            1980,
+            888,
             "Максимальная задержка (сек)",
             "jitter",
             0.3,
             "Случайность (0.0-1.0)",
             "error_threshold",
-            2,
+            3,
             "Порог ошибок",
-            "flood_multiplier",
-            1.2,
-            "Множитель флудвейта",
             "success_reduction",
             0.9,
             "Снижение при успехе",
-            "error_penalty",
-            1.1,
             "error_cooldown",
             300,
             "Время 'остывания' после ошибки (сек)",
+            "delay_multiplier",
+            1.2,
+            "Множитель задержки при ошибках и флудвейтах",
         )
         self._lock = asyncio.Lock()
         self._init_state()
@@ -252,7 +251,7 @@ class ProfileChangerMod(loader.Module):
         self.success_streak = 0
         self.delay = min(
             self.config[CONFIG_MAX_DELAY],
-            self.delay * self.config[CONFIG_FLOOD_MULTIPLIER],
+            self.delay * self.config[CONFIG_DELAY_MULTIPLIER],
         )
         if self.config[CONFIG_NOTIFY_ERRORS]:
             await self._client.send_message(
@@ -337,27 +336,37 @@ class ProfileChangerMod(loader.Module):
         delay = self.delay
         now = datetime.now()
 
+        # Если недавно была ошибка, увеличиваем задержку, чтобы дать системе "остыть".
+
         if (
             self.last_error_time
             and (now - self.last_error_time).total_seconds()
             < self.config[CONFIG_ERROR_COOLDOWN]
         ):
-            delay *= self.config[CONFIG_ERROR_PENALTY]
+            delay *= self.config[CONFIG_DELAY_MULTIPLIER]
+        # Если было несколько успешных обновлений подряд, уменьшаем задержку.
+
         if self.success_streak >= 5:
             delay = max(
                 self.config[CONFIG_MIN_DELAY],
                 delay * self.config[CONFIG_SUCCESS_REDUCTION],
             )
+        # Учитываем недавние флудвейты, увеличивая задержку.
+
         while self.floods and (now - self.floods[0]).total_seconds() > 3600:
             self.floods.popleft()
         if self.floods:
             recent_floods = len(self.floods)
             delay = min(
                 self.config[CONFIG_MAX_DELAY],
-                delay * (self.config[CONFIG_FLOOD_MULTIPLIER] ** recent_floods),
+                delay * (self.config[CONFIG_DELAY_MULTIPLIER] ** recent_floods),
             )
+        # Если были неудачные попытки обновления, увеличиваем задержку.
+
         if self.retries > 0:
-            delay *= self.config[CONFIG_ERROR_PENALTY]
+            delay *= self.config[CONFIG_DELAY_MULTIPLIER]
+        # Добавляем случайность в задержку для более естественного поведения.
+
         jitter = random.uniform(
             1 - self.config[CONFIG_JITTER], 1 + self.config[CONFIG_JITTER]
         )
@@ -530,10 +539,15 @@ class ProfileChangerMod(loader.Module):
                 if not self.running:
                     await utils.answer(message, self.strings["not_running"])
                     return
-                await asyncio.wait_for(self._stop(), timeout=5)
-            await utils.answer(message, "Успешно остановлено")
+                await utils.answer(message, self.strings["stopping_timeout"])
+                await asyncio.wait_for(self._stop(), timeout=9)
+            await utils.answer(message, self.strings["stopped_successfully"])
         except asyncio.TimeoutError:
-            await utils.answer(message, "❌ Превышено время ожидания остановки")
+            await utils.answer(message, self.strings["stopping_timeout"])
+            await utils.answer(
+                message,
+                "❌ <b>Превышено время ожидания остановки. Попробуйте позже.</b>",
+            )
             self._reset()
         except Exception as e:
             await utils.answer(message, f"❌ Ошибка при остановке: {str(e)}")
