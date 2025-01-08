@@ -27,7 +27,6 @@ CONFIG_JITTER = "jitter"
 CONFIG_ERROR_THRESHOLD = "error_threshold"
 CONFIG_SUCCESS_REDUCTION = "success_reduction"
 CONFIG_DELAY_MULTIPLIER = "delay_multiplier"
-CONFIG_ERROR_COOLDOWN = "error_cooldown"
 
 
 @loader.tds
@@ -115,9 +114,6 @@ class ProfileChangerMod(loader.Module):
             "success_reduction",
             0.9,
             "Снижение при успехе",
-            "error_cooldown",
-            300,
-            "Время 'остывания' после ошибки (сек)",
             "delay_multiplier",
             1.3,
             "Множитель задержки при ошибках и флудвейтах",
@@ -364,7 +360,7 @@ class ProfileChangerMod(loader.Module):
         if (
             self.last_error_time
             and (now - self.last_error_time).total_seconds()
-            < self.config[CONFIG_ERROR_COOLDOWN]
+            < self.config[CONFIG_MAX_DELAY]
         ):
             delay *= self.config[CONFIG_DELAY_MULTIPLIER]
         if self.floods:
@@ -425,7 +421,7 @@ class ProfileChangerMod(loader.Module):
         if (
             self.last_error_time
             and (now - self.last_error_time).total_seconds()
-            < self.config[CONFIG_ERROR_COOLDOWN]
+            < self.config[CONFIG_MAX_DELAY]
         ):
             details.append(self.strings["delay_details_recent_error"])
         if self.config[CONFIG_JITTER] > 0:
