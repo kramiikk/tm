@@ -349,8 +349,6 @@ class ProfileChangerMod(loader.Module):
         base_delay = self.delay
         now = datetime.now()
 
-        # Снижаем задержку при успешных обновлениях
-
         if self.success_streak >= 5:
             base_delay *= self.config[CONFIG_SUCCESS_REDUCTION]
         available_ranges = [
@@ -520,8 +518,6 @@ class ProfileChangerMod(loader.Module):
                     pass
             await asyncio.get_event_loop().run_in_executor(None, self._save_state)
             await self._send_stopping_message()
-
-            # Только один раз вызываем reset
 
             self._reset()
 
