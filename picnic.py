@@ -98,13 +98,13 @@ class ProfileChangerMod(loader.Module):
             True,
             "Уведомления об ошибках",
             "default_delay",
-            777,
+            813,
             "Начальная задержка (сек)",
             "min_delay",
-            666,
+            701,
             "Минимальная задержка (сек)",
             "max_delay",
-            888,
+            930,
             "Максимальная задержка (сек)",
             "jitter",
             0.3,
@@ -119,9 +119,19 @@ class ProfileChangerMod(loader.Module):
             300,
             "Время 'остывания' после ошибки (сек)",
             "delay_multiplier",
-            1.2,
+            1.3,
             "Множитель задержки при ошибках и флудвейтах",
         )
+        self.multiplier_ranges = [
+            (0.85, 1.0),
+            (1.15, 1.3),
+            (1.45, 1.7),
+            (0.85, 0.95),
+            (1.15, 1.25),
+            (1.45, 1.55),
+        ]
+        self.recent_multipliers = deque(maxlen=3)
+        self.total_updates_cycle = 0
         self._lock = asyncio.Lock()
         self._init_state()
 
@@ -330,13 +340,26 @@ class ProfileChangerMod(loader.Module):
         return await self._process_set_photo_result(result)
 
     def _calculate_delay(self) -> float:
-        """Расчет задержки между обновлениями с учетом адаптивных параметров."""
+        """Calculates the delay with optimized and randomized intervals."""
         if not self.config[CONFIG_ADAPTIVE_DELAY]:
             return self.delay
-        delay = self.delay
+        base_delay = self.delay
         now = datetime.now()
 
-        # Если недавно была ошибка, увеличиваем задержку, чтобы дать системе "остыть".
+        available_ranges = [
+            r for r in self.multiplier_ranges if r not in self.recent_multipliers
+        ]
+        if not available_ranges:
+            selected_range = random.choice(self.multiplier_ranges)
+        else:
+            selected_range = random.choice(available_ranges)
+        base_multiplier = random.uniform(selected_range[0], selected_range[1])
+        self.recent_multipliers.append(selected_range)
+
+        jitter = random.gauss(1.0, 0.1)
+        jitter = max(0.9, min(1.1, jitter))
+
+        delay = base_delay * base_multiplier * jitter
 
         if (
             self.last_error_time
@@ -344,36 +367,20 @@ class ProfileChangerMod(loader.Module):
             < self.config[CONFIG_ERROR_COOLDOWN]
         ):
             delay *= self.config[CONFIG_DELAY_MULTIPLIER]
-        # Если было несколько успешных обновлений подряд, уменьшаем задержку.
-
-        if self.success_streak >= 5:
-            delay = max(
-                self.config[CONFIG_MIN_DELAY],
-                delay * self.config[CONFIG_SUCCESS_REDUCTION],
-            )
-        # Учитываем недавние флудвейты, увеличивая задержку.
-
-        while self.floods and (now - self.floods[0]).total_seconds() > 3600:
-            self.floods.popleft()
         if self.floods:
             recent_floods = len(self.floods)
             delay = min(
                 self.config[CONFIG_MAX_DELAY],
                 delay * (self.config[CONFIG_DELAY_MULTIPLIER] ** recent_floods),
             )
-        # Если были неудачные попытки обновления, увеличиваем задержку.
+        self.total_updates_cycle += 1
 
-        if self.retries > 0:
-            delay *= self.config[CONFIG_DELAY_MULTIPLIER]
-        # Добавляем случайность в задержку для более естественного поведения.
-
-        jitter = random.uniform(
-            1 - self.config[CONFIG_JITTER], 1 + self.config[CONFIG_JITTER]
+        logger.info(
+            f"Success streak: {self.success_streak}, Current delay: {delay:.2f} seconds"
         )
 
         return max(
-            self.config[CONFIG_MIN_DELAY],
-            min(self.config[CONFIG_MAX_DELAY], delay * jitter),
+            self.config[CONFIG_MIN_DELAY], min(self.config[CONFIG_MAX_DELAY], delay)
         )
 
     async def _loop(self) -> None:
