@@ -155,7 +155,7 @@ class ProfileChangerMod(loader.Module):
 
     def _get_state(self) -> Dict:
         """Получение текущего состояния модуля для сохранения."""
-        floods = list(self.floods) if hasattr(self, "floods") else []
+        floods = list(self.floods) if hasattr(self, "floods") and self.floods else []
 
         state = {
             "running": self.running,
@@ -305,7 +305,8 @@ class ProfileChangerMod(loader.Module):
             self.retries = 0
             self._save_state()
             logger.info(
-                f"Фото профиля успешно обновлено. Всего обновлений: {self.update_count}"
+                f"Фото профиля обновлено. Обновлений: {self.update_count}, "
+                f"Текущая серия успехов: {self.success_streak}"
             )
             return True
         elif isinstance(result, errors.FloodWaitError):
@@ -327,13 +328,19 @@ class ProfileChangerMod(loader.Module):
 
     async def _update(self) -> bool:
         """Попытка обновить фотографию профиля."""
-        if not self.running:
+        try:
+            if not self.running:
+                return False
+            photo = await self._get_photo()
+            if not photo:
+                return False
+            result = await self._set_profile_photo(photo)
+            return await self._process_set_photo_result(result)
+        except Exception as e:
+            await self._handle_generic_error(e)
             return False
-        photo = await self._get_photo()
-        if not photo:
-            return False
-        result = await self._set_profile_photo(photo)
-        return await self._process_set_photo_result(result)
+        finally:
+            photo = None
 
     def _calculate_delay(self) -> float:
         """Calculates the delay with optimized and randomized intervals."""
@@ -342,6 +349,10 @@ class ProfileChangerMod(loader.Module):
         base_delay = self.delay
         now = datetime.now()
 
+        # Снижаем задержку при успешных обновлениях
+
+        if self.success_streak >= 5:
+            base_delay *= self.config[CONFIG_SUCCESS_REDUCTION]
         available_ranges = [
             r for r in self.multiplier_ranges if r not in self.recent_multipliers
         ]
@@ -352,8 +363,10 @@ class ProfileChangerMod(loader.Module):
         base_multiplier = random.uniform(selected_range[0], selected_range[1])
         self.recent_multipliers.append(selected_range)
 
-        jitter = random.gauss(1.0, 0.1)
-        jitter = max(0.9, min(1.1, jitter))
+        jitter = random.gauss(1.0, self.config[CONFIG_JITTER])
+        jitter = max(
+            1 - self.config[CONFIG_JITTER], min(1 + self.config[CONFIG_JITTER], jitter)
+        )
 
         delay = base_delay * base_multiplier * jitter
 
@@ -383,8 +396,15 @@ class ProfileChangerMod(loader.Module):
         """Основной асинхронный цикл для периодического обновления фотографии."""
         while self.running:
             try:
+                now = datetime.now()
+                calculated_delay = self._calculate_delay()
+
+                if self.last_update:
+                    elapsed = (now - self.last_update).total_seconds()
+                    if elapsed < calculated_delay:
+                        await asyncio.sleep(calculated_delay - elapsed)
                 if await self._update():
-                    await asyncio.sleep(self._calculate_delay())
+                    await asyncio.sleep(calculated_delay)
                 else:
                     if self.retries >= self.config[CONFIG_ERROR_THRESHOLD]:
                         await self._stop()
@@ -498,14 +518,12 @@ class ProfileChangerMod(loader.Module):
                     await self._task
                 except asyncio.CancelledError:
                     pass
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self._save_state)
+            await asyncio.get_event_loop().run_in_executor(None, self._save_state)
+            await self._send_stopping_message()
 
-            try:
-                await self._send_stopping_message()
-            except Exception as e:
-                logger.error(f"Ошибка при отправке сообщения об остановке: {e}")
-            await loop.run_in_executor(None, self._reset)
+            # Только один раз вызываем reset
+
+            self._reset()
 
             logger.info("Profile changer stopped successfully")
         except Exception as e:
