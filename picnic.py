@@ -5,7 +5,7 @@ import logging
 import random
 from datetime import datetime
 from collections import deque
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, List
 from telethon import functions, types, errors
 from telethon.errors.rpcerrorlist import (
     MessageIdInvalidError,
@@ -15,6 +15,8 @@ from telethon.errors.rpcerrorlist import (
 )
 from .. import loader, utils
 import json
+import os
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,12 @@ class ProfileChangerMod(loader.Module):
         "delay_details_jitter": "  • Случайность: +/- {jitter_percent:.0f}%",
         "stopping_timeout": "⏳ <b>Остановка выполняется в фоновом режиме...</b>",
         "stopped_successfully": "✅ <b>Успешно остановлено</b>",
+        "dir_not_found": "❌ <b>Директория не найдена: /root/Heroku/new</b>",
+        "no_photos": "❌ <b>В директории нет подходящих фотографий</b>",
+        "invalid_delay": "❌ <b>Неверная задержка. Используйте число секунд</b>",
+        "loading_from_dir": "🔄 <b>Загрузка фотографий из директории...</b>\n\n• Найдено фото: {count}\n• Задержка: {delay} сек",
+        "dir_complete": "✅ <b>Загрузка завершена</b>\n\n• Загружено: {uploaded}\n• Ошибок: {errors}\n• Прошло времени: {elapsed}",
+        "current_photo": "📸 <b>Загружаю фото:</b> {photo}\n<b>Прогресс:</b> {current}/{total}",
     }
 
     _state_keys = [
@@ -155,12 +163,18 @@ class ProfileChangerMod(loader.Module):
 
     def _get_state(self) -> Dict:
         """Получение текущего состояния модуля для сохранения."""
-        floods = list(self.floods) if hasattr(self, "floods") and self.floods else []
+        floods = (
+            list(self.floods) if hasattr(self, "floods") and self.floods else []
+        )
 
         state = {
             "running": self.running,
-            "start_time": self.start_time.isoformat() if self.start_time else None,
-            "last_update": self.last_update.isoformat() if self.last_update else None,
+            "start_time": (
+                self.start_time.isoformat() if self.start_time else None
+            ),
+            "last_update": (
+                self.last_update.isoformat() if self.last_update else None
+            ),
             "update_count": self.update_count,
             "error_count": self.error_count,
             "flood_count": self.flood_count,
@@ -171,7 +185,9 @@ class ProfileChangerMod(loader.Module):
             "floods": [t.isoformat() for t in floods],
             "retries": self.retries,
             "last_error_time": (
-                self.last_error_time.isoformat() if self.last_error_time else None
+                self.last_error_time.isoformat()
+                if self.last_error_time
+                else None
             ),
         }
         return state
@@ -185,20 +201,28 @@ class ProfileChangerMod(loader.Module):
             state = json.loads(state_json)
 
             if state.get("start_time"):
-                state["start_time"] = datetime.fromisoformat(state["start_time"])
+                state["start_time"] = datetime.fromisoformat(
+                    state["start_time"]
+                )
             if state.get("last_update"):
-                state["last_update"] = datetime.fromisoformat(state["last_update"])
+                state["last_update"] = datetime.fromisoformat(
+                    state["last_update"]
+                )
             if state.get("last_error_time"):
                 state["last_error_time"] = datetime.fromisoformat(
                     state["last_error_time"]
                 )
             if "floods" in state:
-                floods_list = [datetime.fromisoformat(t) for t in state["floods"]]
+                floods_list = [
+                    datetime.fromisoformat(t) for t in state["floods"]
+                ]
                 state["floods"] = deque(floods_list, maxlen=10)
             for key, value in state.items():
                 setattr(self, key, value)
         except json.JSONDecodeError as e:
-            logger.error(f"Ошибка декодирования JSON при загрузке состояния: {e}")
+            logger.error(
+                f"Ошибка декодирования JSON при загрузке состояния: {e}"
+            )
             self._reset()
         except Exception as e:
             logger.error(
@@ -211,7 +235,9 @@ class ProfileChangerMod(loader.Module):
         if not self.running:
             return None
         try:
-            message = await self._client.get_messages(self.chat_id, ids=self.message_id)
+            message = await self._client.get_messages(
+                self.chat_id, ids=self.message_id
+            )
             if not message or not message.photo:
                 await self._stop()
                 return None
@@ -352,7 +378,9 @@ class ProfileChangerMod(loader.Module):
         if self.success_streak >= 5:
             base_delay *= self.config[CONFIG_SUCCESS_REDUCTION]
         available_ranges = [
-            r for r in self.multiplier_ranges if r not in self.recent_multipliers
+            r
+            for r in self.multiplier_ranges
+            if r not in self.recent_multipliers
         ]
         if not available_ranges:
             selected_range = random.choice(self.multiplier_ranges)
@@ -363,7 +391,8 @@ class ProfileChangerMod(loader.Module):
 
         jitter = random.gauss(1.0, self.config[CONFIG_JITTER])
         jitter = max(
-            1 - self.config[CONFIG_JITTER], min(1 + self.config[CONFIG_JITTER], jitter)
+            1 - self.config[CONFIG_JITTER],
+            min(1 + self.config[CONFIG_JITTER], jitter),
         )
 
         delay = base_delay * base_multiplier * jitter
@@ -387,7 +416,8 @@ class ProfileChangerMod(loader.Module):
         )
 
         return max(
-            self.config[CONFIG_MIN_DELAY], min(self.config[CONFIG_MAX_DELAY], delay)
+            self.config[CONFIG_MIN_DELAY],
+            min(self.config[CONFIG_MAX_DELAY], delay),
         )
 
     async def _loop(self) -> None:
@@ -432,7 +462,8 @@ class ProfileChangerMod(loader.Module):
         if self.success_streak >= 5:
             details.append(self.strings["delay_details_success"])
         recent_flood = any(
-            (now - flood_time).total_seconds() < 3600 for flood_time in self.floods
+            (now - flood_time).total_seconds() < 3600
+            for flood_time in self.floods
         )
         if recent_flood:
             details.append(self.strings["delay_details_recent_flood"])
@@ -448,19 +479,31 @@ class ProfileChangerMod(loader.Module):
                     jitter_percent=self.config[CONFIG_JITTER] * 100
                 )
             )
-        return "\n".join(details) if details else "  • Нет активных факторов адаптации"
+        return (
+            "\n".join(details)
+            if details
+            else "  • Нет активных факторов адаптации"
+        )
 
     def _get_stats(self) -> Dict[str, str]:
         """Получение статистики работы модуля."""
         now = datetime.now()
-        uptime = (now - self.start_time).total_seconds() if self.start_time else 0
-        last = (now - self.last_update).total_seconds() if self.last_update else 0
+        uptime = (
+            (now - self.start_time).total_seconds() if self.start_time else 0
+        )
+        last = (
+            (now - self.last_update).total_seconds() if self.last_update else 0
+        )
 
         return {
             "status": "✅ Работает" if self.running else "🛑 Остановлен",
             "uptime": self._format_time(uptime),
             "count": str(self.update_count),
-            "hourly": f"{self.update_count / (uptime/3600):.1f}" if uptime > 0 else "0",
+            "hourly": (
+                f"{self.update_count / (uptime/3600):.1f}"
+                if uptime > 0
+                else "0"
+            ),
             "delay": self.delay / 60,
             "last": self._format_time(last) if self.last_update else "никогда",
             "errors": str(self.error_count),
@@ -471,7 +514,9 @@ class ProfileChangerMod(loader.Module):
     def _save_state(self):
         """Сохранение текущего состояния модуля в базу данных."""
         try:
-            self._db.set(self.strings["name"], "state", json.dumps(self._get_state()))
+            self._db.set(
+                self.strings["name"], "state", json.dumps(self._get_state())
+            )
         except TypeError as e:
             logger.error(f"Ошибка сериализации состояния: {e}")
 
@@ -516,7 +561,9 @@ class ProfileChangerMod(loader.Module):
                     await self._task
                 except asyncio.CancelledError:
                     pass
-            await asyncio.get_event_loop().run_in_executor(None, self._save_state)
+            await asyncio.get_event_loop().run_in_executor(
+                None, self._save_state
+            )
             await self._send_stopping_message()
 
             self._reset()
@@ -526,6 +573,30 @@ class ProfileChangerMod(loader.Module):
             logger.error(f"Ошибка при остановке Profile changer: {e}")
             self._reset()
 
+    def _sort_photos(self, photos: List[str]) -> List[str]:
+        """Сортировка фотографий по номеру в имени файла в обратном порядке."""
+
+        def extract_number(filename):
+            match = re.search(r"frame-(\d+)", filename)
+            return int(match.group(1)) if match else 0
+
+        return sorted(photos, key=extract_number, reverse=True)
+
+    async def _upload_photo(self, path: str) -> Union[bool, Exception]:
+        """Загрузка одной фотографии на профиль."""
+        try:
+            await self._client(
+                functions.photos.UploadProfilePhotoRequest(
+                    file=await self._client.upload_file(path)
+                )
+            )
+            return True
+        except errors.FloodWaitError as e:
+            await asyncio.sleep(e.seconds)
+            return e
+        except Exception as e:
+            return e
+
     @loader.command()
     async def pfp(self, message):
         """Запустить смену фото профиля (ответьте на сообщение с фото)."""
@@ -533,7 +604,11 @@ class ProfileChangerMod(loader.Module):
             if self.running:
                 await utils.answer(message, self.strings["already_running"])
                 return
-            target = await message.get_reply_message() if message.is_reply else message
+            target = (
+                await message.get_reply_message()
+                if message.is_reply
+                else message
+            )
             photo_entity = target.photo if target else None
 
             if not photo_entity:
@@ -574,7 +649,9 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpstats(self, message):
         """Показать статистику работы модуля."""
-        await utils.answer(message, self.strings["stats"].format(**self._get_stats()))
+        await utils.answer(
+            message, self.strings["stats"].format(**self._get_stats())
+        )
 
     @loader.command()
     async def pfpdelay(self, message):
@@ -590,18 +667,102 @@ class ProfileChangerMod(loader.Module):
             )
         try:
             delay = float(args)
-            if delay < self.config["min_delay"] or delay > self.config["max_delay"]:
+            if (
+                delay < self.config["min_delay"]
+                or delay > self.config["max_delay"]
+            ):
                 return await utils.answer(
                     message,
                     f"Задержка должна быть от {self.config['min_delay']} до {self.config['max_delay']} секунд",
                 )
             self.delay = delay
             self._save_state()
-            await utils.answer(message, f"✅ Установлена задержка {delay} секунд")
+            await utils.answer(
+                message, f"✅ Установлена задержка {delay} секунд"
+            )
         except ValueError:
             await utils.answer(
                 message, "❌ Неверный формат числа. Введите число секунд."
             )
+
+    @loader.command()
+    async def pfpdir(self, message):
+        """Загрузить фотографии из директории /root/Heroku/new.
+
+        Использование: .pfpdir <задержка_в_секундах>
+        Пример: .pfpdir 60
+        """
+        args = utils.get_args(message)
+        if len(args) != 1:
+            await utils.answer(message, "ℹ️ Использование: .pfpdir <задержка>")
+            return
+
+        directory = "/root/Heroku/new"
+        try:
+            delay = float(args[0])
+            if delay < 0:
+                raise ValueError
+        except ValueError:
+            await utils.answer(message, self.strings["invalid_delay"])
+            return
+
+        if not os.path.isdir(directory):
+            await utils.answer(message, self.strings["dir_not_found"])
+            return
+
+        photos = [
+            f
+            for f in os.listdir(directory)
+            if f.startswith("ezgif-frame-") and f.endswith(".jpg")
+        ]
+
+        if not photos:
+            await utils.answer(message, self.strings["no_photos"])
+            return
+
+        photos = self._sort_photos(photos)
+
+        status_message = await utils.answer(
+            message,
+            self.strings["loading_from_dir"].format(
+                count=len(photos), delay=delay
+            ),
+        )
+
+        start_time = datetime.now()
+        uploaded = 0
+        errors = 0
+        total_photos = len(photos)
+
+        for index, photo in enumerate(photos, 1):
+            photo_path = os.path.join(directory, photo)
+
+            await utils.answer(
+                message,
+                self.strings["current_photo"].format(
+                    photo=photo, current=index, total=total_photos
+                ),
+            )
+
+            result = await self._upload_photo(photo_path)
+
+            if isinstance(result, bool) and result:
+                uploaded += 1
+            else:
+                errors += 1
+                logger.error(f"Error uploading {photo}: {result}")
+
+            await asyncio.sleep(delay)
+
+        elapsed = datetime.now() - start_time
+        await utils.answer(
+            message,
+            self.strings["dir_complete"].format(
+                uploaded=uploaded,
+                errors=errors,
+                elapsed=self._format_time(elapsed.total_seconds()),
+            ),
+        )
 
     @loader.command()
     async def pfpon(self, message):
