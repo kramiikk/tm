@@ -339,30 +339,39 @@ class ProfileChangerMod(loader.Module):
     async def _handle_operation_result(
         self,
         result: Union[bool, errors.FloodWaitError, Exception],
-        operation_type: str = "update",
+        operation_type: str = "update"
     ) -> bool:
         """Unified handler for profile operation results"""
-        if result is True:
+        def _handle_success():
             self.last_update = datetime.now()
             self.update_count += 1
             self.success_streak += 1
             self._save_state()
             return True
+
+        if (result is True or 
+            hasattr(result, 'photo') or 
+            isinstance(result, types.Photo) or
+            (isinstance(result, (dict, object)) and hasattr(result, 'photo'))):
+            return await _handle_success()
+            
         if isinstance(result, errors.FloodWaitError):
             await self._handle_error("flood", result)
             return False
+            
         if isinstance(
             result,
             (
                 PhotoInvalidDimensionsError,
                 PhotoCropSizeSmallError,
                 PhotoSaveFileInvalidError,
-            ),
+            )
         ):
             await self._handle_error(
                 "photo", result, stop=(operation_type == "update")
             )
             return False
+            
         await self._handle_error("generic", result)
         return False
 
