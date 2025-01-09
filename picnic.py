@@ -158,6 +158,9 @@ class ProfileChangerMod(loader.Module):
         self._load_state()
         if self.running:
             self._task = asyncio.create_task(self._loop())
+        if self._pfpdir_running:
+            asyncio.create_task(self._process_pfpdir())
+
         logger.info("ProfileChanger loaded")
 
     async def on_unload(self):
@@ -490,6 +493,31 @@ class ProfileChangerMod(loader.Module):
                 sleep_duration = base_sleep_time * (2**consecutive_errors)
                 await asyncio.sleep(min(sleep_duration, self.config[CONFIG_MAX_DELAY]))
 
+    async def _process_pfpdir(self): 
+        """Обработка команды pfpdir для загрузки фото из директории."""
+        async with self._lock:
+            if self.running or self._pfpdir_running:
+                logger.warning(self.strings["already_running"])
+                return
+            directory = self.config[CONFIG_PFPDIR_PATH]
+
+            if not os.path.isdir(directory):
+                logger.warning(self.strings["dir_not_found"].format(path=directory))
+                return
+            photos = [
+                f
+                for f in os.listdir(directory)
+                if f.startswith("ezgif-frame-")
+                and f.endswith((".jpg", ".jpeg", ".png"))
+            ]
+
+            photos = self._sort_photos(photos)
+
+            if not photos:
+                logger.warning(self.strings["no_photos"])
+
+            await self._init_photo_upload_session(photos, self.config[CONFIG_DEFAULT_DELAY])
+
     def _format_time(self, seconds: float) -> str:
         """Форматирование времени в человекочитаемый вид."""
         minutes, seconds = divmod(seconds, 60)
@@ -651,7 +679,7 @@ class ProfileChangerMod(loader.Module):
         return True
 
     async def _init_photo_upload_session(
-        self, photos: List[str], delay: float, adaptive_delay: bool
+        self, photos: List[str], delay: float
     ):
         """Инициализация сессии загрузки фотографий."""
         try:
@@ -667,7 +695,7 @@ class ProfileChangerMod(loader.Module):
             self._save_state()
 
             asyncio.create_task(
-                self._process_photo_upload_session(photos, delay, adaptive_delay)
+                self._process_photo_upload_session(photos, delay)
             )
         except Exception as e:
             self._pfpdir_running = False
@@ -675,7 +703,7 @@ class ProfileChangerMod(loader.Module):
             raise
 
     async def _process_photo_upload_session(
-        self, photos: List[str], delay: float, adaptive_delay: bool
+        self, photos: List[str], delay: float
     ):
         """Обработка сессии загрузки фотографий."""
         uploaded = errors = 0
@@ -698,12 +726,11 @@ class ProfileChangerMod(loader.Module):
                     logger.error(f"Ошибка при удалении {photo}: {e}")
             else:
                 errors += 1
-                logger.error(f"Ошибка при загрузке фотографии: {photo}")
-            sleep_duration = self._calculate_delay() if adaptive_delay else delay
+                logger.error(f"Ошибка при загрузке фотографии: {photo}") 
             logger.info(
-                f"Ожидание перед следующей загрузкой: {sleep_duration:.2f} секунд"
+                f"Ожидание перед следующей загрузкой: {delay:.1f} секунд"
             )
-            await asyncio.sleep(sleep_duration)
+            await asyncio.sleep(delay)
 
             self.last_update = datetime.now()
             self.update_count += 1
@@ -766,8 +793,7 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpstats(self, message):
         """Показать статистику работы модуля."""
-        formatted_stats = self.strings["stats"].format(**self._get_stats())
-        await utils.answer(message, formatted_stats)
+        await utils.answer(message, self.strings["stats"].format(**self._get_stats()))
 
     @loader.command()
     async def pfpdelay(self, message):
@@ -802,51 +828,8 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpdir(self, message):
         """Загрузить фотографии из директории."""
-
         try:
-            async with self._lock:
-                if self.running or self._pfpdir_running:
-                    return await utils.answer(message, self.strings["already_running"])
-                directory = self.config[CONFIG_PFPDIR_PATH]
-
-                if not os.path.isdir(directory):
-                    logger.warning(f"Директория не найдена: {directory}")
-                    return await utils.answer(
-                        message,
-                        self.strings["dir_not_found"].format(path=directory),
-                    )
-                photos = [
-                    f
-                    for f in os.listdir(directory)
-                    if f.startswith("ezgif-frame-")
-                    and f.endswith((".jpg", ".jpeg", ".png"))
-                ]
-
-                photos = self._sort_photos(photos)
-
-                if not photos:
-                    logger.warning("Фотографии не найдены")
-                    return await utils.answer(message, self.strings["no_photos"])
-                args = utils.get_args(message)
-                try:
-                    delay = (
-                        float(args[0]) if args else self.config[CONFIG_DEFAULT_DELAY]
-                    )
-                    adaptive_delay = not args
-                except ValueError:
-                    logger.warning("Неверная задержка")
-                    return await utils.answer(message, self.strings["invalid_delay"])
-                await self._init_photo_upload_session(photos, delay, adaptive_delay)
-
-                await utils.answer(
-                    message,
-                    self.strings["loading_from_dir"].format(
-                        count=len(photos),
-                        delay=(
-                            "адаптивная" if adaptive_delay else self._format_time(delay)
-                        ),
-                    ),
-                )
+            await self._process_pfpdir()
         except Exception as e:
             self._pfpdir_running = False
             logger.exception(f"Ошибка в pfpdir: {e}")
