@@ -446,10 +446,6 @@ class ProfileChangerMod(loader.Module):
             )
         self.total_updates_cycle += 1
 
-        logger.info(
-            f"Success streak: {self.success_streak}, Current delay: {delay:.2f} seconds, Multiplier Range: {selected_range}"
-        )
-
         return max(
             self.config[CONFIG_MIN_DELAY],
             min(self.config[CONFIG_MAX_DELAY], delay),
@@ -569,7 +565,7 @@ class ProfileChangerMod(loader.Module):
         stats["Флудвейтов"] = str(self.flood_count)
         stats["Адаптация задержки"] = f"\n{self._get_delay_details()}"
 
-        return "\n".join([f"• <b>{key}:</b> {value}" for key, value in stats.items()])
+        return stats
 
     def _save_state(self):
         """Сохранение текущего состояния модуля в базу данных."""
@@ -698,7 +694,6 @@ class ProfileChangerMod(loader.Module):
                 uploaded += 1
                 try:
                     os.remove(photo_path)
-                    logger.info(f"Удалена фотография после загрузки: {photo}")
                 except OSError as e:
                     logger.error(f"Ошибка при удалении {photo}: {e}")
             else:
@@ -771,7 +766,8 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpstats(self, message):
         """Показать статистику работы модуля."""
-        await utils.answer(message, self.strings["stats"].format(**self._get_stats()))
+        formatted_stats = self.strings["stats"].format(**self._get_stats())
+        await utils.answer(message, formatted_stats)
 
     @loader.command()
     async def pfpdelay(self, message):
