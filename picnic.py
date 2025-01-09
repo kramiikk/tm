@@ -547,9 +547,7 @@ class ProfileChangerMod(loader.Module):
             if not photos:
                 logger.warning(self.strings["no_photos"])
 
-            await self._init_photo_upload_session(
-                photos, self.config[CONFIG_DEFAULT_DELAY]
-            )
+            await self._init_photo_upload_session(photos)
 
     def _format_time(self, seconds: float) -> str:
         """Форматирование времени в человекочитаемый вид."""
@@ -722,7 +720,7 @@ class ProfileChangerMod(loader.Module):
             return False
         return True
 
-    async def _init_photo_upload_session(self, photos: List[str], delay: float):
+    async def _init_photo_upload_session(self, photos: List[str]):
         """Инициализация сессии загрузки фотографий."""
         try:
             if self.running or self.pfpdir_running:
@@ -732,21 +730,16 @@ class ProfileChangerMod(loader.Module):
 
             self.pfpdir_running = True
             self.start_time = datetime.now()
-            self.delay = delay
 
             self._save_state()
 
-            asyncio.create_task(
-                self._process_photo_upload_session(photos, delay)
-            )
+            asyncio.create_task(self._process_photo_upload_session(photos))
         except Exception as e:
             self.pfpdir_running = False
             logger.exception(f"Ошибка в _init_photo_upload_session: {e}")
             raise
 
-    async def _process_photo_upload_session(
-        self, photos: List[str], delay: float
-    ):
+    async def _process_photo_upload_session(self, photos: List[str]):
         """Обработка сессии загрузки фотографий."""
         uploaded = errors = 0
         total_photos = len(photos)
@@ -769,10 +762,15 @@ class ProfileChangerMod(loader.Module):
             else:
                 errors += 1
                 logger.error(f"Ошибка при загрузке фотографии: {photo}")
+            calculated_delay = (
+                self._calculate_delay()
+            )  # Получаем динамическую задержку
             logger.info(
-                f"Ожидание перед следующей загрузкой: {delay:.1f} секунд"
+                f"Ожидание перед следующей загрузкой: {calculated_delay:.1f} секунд"
             )
-            await asyncio.sleep(delay)
+            await asyncio.sleep(
+                calculated_delay
+            )  # Используем динамическую задержку
 
             self.last_update = datetime.now()
             self.update_count += 1
