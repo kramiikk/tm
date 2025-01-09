@@ -75,7 +75,7 @@ class ProfileChangerMod(loader.Module):
         "last_error_time",
         "total_updates_cycle",
         "recent_multiplier_uses",
-        "_pfpdir_running",
+        "pfpdir_running",
     ]
 
     def _init_state(self):
@@ -98,7 +98,7 @@ class ProfileChangerMod(loader.Module):
         self.last_error_time = None
         self.total_updates_cycle = 0
         self.recent_multiplier_uses: Dict[tuple, datetime] = {}
-        self._pfpdir_running = False
+        self.pfpdir_running = False
 
     def __init__(self):
         self.config = loader.ModuleConfig(
@@ -158,7 +158,8 @@ class ProfileChangerMod(loader.Module):
         self._load_state()
         if self.running:
             self._task = asyncio.create_task(self._loop())
-        if self._pfpdir_running:
+        if self.pfpdir_running:
+            self.pfpdir_running = False
             asyncio.create_task(self._process_pfpdir())
 
         logger.info("ProfileChanger loaded")
@@ -194,7 +195,7 @@ class ProfileChangerMod(loader.Module):
             "recent_multiplier_uses": {
                 str(k): v.isoformat() for k, v in self.recent_multiplier_uses.items()
             },
-            "_pfpdir_running": self._pfpdir_running,
+            "pfpdir_running": self.pfpdir_running,
         }
 
     def _load_state(self) -> None:
@@ -221,9 +222,9 @@ class ProfileChangerMod(loader.Module):
                     eval(k): datetime.fromisoformat(v)
                     for k, v in state["recent_multiplier_uses"].items()
                 }
-            if "_pfpdir_running" in state:
-                self._pfpdir_running = state[
-                    "_pfpdir_running"
+            if "pfpdir_running" in state:
+                self.pfpdir_running = state[
+                    "pfpdir_running"
                 ]
             for key, value in state.items():
                 setattr(self, key, value)
@@ -496,7 +497,7 @@ class ProfileChangerMod(loader.Module):
     async def _process_pfpdir(self): 
         """Обработка команды pfpdir для загрузки фото из директории."""
         async with self._lock:
-            if self.running or self._pfpdir_running:
+            if self.running or self.pfpdir_running:
                 logger.warning(self.strings["already_running"])
                 return
             directory = self.config[CONFIG_PFPDIR_PATH]
@@ -566,32 +567,32 @@ class ProfileChangerMod(loader.Module):
             (now - self.last_update).total_seconds() if self.last_update else 0
         )
 
-        stats["Статус"] = (
-            "✅ Работает" if self.running or self._pfpdir_running else "🛑 Остановлен"
+        stats["status"] = (
+            "✅ Работает" if self.running or self.pfpdir_running else "🛑 Остановлен"
         )
-        stats["С момента запуска"] = self._format_time(uptime_seconds)
-        stats["Обновлений"] = str(self.update_count)
-        stats["В час"] = (
+        stats["uptime"] = self._format_time(uptime_seconds)
+        stats["count"] = str(self.update_count)
+        stats["hourly"] = (
             f"{self.update_count / (uptime_seconds/3600):.1f}"
             if uptime_seconds > 0
             else "0"
         )
-        stats["Задержка"] = f"{self.delay / 60:.1f} мин"
+        stats["delay"] = f"{self.delay / 60:.1f} мин"
         if self.running:
             calculated_delay = self._calculate_delay()
             if self.last_update:
                 remaining_wait = (
                     calculated_delay - (now - self.last_update).total_seconds()
                 )
-                stats["Ожидание"] = self._format_time(max(0, remaining_wait))
+                stats["wait"] = self._format_time(max(0, remaining_wait))
             else:
-                stats["Ожидание"] = self._format_time(calculated_delay)
-        stats["Последнее"] = (
+                stats["wait"] = self._format_time(calculated_delay)
+        stats["last"] = (
             self._format_time(last_update_seconds) if self.last_update else "никогда"
         )
-        stats["Ошибок"] = str(self.error_count)
-        stats["Флудвейтов"] = str(self.flood_count)
-        stats["Адаптация задержки"] = f"\n{self._get_delay_details()}"
+        stats["errors"] = str(self.error_count)
+        stats["floods"] = str(self.flood_count)
+        stats["delay_details"] = f"\n{self._get_delay_details()}"
 
         return stats
 
@@ -610,7 +611,7 @@ class ProfileChangerMod(loader.Module):
         """Запуск процесса автоматической смены фотографии."""
         self._reset()
         async with self._lock:
-            if self.running or self._pfpdir_running:
+            if self.running or self.pfpdir_running:
                 return
             self.running = True
             self.start_time = datetime.now()
@@ -638,10 +639,10 @@ class ProfileChangerMod(loader.Module):
 
     async def _stop(self) -> None:
         """Остановка процесса автоматической смены фотографии."""
-        if not self.running and not self._pfpdir_running:
+        if not self.running and not self.pfpdir_running:
             return
         self.running = False
-        self._pfpdir_running = False
+        self.pfpdir_running = False
 
         try:
             if self._task and not self._task.done():
@@ -683,12 +684,12 @@ class ProfileChangerMod(loader.Module):
     ):
         """Инициализация сессии загрузки фотографий."""
         try:
-            if self.running or self._pfpdir_running:
+            if self.running or self.pfpdir_running:
                 logger.info("Сессия уже запущена")
                 return
             self._reset()
 
-            self._pfpdir_running = True
+            self.pfpdir_running = True
             self.start_time = datetime.now()
             self.delay = delay
 
@@ -698,7 +699,7 @@ class ProfileChangerMod(loader.Module):
                 self._process_photo_upload_session(photos, delay)
             )
         except Exception as e:
-            self._pfpdir_running = False
+            self.pfpdir_running = False
             logger.exception(f"Ошибка в _init_photo_upload_session: {e}")
             raise
 
@@ -711,7 +712,7 @@ class ProfileChangerMod(loader.Module):
         pfpdir_path = self.config[CONFIG_PFPDIR_PATH]
 
         for index, photo in enumerate(photos, 1):
-            if not self._pfpdir_running:
+            if not self.pfpdir_running:
                 logger.info("Загрузка прервана пользователем.")
                 break
             photo_path = os.path.join(pfpdir_path, photo)
@@ -735,7 +736,7 @@ class ProfileChangerMod(loader.Module):
             self.last_update = datetime.now()
             self.update_count += 1
             self._save_state()
-        self._pfpdir_running = False
+        self.pfpdir_running = False
         elapsed_time = datetime.now() - self.start_time
         logger.info(
             f"Сессия загрузки завершена. Загружено: {uploaded}, Удалено: {uploaded}, Ошибок: {errors}, Время: {elapsed_time}"
@@ -745,7 +746,7 @@ class ProfileChangerMod(loader.Module):
     async def pfp(self, message):
         """Запустить смену фото профиля (ответьте на сообщение с фото)."""
         async with self._lock:
-            if self.running or self._pfpdir_running:
+            if self.running or self.pfpdir_running:
                 await utils.answer(message, self.strings["already_running"])
                 return
             target = await message.get_reply_message() if message.is_reply else message
@@ -768,14 +769,14 @@ class ProfileChangerMod(loader.Module):
         """Остановить смену фото профиля."""
         try:
             async with self._lock:
-                if not self.running and not self._pfpdir_running:
+                if not self.running and not self.pfpdir_running:
                     await utils.answer(message, self.strings["not_running"])
                     return
                 stop_tasks = []
                 if self.running:
                     stop_tasks.append(self._stop())
-                if self._pfpdir_running:
-                    self._pfpdir_running = False
+                if self.pfpdir_running:
+                    self.pfpdir_running = False
                 if stop_tasks:
                     await asyncio.wait(stop_tasks, timeout=10)
             await utils.answer(message, self.strings["stopped_successfully"])
@@ -831,7 +832,7 @@ class ProfileChangerMod(loader.Module):
         try:
             await self._process_pfpdir()
         except Exception as e:
-            self._pfpdir_running = False
+            self.pfpdir_running = False
             logger.exception(f"Ошибка в pfpdir: {e}")
             await utils.answer(message, f"❌ Ошибка: {str(e)}")
 
