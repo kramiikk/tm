@@ -30,7 +30,6 @@ CONFIG_DELAY_MULTIPLIER = "delay_multiplier"
 CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE = "recent_multiplier_history_size"
 CONFIG_PFPDIR_PATH = "pfpdir_path"
 
-
 @loader.tds
 class ProfileChangerMod(loader.Module):
     """Автоматическое обновление фото профиля с адаптивной системой защиты."""
@@ -52,7 +51,6 @@ class ProfileChangerMod(loader.Module):
         "delay_details_recent_error": "  • Недавняя ошибка: увеличение задержки",
         "delay_details_weighted_multiplier": "  • Выбор множителя: взвешенный случайный",
         "delay_details_jitter": "  • Случайность: +/- {jitter_percent:.0f}%",
-        "stopping_timeout": "⏳ <b>Остановка выполняется в фоновом режиме...</b>",
         "stopped_successfully": "✅ <b>Успешно остановлено</b>",
         "dir_not_found": "❌ <b>Директория не найдена:</b> <code>{path}</code>",
         "no_photos": "❌ <b>В директории нет подходящих фотографий</b>",
@@ -349,16 +347,16 @@ class ProfileChangerMod(loader.Module):
             self._save_state()
             return True
 
-        if (result is True or 
-            hasattr(result, 'photo') or 
+        if (result is True or
+            hasattr(result, 'photo') or
             isinstance(result, types.Photo) or
             (isinstance(result, (dict, object)) and hasattr(result, 'photo'))):
-            return await _handle_success()
-            
+            return _handle_success()
+
         if isinstance(result, errors.FloodWaitError):
             await self._handle_error("flood", result)
             return False
-            
+
         if isinstance(
             result,
             (
@@ -371,7 +369,7 @@ class ProfileChangerMod(loader.Module):
                 "photo", result, stop=(operation_type == "update")
             )
             return False
-            
+
         await self._handle_error("generic", result)
         return False
 
@@ -605,7 +603,7 @@ class ProfileChangerMod(loader.Module):
         """Запуск процесса автоматической смены фотографии."""
         self._reset()
         async with self._lock:
-            if self.running:
+            if self.running or self._pfpdir_running:
                 return
             self.running = True
             self.start_time = datetime.now()
@@ -633,9 +631,10 @@ class ProfileChangerMod(loader.Module):
 
     async def _stop(self) -> None:
         """Остановка процесса автоматической смены фотографии."""
-        if not self.running:
+        if not self.running and not self._pfpdir_running:
             return
         self.running = False
+        self._pfpdir_running = False
 
         try:
             if self._task and not self._task.done():
@@ -677,10 +676,6 @@ class ProfileChangerMod(loader.Module):
     ):
         """Инициализация сессии загрузки фотографий."""
         try:
-            logger.info(
-                f"Инициализация сессии загрузки фото. Фото: {photos}, Задержка: {delay}, Адаптивная задержка: {adaptive_delay}"
-            )
-
             if self.running or self._pfpdir_running:
                 logger.info("Сессия уже запущена")
                 return
@@ -693,14 +688,11 @@ class ProfileChangerMod(loader.Module):
 
             self._save_state()
 
-            logger.info("Создание задачи для обработки фотографий")
             asyncio.create_task(
                 self._process_photo_upload_session(
                     photos, delay, adaptive_delay
                 )
             )
-
-            logger.info("Инициализация сессии завершена успешно")
 
         except Exception as e:
             self._pfpdir_running = False
@@ -711,9 +703,6 @@ class ProfileChangerMod(loader.Module):
         self, photos: List[str], delay: float, adaptive_delay: bool
     ):
         """Обработка сессии загрузки фотографий."""
-        logger.info(
-            f"Начало обработки сессии загрузки. Фото: {photos}, Задержка: {delay}, Адаптивная задержка: {adaptive_delay}"
-        )
         uploaded = errors = 0
         total_photos = len(photos)
         pfpdir_path = self.config[CONFIG_PFPDIR_PATH]
@@ -728,7 +717,6 @@ class ProfileChangerMod(loader.Module):
             success = await self._upload_photo(photo_path)
             if success:
                 uploaded += 1
-                logger.info(f"Фотография успешно загружена: {photo}")
                 try:
                     os.remove(photo_path)
                     logger.info(
@@ -791,8 +779,6 @@ class ProfileChangerMod(loader.Module):
                 if not self.running and not self._pfpdir_running:
                     await utils.answer(message, self.strings["not_running"])
                     return
-                await utils.answer(message, self.strings["stopping_timeout"])
-
                 stop_tasks = []
                 if self.running:
                     stop_tasks.append(self._stop())
@@ -854,18 +840,15 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpdir(self, message):
         """Загрузить фотографии из директории."""
-        logger.info("Вызвана команда .pfpdir")
 
         try:
             async with self._lock:
                 if self.running or self._pfpdir_running:
-                    logger.info("Сессия уже запущена")
                     return await utils.answer(
                         message, self.strings["already_running"]
                     )
 
                 directory = self.config[CONFIG_PFPDIR_PATH]
-                logger.info(f"Путь к директории: {directory}")
 
                 if not os.path.isdir(directory):
                     logger.warning(f"Директория не найдена: {directory}")
@@ -880,7 +863,6 @@ class ProfileChangerMod(loader.Module):
                     if f.startswith("ezgif-frame-")
                     and f.endswith((".jpg", ".jpeg", ".png"))
                 ]
-                logger.info(f"Найдено фотографий: {len(photos)}")
 
                 photos = self._sort_photos(photos)
 
