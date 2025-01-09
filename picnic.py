@@ -58,8 +58,6 @@ class ProfileChangerMod(loader.Module):
         "no_photos": "❌ <b>В директории нет подходящих фотографий</b>",
         "invalid_delay": "❌ <b>Неверная задержка. Используйте число секунд</b>",
         "loading_from_dir": "🔄 <b>Загрузка фотографий из директории...</b><br><br>• Найдено фото: {count}<br>• Задержка: {delay}",
-        "dir_complete": "✅ <b>Загрузка завершена</b><br><br>• Загружено: {uploaded}<br>• Удалено: {deleted}<br>• Ошибок: {errors}<br>• Прошло времени: {elapsed}",
-        "current_photo": "📸 <b>Загружаю фото:</b> <code>{photo}</code><br><b>Прогресс:</b> {current}/{total}",
     }
 
     _state_keys = [
@@ -666,9 +664,10 @@ class ProfileChangerMod(loader.Module):
         return True
 
     async def _init_photo_upload_session(
-        self, message, photos: List[str], delay: float, adaptive_delay: bool
+        self, photos: List[str], delay: float, adaptive_delay: bool
     ):
         """Инициализация сессии загрузки фотографий."""
+        logger.info(f"Инициализация сессии загрузки фото. Фото: {photos}, Задержка: {delay}, Адаптивная задержка: {adaptive_delay}") # Лог
         async with self._lock:
             if self.running or self._pfpdir_running:
                 logger.info(self.strings["already_running"])
@@ -698,36 +697,41 @@ class ProfileChangerMod(loader.Module):
         self, photos: List[str], delay: float, adaptive_delay: bool
     ):
         """Обработка сессии загрузки фотографий."""
+        logger.info(f"Начало обработки сессии загрузки. Фото: {photos}, Задержка: {delay}, Адаптивная задержка: {adaptive_delay}") # Лог
         uploaded = errors = 0
         total_photos = len(photos)
         pfpdir_path = self.config[CONFIG_PFPDIR_PATH]
 
         for index, photo in enumerate(photos, 1):
             if not self._pfpdir_running:
+                logger.info("Загрузка прервана пользователем.") # Лог
                 break
             photo_path = os.path.join(pfpdir_path, photo)
-            logger.info(
-                self.strings["current_photo"].format(
-                    photo=photo, current=index, total=total_photos
-                ),
-            )
+            logger.info(f"Обработка фото {index}/{total_photos}: {photo}")
 
             success = await self._upload_photo(photo_path)
             if success:
                 uploaded += 1
+                logger.info(f"Фотография успешно загружена: {photo}") # Лог
                 try:
                     os.remove(photo_path)
+                    logger.info(f"Удалена фотография после загрузки: {photo}") # Лог
                 except OSError as e:
-                    logger.error(f"Error deleting {photo}: {e}")
+                    logger.error(f"Ошибка при удалении {photo}: {e}") # Лог
             else:
                 errors += 1
-            await asyncio.sleep(
-                self._calculate_delay() if adaptive_delay else delay
-            )
+                logger.error(f"Ошибка при загрузке фотографии: {photo}") # Лог
+            sleep_duration = self._calculate_delay() if adaptive_delay else delay
+            logger.info(f"Ожидание перед следующей загрузкой: {sleep_duration:.2f} секунд") # Лог
+            await asyncio.sleep(sleep_duration)
 
             self.last_update = datetime.now()
             self.update_count += 1
             self._save_state()
+
+        self._pfpdir_running = False
+        elapsed_time = datetime.now() - self.start_time
+        logger.info(f"Сессия загрузки завершена. Загружено: {uploaded}, Удалено: {uploaded}, Ошибок: {errors}, Время: {elapsed_time}")
 
     @loader.command()
     async def pfp(self, message):
@@ -826,13 +830,16 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpdir(self, message):
         """Загрузить фотографии из директории."""
+        logger.info("Вызвана команда .pfpdir") # Лог
         async with self._lock:
             if self.running or self._pfpdir_running:
-                await utils.answer(message, self.strings["already_running"])
-                return
+                logger.info(self.strings["already_running"])
+                return await utils.answer(message, self.strings["already_running"])
             directory = self.config[CONFIG_PFPDIR_PATH]
+            logger.info(f"Путь к директории: {directory}") # Лог
 
             if not os.path.isdir(directory):
+                logger.warning(self.strings["dir_not_found"].format(path=directory))
                 return await utils.answer(
                     message,
                     self.strings["dir_not_found"].format(path=directory),
@@ -843,9 +850,11 @@ class ProfileChangerMod(loader.Module):
                 if f.startswith("ezgif-frame-")
                 and f.endswith((".jpg", ".jpeg", ".png"))
             ]
+            logger.info(f"Найденные фотографии в директории: {photos}") # Лог
             photos = self._sort_photos(photos)
 
             if not photos:
+                logger.warning(self.strings["no_photos"])
                 return await utils.answer(message, self.strings["no_photos"])
             args = utils.get_args(message)
             try:
@@ -855,16 +864,19 @@ class ProfileChangerMod(loader.Module):
                     else self.config[CONFIG_DEFAULT_DELAY]
                 )
                 adaptive_delay = not args
+                logger.info(f"Задержка: {delay}, Адаптивная задержка: {adaptive_delay}") # Лог
 
                 if delay < 0:
                     raise ValueError
             except ValueError:
+                logger.warning(self.strings["invalid_delay"])
                 return await utils.answer(
                     message, self.strings["invalid_delay"]
                 )
             await self._init_photo_upload_session(
-                message, photos, delay, adaptive_delay
+                photos, delay, adaptive_delay
             )
+            logger.info("Завершение обработки команды .pfpdir") # Лог
 
     @loader.command()
     async def pfpon(self, message):
