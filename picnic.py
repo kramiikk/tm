@@ -174,11 +174,17 @@ class ProfileChangerMod(loader.Module):
 
     def _get_state(self) -> Dict:
         """Получение текущего состояния модуля для сохранения."""
-        floods = list(self.floods) if hasattr(self, "floods") and self.floods else []
+        floods = (
+            list(self.floods) if hasattr(self, "floods") and self.floods else []
+        )
         return {
             "running": self.running,
-            "start_time": (self.start_time.isoformat() if self.start_time else None),
-            "last_update": (self.last_update.isoformat() if self.last_update else None),
+            "start_time": (
+                self.start_time.isoformat() if self.start_time else None
+            ),
+            "last_update": (
+                self.last_update.isoformat() if self.last_update else None
+            ),
             "update_count": self.update_count,
             "error_count": self.error_count,
             "flood_count": self.flood_count,
@@ -189,11 +195,14 @@ class ProfileChangerMod(loader.Module):
             "floods": [t.isoformat() for t in floods],
             "retries": self.retries,
             "last_error_time": (
-                self.last_error_time.isoformat() if self.last_error_time else None
+                self.last_error_time.isoformat()
+                if self.last_error_time
+                else None
             ),
             "total_updates_cycle": self.total_updates_cycle,
             "recent_multiplier_uses": {
-                str(k): v.isoformat() for k, v in self.recent_multiplier_uses.items()
+                str(k): v.isoformat()
+                for k, v in self.recent_multiplier_uses.items()
             },
             "pfpdir_running": self.pfpdir_running,
         }
@@ -207,15 +216,21 @@ class ProfileChangerMod(loader.Module):
             state = json.loads(state_json)
 
             if state.get("start_time"):
-                state["start_time"] = datetime.fromisoformat(state["start_time"])
+                state["start_time"] = datetime.fromisoformat(
+                    state["start_time"]
+                )
             if state.get("last_update"):
-                state["last_update"] = datetime.fromisoformat(state["last_update"])
+                state["last_update"] = datetime.fromisoformat(
+                    state["last_update"]
+                )
             if state.get("last_error_time"):
                 state["last_error_time"] = datetime.fromisoformat(
                     state["last_error_time"]
                 )
             if "floods" in state:
-                floods_list = [datetime.fromisoformat(t) for t in state["floods"]]
+                floods_list = [
+                    datetime.fromisoformat(t) for t in state["floods"]
+                ]
                 state["floods"] = deque(floods_list, maxlen=10)
             if "recent_multiplier_uses" in state:
                 self.recent_multiplier_uses = {
@@ -223,13 +238,13 @@ class ProfileChangerMod(loader.Module):
                     for k, v in state["recent_multiplier_uses"].items()
                 }
             if "pfpdir_running" in state:
-                self.pfpdir_running = state[
-                    "pfpdir_running"
-                ]
+                self.pfpdir_running = state["pfpdir_running"]
             for key, value in state.items():
                 setattr(self, key, value)
         except json.JSONDecodeError as e:
-            logger.error(f"Ошибка декодирования JSON при загрузке состояния: {e}")
+            logger.error(
+                f"Ошибка декодирования JSON при загрузке состояния: {e}"
+            )
             self._reset()
         except Exception as e:
             logger.error(
@@ -242,7 +257,9 @@ class ProfileChangerMod(loader.Module):
         if not self.running:
             return None
         try:
-            message = await self._client.get_messages(self.chat_id, ids=self.message_id)
+            message = await self._client.get_messages(
+                self.chat_id, ids=self.message_id
+            )
             if not message or not message.photo:
                 await self._stop()
                 return None
@@ -357,7 +374,9 @@ class ProfileChangerMod(loader.Module):
                 PhotoSaveFileInvalidError,
             ),
         ):
-            await self._handle_error("photo", result, stop=(operation_type == "update"))
+            await self._handle_error(
+                "photo", result, stop=(operation_type == "update")
+            )
             return False
         await self._handle_error("generic", result)
         return False
@@ -475,8 +494,13 @@ class ProfileChangerMod(loader.Module):
                         await asyncio.sleep(0)
                     else:
                         consecutive_errors += 1
-                        sleep_duration = base_sleep_time * (2**consecutive_errors)
-                        if consecutive_errors >= self.config[CONFIG_ERROR_THRESHOLD]:
+                        sleep_duration = base_sleep_time * (
+                            2**consecutive_errors
+                        )
+                        if (
+                            consecutive_errors
+                            >= self.config[CONFIG_ERROR_THRESHOLD]
+                        ):
                             logger.warning(
                                 f"Достигнут порог ошибок ({self.config[CONFIG_ERROR_THRESHOLD]}). Остановка."
                             )
@@ -486,15 +510,19 @@ class ProfileChangerMod(loader.Module):
                             min(sleep_duration, self.config[CONFIG_MAX_DELAY])
                         )
             except asyncio.CancelledError:
-                logger.info("Процесс смены фото профиля остановлен (CancelledError)")
+                logger.info(
+                    "Процесс смены фото профиля остановлен (CancelledError)"
+                )
                 break
             except Exception as e:
                 logger.exception(f"Ошибка в цикле: {type(e).__name__}: {e}")
                 consecutive_errors += 1
                 sleep_duration = base_sleep_time * (2**consecutive_errors)
-                await asyncio.sleep(min(sleep_duration, self.config[CONFIG_MAX_DELAY]))
+                await asyncio.sleep(
+                    min(sleep_duration, self.config[CONFIG_MAX_DELAY])
+                )
 
-    async def _process_pfpdir(self): 
+    async def _process_pfpdir(self):
         """Обработка команды pfpdir для загрузки фото из директории."""
         async with self._lock:
             if self.running or self.pfpdir_running:
@@ -503,7 +531,9 @@ class ProfileChangerMod(loader.Module):
             directory = self.config[CONFIG_PFPDIR_PATH]
 
             if not os.path.isdir(directory):
-                logger.warning(self.strings["dir_not_found"].format(path=directory))
+                logger.warning(
+                    self.strings["dir_not_found"].format(path=directory)
+                )
                 return
             photos = [
                 f
@@ -517,7 +547,9 @@ class ProfileChangerMod(loader.Module):
             if not photos:
                 logger.warning(self.strings["no_photos"])
 
-            await self._init_photo_upload_session(photos, self.config[CONFIG_DEFAULT_DELAY])
+            await self._init_photo_upload_session(
+                photos, self.config[CONFIG_DEFAULT_DELAY]
+            )
 
     def _format_time(self, seconds: float) -> str:
         """Форматирование времени в человекочитаемый вид."""
@@ -537,7 +569,8 @@ class ProfileChangerMod(loader.Module):
         if self.success_streak >= 5:
             details.append(self.strings["delay_details_success"])
         recent_flood = any(
-            (now - flood_time).total_seconds() < 3600 for flood_time in self.floods
+            (now - flood_time).total_seconds() < 3600
+            for flood_time in self.floods
         )
         if recent_flood:
             details.append(self.strings["delay_details_recent_flood"])
@@ -554,7 +587,11 @@ class ProfileChangerMod(loader.Module):
                     jitter_percent=self.config[CONFIG_JITTER] * 100
                 )
             )
-        return "\n".join(details) if details else "  • Нет активных факторов адаптации"
+        return (
+            "\n".join(details)
+            if details
+            else "  • Нет активных факторов адаптации"
+        )
 
     def _get_stats(self) -> Dict[str, str]:
         """Получение статистики работы модуля."""
@@ -568,7 +605,9 @@ class ProfileChangerMod(loader.Module):
         )
 
         stats["status"] = (
-            "✅ Работает" if self.running or self.pfpdir_running else "🛑 Остановлен"
+            "✅ Работает"
+            if self.running or self.pfpdir_running
+            else "🛑 Остановлен"
         )
         stats["uptime"] = self._format_time(uptime_seconds)
         stats["count"] = str(self.update_count)
@@ -588,7 +627,9 @@ class ProfileChangerMod(loader.Module):
             else:
                 stats["wait"] = self._format_time(calculated_delay)
         stats["last"] = (
-            self._format_time(last_update_seconds) if self.last_update else "никогда"
+            self._format_time(last_update_seconds)
+            if self.last_update
+            else "никогда"
         )
         stats["errors"] = str(self.error_count)
         stats["floods"] = str(self.flood_count)
@@ -599,7 +640,9 @@ class ProfileChangerMod(loader.Module):
     def _save_state(self):
         """Сохранение текущего состояния модуля в базу данных."""
         try:
-            self._db.set(self.strings["name"], "state", json.dumps(self._get_state()))
+            self._db.set(
+                self.strings["name"], "state", json.dumps(self._get_state())
+            )
         except TypeError as e:
             logger.error(f"Ошибка сериализации состояния: {e}")
 
@@ -679,9 +722,7 @@ class ProfileChangerMod(loader.Module):
             return False
         return True
 
-    async def _init_photo_upload_session(
-        self, photos: List[str], delay: float
-    ):
+    async def _init_photo_upload_session(self, photos: List[str], delay: float):
         """Инициализация сессии загрузки фотографий."""
         try:
             if self.running or self.pfpdir_running:
@@ -727,7 +768,7 @@ class ProfileChangerMod(loader.Module):
                     logger.error(f"Ошибка при удалении {photo}: {e}")
             else:
                 errors += 1
-                logger.error(f"Ошибка при загрузке фотографии: {photo}") 
+                logger.error(f"Ошибка при загрузке фотографии: {photo}")
             logger.info(
                 f"Ожидание перед следующей загрузкой: {delay:.1f} секунд"
             )
@@ -749,7 +790,11 @@ class ProfileChangerMod(loader.Module):
             if self.running or self.pfpdir_running:
                 await utils.answer(message, self.strings["already_running"])
                 return
-            target = await message.get_reply_message() if message.is_reply else message
+            target = (
+                await message.get_reply_message()
+                if message.is_reply
+                else message
+            )
             photo_entity = target.photo if target else None
 
             if not photo_entity:
@@ -794,7 +839,9 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpstats(self, message):
         """Показать статистику работы модуля."""
-        await utils.answer(message, self.strings["stats"].format(**self._get_stats()))
+        await utils.answer(
+            message, self.strings["stats"].format(**self._get_stats())
+        )
 
     @loader.command()
     async def pfpdelay(self, message):
@@ -820,7 +867,9 @@ class ProfileChangerMod(loader.Module):
                 )
             self.delay = delay
             self._save_state()
-            await utils.answer(message, f"✅ Установлена задержка {delay} секунд")
+            await utils.answer(
+                message, f"✅ Установлена задержка {delay} секунд"
+            )
         except ValueError:
             await utils.answer(
                 message, "❌ Неверный формат числа. Введите число секунд."
