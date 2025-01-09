@@ -20,8 +20,6 @@ import re
 
 logger = logging.getLogger(__name__)
 
-CONFIG_ADAPTIVE_DELAY = "adaptive_delay"
-CONFIG_NOTIFY_ERRORS = "notify_errors"
 CONFIG_DEFAULT_DELAY = "default_delay"
 CONFIG_MIN_DELAY = "min_delay"
 CONFIG_MAX_DELAY = "max_delay"
@@ -29,6 +27,8 @@ CONFIG_JITTER = "jitter"
 CONFIG_ERROR_THRESHOLD = "error_threshold"
 CONFIG_SUCCESS_REDUCTION = "success_reduction"
 CONFIG_DELAY_MULTIPLIER = "delay_multiplier"
+CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE = "recent_multiplier_history_size"
+CONFIG_PFPDIR_PATH = "pfpdir_path"
 
 
 @loader.tds
@@ -37,30 +37,29 @@ class ProfileChangerMod(loader.Module):
 
     strings = {
         "name": "ProfileChanger",
-        "starting": "🔄 <b>Запуск смены фото профиля</b>\n\n• Задержка: {delay_minutes:.0f} мин\n• ~{updates_per_hour} обновлений/час",
-        "stopping": "🛑 <b>Остановка</b>\n• Обновлений: {count}\n• С момента запуска: {uptime}\n• Ошибок: {errors}",
-        "stats": "📊 <b>Статистика</b>\n• Статус: {status}\n• С момента запуска: {uptime}\n• Обновлений: {count}\n• В час: {hourly}\n• Задержка: {delay:.1f} мин\n• Последнее: {last}\n• Ошибок: {errors}\n• Флудвейтов: {floods}\n\n⚙️ <b>Адаптация задержки:</b>\n{delay_details}",
+        "starting": "🔄 <b>Запуск смены фото профиля</b><br><br>• Задержка: {delay_minutes:.0f} мин<br>• ~{updates_per_hour} обновлений/час",
+        "stopping": "🛑 <b>Остановка</b><br>• Обновлений: {count}<br>• С момента запуска: {uptime}<br>• Ошибок: {errors}",
+        "stats": "📊 <b>Статистика</b><br>• Статус: {status}<br>• С момента запуска: {uptime}<br>• Обновлений: {count}<br>• В час: {hourly}<br>• Задержка: {delay:.1f} мин<br>• Последнее: {last}<br>• Ошибок: {errors}<br>• Флудвейтов: {floods}<br><br>⚙️ <b>Адаптация задержки:</b><br>{delay_details}",
         "no_photo": "❌ <b>Ответьте на фото</b>",
         "already_running": "⚠️ <b>Уже запущено</b>",
         "not_running": "⚠️ <b>Не запущено</b>",
-        "error": "❌ <b>Ошибка:</b> {error}",
-        "flood_wait": "⚠️ <b>Флудвейт</b>\n\n• Новая задержка: {delay:.1f} мин\n• Ожидание: {wait:.1f} мин",
-        "photo_invalid": "⚠️ <b>Неверный формат фото:</b> {error}",
+        "error": "{error_symbol} <b>{error_type}:</b> {error}",
+        "flood_wait": "⚠️ <b>Флудвейт</b><br><br>• Новая задержка: {delay:.1f} мин<br>• Ожидание: {wait:.1f} мин",
         "pfpone_success": "✅ <b>Аватарка установлена</b>",
         "pfpone_no_reply": "❌ <b>Ответьте на фото, которое хотите установить</b>",
-        "pfpone_error": "❌ <b>Ошибка при установке аватарки:</b> {error}",
         "delay_details_success": "  • Успешные обновления: снижение задержки",
         "delay_details_recent_flood": "  • Недавний флудвейт: увеличение задержки",
         "delay_details_recent_error": "  • Недавняя ошибка: увеличение задержки",
+        "delay_details_weighted_multiplier": "  • Выбор множителя: взвешенный случайный",
         "delay_details_jitter": "  • Случайность: +/- {jitter_percent:.0f}%",
         "stopping_timeout": "⏳ <b>Остановка выполняется в фоновом режиме...</b>",
         "stopped_successfully": "✅ <b>Успешно остановлено</b>",
-        "dir_not_found": "❌ <b>Директория не найдена: /root/Heroku/new</b>",
+        "dir_not_found": "❌ <b>Директория не найдена:</b> <code>{path}</code>",
         "no_photos": "❌ <b>В директории нет подходящих фотографий</b>",
         "invalid_delay": "❌ <b>Неверная задержка. Используйте число секунд</b>",
-        "loading_from_dir": "🔄 <b>Загрузка фотографий из директории...</b>\n\n• Найдено фото: {count}\n• Задержка: {delay}",
-        "dir_complete": "✅ <b>Загрузка завершена</b>\n\n• Загружено: {uploaded}\n• Удалено: {uploaded}\n• Ошибок: {errors}\n• Прошло времени: {elapsed}",
-        "current_photo": "📸 <b>Загружаю фото:</b> {photo}\n<b>Прогресс:</b> {current}/{total}",
+        "loading_from_dir": "🔄 <b>Загрузка фотографий из директории...</b><br><br>• Найдено фото: {count}<br>• Задержка: {delay}",
+        "dir_complete": "✅ <b>Загрузка завершена</b><br><br>• Загружено: {uploaded}<br>• Удалено: {deleted}<br>• Ошибок: {errors}<br>• Прошло времени: {elapsed}",
+        "current_photo": "📸 <b>Загружаю фото:</b> <code>{photo}</code><br><b>Прогресс:</b> {current}/{total}",
     }
 
     _state_keys = [
@@ -77,12 +76,16 @@ class ProfileChangerMod(loader.Module):
         "floods",
         "retries",
         "last_error_time",
+        "total_updates_cycle",
+        "recent_multiplier_uses",
     ]
 
     def _init_state(self):
         """Инициализация состояния модуля"""
         self.running = False
         self._task = None
+        self._lock = asyncio.Lock()
+        self._photo_lock = asyncio.Lock()
         self.start_time = None
         self.last_update = None
         self.update_count = 0
@@ -95,54 +98,60 @@ class ProfileChangerMod(loader.Module):
         self.success_streak = 0
         self.retries = 0
         self.last_error_time = None
+        self.total_updates_cycle = 0
+        self.recent_multiplier_uses: Dict[tuple, datetime] = {}
+        self._pfpdir_running = False
 
     def __init__(self):
         self.config = loader.ModuleConfig(
-            "adaptive_delay",
-            True,
-            "Адаптивные задержки",
-            "notify_errors",
-            True,
-            "Уведомления об ошибках",
-            "default_delay",
-            813,
+            CONFIG_DEFAULT_DELAY,
+            109,
             "Начальная задержка (сек)",
-            "min_delay",
-            701,
+            CONFIG_MIN_DELAY,
+            61,
             "Минимальная задержка (сек)",
-            "max_delay",
-            930,
+            CONFIG_MAX_DELAY,
+            779,
             "Максимальная задержка (сек)",
-            "jitter",
+            CONFIG_JITTER,
             0.3,
             "Случайность (0.0-1.0)",
-            "error_threshold",
+            CONFIG_ERROR_THRESHOLD,
             3,
             "Порог ошибок",
-            "success_reduction",
+            CONFIG_SUCCESS_REDUCTION,
             0.9,
             "Снижение при успехе",
-            "delay_multiplier",
+            CONFIG_DELAY_MULTIPLIER,
             1.3,
             "Множитель задержки при ошибках и флудвейтах",
+            CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE,
+            3,
+            "Размер истории последних использованных множителей",
+            CONFIG_PFPDIR_PATH,
+            "/root/Heroku/new",
+            "Путь к директории для загрузки фото",
         )
         self.multiplier_ranges = [
-            (0.85, 1.0),
-            (1.15, 1.3),
-            (1.45, 1.7),
-            (0.85, 0.95),
-            (1.15, 1.25),
-            (1.45, 1.55),
+            (0.85, 0.90),
+            (0.90, 0.95),
+            (0.95, 1.00),
+            (1.00, 1.05),
+            (1.05, 1.10),
+            (1.10, 1.15),
+            (1.15, 1.20),
+            (1.20, 1.25),
+            (1.25, 1.30),
+            (1.30, 1.35),
+            (1.35, 1.40),
+            (1.40, 1.45),
+            (1.45, 1.50),
+            (1.50, 1.55),
+            (1.55, 1.60),
+            (1.60, 1.65),
+            (1.65, 1.70),
         ]
-        self.recent_multipliers = deque(maxlen=3)
-        self.total_updates_cycle = 0
-        self._lock = asyncio.Lock()
         self._init_state()
-
-    def _reset(self) -> None:
-        """Сброс состояния модуля, включая остановку текущей задачи."""
-        self._init_state()
-        self._task = None
 
     async def client_ready(self, client, db):
         self._client = client
@@ -156,7 +165,7 @@ class ProfileChangerMod(loader.Module):
     async def on_unload(self):
         """Выгрузка модуля."""
         if self.running:
-            await self._send_stopping_message()
+            await self._send_stopping()
             if self._task:
                 self._task.cancel()
         logger.info("ProfileChanger unloaded")
@@ -166,8 +175,7 @@ class ProfileChangerMod(loader.Module):
         floods = (
             list(self.floods) if hasattr(self, "floods") and self.floods else []
         )
-
-        state = {
+        return {
             "running": self.running,
             "start_time": (
                 self.start_time.isoformat() if self.start_time else None
@@ -189,8 +197,12 @@ class ProfileChangerMod(loader.Module):
                 if self.last_error_time
                 else None
             ),
+            "total_updates_cycle": self.total_updates_cycle,
+            "recent_multiplier_uses": {
+                str(k): v.isoformat()
+                for k, v in self.recent_multiplier_uses.items()
+            },
         }
-        return state
 
     def _load_state(self) -> None:
         """Загрузка состояния модуля из базы данных."""
@@ -217,6 +229,11 @@ class ProfileChangerMod(loader.Module):
                     datetime.fromisoformat(t) for t in state["floods"]
                 ]
                 state["floods"] = deque(floods_list, maxlen=10)
+            if "recent_multiplier_uses" in state:
+                self.recent_multiplier_uses = {
+                    eval(k): datetime.fromisoformat(v)
+                    for k, v in state["recent_multiplier_uses"].items()
+                }
             for key, value in state.items():
                 setattr(self, key, value)
         except json.JSONDecodeError as e:
@@ -292,47 +309,51 @@ class ProfileChangerMod(loader.Module):
                 self.delay * self.config[CONFIG_DELAY_MULTIPLIER],
             )
             wait_time = error.seconds
+            error_message = self.strings["flood_wait"].format(
+                delay=self.delay / 60, wait=wait_time / 60
+            )
+            log_message = f"Flood error: {str(error)}"
+            error_symbol = "⚠️"
+            error_name = "Флудвейт"
         else:
             self.retries += 1
             wait_time = 0
+            error_symbol = "❌"
+            log_message = f"{error_type.capitalize()} error: {str(error)}"
+            if error_type == "photo":
+                error_name = "Неверный формат фото"
+            else:
+                error_name = "Ошибка"
+            error_message = self.strings["error"].format(
+                error_symbol=error_symbol,
+                error_type=error_name,
+                error=str(error),
+            )
 
-        if self.config[CONFIG_NOTIFY_ERRORS]:
-            error_message = {
-                "flood": self.strings["flood_wait"].format(
-                    delay=self.delay / 60, wait=wait_time / 60
-                ),
-                "photo": self.strings["photo_invalid"].format(error=str(error)),
-                "generic": self.strings["error"].format(error=str(error)),
-            }.get(error_type, str(error))
-
-            await self._client.send_message(self.chat_id, error_message)
+        logger.info(error_message)
+        logger.error(log_message)
 
         if stop:
             await self._stop()
         elif isinstance(error, errors.FloodWaitError):
             await asyncio.sleep(error.seconds)
 
-        logger.error(f"{error_type.capitalize()} error: {str(error)}")
-
-    async def _process_set_photo_result(
-        self, result: Union[bool, errors.FloodWaitError, Exception]
+    async def _handle_operation_result(
+        self,
+        result: Union[bool, errors.FloodWaitError, Exception],
+        operation_type: str = "update",
     ) -> bool:
-        """Обработка результата попытки обновления фотографии профиля."""
+        """Unified handler for profile operation results"""
         if result is True:
             self.last_update = datetime.now()
             self.update_count += 1
             self.success_streak += 1
-            self.retries = 0
             self._save_state()
-            logger.info(
-                f"Фото профиля обновлено. Обновлений: {self.update_count}, "
-                f"Текущая серия успехов: {self.success_streak}"
-            )
             return True
-        elif isinstance(result, errors.FloodWaitError):
+        if isinstance(result, errors.FloodWaitError):
             await self._handle_error("flood", result)
             return False
-        elif isinstance(
+        if isinstance(
             result,
             (
                 PhotoInvalidDimensionsError,
@@ -340,49 +361,79 @@ class ProfileChangerMod(loader.Module):
                 PhotoSaveFileInvalidError,
             ),
         ):
-            await self._handle_error("photo", result, stop=True)
+            await self._handle_error(
+                "photo", result, stop=(operation_type == "update")
+            )
             return False
-        else:
-            await self._handle_error("generic", result)
-            return False
+        await self._handle_error("generic", result)
+        return False
 
     async def _update(self) -> bool:
         """Попытка обновить фотографию профиля."""
-        try:
-            if not self.running:
-                return False
-            photo = await self._get_photo()
-            if not photo:
-                return False
-            result = await self._set_profile_photo(photo)
-            return await self._process_set_photo_result(result)
-        except Exception as e:
-            await self._handle_error("generic", e)
+        if not self.running:
             return False
-        finally:
-            photo = None
+        try:
+            async with self._photo_lock:
+                photo = await self._get_photo()
+                if not photo:
+                    return False
+                result = await self._set_profile_photo(photo)
+                return await self._handle_operation_result(result)
+        except Exception as e:
+            return await self._handle_operation_result(e)
+
+    async def _upload_photo(self, path: str) -> bool:
+        """Загрузка фотографии на профиль с валидацией."""
+        if not await self._validate_photo(path):
+            return False
+        try:
+            async with self._photo_lock:
+                result = await self._client(
+                    functions.photos.UploadProfilePhotoRequest(
+                        file=await self._client.upload_file(path)
+                    )
+                )
+                return await self._handle_operation_result(result, "upload")
+        except Exception as e:
+            return await self._handle_operation_result(e, "upload")
 
     def _calculate_delay(self) -> float:
-        """Calculates the delay with optimized and randomized intervals."""
-        if not self.config[CONFIG_ADAPTIVE_DELAY]:
-            return self.delay
+        """Calculates the delay with optimized and randomized intervals using weighted choice."""
         base_delay = self.delay
         now = datetime.now()
 
         if self.success_streak >= 5:
             base_delay *= self.config[CONFIG_SUCCESS_REDUCTION]
-        available_ranges = [
-            r
-            for r in self.multiplier_ranges
-            if r not in self.recent_multipliers
-        ]
-        if not available_ranges:
+        weights = []
+        for r in self.multiplier_ranges:
+            last_used = self.recent_multiplier_uses.get(r)
+            if last_used:
+                time_since_use = now - last_used
+                weight = 1 / (time_since_use.total_seconds() / 60 + 1)
+            else:
+                weight = 5
+            weights.append(weight)
+        if not weights or sum(weights) == 0:
             selected_range = random.choice(self.multiplier_ranges)
         else:
-            selected_range = random.choice(available_ranges)
+            selected_range = random.choices(
+                self.multiplier_ranges, weights=weights, k=1
+            )[0]
         base_multiplier = random.uniform(selected_range[0], selected_range[1])
-        self.recent_multipliers.append(selected_range)
 
+        self.recent_multiplier_uses[selected_range] = now
+        if len(self.recent_multiplier_uses) > self.config[
+            CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE
+        ] * len(self.multiplier_ranges):
+            sorted_uses = sorted(
+                self.recent_multiplier_uses.items(), key=lambda item: item[1]
+            )
+            for i in range(
+                len(self.recent_multiplier_uses)
+                - self.config[CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE]
+                * len(self.multiplier_ranges)
+            ):
+                self.recent_multiplier_uses.pop(sorted_uses[i][0])
         jitter = random.gauss(1.0, self.config[CONFIG_JITTER])
         jitter = max(
             1 - self.config[CONFIG_JITTER],
@@ -406,7 +457,7 @@ class ProfileChangerMod(loader.Module):
         self.total_updates_cycle += 1
 
         logger.info(
-            f"Success streak: {self.success_streak}, Current delay: {delay:.2f} seconds"
+            f"Success streak: {self.success_streak}, Current delay: {delay:.2f} seconds, Multiplier Range: {selected_range}"
         )
 
         return max(
@@ -416,27 +467,51 @@ class ProfileChangerMod(loader.Module):
 
     async def _loop(self) -> None:
         """Основной асинхронный цикл для периодического обновления фотографии."""
+        consecutive_errors = 0
+        base_sleep_time = self.config[CONFIG_MIN_DELAY]
         while self.running:
             try:
                 now = datetime.now()
                 calculated_delay = self._calculate_delay()
 
                 if self.last_update:
-                    elapsed = (now - self.last_update).total_seconds()
-                    if elapsed < calculated_delay:
-                        await asyncio.sleep(calculated_delay - elapsed)
-                if await self._update():
-                    await asyncio.sleep(calculated_delay)
-                else:
-                    if self.retries >= self.config[CONFIG_ERROR_THRESHOLD]:
-                        await self._stop()
-                        break
-                    await asyncio.sleep(self.config[CONFIG_MIN_DELAY])
+                    elapsed = max(0, (now - self.last_update).total_seconds())
+                    sleep_time = calculated_delay - elapsed
+                    if sleep_time > 0:
+                        await asyncio.sleep(sleep_time)
+                async with self._lock:
+                    if await self._update():
+                        consecutive_errors = 0
+                        await asyncio.sleep(0)
+                    else:
+                        consecutive_errors += 1
+                        sleep_duration = base_sleep_time * (
+                            2**consecutive_errors
+                        )
+                        if (
+                            consecutive_errors
+                            >= self.config[CONFIG_ERROR_THRESHOLD]
+                        ):
+                            logger.warning(
+                                f"Достигнут порог ошибок ({self.config[CONFIG_ERROR_THRESHOLD]}). Остановка."
+                            )
+                            await self._stop()
+                            break
+                        await asyncio.sleep(
+                            min(sleep_duration, self.config[CONFIG_MAX_DELAY])
+                        )
             except asyncio.CancelledError:
+                logger.info(
+                    "Процесс смены фото профиля остановлен (CancelledError)"
+                )
                 break
             except Exception as e:
                 logger.exception(f"Ошибка в цикле: {type(e).__name__}: {e}")
-                await asyncio.sleep(self.config[CONFIG_MIN_DELAY])
+                consecutive_errors += 1
+                sleep_duration = base_sleep_time * (2**consecutive_errors)
+                await asyncio.sleep(
+                    min(sleep_duration, self.config[CONFIG_MAX_DELAY])
+                )
 
     def _format_time(self, seconds: float) -> str:
         """Форматирование времени в человекочитаемый вид."""
@@ -467,6 +542,7 @@ class ProfileChangerMod(loader.Module):
             < self.config[CONFIG_MAX_DELAY]
         ):
             details.append(self.strings["delay_details_recent_error"])
+        details.append(self.strings["delay_details_weighted_multiplier"])
         if self.config[CONFIG_JITTER] > 0:
             details.append(
                 self.strings["delay_details_jitter"].format(
@@ -514,21 +590,27 @@ class ProfileChangerMod(loader.Module):
         except TypeError as e:
             logger.error(f"Ошибка сериализации состояния: {e}")
 
+    def _reset(self):
+        """Сброс состояния модуля к начальным значениям."""
+        self._init_state()
+
     async def _start(self, chat_id: int, message_id: int) -> None:
         """Запуск процесса автоматической смены фотографии."""
         self._reset()
-        self.running = True
-        self.start_time = datetime.now()
-        self.chat_id = chat_id
-        self.message_id = message_id
-        self._save_state()
-        self._task = asyncio.create_task(self._loop())
-        logger.info("Profile changer started")
+        async with self._lock:
+            if self.running:
+                return
+            self.running = True
+            self.start_time = datetime.now()
+            self.chat_id = chat_id
+            self.message_id = message_id
+            self._save_state()
+            self._task = asyncio.create_task(self._loop())
+            logger.info("Profile changer started")
 
-    async def _send_stopping_message(self):
+    async def _send_stopping(self):
         """Отправка сообщения об остановке процесса."""
-        await self._client.send_message(
-            self.chat_id,
+        logger.info(
             self.strings["stopping"].format(
                 count=self.update_count,
                 uptime=(
@@ -555,12 +637,8 @@ class ProfileChangerMod(loader.Module):
                     await self._task
                 except asyncio.CancelledError:
                     pass
-            await asyncio.get_event_loop().run_in_executor(
-                None, self._save_state
-            )
-            await self._send_stopping_message()
-
-            self._reset()
+            await self._save_state()
+            await self._send_stopping()
 
             logger.info("Profile changer stopped successfully")
         except Exception as e:
@@ -581,79 +659,61 @@ class ProfileChangerMod(loader.Module):
         if not os.path.exists(path):
             logger.error(f"File not found: {path}")
             return False
-
-        # Можно добавить проверку размера файла
-        max_size = 10 * 1024 * 1024  # 10MB
+        max_size = 10 * 1024 * 1024
         if os.path.getsize(path) > max_size:
             logger.error(f"File too large: {path}")
             return False
-
         return True
-
-    async def _upload_photo(self, path: str) -> Union[bool, Exception]:
-        """Загрузка фотографии на профиль с валидацией."""
-        if not await self._validate_photo(path):
-            return False
-
-        try:
-            await self._client(
-                functions.photos.UploadProfilePhotoRequest(
-                    file=await self._client.upload_file(path)
-                )
-            )
-            self.success_streak += 1
-            return True
-        except errors.FloodWaitError as e:
-            await self._handle_error("flood", e)
-            return e
-        except Exception as e:
-            await self._handle_error("generic", e)
-            return e
 
     async def _init_photo_upload_session(
         self, message, photos: List[str], delay: float, adaptive_delay: bool
     ):
         """Инициализация сессии загрузки фотографий."""
-        self._reset()
-        self.running = True
-        self.start_time = datetime.now()
-        self.chat_id = message.chat_id
-        self.delay = delay
-        self._save_state()
+        async with self._lock:
+            if self.running or self._pfpdir_running:
+                logger.info(self.strings["already_running"])
+                return
+            self._reset()
+            self._pfpdir_running = True
+            self.start_time = datetime.now()
+            self.delay = delay
+            self._save_state()
 
-        status = await utils.answer(
-            message,
-            self.strings["loading_from_dir"].format(
-                count=len(photos),
-                delay="адаптивная" if adaptive_delay else str(delay),
-            ),
-        )
+            logger.info(
+                self.strings["loading_from_dir"].format(
+                    count=len(photos),
+                    delay=(
+                        "адаптивная"
+                        if adaptive_delay
+                        else self._format_time(delay)
+                    ),
+                ),
+            )
 
-        await self._process_photo_upload_session(
-            message, photos, delay, adaptive_delay
-        )
+            await self._process_photo_upload_session(
+                photos, delay, adaptive_delay
+            )
 
     async def _process_photo_upload_session(
-        self, message, photos: List[str], delay: float, adaptive_delay: bool
+        self, photos: List[str], delay: float, adaptive_delay: bool
     ):
         """Обработка сессии загрузки фотографий."""
-        start_time = datetime.now()
         uploaded = errors = 0
         total_photos = len(photos)
+        pfpdir_path = self.config[CONFIG_PFPDIR_PATH]
 
         for index, photo in enumerate(photos, 1):
-            if not self.running:
+            if not self._pfpdir_running:
                 break
-
-            photo_path = os.path.join("/root/Heroku/new", photo)
-            await utils.answer(
-                message,
+            photo_path = os.path.join(pfpdir_path, photo)
+            logger.info(
                 self.strings["current_photo"].format(
                     photo=photo, current=index, total=total_photos
                 ),
             )
 
-            if result := await self._upload_photo(photo_path):
+            success = await self._upload_photo(photo_path)
+            if success:
                 uploaded += 1
                 try:
                     os.remove(photo_path)
@@ -661,7 +721,6 @@ class ProfileChangerMod(loader.Module):
                     logger.error(f"Error deleting {photo}: {e}")
             else:
                 errors += 1
-
             await asyncio.sleep(
                 self._calculate_delay() if adaptive_delay else delay
             )
@@ -670,32 +729,11 @@ class ProfileChangerMod(loader.Module):
             self.update_count += 1
             self._save_state()
 
-        await self._finish_photo_upload_session(
-            message, uploaded, errors, start_time
-        )
-
-    async def _finish_photo_upload_session(
-        self, message, uploaded: int, errors: int, start_time: datetime
-    ):
-        """Завершение сессии загрузки фотографий."""
-        self._reset()
-        self._save_state()
-
-        elapsed = datetime.now() - start_time
-        await utils.answer(
-            message,
-            self.strings["dir_complete"].format(
-                uploaded=uploaded,
-                errors=errors,
-                elapsed=self._format_time(elapsed.total_seconds()),
-            ),
-        )
-
     @loader.command()
     async def pfp(self, message):
         """Запустить смену фото профиля (ответьте на сообщение с фото)."""
         async with self._lock:
-            if self.running:
+            if self.running or self._pfpdir_running:
                 await utils.answer(message, self.strings["already_running"])
                 return
             target = (
@@ -722,14 +760,20 @@ class ProfileChangerMod(loader.Module):
         """Остановить смену фото профиля."""
         try:
             async with self._lock:
-                if not self.running:
+                if not self.running and not self._pfpdir_running:
                     await utils.answer(message, self.strings["not_running"])
                     return
                 await utils.answer(message, self.strings["stopping_timeout"])
-                await asyncio.wait_for(self._stop(), timeout=9)
+
+                stop_tasks = []
+                if self.running:
+                    stop_tasks.append(self._stop())
+                if self._pfpdir_running:
+                    self._pfpdir_running = False
+                if stop_tasks:
+                    await asyncio.wait(stop_tasks, timeout=10)
             await utils.answer(message, self.strings["stopped_successfully"])
         except asyncio.TimeoutError:
-            await utils.answer(message, self.strings["stopping_timeout"])
             await utils.answer(
                 message,
                 "❌ <b>Превышено время ожидания остановки. Попробуйте позже.</b>",
@@ -762,12 +806,12 @@ class ProfileChangerMod(loader.Module):
         try:
             delay = float(args)
             if (
-                delay < self.config["min_delay"]
-                or delay > self.config["max_delay"]
+                delay < self.config[CONFIG_MIN_DELAY]
+                or delay > self.config[CONFIG_MAX_DELAY]
             ):
                 return await utils.answer(
                     message,
-                    f"Задержка должна быть от {self.config['min_delay']} до {self.config['max_delay']} секунд",
+                    f"Задержка должна быть от {self.config[CONFIG_MIN_DELAY]} до {self.config[CONFIG_MAX_DELAY]} секунд",
                 )
             self.delay = delay
             self._save_state()
@@ -781,37 +825,46 @@ class ProfileChangerMod(loader.Module):
 
     @loader.command()
     async def pfpdir(self, message):
-        """Загрузить фотографии из директории /root/Heroku/new."""
-        directory = "/root/Heroku/new"
+        """Загрузить фотографии из директории."""
+        async with self._lock:
+            if self.running or self._pfpdir_running:
+                await utils.answer(message, self.strings["already_running"])
+                return
+            directory = self.config[CONFIG_PFPDIR_PATH]
 
-        if not os.path.isdir(directory):
-            return await utils.answer(message, self.strings["dir_not_found"])
+            if not os.path.isdir(directory):
+                return await utils.answer(
+                    message,
+                    self.strings["dir_not_found"].format(path=directory),
+                )
+            photos = [
+                f
+                for f in os.listdir(directory)
+                if f.startswith("ezgif-frame-")
+                and f.endswith((".jpg", ".jpeg", ".png"))
+            ]
+            photos = self._sort_photos(photos)
 
-        photos = [
-            f
-            for f in os.listdir(directory)
-            if f.startswith("ezgif-frame-") and f.endswith(".jpg")
-        ]
-        photos = self._sort_photos(photos)
+            if not photos:
+                return await utils.answer(message, self.strings["no_photos"])
+            args = utils.get_args(message)
+            try:
+                delay = (
+                    float(args[0])
+                    if args
+                    else self.config[CONFIG_DEFAULT_DELAY]
+                )
+                adaptive_delay = not args
 
-        if not photos:
-            return await utils.answer(message, self.strings["no_photos"])
-
-        args = utils.get_args(message)
-        try:
-            delay = (
-                float(args[0]) if args else self.config[CONFIG_DEFAULT_DELAY]
+                if delay < 0:
+                    raise ValueError
+            except ValueError:
+                return await utils.answer(
+                    message, self.strings["invalid_delay"]
+                )
+            await self._init_photo_upload_session(
+                message, photos, delay, adaptive_delay
             )
-            adaptive_delay = not args
-
-            if delay < 0:
-                raise ValueError
-        except ValueError:
-            return await utils.answer(message, self.strings["invalid_delay"])
-
-        await self._init_photo_upload_session(
-            message, photos, delay, adaptive_delay
-        )
 
     @loader.command()
     async def pfpon(self, message):
@@ -822,4 +875,14 @@ class ProfileChangerMod(loader.Module):
             return
         photo = reply.photo
         result = await self._set_profile_photo(photo)
-        await self._process_set_photo_result(result)
+        if isinstance(result, bool) and result:
+            await utils.answer(message, self.strings["pfpone_success"])
+        else:
+            await utils.answer(
+                message,
+                self.strings["error"].format(
+                    error_symbol="❌",
+                    error_type="Ошибка установки аватарки",
+                    error=result,
+                ),
+            )
