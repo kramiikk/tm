@@ -75,6 +75,7 @@ class ProfileChangerMod(loader.Module):
         "last_error_time",
         "total_updates_cycle",
         "recent_multiplier_uses",
+        "_pfpdir_running",
     ]
 
     def _init_state(self):
@@ -190,6 +191,7 @@ class ProfileChangerMod(loader.Module):
             "recent_multiplier_uses": {
                 str(k): v.isoformat() for k, v in self.recent_multiplier_uses.items()
             },
+            "_pfpdir_running": self._pfpdir_running,
         }
 
     def _load_state(self) -> None:
@@ -216,6 +218,10 @@ class ProfileChangerMod(loader.Module):
                     eval(k): datetime.fromisoformat(v)
                     for k, v in state["recent_multiplier_uses"].items()
                 }
+            if "_pfpdir_running" in state:
+                self._pfpdir_running = state[
+                    "_pfpdir_running"
+                ]
             for key, value in state.items():
                 setattr(self, key, value)
         except json.JSONDecodeError as e:
