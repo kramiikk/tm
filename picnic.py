@@ -103,25 +103,25 @@ class ProfileChangerMod(loader.Module):
     def __init__(self):
         self.config = loader.ModuleConfig(
             CONFIG_DEFAULT_DELAY,
-            109,
+            189,
             "Начальная задержка (сек)",
             CONFIG_MIN_DELAY,
-            61,
+            91,
             "Минимальная задержка (сек)",
             CONFIG_MAX_DELAY,
-            779,
+            903,
             "Максимальная задержка (сек)",
             CONFIG_JITTER,
-            0.3,
+            0.5,
             "Случайность (0.0-1.0)",
             CONFIG_ERROR_THRESHOLD,
             3,
             "Порог ошибок",
             CONFIG_SUCCESS_REDUCTION,
-            0.9,
+            0.85,
             "Снижение при успехе",
             CONFIG_DELAY_MULTIPLIER,
-            1.3,
+            1.5,
             "Множитель задержки при ошибках и флудвейтах",
             CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE,
             3,
@@ -131,23 +131,16 @@ class ProfileChangerMod(loader.Module):
             "Путь к директории для загрузки фото",
         )
         self.multiplier_ranges = [
-            (0.85, 0.90),
+            (0.70, 0.85),
             (0.90, 0.95),
-            (0.95, 1.00),
-            (1.00, 1.05),
-            (1.05, 1.10),
-            (1.10, 1.15),
-            (1.15, 1.20),
-            (1.20, 1.25),
-            (1.25, 1.30),
-            (1.30, 1.35),
-            (1.35, 1.40),
-            (1.40, 1.45),
-            (1.45, 1.50),
-            (1.50, 1.55),
-            (1.55, 1.60),
-            (1.60, 1.65),
-            (1.65, 1.70),
+            (1.00, 1.15),
+            (1.20, 1.35),
+            (1.35, 1.45),
+            (1.45, 1.55),
+            (1.60, 1.70),
+            (1.75, 1.85),
+            (1.90, 1.95),
+            (2.00, 2.15),
         ]
         self._init_state()
 
@@ -411,67 +404,75 @@ class ProfileChangerMod(loader.Module):
             return await self._handle_operation_result(e, "upload")
 
     def _calculate_delay(self) -> float:
-        """Calculates the delay with optimized and randomized intervals using weighted choice."""
+        """Расчет задержки с улучшенной рандомизацией и более широким разбросом."""
         base_delay = self.delay
         now = datetime.now()
 
         if self.success_streak >= 5:
-            base_delay *= self.config[CONFIG_SUCCESS_REDUCTION]
+            success_multiplier = max(0.7, self.config[CONFIG_SUCCESS_REDUCTION] ** (self.success_streak // 5))
+            base_delay *= success_multiplier
+
         weights = []
         for r in self.multiplier_ranges:
             last_used = self.recent_multiplier_uses.get(r)
             if last_used:
                 time_since_use = now - last_used
-                weight = 1 / (time_since_use.total_seconds() / 60 + 1)
+                weight = 1 / (time_since_use.total_seconds() / 3600 + 1)
             else:
                 weight = 5
             weights.append(weight)
+
         if not weights or sum(weights) == 0:
             selected_range = random.choice(self.multiplier_ranges)
         else:
+            normalized_weights = [w/sum(weights) for w in weights]
             selected_range = random.choices(
-                self.multiplier_ranges, weights=weights, k=1
+                self.multiplier_ranges,
+                weights=normalized_weights,
+                k=1
             )[0]
-        base_multiplier = random.uniform(selected_range[0], selected_range[1])
+
+        range_position = random.random()
+        if range_position < 0.3:
+            base_multiplier = selected_range[0]
+        elif range_position > 0.7:
+            base_multiplier = selected_range[1]
+        else:
+            base_multiplier = random.uniform(selected_range[0], selected_range[1])
 
         self.recent_multiplier_uses[selected_range] = now
-        if len(self.recent_multiplier_uses) > self.config[
-            CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE
-        ] * len(self.multiplier_ranges):
-            sorted_uses = sorted(
-                self.recent_multiplier_uses.items(), key=lambda item: item[1]
-            )
-            for i in range(
-                len(self.recent_multiplier_uses)
-                - self.config[CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE]
-                * len(self.multiplier_ranges)
-            ):
+        if len(self.recent_multiplier_uses) > self.config[CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE] * len(self.multiplier_ranges):
+            sorted_uses = sorted(self.recent_multiplier_uses.items(), key=lambda item: item[1])
+            for i in range(len(self.recent_multiplier_uses) - self.config[CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE] * len(self.multiplier_ranges)):
                 self.recent_multiplier_uses.pop(sorted_uses[i][0])
-        jitter = random.gauss(1.0, self.config[CONFIG_JITTER])
-        jitter = max(
-            1 - self.config[CONFIG_JITTER],
-            min(1 + self.config[CONFIG_JITTER], jitter),
-        )
 
+        jitter = random.uniform(
+            1 - self.config[CONFIG_JITTER], 
+            1 + self.config[CONFIG_JITTER]
+        )
+        
         delay = base_delay * base_multiplier * jitter
 
-        if (
-            self.last_error_time
-            and (now - self.last_error_time).total_seconds()
-            < self.config[CONFIG_MAX_DELAY]
-        ):
-            delay *= self.config[CONFIG_DELAY_MULTIPLIER]
+        if self.last_error_time and (now - self.last_error_time).total_seconds() < self.config[CONFIG_MAX_DELAY]:
+            error_multiplier = self.config[CONFIG_DELAY_MULTIPLIER] * (1 + random.random() * 0.5)
+            delay *= error_multiplier
+
         if self.floods:
             recent_floods = len(self.floods)
+            flood_multiplier = self.config[CONFIG_DELAY_MULTIPLIER] ** recent_floods
+
+            flood_multiplier *= (1 + random.random() * recent_floods * 0.3)
             delay = min(
                 self.config[CONFIG_MAX_DELAY],
-                delay * (self.config[CONFIG_DELAY_MULTIPLIER] ** recent_floods),
+                delay * flood_multiplier
             )
+
         self.total_updates_cycle += 1
+
 
         return max(
             self.config[CONFIG_MIN_DELAY],
-            min(self.config[CONFIG_MAX_DELAY], delay),
+            min(self.config[CONFIG_MAX_DELAY], delay)
         )
 
     async def _loop(self) -> None:
@@ -591,47 +592,34 @@ class ProfileChangerMod(loader.Module):
             else "  • Нет активных факторов адаптации"
         )
 
-    def _get_stats(self) -> Dict[str, str]:
+    def _get_stats(self) -> Dict[str, Union[str, float]]:
         """Получение статистики работы модуля."""
         stats = {}
         now = datetime.now()
-        uptime_seconds = (
-            (now - self.start_time).total_seconds() if self.start_time else 0
-        )
-        last_update_seconds = (
-            (now - self.last_update).total_seconds() if self.last_update else 0
-        )
+        uptime_seconds = (now - self.start_time).total_seconds() if self.start_time else 0
+        last_update_seconds = (now - self.last_update).total_seconds() if self.last_update else 0
 
-        stats["status"] = (
-            "✅ Работает"
-            if self.running or self.pfpdir_running
-            else "🛑 Остановлен"
-        )
-        stats["uptime"] = self._format_time(uptime_seconds)
-        stats["count"] = str(self.update_count)
-        stats["hourly"] = (
-            f"{self.update_count / (uptime_seconds/3600):.1f}"
-            if uptime_seconds > 0
-            else "0"
-        )
-        stats["delay"] = f"{self.delay / 60:.1f} мин"
+        stats = {
+            "status": "✅ Работает" if self.running or self.pfpdir_running else "🛑 Остановлен",
+            "uptime": self._format_time(uptime_seconds),
+            "count": self.update_count,
+            "hourly": f"{(self.update_count / (uptime_seconds/3600)):.1f}" if uptime_seconds > 0 else "0",
+            "delay": f"{self.delay / 60:.1f}",
+            "last": self._format_time(last_update_seconds) if self.last_update else "никогда",
+            "errors": self.error_count,
+            "floods": self.flood_count,
+        }
+
         if self.running:
             calculated_delay = self._calculate_delay()
             if self.last_update:
-                remaining_wait = (
-                    calculated_delay - (now - self.last_update).total_seconds()
-                )
+                remaining_wait = calculated_delay - (now - self.last_update).total_seconds()
                 stats["wait"] = self._format_time(max(0, remaining_wait))
             else:
                 stats["wait"] = self._format_time(calculated_delay)
-        stats["last"] = (
-            self._format_time(last_update_seconds)
-            if self.last_update
-            else "никогда"
-        )
-        stats["errors"] = str(self.error_count)
-        stats["floods"] = str(self.flood_count)
-        stats["delay_details"] = f"\n{self._get_delay_details()}"
+
+        delay_details = self._get_delay_details()
+        stats["delay_details"] = f"\n{delay_details}"
 
         return stats
 
@@ -764,13 +752,13 @@ class ProfileChangerMod(loader.Module):
                 logger.error(f"Ошибка при загрузке фотографии: {photo}")
             calculated_delay = (
                 self._calculate_delay()
-            )  # Получаем динамическую задержку
+            )
             logger.info(
                 f"Ожидание перед следующей загрузкой: {calculated_delay:.1f} секунд"
             )
             await asyncio.sleep(
                 calculated_delay
-            )  # Используем динамическую задержку
+            )
 
             self.last_update = datetime.now()
             self.update_count += 1
@@ -837,9 +825,9 @@ class ProfileChangerMod(loader.Module):
     @loader.command()
     async def pfpstats(self, message):
         """Показать статистику работы модуля."""
-        await utils.answer(
-            message, self.strings["stats"].format(**self._get_stats())
-        )
+        stats = self._get_stats()
+        formatted_stats = {k: str(v) for k, v in stats.items()}
+        await utils.answer(message, self.strings["stats"].format(**formatted_stats))
 
     @loader.command()
     async def pfpdelay(self, message):
