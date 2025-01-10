@@ -25,6 +25,44 @@ from .. import loader
 logger = logging.getLogger(__name__)
 
 
+class RateLimiter:
+    """Глобальный ограничитель частоты отправки сообщений"""
+
+    def __init__(self, max_requests: int, time_window: int):
+        self.max_requests = max_requests
+        self.time_window = time_window
+        self.requests = []
+        self._lock = asyncio.Lock()
+
+    async def acquire(self):
+        """Проверяет возможность отправки и при необходимости ждет"""
+        async with self._lock:
+            now = time.time()
+            # Очистка старых запросов
+
+            self.requests = [t for t in self.requests if now - t < self.time_window]
+
+            if len(self.requests) >= self.max_requests:
+                wait_time = self.time_window - (now - self.requests[0])
+                if wait_time > 0:
+                    await asyncio.sleep(wait_time)
+            self.requests.append(now)
+
+    async def get_stats(self) -> dict:
+        """Возвращает текущую статистику использования"""
+        async with self._lock:
+            now = time.time()
+            active_requests = [t for t in self.requests if now - t < self.time_window]
+            return {
+                "current_requests": len(active_requests),
+                "max_requests": self.max_requests,
+                "time_window": self.time_window,
+                "usage_percent": round(
+                    len(active_requests) / self.max_requests * 100, 1
+                ),
+            }
+
+
 class SimpleCache:
     """Улучшенный кэш с автоочисткой"""
 
@@ -48,6 +86,7 @@ class SimpleCache:
                 del self.cache[key]
                 return None
             # Перемещаем использованный элемент в конец для LRU
+
             self.cache.move_to_end(key)
             return value
 
@@ -57,6 +96,7 @@ class SimpleCache:
             await self._maybe_cleanup()
             if len(self.cache) >= self.max_size:
                 # Удаляем 25% старых записей при переполнении
+
                 to_remove = max(1, len(self.cache) // 4)
                 for _ in range(to_remove):
                     self.cache.popitem(last=False)
@@ -108,11 +148,16 @@ class SimpleCache:
 
                 if active_entries:
                     timestamps = [t for t, _ in active_entries.values()]
-                    stats.update({
-                        "oldest_entry_age": round((current_time - min(timestamps)) / 60, 1),
-                        "newest_entry_age": round((current_time - max(timestamps)) / 60, 1),
-                    })
-
+                    stats.update(
+                        {
+                            "oldest_entry_age": round(
+                                (current_time - min(timestamps)) / 60, 1
+                            ),
+                            "newest_entry_age": round(
+                                (current_time - max(timestamps)) / 60, 1
+                            ),
+                        }
+                    )
                 return stats
             except Exception as e:
                 logger.error(f"Error getting cache stats: {e}")
@@ -189,12 +234,8 @@ class Broadcast:
         }
 
         for existing in self.messages:
-            if (
-                existing["chat_id"] == chat_id
-                and existing["message_id"] == message_id
-            ):
+            if existing["chat_id"] == chat_id and existing["message_id"] == message_id:
                 return False
-
         self.messages.append(message_data)
         return True
 
@@ -212,9 +253,7 @@ class Broadcast:
         """Возвращает индекс следующего сообщения для отправки"""
         if not self.messages:
             return 0
-        self._last_message_index = (self._last_message_index + 1) % len(
-            self.messages
-        )
+        self._last_message_index = (self._last_message_index + 1) % len(self.messages)
         return self._last_message_index
 
     def is_valid_interval(self) -> bool:
@@ -232,10 +271,10 @@ class Broadcast:
             return self.interval
         return (10, 13)
 
-    def get_random_delay(self) -> int:
+    def get_random_delay(self, base_delay: int) -> float:
         """Возвращает случайную задержку в пределах интервала"""
-        min_val, max_val = self.normalize_interval()
-        return random.randint(min_val * 60, max_val * 60)
+        jitter = random.uniform((-30, 30))
+        return max(3.0, base_delay + jitter)
 
     def to_dict(self) -> dict:
         """Сериализует объект в словарь"""
@@ -263,6 +302,7 @@ class BroadcastManager:
     """Manages broadcast operations and state."""
 
     # Размеры батчей
+
     BATCH_SIZE_SMALL = 5
     BATCH_SIZE_MEDIUM = 8
     BATCH_SIZE_LARGE = 10
@@ -270,6 +310,8 @@ class BroadcastManager:
 
     MAX_MESSAGES_PER_CODE = 100
     MAX_CHATS_PER_CODE = 1000
+    MAX_MESSAGES_PER_MINUTE = 20  # Максимум сообщений в минуту
+    MAX_MESSAGES_PER_HOUR = 300  # Максимум сообщений в час
     MAX_CODES = 50
     MAX_RETRY_COUNT = 3
     MAX_FLOOD_WAIT_COUNT = 3
@@ -277,18 +319,21 @@ class BroadcastManager:
     MAX_MEDIA_SIZE = 10 * 1024 * 1024  # 10MB
 
     # Пороги для батчей
+
     BATCH_THRESHOLD_SMALL = 20
     BATCH_THRESHOLD_MEDIUM = 50
     BATCH_THRESHOLD_LARGE = 100
 
     # Задержки
-    RETRY_DELAY_LONG = 300   # 5 минут
-    RETRY_DELAY_SHORT = 60   # 1 минута
-    RETRY_DELAY_MINI = 3     # 3 секунды
+
+    RETRY_DELAY_LONG = 300  # 5 минут
+    RETRY_DELAY_SHORT = 60  # 1 минута
+    RETRY_DELAY_MINI = 3  # 3 секунды
     EXPONENTIAL_DELAY_BASE = 10  # База для экспоненциальной задержки
     NOTIFY_DELAY = 1  # Задержка между уведомлениями
 
     # Прочие константы
+
     NOTIFY_GROUP_SIZE = 50  # Размер группы для уведомлений
     OFFSET_MULTIPLIER = 2  # Множитель для смещения времени в группе
     COMMAND_PARTS_COUNT = 2  # Количество частей команды в watcher
@@ -308,6 +353,15 @@ class BroadcastManager:
         self._periodic_task = None
         self._authorized_users = self._load_authorized_users()
         self.watcher_enabled = False
+        # Инициализируем rate limiters
+
+        self.minute_limiter = RateLimiter(self.MAX_MESSAGES_PER_MINUTE, 60)
+        self.hour_limiter = RateLimiter(self.MAX_MESSAGES_PER_HOUR, 3600)
+
+        # Добавляем состояние для отслеживания ошибок
+
+        self.error_counts = {}
+        self.last_error_time = {}
 
     @staticmethod
     def _get_message_content(msg: Message) -> Union[str, Message]:
@@ -345,15 +399,12 @@ class BroadcastManager:
             config = self.db.get("broadcast", "config", {})
             if not config:
                 return
-
             for code_name, code_data in config.get("codes", {}).items():
                 self.codes[code_name] = Broadcast.from_dict(code_data)
-
             saved_times = self.db.get("broadcast", "last_broadcast_times", {})
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
             )
-
         except Exception as e:
             logger.error(f"Ошибка загрузки конфигурации: {e}")
 
@@ -365,8 +416,7 @@ class BroadcastManager:
                     "version": 1,
                     "last_save": int(time.time()),
                     "codes": {
-                        name: code.to_dict()
-                        for name, code in self.codes.items()
+                        name: code.to_dict() for name, code in self.codes.items()
                     },
                 }
                 self.db.set("broadcast", "config", config)
@@ -385,7 +435,6 @@ class BroadcastManager:
             if not args:
                 await message.edit("❌ Укажите действие и код рассылки")
                 return
-
             action = args[0].lower()
 
             code_name = args[1] if len(args) > 1 else None
@@ -394,27 +443,24 @@ class BroadcastManager:
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-
                 reply = await message.get_reply_message()
                 if not reply:
                     await message.edit(
                         "❌ Ответьте на сообщение, которое нужно добавить в рассылку"
                     )
                     return
-
                 code = self.codes.get(code_name)
                 is_new = code is None
                 if is_new:
                     code = Broadcast()
                     self.codes[code_name] = code
-
                 if len(code.messages) >= self.MAX_MESSAGES_PER_CODE:
                     await message.edit(
                         f"❌ Достигнут лимит сообщений ({self.MAX_MESSAGES_PER_CODE})"
                     )
                     return
-
                 # Улучшенная обработка альбомов
+
                 grouped_id = getattr(reply, "grouped_id", None)
                 grouped_ids = []
 
@@ -428,11 +474,10 @@ class BroadcastManager:
                     ):
                         if getattr(album_msg, "grouped_id", None) == grouped_id:
                             album_messages.append(album_msg)
-
                     # Сортировка и удаление дубликатов
+
                     album_messages.sort(key=lambda m: m.id)
                     grouped_ids = list(dict.fromkeys(msg.id for msg in album_messages))
-
                 if code.add_message(reply.chat_id, reply.id, grouped_ids):
                     await self.save_config()
                     await message.edit(
@@ -440,17 +485,14 @@ class BroadcastManager:
                     )
                 else:
                     await message.edit("❌ Это сообщение уже есть в рассылке")
-
             elif action == "delete":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-                
                 if (
                     code_name in self.broadcast_tasks
                     and not self.broadcast_tasks[code_name].done()
@@ -459,42 +501,33 @@ class BroadcastManager:
                 del self.codes[code_name]
                 await self.save_config()
                 await message.edit(f"✅ Рассылка {code_name} удалена")
-
             elif action == "remove":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-
                 reply = await message.get_reply_message()
                 if not reply:
                     await message.edit(
                         "❌ Ответьте на сообщение, которое нужно удалить из рассылки"
                     )
                     return
-
                 if code.remove_message(reply.id, reply.chat_id):
                     await self.save_config()
                     await message.edit("✅ Сообщение удалено из рассылки")
                 else:
-                    await message.edit(
-                        "❌ Это сообщение не найдено в рассылке"
-                    )
-
+                    await message.edit("❌ Это сообщение не найдено в рассылке")
             elif action == "addchat":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-
                 if len(args) > 2:
                     chat_id = await self._get_chat_id(args[2])
                     if not chat_id:
@@ -504,31 +537,25 @@ class BroadcastManager:
                         return
                 else:
                     chat_id = message.chat_id
-
                 if len(code.chats) >= self.MAX_CHATS_PER_CODE:
                     await message.edit(
                         f"❌ Достигнут лимит чатов ({self.MAX_CHATS_PER_CODE})"
                     )
                     return
-
                 if chat_id in code.chats:
                     await message.edit("❌ Этот чат уже добавлен в рассылку")
                     return
-
                 code.chats.add(chat_id)
                 await self.save_config()
                 await message.edit("✅ Чат добавлен в рассылку")
-
             elif action == "rmchat":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-
                 chat_id = None
                 if len(args) > 2:
                     chat_id = await self._get_chat_id(args[2])
@@ -539,143 +566,120 @@ class BroadcastManager:
                         return
                 else:
                     chat_id = message.chat_id
-
                 if chat_id not in code.chats:
                     await message.edit("❌ Этот чат не найден в рассылке")
                     return
-
                 code.chats.remove(chat_id)
                 await self.save_config()
                 await message.edit("✅ Чат удален из рассылки")
-
             elif action == "int":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-
                 if len(args) < 4:
                     await message.edit(
                         "❌ Укажите минимальный и максимальный интервал в минутах"
                     )
                     return
-
                 try:
                     min_val = int(args[2])
                     max_val = int(args[3])
                 except ValueError:
                     await message.edit("❌ Интервалы должны быть числами")
                     return
-
                 code.interval = (min_val, max_val)
                 if not code.is_valid_interval():
                     await message.edit(
                         "❌ Некорректный интервал (0 < min < max <= 1440)"
                     )
                     return
-
                 await self.save_config()
-                await message.edit(
-                    f"✅ Установлен интервал {min_val}-{max_val} минут"
-                )
-
+                await message.edit(f"✅ Установлен интервал {min_val}-{max_val} минут")
             elif action == "mode":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-
                 if len(args) < 3:
                     await message.edit(
                         "❌ Укажите режим отправки (auto/normal/schedule)"
                     )
                     return
-
                 mode = args[2].lower()
                 if mode not in ["auto", "normal", "schedule"]:
                     await message.edit(
                         "❌ Неверный режим. Доступные режимы: auto, normal, schedule"
                     )
                     return
-
                 code.send_mode = mode
                 await self.save_config()
                 await message.edit(f"✅ Установлен режим отправки: {mode}")
-
             elif action == "allmsgs":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-
                 if len(args) < 3:
                     await message.edit("❌ Укажите on или off")
                     return
-
                 mode = args[2].lower()
                 if mode not in ["on", "off"]:
                     await message.edit("❌ Укажите on или off")
                     return
-
                 code.batch_mode = mode == "on"
                 await self.save_config()
                 await message.edit(
                     f"✅ Отправка всех сообщений {'включена' if code.batch_mode else 'выключена'}"
                 )
-
             elif action == "start":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-                
                 if not code.messages:
                     await message.edit("❌ Добавьте хотя бы одно сообщение в рассылку")
                     return
                 if not code.chats:
                     await message.edit("❌ Добавьте хотя бы один чат в рассылку")
                     return
-                
                 # Отменяем существующую задачу если она есть
-                if code_name in self.broadcast_tasks and not self.broadcast_tasks[code_name].done():
+
+                if (
+                    code_name in self.broadcast_tasks
+                    and self.broadcast_tasks[code_name]
+                    and not self.broadcast_tasks[code_name].done()
+                ):
                     self.broadcast_tasks[code_name].cancel()
                     try:
                         await self.broadcast_tasks[code_name]
                     except asyncio.CancelledError:
                         pass
-                
                 code._active = True
                 self.broadcast_tasks[code_name] = asyncio.create_task(
                     self._broadcast_loop(code_name)
                 )
                 await message.edit(f"✅ Рассылка {code_name} запущена")
-
             elif action == "stop":
                 if not code_name:
                     await message.edit("❌ Укажите код рассылки")
                     return
-                
                 code = self.codes.get(code_name)
                 if not code:
                     await message.edit(f"❌ Код рассылки {code_name} не найден")
                     return
-                
                 code._active = False
                 if (
                     code_name in self.broadcast_tasks
@@ -687,7 +691,6 @@ class BroadcastManager:
                     except asyncio.CancelledError:
                         pass
                 await message.edit(f"✅ Рассылка {code_name} остановлена")
-
             elif action == "watcher":
                 if len(args) < 2:
                     status = "включен" if self.watcher_enabled else "выключен"
@@ -697,17 +700,14 @@ class BroadcastManager:
                         "Использование: .br watcher <on/off>"
                     )
                     return
-
                 mode = args[1].lower()
                 if mode not in ["on", "off"]:
                     await message.edit("❌ Укажите on или off")
                     return
-
                 self.watcher_enabled = mode == "on"
                 await message.edit(
                     f"✅ Автодобавление чатов {'включено' if self.watcher_enabled else 'выключено'}"
                 )
-
             elif action == "list":
                 if not self.codes:
                     await message.edit("❌ Нет активных рассылок")
@@ -715,27 +715,38 @@ class BroadcastManager:
                 response = "📝 Список рассылок:\n\n"
                 current_time = time.time()
                 for name, code in self.codes.items():
-                    is_running = name in self.broadcast_tasks and not self.broadcast_tasks[name].done()
-                    status = "✅ Активна" if code._active and is_running else "❌ Не запущена"
+                    is_running = (
+                        name in self.broadcast_tasks
+                        and not self.broadcast_tasks[name].done()
+                    )
+                    status = (
+                        "✅ Активна"
+                        if code._active and is_running
+                        else "❌ Не запущена"
+                    )
                     last_time = self.last_broadcast_time.get(name, 0)
-                    
+
                     if last_time and current_time > last_time:
                         minutes_ago = int((current_time - last_time) / 60)
                         if minutes_ago == 0:
                             last_active = "(последняя активность: менее минуты назад)"
                         else:
-                            last_active = f"(последняя активность: {minutes_ago} мин назад)"
+                            last_active = (
+                                f"(последняя активность: {minutes_ago} мин назад)"
+                            )
                     else:
                         last_active = ""
-                    
                     response += f"• {name}: {status} {last_active}\n"
                     response += f"  ├ Чатов: {len(code.chats)} (активных)\n"
                     response += f"  ├ Сообщений: {len(code.messages)}\n"
-                    response += f"  ├ Интервал: {code.interval[0]}-{code.interval[1]} мин\n"
+                    response += (
+                        f"  ├ Интервал: {code.interval[0]}-{code.interval[1]} мин\n"
+                    )
                     response += f"  ├ Режим: {code.send_mode}\n"
-                    response += f"  └ Все сообщения: {'да' if code.batch_mode else 'нет'}\n\n"
+                    response += (
+                        f"  └ Все сообщения: {'да' if code.batch_mode else 'нет'}\n\n"
+                    )
                 await message.edit(response)
-
             else:
                 await message.edit(
                     "❌ Неизвестное действие\n\n"
@@ -753,7 +764,6 @@ class BroadcastManager:
                     "• watcher <on/off> - включить/выключить автодобавление чатов\n"
                     "• list - список рассылок"
                 )
-
         except Exception as e:
             logger.error(f"Error handling command: {e}")
             await message.edit(f"❌ Произошла ошибка: {str(e)}")
@@ -764,28 +774,49 @@ class BroadcastManager:
         code_name: str,
         messages_to_send: List[Union[Message, List[Message]]],
     ) -> Set[int]:
-        """Отправляет сообщения в чаты с оптимизированной обработкой ошибок."""
+        """Обновленный метод отправки сообщений в чаты"""
         if not code:
-            logger.error(f"Код рассылки {code_name} не найден при отправке сообщений")
             return set()
-
-        if not messages_to_send:
-            logger.error(f"Нет сообщений для отправки в рассылке {code_name}")
-            return set()
-
         failed_chats: Set[int] = set()
         success_count: int = 0
-        error_counts: Dict[str, int] = {}
         flood_wait_count: int = 0
-        consecutive_errors: int = 0
 
-        async def send_to_chat(chat_id: int, base_time: datetime, position_in_batch: int, current_batch_size: int, retry_count: int = 0) -> None:
-            nonlocal success_count, consecutive_errors, flood_wait_count
-            if not self._active or not code._active:
-                return
+        # Динамическое определение размера батча на основе статистики ошибок
+
+        async def get_optimal_batch_size(total_chats: int) -> int:
+            minute_stats = await self.minute_limiter.get_stats()
+            hour_stats = await self.hour_limiter.get_stats()
+
+            # Уменьшаем размер батча если приближаемся к лимитам
+
+            if minute_stats["usage_percent"] > 80 or hour_stats["usage_percent"] > 80:
+                return max(self.BATCH_SIZE_SMALL // 2, 1)
+            if total_chats <= self.BATCH_THRESHOLD_SMALL:
+                return self.BATCH_SIZE_SMALL
+            elif total_chats <= self.BATCH_THRESHOLD_MEDIUM:
+                return self.BATCH_SIZE_MEDIUM
+            return self.BATCH_SIZE_LARGE
+
+        async def send_to_chat(
+            chat_id: int,
+            base_time: datetime,
+            position_in_batch: int,
+            current_batch_size: int,
+        ):
+            nonlocal success_count, flood_wait_count
 
             try:
-                offset_minutes = (position_in_batch * self.OFFSET_MULTIPLIER) // current_batch_size
+                # Проверяем историю ошибок для чата
+
+                error_key = f"{chat_id}_general"
+                if self.error_counts.get(error_key, 0) >= self.MAX_CONSECUTIVE_ERRORS:
+                    last_error = self.last_error_time.get(error_key, 0)
+                    if time.time() - last_error < self.RETRY_DELAY_LONG:
+                        failed_chats.add(chat_id)
+                        return
+                offset_minutes = (
+                    position_in_batch * self.OFFSET_MULTIPLIER
+                ) // current_batch_size
                 schedule_time = base_time + timedelta(minutes=offset_minutes)
 
                 for message in messages_to_send:
@@ -798,102 +829,43 @@ class BroadcastManager:
                     )
                     if not success:
                         raise Exception("Ошибка отправки сообщения")
-
                 success_count += 1
-                consecutive_errors = 0
-
             except FloodWaitError as e:
                 flood_wait_count += 1
-                consecutive_errors += 1
-                
                 if flood_wait_count >= self.MAX_FLOOD_WAIT_COUNT:
                     logger.error("Слишком много FloodWaitError, останавливаем рассылку")
-                    self._active = False
-                    return
-                
-                wait_time = e.seconds * (2 ** retry_count)
-                logger.warning(f"FloodWaitError для чата {chat_id}: ждем {wait_time} секунд")
-                await asyncio.sleep(wait_time)
-                
-                if retry_count < self.MAX_RETRY_COUNT:
-                    await send_to_chat(chat_id, base_time, position_in_batch, current_batch_size, retry_count + 1)
-
-            except (ChatWriteForbiddenError, UserBannedInChannelError, ChannelPrivateError, ChatAdminRequiredError) as e:
-                error_type = type(e).__name__
-                error_counts[error_type] = error_counts.get(error_type, 0) + 1
+                    code._active = False
                 failed_chats.add(chat_id)
-                logger.warning(f"Ошибка доступа для чата {chat_id}: {str(e)}")
-
             except Exception as e:
-                error_type = type(e).__name__
-                error_counts[error_type] = error_counts.get(error_type, 0) + 1
-                consecutive_errors += 1
-                logger.error(f"Непредвиденная ошибка для чата {chat_id}: {str(e)}")
-                
-                if consecutive_errors >= self.MAX_CONSECUTIVE_ERRORS:
-                    logger.error("Слишком много последовательных ошибок, увеличиваем задержки")
-                    await asyncio.sleep(self.RETRY_DELAY_SHORT * (2 ** retry_count))
-                
-                if retry_count < self.MAX_RETRY_COUNT:
-                    await send_to_chat(chat_id, base_time, position_in_batch, current_batch_size, retry_count + 1)
-                else:
-                    failed_chats.add(chat_id)
+                failed_chats.add(chat_id)
+                logger.error(f"Ошибка отправки в чат {chat_id}: {str(e)}")
 
         chats = list(code.chats)
         random.shuffle(chats)
-
         total_chats = len(chats)
-        if total_chats <= self.BATCH_THRESHOLD_SMALL:
-            batch_size = self.BATCH_SIZE_SMALL
-        elif total_chats <= self.BATCH_THRESHOLD_MEDIUM:
-            batch_size = self.BATCH_SIZE_MEDIUM
-        elif total_chats <= self.BATCH_THRESHOLD_LARGE:
-            batch_size = self.BATCH_SIZE_LARGE
-        else:
-            batch_size = self.BATCH_SIZE_XLARGE
 
-        min_interval, max_interval = code.normalize_interval()
-        base_time = datetime.now().replace(second=0, microsecond=0)
-        
-        for i in range(0, len(chats), batch_size):
+        batch_size = await get_optimal_batch_size(total_chats)
+
+        for i in range(0, total_chats, batch_size):
             if not self._active or not code._active:
                 break
+            current_batch = chats[i : i + batch_size]
+            current_time = datetime.now()
 
-            last_time = self.last_broadcast_time.get(code_name, 0)
-            if last_time:
-                wait_time = last_time + (min_interval * 60) - time.time()
-                if wait_time > 0:
-                    await asyncio.sleep(wait_time)
+            # Создаем задачи для текущего батча
 
-            current_batch_size = batch_size
-            if consecutive_errors >= self.MAX_CONSECUTIVE_ERRORS // 2:
-                current_batch_size = max(self.MAX_RETRY_COUNT, batch_size // 2)
-                logger.warning(f"Уменьшен размер группы до {current_batch_size} из-за ошибок")
+            tasks = []
+            for idx, chat_id in enumerate(current_batch):
+                task = send_to_chat(chat_id, current_time, idx, len(current_batch))
+                tasks.append(task)
+            # Запускаем отправку с ограничением параллельности
 
-            batch = chats[i:i + current_batch_size]
-            random.shuffle(batch)
-            
-            tasks = [send_to_chat(chat_id, base_time, idx, current_batch_size) for idx, chat_id in enumerate(batch)]
             await asyncio.gather(*tasks)
-            
-            delay_minutes = min_interval + self.INTERVAL_PADDING
-            base_time = base_time + timedelta(minutes=delay_minutes)
-            
-            self.last_broadcast_time[code_name] = time.time()
-            
-            if consecutive_errors > 0:
-                await asyncio.sleep(self.EXPONENTIAL_DELAY_BASE * (2 ** consecutive_errors))
-            else:
-                await asyncio.sleep(self.RETRY_DELAY_MINI)
 
-        if total_chats > 0:
-            success_rate = (success_count / total_chats) * 100
-            logger.info(f"Рассылка завершена. Успешно: {success_count}/{total_chats} ({success_rate:.1f}%)")
-            if error_counts:
-                logger.info("Статистика ошибок:")
-                for error_type, count in error_counts.items():
-                    logger.info(f"- {error_type}: {count}")
+            # Добавляем случайную задержку между батчами
 
+            delay = self.get_random_delay(code.interval[0] * 60)
+            await asyncio.sleep(delay)
         return failed_chats
 
     async def _send_message(
@@ -904,10 +876,9 @@ class BroadcastManager:
         send_mode: str = "auto",
         schedule_time: Optional[datetime] = None,
     ) -> bool:
-        """Отправляет сообщение с ограничением частоты."""
         try:
+
             async def forward_messages(messages: Union[Message, List[Message]]) -> None:
-                """Вспомогательная функция для пересылки сообщений"""
                 if isinstance(messages, list):
                     await self.client.forward_messages(
                         entity=chat_id,
@@ -923,13 +894,14 @@ class BroadcastManager:
                         schedule=schedule_time,
                     )
 
-            # Режим forward - всегда пересылаем
+            await self.minute_limiter.acquire()
+            await self.hour_limiter.acquire()
+
+            await asyncio.sleep(self.MIN_DELAY_BETWEEN_MESSAGES)
+
             if send_mode == "forward":
                 await forward_messages(messages_to_send)
-                return True
-
-            # Режим normal - всегда отправляем как новое
-            if send_mode == "normal":
+            elif send_mode == "normal":
                 if isinstance(messages_to_send, list):
                     for msg in messages_to_send:
                         await self.client.send_message(
@@ -943,54 +915,79 @@ class BroadcastManager:
                         message=self._get_message_content(messages_to_send),
                         schedule=schedule_time,
                     )
-                return True
+            elif send_mode == "auto":
+                # Для списка сообщений всегда используем forward
 
-            # Режим auto - умное определение способа отправки
-            if isinstance(messages_to_send, list) or messages_to_send.media:
-                await forward_messages(messages_to_send)
-            else:
-                await self.client.send_message(
-                    entity=chat_id,
-                    message=self._get_message_content(messages_to_send),
-                    schedule=schedule_time,
-                )
+                if isinstance(messages_to_send, list):
+                    await forward_messages(messages_to_send)
+                # Для одиночного сообщения проверяем наличие медиа
+
+                elif hasattr(messages_to_send, "media") and messages_to_send.media:
+                    await forward_messages(messages_to_send)
+                else:
+                    await self.client.send_message(
+                        entity=chat_id,
+                        message=self._get_message_content(messages_to_send),
+                        schedule=schedule_time,
+                    )
+            self.error_counts[chat_id] = 0
             return True
-
         except FloodWaitError as e:
-            logger.warning(f"FloodWaitError: необходимо подождать {e.seconds} секунд")
-            raise
+            error_key = f"{chat_id}_flood"
+            self.error_counts[error_key] = self.error_counts.get(error_key, 0) + 1
+            self.last_error_time[error_key] = time.time()
 
+            # Экспоненциальное увеличение времени ожидания
+
+            wait_time = e.seconds * (2 ** self.error_counts[error_key])
+            logger.warning(
+                f"FloodWaitError {code_name} для чата {chat_id}: ждем {wait_time} секунд"
+            )
+            await asyncio.sleep(wait_time)
+            raise
         except (ChatWriteForbiddenError, UserBannedInChannelError):
             raise
-
         except Exception as e:
-            logger.error(
-                f"Error sending message to {chat_id} in broadcast '{code_name}': {e}"
-            )
-            return False
+            error_key = f"{chat_id}_general"
+            self.error_counts[error_key] = self.error_counts.get(error_key, 0) + 1
+            self.last_error_time[error_key] = time.time()
+
+            if self.error_counts[error_key] >= self.MAX_CONSECUTIVE_ERRORS:
+                wait_time = self.RETRY_DELAY_SHORT * (
+                    2 ** (self.error_counts[error_key] - self.MAX_CONSECUTIVE_ERRORS)
+                )
+                logger.warning(
+                    f"Превышен лимит ошибок для {code_name}  чата {chat_id}, ждем {wait_time} секунд"
+                )
+                await asyncio.sleep(wait_time)
+            raise
 
     async def _handle_failed_chats(
-        self, 
-        code_name: str, 
-        failed_chats: Set[int]
+        self, code_name: str, failed_chats: Set[int]
     ) -> None:
         """Обрабатывает чаты, в которые не удалось отправить сообщения."""
         if not failed_chats:
             return
-
         try:
             async with self._lock:
                 code = self.codes.get(code_name)
                 if not code:
-                    logger.error(f"Код рассылки {code_name} не найден при обработке ошибок")
+                    logger.error(
+                        f"Код рассылки {code_name} не найден при обработке ошибок"
+                    )
                     return
-                    
                 code.chats -= failed_chats
                 await self.save_config()
 
                 # Оптимизированная группировка чатов без преобразования в list
+
                 chat_groups = [
-                    ", ".join(str(chat_id) for chat_id in tuple(failed_chats)[i:i+self.NOTIFY_GROUP_SIZE])
+                    ", ".join(
+                        str(chat_id)
+                        for chat_id in tuple(failed_chats)[
+                            i : i + self.NOTIFY_GROUP_SIZE
+                        ]
+                    )
                     for i in range(0, len(failed_chats), self.NOTIFY_GROUP_SIZE)
                 ]
 
@@ -1007,40 +1004,33 @@ class BroadcastManager:
                         await self.client.send_message(
                             me.id,
                             base_message + group,
-                            schedule=datetime.now() + timedelta(seconds=self.RETRY_DELAY_SHORT),
+                            schedule=datetime.now()
+                            + timedelta(seconds=self.RETRY_DELAY_SHORT),
                         )
                         await asyncio.sleep(self.NOTIFY_DELAY)
                     except Exception as e:
                         logger.error(f"Ошибка отправки уведомления: {e}")
-
         except Exception as e:
-            logger.error(
-                f"Ошибка обработки неудачных чатов для {code_name}: {e}"
-            )
+            logger.error(f"Ошибка обработки неудачных чатов для {code_name}: {e}")
 
     @staticmethod
     def _chunk_messages(
-        messages: List[Union[Message, List[Message]]], 
-        batch_size: int = 8
+        messages: List[Union[Message, List[Message]]], batch_size: int = 8
     ) -> List[List[Union[Message, List[Message]]]]:
         """Разбивает список сообщений на части оптимального размера."""
         if not messages:
             return []
         return [
-            messages[i : i + batch_size]
-            for i in range(0, len(messages), batch_size)
+            messages[i : i + batch_size] for i in range(0, len(messages), batch_size)
         ]
 
     async def _process_message_batch(
-        self, 
-        code: Optional[Broadcast], 
-        messages: List[dict]
+        self, code: Optional[Broadcast], messages: List[dict]
     ) -> Tuple[List[Union[Message, List[Message]]], List[dict]]:
         """Обрабатывает пакет сообщений с оптимизированной загрузкой."""
         if not code:
             logger.error("Получен пустой объект рассылки при обработке сообщений")
             return [], messages
-
         messages_to_send = []
         deleted_messages = []
 
@@ -1057,18 +1047,17 @@ class BroadcastManager:
                 deleted_messages.append(msg_data)
             elif result:
                 # Проверяем размер медиафайлов
+
                 if isinstance(result, list):
                     valid = all(self._check_media_size(msg) for msg in result)
                 else:
                     valid = self._check_media_size(result)
-                
                 if valid:
                     messages_to_send.append(result)
                 else:
                     deleted_messages.append(msg_data)
             else:
                 deleted_messages.append(msg_data)
-
         return messages_to_send, deleted_messages
 
     @staticmethod
@@ -1076,7 +1065,6 @@ class BroadcastManager:
         """Проверяет размер медиафайла."""
         if not message:
             return False
-            
         if hasattr(message, "media") and message.media:
             if hasattr(message.media, "document") and hasattr(
                 message.media.document, "size"
@@ -1102,34 +1090,30 @@ class BroadcastManager:
                 if not self._should_continue(code, code_name):
                     await asyncio.sleep(self.RETRY_DELAY_SHORT)
                     continue
-
                 messages_to_send = []
                 deleted_messages = []
-
-                # Создаем копию сообщений для безопасной работы
-                async with self._lock:
-                    current_messages = code.messages.copy()
+                current_messages = code.messages.copy()
 
                 # Используем копию для создания батчей
-                batches = self._chunk_messages(current_messages, batch_size=self.BATCH_SIZE_LARGE)
-                
+
+                batches = self._chunk_messages(
+                    current_messages, batch_size=self.BATCH_SIZE_LARGE
+                )
+
                 for batch in batches:
                     if not self._should_continue(code, code_name):
                         break
-
                     batch_messages, deleted = await self._process_message_batch(
                         code, batch
                     )
                     messages_to_send.extend(batch_messages)
                     deleted_messages.extend(deleted)
-
                 if deleted_messages:
                     async with self._lock:
                         code.messages = [
                             m for m in code.messages if m not in deleted_messages
                         ]
                         await self.save_config()
-
                 if not self._should_continue(code, code_name) or not messages_to_send:
                     retry_count += 1
                     if retry_count >= self.MAX_RETRY_COUNT:
@@ -1141,22 +1125,22 @@ class BroadcastManager:
                     else:
                         await asyncio.sleep(self.RETRY_DELAY_SHORT)
                     continue
-
                 retry_count = 0
 
                 if not code.batch_mode:
                     async with self._lock:
                         next_index = code.get_next_message_index()
                         # Используем модуль для корректной работы с отрицательными числами
-                        messages_to_send = [messages_to_send[next_index % len(messages_to_send)]]
 
+                        messages_to_send = [
+                            messages_to_send[next_index % len(messages_to_send)]
+                        ]
                 failed_chats = await self._send_messages_to_chats(
                     code, code_name, messages_to_send
                 )
 
                 if failed_chats:
                     await self._handle_failed_chats(code_name, failed_chats)
-
                 current_time = time.time()
                 self.last_broadcast_time[code_name] = current_time
 
@@ -1166,19 +1150,14 @@ class BroadcastManager:
                             "broadcast", "last_broadcast_times", {}
                         )
                         saved_times[code_name] = current_time
-                        self.db.set(
-                            "broadcast", "last_broadcast_times", saved_times
-                        )
+                        self.db.set("broadcast", "last_broadcast_times", saved_times)
                 except Exception as e:
                     logger.error(f"Ошибка сохранения времени рассылки: {e}")
-
             except asyncio.CancelledError:
                 logger.info(f"Рассылка {code_name} остановлена")
                 break
             except Exception as e:
-                logger.error(
-                    f"Критическая ошибка в цикле рассылки {code_name}: {e}"
-                )
+                logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
                 retry_count += 1
                 if retry_count >= self.MAX_RETRY_COUNT:
                     logger.error(
@@ -1194,34 +1173,26 @@ class BroadcastManager:
         try:
             if not self.watcher_enabled:
                 return
-
             if not (message and message.text and message.text.startswith("!")):
                 return
-
             if message.sender_id != self.me_id:
                 return
-
             parts = message.text.split()
             if len(parts) != self.COMMAND_PARTS_COUNT:
                 return
-
             code_name = parts[0][1:]
             if not code_name:
                 return
-                
             chat_id = message.chat_id
 
             code = self.codes.get(code_name)
             if not code:
                 return
-
             if len(code.chats) >= self.MAX_CHATS_PER_CODE:
                 return
-
             if chat_id not in code.chats:
                 code.chats.add(chat_id)
                 await self.save_config()
-
         except Exception as e:
             logger.error(f"Error in watcher: {e}")
 
@@ -1235,7 +1206,6 @@ class BroadcastManager:
                 task.cancel()
                 with suppress(asyncio.CancelledError):
                     await task
-
         for task in [t for t in self.broadcast_tasks.values() if t and not t.done()]:
             task.cancel()
             with suppress(asyncio.CancelledError):
@@ -1251,7 +1221,6 @@ class BroadcastManager:
             cached = await self._message_cache.get(key)
             if cached:
                 return cached
-
             message_ids = msg_data.get("grouped_ids", [msg_data["message_id"]])
 
             messages = []
@@ -1261,13 +1230,11 @@ class BroadcastManager:
                     msg_data["chat_id"], ids=batch
                 )
                 messages.extend(m for m in batch_messages if m)
-
             if not messages:
                 logger.warning(
                     f"Не удалось получить сообщение {msg_data['message_id']} из чата {msg_data['chat_id']}"
                 )
                 return None
-
             for msg in messages:
                 if hasattr(msg, "media") and msg.media:
                     if hasattr(msg.media, "document") and hasattr(
@@ -1278,16 +1245,12 @@ class BroadcastManager:
                                 f"Медиа в сообщении {msg.id} превышает лимит размера (10MB)"
                             )
                             return None
-
             if len(message_ids) > 1:
                 messages.sort(key=lambda x: message_ids.index(x.id))
-
             if messages:
                 await self._message_cache.set(key, messages)
                 return messages[0] if len(messages) == 1 else messages
-
             return None
-
         except (ConnectionError, TimeoutError) as e:
             logger.error(f"Ошибка сети при получении сообщений: {e}")
             return None
@@ -1300,14 +1263,11 @@ class BroadcastManager:
         try:
             if chat_identifier.lstrip("-").isdigit():
                 return int(chat_identifier)
-
             clean_username = chat_identifier.lower()
             for prefix in ["https://", "http://", "t.me/", "@", "telegram.me/"]:
                 clean_username = clean_username.replace(prefix, "")
-
             entity = await self.client.get_entity(clean_username)
             return entity.id
-
         except Exception as e:
             logger.error(f"Ошибка получения chat_id: {e}")
             return None
