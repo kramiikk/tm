@@ -461,9 +461,15 @@ class ProfileChangerMod(loader.Module):
             last_delay = (now - self.last_update).total_seconds()
             if abs(last_delay - delay) < 30:
                 delay *= random.uniform(0.85, 1.15)
-        return max(
+        delay = max(
             self.config[CONFIG_MIN_DELAY], min(self.config[CONFIG_MAX_DELAY], delay)
         )
+
+        if delay == self.config[CONFIG_MIN_DELAY]:
+            delay += random.uniform(61, 337)
+            logger.info(f"Задержка на минимальном значении. Увеличена до {delay:.1f} секунд.")
+
+        return delay
 
     async def _loop(self) -> None:
         """Основной асинхронный цикл для периодического обновления фотографии."""
