@@ -174,18 +174,65 @@ def register(cb):
 class BroadcastMod(loader.Module):
     """Модуль для управления рассылками
 
-    Команды:
-    • .br add <код> - создать рассылку и добавить сообщение (ответом)
-    • .br delete <код> - удалить рассылку
-    • .br remove <код> - удалить сообщение (ответом)
-    • .br addchat <код> - добавить текущий чат
-    • .br rmchat <код> - удалить текущий чат
-    • .br int <код> <мин> <макс> - установить интервал
-    • .br mode <код> <режим> - установить режим (auto/normal/forward)
-    • .br allmsgs <код> <on/off> - отправлять все сообщения/одно
-    • .br start <код> - запустить рассылку
-    • .br stop <код> - остановить рассылку
-    • .br list - список рассылок
+    Используйте <code>.br</code> для управления рассылками.
+
+    <strong>Команды:</strong>
+
+    <ul>
+        <li><code>.br add <код></code> - <strong>Создать или добавить сообщение в рассылку.</strong> Ответьте этой командой на сообщение, которое хотите добавить. Если рассылка с указанным <код> не существует, она будет создана.
+            <ul>
+                <li>Пример: <code>.br my_broadcast</code> (в ответ на сообщение)</li>
+            </ul></li>
+        <li><code>.br delete <код></code> - <strong>Удалить рассылку.</strong>  Удаляет рассылку с указанным <код> вместе со всеми ее сообщениями и настройками.
+            <ul>
+                <li>Пример: <code>.br delete my_broadcast</code></li>
+            </ul></li>
+        <li><code>.br remove <код></code> - <strong>Удалить сообщение из рассылки.</strong> Ответьте этой командой на сообщение, которое хотите удалить из указанной рассылки.
+            <ul>
+                <li>Пример: <code>.br remove my_broadcast</code> (в ответ на сообщение)</li>
+            </ul></li>
+        <li><code>.br addchat <код> [ссылка/юзернейм/ID]</code> - <strong>Добавить чат в рассылку.</strong> Добавляет текущий чат или указанный чат (по ссылке, юзернейму или ID) в список получателей рассылки.
+            <ul>
+                <li>Пример (добавить текущий чат): <code>.br addchat my_broadcast</code></li>
+                <li>Пример (добавить по ссылке): <code>.br addchat my_broadcast t.me/my_channel</code></li>
+                <li>Пример (добавить по ID): <code>.br addchat my_broadcast 123456789</code></li>
+            </ul></li>
+        <li><code>.br rmchat <код> [ссылка/юзернейм/ID]</code> - <strong>Удалить чат из рассылки.</strong> Удаляет текущий чат или указанный чат из списка получателей рассылки.
+            <ul>
+                <li>Пример (удалить текущий чат): <code>.br rmchat my_broadcast</code></li>
+                <li>Пример (удалить по юзернейму): <code>.br rmchat my_broadcast my_channel</code></li>
+            </ul></li>
+        <li><code>.br int <код> <мин> <макс></code> - <strong>Установить интервал отправки.</strong> Задает случайный интервал в минутах между отправкой сообщений в рассылке (минимальное и максимальное значения).
+            <ul>
+                <li>Пример: <code>.br int my_broadcast 5 10</code> (интервал от 5 до 10 минут)</li>
+            </ul></li>
+        <li><code>.br mode <код> <режим></code> - <strong>Установить режим отправки.</strong> Определяет способ отправки сообщений в рассылке.
+            <ul>
+                <li><code>auto</code>: Автоматически выбирает режим (пересылка для медиа, отправка текста для текста).</li>
+                <li><code>normal</code>: Отправляет сообщения как обычный текст (может не работать для медиа).</li>
+                <li><code>forward</code>: Пересылает сообщения (работает для медиа и текста).</li>
+                <li>Пример: <code>.br mode my_broadcast forward</code></li>
+            </ul></li>
+        <li><code>.br allmsgs <код> <on/off></code> - <strong>Управлять отправкой всех сообщений.</strong>
+            <ul>
+                <li><code>on</code>: Отправлять все сообщения из рассылки по очереди в каждый чат.</li>
+                <li><code>off</code>: Отправлять только одно, случайно выбранное сообщение из рассылки в каждый чат.</li>
+                <li>Пример: <code>.br allmsgs my_broadcast on</code></li>
+            </ul></li>
+        <li><code>.br start <код></code> - <strong>Запустить рассылку.</strong> Начинает отправку сообщений в соответствии с настройками рассылки.
+            <ul>
+                <li>Пример: <code>.br start my_broadcast</code></li>
+            </ul></li>
+        <li><code>.br stop <код></code> - <strong>Остановить рассылку.</strong> Прекращает активную отправку сообщений.
+            <ul>
+                <li>Пример: <code>.br stop my_broadcast</code></li>
+            </ul></li>
+        <li><code>.br watcher</code> <on/off> - <strong>Включить/выключить автоматическое добавление чатов.</strong> Когда включено, чаты, в которых вы отправляете сообщение, начинающееся с !код_рассылки, будут автоматически добавлены в эту рассылку.</li>
+            <ul>
+                <li>Пример использования (в чате, который нужно добавить в рассылку с кодом <code>road</code>): <code>!road</code></li>
+            </ul></ins>
+        <li><code>.br list</code> - <strong>Показать список рассылок.</strong></li>
+    </ul>        
     """
 
     strings = {"name": "Broadcast"}
@@ -195,13 +242,125 @@ class BroadcastMod(loader.Module):
         self.manager = BroadcastManager(self._client, self.db)
         await self.manager._load_config()
         self.me_id = (await self._client.get_me()).id
+    
+    async def watcher(self, message: Message):
+        """Автоматически добавляет чаты в рассылку."""
+        try:
+            if not self.manager.watcher_enabled:
+                return
+            if not (message and message.text and message.text.startswith("!")):
+                return
+            if message.sender_id != self.me_id:
+                return
+            parts = message.text.split()
+            if len(parts) != 2:
+                logger.info(
+                    f"Parts length check failed. Got {len(parts)} parts: {parts}"
+                )
+                return
+            code_name = parts[0][1:]
+            if not code_name:
+                logger.info("Empty code name")
+                return
+            chat_id = message.chat_id
+            logger.info(f"Processing code: {code_name}, chat_id: {chat_id}")
+
+            code = self.codes.get(code_name)
+            if not code:
+                logger.info(f"Code {code_name} not found in self.codes")
+                return
+            if len(code.chats) >= 500:
+                logger.info(f"Max chats limit reached for code {code_name}")
+                return
+            if chat_id not in code.chats:
+                logger.info(f"Adding chat {chat_id} to code {code_name}")
+                code.chats.add(chat_id)
+                await self.save_config()
+                logger.info(f"Successfully added chat {chat_id} to code {code_name}")
+            else:
+                logger.info(f"Chat {chat_id} already in code {code_name}")
+        except Exception as e:
+            logger.error(f"Error in watcher: {e}", exc_info=True)
+
+    async def on_unload(self):
+        """Cleanup on module unload."""
+        self._active = False
+
+        for task_name in ["_cleanup_task", "_periodic_task"]:
+            task = getattr(self, task_name, None)
+            if task:
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+        for task in [t for t in self.manager.broadcast_tasks.values() if t and not t.done()]:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
 
     async def brcmd(self, message):
         """Команда для управления рассылкой. Используйте .help Broadcast для справки."""
-        if not self.manager.is_authorized(message.sender_id):
+        if not message.sender_id in self.manager._authorized_users:
             await message.edit("❌ У вас нет доступа к этой команде")
             return
         await self.manager.handle_command(message)
+    
+    async def debug_broadcast(self, code_name: str):
+        """Debug function to check broadcast issues"""
+        code = self.manager.codes.get(code_name)
+        if not code:
+            return f"❌ Code {code_name} not found"
+        debug_info = []
+
+        debug_info.append("📊 Basic Configuration:")
+        debug_info.append(f"- Active status: {code._active}")
+        debug_info.append(f"- Number of chats: {len(code.chats)}")
+        debug_info.append(f"- Number of messages: {len(code.messages)}")
+        debug_info.append(f"- Interval: {code.interval}")
+        debug_info.append(f"- Send mode: {code.send_mode}")
+        debug_info.append(f"- Batch mode: {code.batch_mode}")
+
+        # Check message data
+
+        debug_info.append("\n📝 Message Check:")
+        for idx, msg in enumerate(code.messages):
+            try:
+                message = await self._fetch_messages(msg)
+                status = "✅" if message else "❌"
+                debug_info.append(
+                    f"- Message {idx + 1}: {status} (ID: {msg['message_id']})"
+                )
+            except Exception as e:
+                debug_info.append(f"- Message {idx + 1}: ❌ Error: {str(e)}")
+        # Check chat permissions
+
+        debug_info.append("\n👥 Chat Permissions:")
+        for chat_id in code.chats:
+            try:
+                permissions = await self._client.get_permissions(chat_id, self.me_id)
+                can_send = "✅" if permissions.send_messages else "❌"
+                debug_info.append(f"- Chat {chat_id}: {can_send}")
+            except Exception as e:
+                debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
+        # Check rate limits
+
+        debug_info.append("\n⏱️ Rate Limits:")
+        minute_stats = await self.manager.minute_limiter.get_stats()
+        hour_stats = await self.manager.hour_limiter.get_stats()
+        debug_info.append(f"- Minute usage: {minute_stats['usage_percent']}%")
+        debug_info.append(f"- Hour usage: {hour_stats['usage_percent']}%")
+
+        return "\n".join(debug_info)
+
+    async def debugcmd(self, message):
+        """Debug command for broadcast issues"""
+        args = message.text.split()
+        if len(args) < 2:
+            await message.edit("❌ Please specify the broadcast code to debug")
+            return
+        code_name = args[1]
+        debug_result = await self.manager.debug_broadcast(code_name)
+        await message.edit(debug_result)
+
 
 
 @dataclass
@@ -292,7 +451,6 @@ class BroadcastManager:
     BATCH_SIZE_XLARGE = 15
 
     MAX_MESSAGES_PER_CODE = 100
-    MAX_CHATS_PER_CODE = 1000
     MAX_MESSAGES_PER_MINUTE = 20
     MAX_MESSAGES_PER_HOUR = 300
     MAX_CODES = 50
@@ -324,7 +482,6 @@ class BroadcastManager:
         self._message_cache = SimpleCache(ttl=7200, max_size=50)
         self._active = True
         self._lock = asyncio.Lock()
-        self.me_id = None
         self._cleanup_task = None
         self._periodic_task = None
         self._authorized_users = self._load_authorized_users()
@@ -350,10 +507,6 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Ошибка загрузки авторизованных пользователей: {e}")
             return {7175372340}
-
-    def is_authorized(self, user_id: int) -> bool:
-        """Проверяет, авторизован ли пользователь"""
-        return user_id in self._authorized_users or user_id == self.me_id
 
     async def _save_authorized_users(self):
         """Сохраняет список авторизованных пользователей в JSON файл"""
@@ -403,8 +556,6 @@ class BroadcastManager:
         """Saves configuration to database with improved state handling"""
         async with self._lock:
             try:
-                # Update active states based on running tasks
-
                 for code_name, code in self.codes.items():
                     task = self.broadcast_tasks.get(code_name)
                     if task:
@@ -605,8 +756,8 @@ class BroadcastManager:
                 return
         else:
             chat_id = message.chat_id
-        if len(code.chats) >= self.MAX_CHATS_PER_CODE:
-            await message.edit(f"❌ Достигнут лимит чатов ({self.MAX_CHATS_PER_CODE})")
+        if len(code.chats) >= 500:
+            await message.edit(f"❌ Достигнут лимит чатов 500")
             return
         if chat_id in code.chats:
             await message.edit("❌ Этот чат уже добавлен в рассылку")
@@ -817,9 +968,9 @@ class BroadcastManager:
                 tasks.append(task)
             await asyncio.gather(*tasks)
 
-            await asyncio.sleep(
-                max(3.0, code.interval[0] * 60 + random.uniform(-30, 30))
-            )
+            min_interval, max_interval = code.interval
+            sleep_time = random.uniform(min_interval * 60, max_interval * 60)
+            await asyncio.sleep(max(3.0, sleep_time))
         return failed_chats
 
     async def _send_message(
@@ -1113,67 +1264,6 @@ class BroadcastManager:
                 else:
                     await asyncio.sleep(self.RETRY_DELAY_SHORT)
 
-    async def watcher(self, message: Message):
-        """Автоматически добавляет чаты в рассылку."""
-        try:
-            logger.info(f"Watcher triggered. Message: {message.text}")
-
-            if not self.watcher_enabled:
-                logger.info("Watcher disabled")
-                return
-            if not (message and message.text and message.text.startswith("!")):
-                logger.info("Message format check failed")
-                return
-            if message.sender_id != self.me_id:
-                logger.info(
-                    f"Sender ID mismatch. Expected: {self.me_id}, Got: {message.sender_id}"
-                )
-                return
-            parts = message.text.split()
-            if len(parts) != 2:
-                logger.info(
-                    f"Parts length check failed. Got {len(parts)} parts: {parts}"
-                )
-                return
-            code_name = parts[0][1:]
-            if not code_name:
-                logger.info("Empty code name")
-                return
-            chat_id = message.chat_id
-            logger.info(f"Processing code: {code_name}, chat_id: {chat_id}")
-
-            code = self.codes.get(code_name)
-            if not code:
-                logger.info(f"Code {code_name} not found in self.codes")
-                return
-            if len(code.chats) >= self.MAX_CHATS_PER_CODE:
-                logger.info(f"Max chats limit reached for code {code_name}")
-                return
-            if chat_id not in code.chats:
-                logger.info(f"Adding chat {chat_id} to code {code_name}")
-                code.chats.add(chat_id)
-                await self.save_config()
-                logger.info(f"Successfully added chat {chat_id} to code {code_name}")
-            else:
-                logger.info(f"Chat {chat_id} already in code {code_name}")
-        except Exception as e:
-            logger.error(f"Error in watcher: {e}", exc_info=True)
-
-    async def on_unload(self):
-        """Cleanup on module unload."""
-        self._active = False
-
-        for task_name in ["_cleanup_task", "_periodic_task"]:
-            task = getattr(self, task_name, None)
-            if task:
-                task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await task
-        for task in [t for t in self.broadcast_tasks.values() if t and not t.done()]:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
-
     async def _fetch_messages(
         self, msg_data: dict
     ) -> Optional[Union[Message, List[Message]]]:
@@ -1231,65 +1321,3 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Ошибка получения chat_id: {e}")
             return None
-
-    async def debug_broadcast(self, code_name: str):
-        """Debug function to check broadcast issues"""
-        code = self.codes.get(code_name)
-        if not code:
-            return f"❌ Code {code_name} not found"
-        debug_info = []
-
-        # Check basic configuration
-
-        debug_info.append("📊 Basic Configuration:")
-        debug_info.append(f"- Active status: {code._active}")
-        debug_info.append(f"- Number of chats: {len(code.chats)}")
-        debug_info.append(f"- Number of messages: {len(code.messages)}")
-        debug_info.append(f"- Interval: {code.interval}")
-        debug_info.append(f"- Send mode: {code.send_mode}")
-        debug_info.append(f"- Batch mode: {code.batch_mode}")
-
-        # Check message data
-
-        debug_info.append("\n📝 Message Check:")
-        for idx, msg in enumerate(code.messages):
-            try:
-                message = await self._fetch_messages(msg)
-                status = "✅" if message else "❌"
-                debug_info.append(
-                    f"- Message {idx + 1}: {status} (ID: {msg['message_id']})"
-                )
-            except Exception as e:
-                debug_info.append(f"- Message {idx + 1}: ❌ Error: {str(e)}")
-        # Check chat permissions
-
-        debug_info.append("\n👥 Chat Permissions:")
-        for chat_id in code.chats:
-            try:
-                chat = await self.client.get_entity(chat_id)
-                permissions = await self.client.get_permissions(chat_id, self.me_id)
-                can_send = "✅" if permissions.send_messages else "❌"
-                debug_info.append(f"- Chat {chat_id}: {can_send}")
-            except Exception as e:
-                debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
-        # Check rate limits
-
-        debug_info.append("\n⏱️ Rate Limits:")
-        minute_stats = await self.minute_limiter.get_stats()
-        hour_stats = await self.hour_limiter.get_stats()
-        debug_info.append(f"- Minute usage: {minute_stats['usage_percent']}%")
-        debug_info.append(f"- Hour usage: {hour_stats['usage_percent']}%")
-
-        return "\n".join(debug_info)
-
-    # Add this to BroadcastMod class methods
-
-    async def debugcmd(self, message):
-        """Debug command for broadcast issues"""
-        args = message.text.split()
-        if len(args) < 2:
-            await message.edit("❌ Please specify the broadcast code to debug")
-            return
-        code_name = args[1]
-        debug_result = await self.manager.debug_broadcast(code_name)
-        await message.edit(debug_result)
