@@ -798,6 +798,7 @@ class ProfileChangerMod(loader.Module):
                     stop_tasks.append(self._stop())
                 if self.pfpdir_running:
                     self.pfpdir_running = False
+                    self._save_state()
                 if stop_tasks:
                     await asyncio.wait(stop_tasks, timeout=10)
             await utils.answer(message, self.strings["stopped_successfully"])
