@@ -38,7 +38,6 @@ class RateLimiter:
         """Проверяет возможность отправки и при необходимости ждет"""
         async with self._lock:
             now = time.time()
-            # Очистка старых запросов
 
             self.requests = [t for t in self.requests if now - t < self.time_window]
 
@@ -85,8 +84,6 @@ class SimpleCache:
             if time.time() - timestamp > self.ttl:
                 del self.cache[key]
                 return None
-            # Перемещаем использованный элемент в конец для LRU
-
             self.cache.move_to_end(key)
             return value
 
@@ -95,8 +92,6 @@ class SimpleCache:
         async with self._lock:
             await self._maybe_cleanup()
             if len(self.cache) >= self.max_size:
-                # Удаляем 25% старых записей при переполнении
-
                 to_remove = max(1, len(self.cache) // 4)
                 for _ in range(to_remove):
                     self.cache.popitem(last=False)
@@ -301,8 +296,6 @@ class Broadcast:
 class BroadcastManager:
     """Manages broadcast operations and state."""
 
-    # Размеры батчей
-
     BATCH_SIZE_SMALL = 5
     BATCH_SIZE_MEDIUM = 8
     BATCH_SIZE_LARGE = 10
@@ -310,34 +303,28 @@ class BroadcastManager:
 
     MAX_MESSAGES_PER_CODE = 100
     MAX_CHATS_PER_CODE = 1000
-    MAX_MESSAGES_PER_MINUTE = 20  # Максимум сообщений в минуту
-    MAX_MESSAGES_PER_HOUR = 300  # Максимум сообщений в час
+    MAX_MESSAGES_PER_MINUTE = 20
+    MAX_MESSAGES_PER_HOUR = 300
     MAX_CODES = 50
     MAX_RETRY_COUNT = 3
     MAX_FLOOD_WAIT_COUNT = 3
     MAX_CONSECUTIVE_ERRORS = 5
-    MAX_MEDIA_SIZE = 10 * 1024 * 1024  # 10MB
-
-    # Пороги для батчей
+    MAX_MEDIA_SIZE = 10 * 1024 * 1024
 
     BATCH_THRESHOLD_SMALL = 20
     BATCH_THRESHOLD_MEDIUM = 50
     BATCH_THRESHOLD_LARGE = 100
 
-    # Задержки
+    RETRY_DELAY_LONG = 300
+    RETRY_DELAY_SHORT = 60
+    RETRY_DELAY_MINI = 3
+    EXPONENTIAL_DELAY_BASE = 10
+    NOTIFY_DELAY = 1
 
-    RETRY_DELAY_LONG = 300  # 5 минут
-    RETRY_DELAY_SHORT = 60  # 1 минута
-    RETRY_DELAY_MINI = 3  # 3 секунды
-    EXPONENTIAL_DELAY_BASE = 10  # База для экспоненциальной задержки
-    NOTIFY_DELAY = 1  # Задержка между уведомлениями
-
-    # Прочие константы
-
-    NOTIFY_GROUP_SIZE = 50  # Размер группы для уведомлений
-    OFFSET_MULTIPLIER = 2  # Множитель для смещения времени в группе
-    COMMAND_PARTS_COUNT = 2  # Количество частей команды в watcher
-    INTERVAL_PADDING = 1  # Дополнительная минута к интервалу
+    NOTIFY_GROUP_SIZE = 30
+    OFFSET_MULTIPLIER = 2
+    COMMAND_PARTS_COUNT = 2
+    INTERVAL_PADDING = 1
 
     def __init__(self, client, db):
         self.client = client
@@ -353,12 +340,9 @@ class BroadcastManager:
         self._periodic_task = None
         self._authorized_users = self._load_authorized_users()
         self.watcher_enabled = False
-        # Инициализируем rate limiters
 
         self.minute_limiter = RateLimiter(self.MAX_MESSAGES_PER_MINUTE, 60)
         self.hour_limiter = RateLimiter(self.MAX_MESSAGES_PER_HOUR, 3600)
-
-        # Добавляем состояние для отслеживания ошибок
 
         self.error_counts = {}
         self.last_error_time = {}
@@ -459,8 +443,6 @@ class BroadcastManager:
                         f"❌ Достигнут лимит сообщений ({self.MAX_MESSAGES_PER_CODE})"
                     )
                     return
-                # Улучшенная обработка альбомов
-
                 grouped_id = getattr(reply, "grouped_id", None)
                 grouped_ids = []
 
@@ -474,8 +456,6 @@ class BroadcastManager:
                     ):
                         if getattr(album_msg, "grouped_id", None) == grouped_id:
                             album_messages.append(album_msg)
-                    # Сортировка и удаление дубликатов
-
                     album_messages.sort(key=lambda m: m.id)
                     grouped_ids = list(dict.fromkeys(msg.id for msg in album_messages))
                 if code.add_message(reply.chat_id, reply.id, grouped_ids):
@@ -655,8 +635,6 @@ class BroadcastManager:
                 if not code.chats:
                     await message.edit("❌ Добавьте хотя бы один чат в рассылку")
                     return
-                # Отменяем существующую задачу если она есть
-
                 if (
                     code_name in self.broadcast_tasks
                     and self.broadcast_tasks[code_name]
@@ -748,22 +726,7 @@ class BroadcastManager:
                     )
                 await message.edit(response)
             else:
-                await message.edit(
-                    "❌ Неизвестное действие\n\n"
-                    "Доступные команды:\n"
-                    "• add <код> - создать рассылку и добавить сообщение (ответом)\n"
-                    "• delete <код> - удалить рассылку\n"
-                    "• remove <код> - удалить сообщение (ответом)\n"
-                    "• addchat <код> - добавить текущий чат\n"
-                    "• rmchat <код> - удалить текущий чат\n"
-                    "• int <код> <мин> <макс> - установить интервал\n"
-                    "• mode <код> <режим> - установить режим (auto/normal/schedule)\n"
-                    "• allmsgs <код> <on/off> - отправлять все сообщения/одно\n"
-                    "• start <код> - запустить рассылку\n"
-                    "• stop <код> - остановить рассылку\n"
-                    "• watcher <on/off> - включить/выключить автодобавление чатов\n"
-                    "• list - список рассылок"
-                )
+                await message.edit("❌ Неизвестное действие\n\n")
         except Exception as e:
             logger.error(f"Error handling command: {e}")
             await message.edit(f"❌ Произошла ошибка: {str(e)}")
@@ -781,13 +744,9 @@ class BroadcastManager:
         success_count: int = 0
         flood_wait_count: int = 0
 
-        # Динамическое определение размера батча на основе статистики ошибок
-
         async def get_optimal_batch_size(total_chats: int) -> int:
             minute_stats = await self.minute_limiter.get_stats()
             hour_stats = await self.hour_limiter.get_stats()
-
-            # Уменьшаем размер батча если приближаемся к лимитам
 
             if minute_stats["usage_percent"] > 80 or hour_stats["usage_percent"] > 80:
                 return max(self.BATCH_SIZE_SMALL // 2, 1)
@@ -806,8 +765,6 @@ class BroadcastManager:
             nonlocal success_count, flood_wait_count
 
             try:
-                # Проверяем историю ошибок для чата
-
                 error_key = f"{chat_id}_general"
                 if self.error_counts.get(error_key, 0) >= self.MAX_CONSECUTIVE_ERRORS:
                     last_error = self.last_error_time.get(error_key, 0)
@@ -852,17 +809,11 @@ class BroadcastManager:
             current_batch = chats[i : i + batch_size]
             current_time = datetime.now()
 
-            # Создаем задачи для текущего батча
-
             tasks = []
             for idx, chat_id in enumerate(current_batch):
                 task = send_to_chat(chat_id, current_time, idx, len(current_batch))
                 tasks.append(task)
-            # Запускаем отправку с ограничением параллельности
-
             await asyncio.gather(*tasks)
-
-            # Добавляем случайную задержку между батчами
 
             delay = self.get_random_delay(code.interval[0] * 60)
             await asyncio.sleep(delay)
@@ -916,12 +867,9 @@ class BroadcastManager:
                         schedule=schedule_time,
                     )
             elif send_mode == "auto":
-                # Для списка сообщений всегда используем forward
 
                 if isinstance(messages_to_send, list):
                     await forward_messages(messages_to_send)
-                # Для одиночного сообщения проверяем наличие медиа
-
                 elif hasattr(messages_to_send, "media") and messages_to_send.media:
                     await forward_messages(messages_to_send)
                 else:
@@ -936,8 +884,6 @@ class BroadcastManager:
             error_key = f"{chat_id}_flood"
             self.error_counts[error_key] = self.error_counts.get(error_key, 0) + 1
             self.last_error_time[error_key] = time.time()
-
-            # Экспоненциальное увеличение времени ожидания
 
             wait_time = e.seconds * (2 ** self.error_counts[error_key])
             logger.warning(
@@ -978,8 +924,6 @@ class BroadcastManager:
                     return
                 code.chats -= failed_chats
                 await self.save_config()
-
-                # Оптимизированная группировка чатов без преобразования в list
 
                 chat_groups = [
                     ", ".join(
@@ -1046,8 +990,6 @@ class BroadcastManager:
                 )
                 deleted_messages.append(msg_data)
             elif result:
-                # Проверяем размер медиафайлов
-
                 if isinstance(result, list):
                     valid = all(self._check_media_size(msg) for msg in result)
                 else:
@@ -1069,7 +1011,7 @@ class BroadcastManager:
             if hasattr(message.media, "document") and hasattr(
                 message.media.document, "size"
             ):
-                return message.media.document.size <= 10 * 1024 * 1024  # 10MB
+                return message.media.document.size <= 10 * 1024 * 1024
         return True
 
     def _should_continue(self, code: Optional[Broadcast], code_name: str) -> bool:
@@ -1093,8 +1035,6 @@ class BroadcastManager:
                 messages_to_send = []
                 deleted_messages = []
                 current_messages = code.messages.copy()
-
-                # Используем копию для создания батчей
 
                 batches = self._chunk_messages(
                     current_messages, batch_size=self.BATCH_SIZE_LARGE
@@ -1130,7 +1070,6 @@ class BroadcastManager:
                 if not code.batch_mode:
                     async with self._lock:
                         next_index = code.get_next_message_index()
-                        # Используем модуль для корректной работы с отрицательными числами
 
                         messages_to_send = [
                             messages_to_send[next_index % len(messages_to_send)]
