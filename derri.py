@@ -15,8 +15,6 @@ from telethon.tl.types import Message
 from telethon.errors import (
     ChatWriteForbiddenError,
     UserBannedInChannelError,
-    ChannelPrivateError,
-    ChatAdminRequiredError,
     FloodWaitError,
 )
 
@@ -260,17 +258,6 @@ class Broadcast:
             and 0 < min_val < max_val <= 1440
         )
 
-    def normalize_interval(self) -> Tuple[int, int]:
-        """Нормализует интервал рассылки"""
-        if self.is_valid_interval():
-            return self.interval
-        return (10, 13)
-
-    def get_random_delay(self, base_delay: int) -> float:
-        """Возвращает случайную задержку в пределах интервала"""
-        jitter = random.uniform((-30, 30))
-        return max(3.0, base_delay + jitter)
-
     def to_dict(self) -> dict:
         """Сериализует объект в словарь"""
         return {
@@ -279,7 +266,7 @@ class Broadcast:
             "interval": list(self.interval),
             "send_mode": self.send_mode,
             "batch_mode": self.batch_mode,
-            "active": self._active
+            "active": self._active,
         }
 
     @classmethod
@@ -380,29 +367,48 @@ class BroadcastManager:
             logger.error(f"Ошибка сохранения авторизованных пользователей: {e}")
 
     async def _load_config(self):
-        """Загружает конфигурацию из базы данных"""
+        """Loads configuration from database with improved state handling"""
         try:
             config = self.db.get("broadcast", "config", {})
             if not config:
                 return
             for code_name, code_data in config.get("codes", {}).items():
                 self.codes[code_name] = Broadcast.from_dict(code_data)
-                # Восстанавливаем активные задачи
+                # Restore active broadcasts
+
                 if self.codes[code_name]._active:
                     self.broadcast_tasks[code_name] = asyncio.create_task(
                         self._broadcast_loop(code_name)
                     )
+                    logger.info(f"Restored active broadcast: {code_name}")
             saved_times = self.db.get("broadcast", "last_broadcast_times", {})
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
             )
+
+            # Verify loaded states
+
+            for code_name, code in self.codes.items():
+                if code._active and code_name not in self.broadcast_tasks:
+                    logger.warning(
+                        f"Inconsistent state detected for {code_name}, restarting broadcast"
+                    )
+                    self.broadcast_tasks[code_name] = asyncio.create_task(
+                        self._broadcast_loop(code_name)
+                    )
         except Exception as e:
-            logger.error(f"Ошибка загрузки конфигурации: {e}")
+            logger.error(f"Error loading configuration: {e}")
 
     async def save_config(self):
-        """Сохраняет конфигурацию в базу данных"""
+        """Saves configuration to database with improved state handling"""
         async with self._lock:
             try:
+                # Update active states based on running tasks
+
+                for code_name, code in self.codes.items():
+                    task = self.broadcast_tasks.get(code_name)
+                    if task:
+                        code._active = not task.done()
                 config = {
                     "version": 1,
                     "last_save": int(time.time()),
@@ -410,14 +416,17 @@ class BroadcastManager:
                         name: code.to_dict() for name, code in self.codes.items()
                     },
                 }
+
                 self.db.set("broadcast", "config", config)
                 self.db.set(
                     "broadcast",
                     "last_broadcast_times",
                     self.last_broadcast_time,
                 )
+
+                logger.info("Configuration saved successfully")
             except Exception as e:
-                logger.error(f"Ошибка сохранения конфигурации: {e}")
+                logger.error(f"Error saving configuration: {e}")
 
     async def handle_command(self, message: Message):
         """Обработчик команд для управления рассылкой"""
@@ -808,8 +817,9 @@ class BroadcastManager:
                 tasks.append(task)
             await asyncio.gather(*tasks)
 
-            delay = self.get_random_delay(code.interval[0] * 60)
-            await asyncio.sleep(delay)
+            await asyncio.sleep(
+                max(3.0, code.interval[0] * 60 + random.uniform(-30, 30))
+            )
         return failed_chats
 
     async def _send_message(
@@ -1107,29 +1117,28 @@ class BroadcastManager:
         """Автоматически добавляет чаты в рассылку."""
         try:
             logger.info(f"Watcher triggered. Message: {message.text}")
-            
+
             if not self.watcher_enabled:
                 logger.info("Watcher disabled")
                 return
-                
             if not (message and message.text and message.text.startswith("!")):
                 logger.info("Message format check failed")
                 return
-                
             if message.sender_id != self.me_id:
-                logger.info(f"Sender ID mismatch. Expected: {self.me_id}, Got: {message.sender_id}")
+                logger.info(
+                    f"Sender ID mismatch. Expected: {self.me_id}, Got: {message.sender_id}"
+                )
                 return
-                
             parts = message.text.split()
             if len(parts) != 2:
-                logger.info(f"Parts length check failed. Got {len(parts)} parts: {parts}")
+                logger.info(
+                    f"Parts length check failed. Got {len(parts)} parts: {parts}"
+                )
                 return
-                
             code_name = parts[0][1:]
             if not code_name:
                 logger.info("Empty code name")
                 return
-                
             chat_id = message.chat_id
             logger.info(f"Processing code: {code_name}, chat_id: {chat_id}")
 
@@ -1137,11 +1146,9 @@ class BroadcastManager:
             if not code:
                 logger.info(f"Code {code_name} not found in self.codes")
                 return
-                
             if len(code.chats) >= self.MAX_CHATS_PER_CODE:
                 logger.info(f"Max chats limit reached for code {code_name}")
                 return
-                
             if chat_id not in code.chats:
                 logger.info(f"Adding chat {chat_id} to code {code_name}")
                 code.chats.add(chat_id)
@@ -1149,7 +1156,6 @@ class BroadcastManager:
                 logger.info(f"Successfully added chat {chat_id} to code {code_name}")
             else:
                 logger.info(f"Chat {chat_id} already in code {code_name}")
-                
         except Exception as e:
             logger.error(f"Error in watcher: {e}", exc_info=True)
 
@@ -1168,45 +1174,43 @@ class BroadcastManager:
             with suppress(asyncio.CancelledError):
                 await task
 
-    async def _fetch_messages(self, msg_data: dict) -> Optional[Union[Message, List[Message]]]:
+    async def _fetch_messages(
+        self, msg_data: dict
+    ) -> Optional[Union[Message, List[Message]]]:
         """Получает сообщения с улучшенной обработкой ошибок"""
         key = (msg_data["chat_id"], msg_data["message_id"])
-        
+
         try:
             cached = await self._message_cache.get(key)
             if cached:
                 return cached
-
             # Попытка получить сообщение напрямую
+
             message = await self.client.get_messages(
-                msg_data["chat_id"],
-                ids=msg_data["message_id"]
+                msg_data["chat_id"], ids=msg_data["message_id"]
             )
-            
+
             if message:
                 # Проверяем, есть ли grouped_ids
+
                 if msg_data.get("grouped_ids"):
                     messages = []
                     for msg_id in msg_data["grouped_ids"]:
                         grouped_msg = await self.client.get_messages(
-                            msg_data["chat_id"],
-                            ids=msg_id
+                            msg_data["chat_id"], ids=msg_id
                         )
                         if grouped_msg:
                             messages.append(grouped_msg)
-                    
                     if messages:
                         await self._message_cache.set(key, messages)
                         return messages[0] if len(messages) == 1 else messages
                 else:
                     await self._message_cache.set(key, message)
                     return message
-                    
             logger.warning(
                 f"Сообщение {msg_data['message_id']} существует, но не удалось получить из чата {msg_data['chat_id']}"
             )
             return None
-
         except (ConnectionError, TimeoutError) as e:
             logger.error(f"Сетевая ошибка при получении сообщений: {e}")
             return None
@@ -1233,10 +1237,10 @@ class BroadcastManager:
         code = self.codes.get(code_name)
         if not code:
             return f"❌ Code {code_name} not found"
-        
         debug_info = []
-        
+
         # Check basic configuration
+
         debug_info.append("📊 Basic Configuration:")
         debug_info.append(f"- Active status: {code._active}")
         debug_info.append(f"- Number of chats: {len(code.chats)}")
@@ -1244,18 +1248,21 @@ class BroadcastManager:
         debug_info.append(f"- Interval: {code.interval}")
         debug_info.append(f"- Send mode: {code.send_mode}")
         debug_info.append(f"- Batch mode: {code.batch_mode}")
-        
+
         # Check message data
+
         debug_info.append("\n📝 Message Check:")
         for idx, msg in enumerate(code.messages):
             try:
                 message = await self._fetch_messages(msg)
                 status = "✅" if message else "❌"
-                debug_info.append(f"- Message {idx + 1}: {status} (ID: {msg['message_id']})")
+                debug_info.append(
+                    f"- Message {idx + 1}: {status} (ID: {msg['message_id']})"
+                )
             except Exception as e:
                 debug_info.append(f"- Message {idx + 1}: ❌ Error: {str(e)}")
-        
         # Check chat permissions
+
         debug_info.append("\n👥 Chat Permissions:")
         for chat_id in code.chats:
             try:
@@ -1265,24 +1272,24 @@ class BroadcastManager:
                 debug_info.append(f"- Chat {chat_id}: {can_send}")
             except Exception as e:
                 debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
-        
         # Check rate limits
+
         debug_info.append("\n⏱️ Rate Limits:")
         minute_stats = await self.minute_limiter.get_stats()
         hour_stats = await self.hour_limiter.get_stats()
         debug_info.append(f"- Minute usage: {minute_stats['usage_percent']}%")
         debug_info.append(f"- Hour usage: {hour_stats['usage_percent']}%")
-        
+
         return "\n".join(debug_info)
 
     # Add this to BroadcastMod class methods
+
     async def debugcmd(self, message):
         """Debug command for broadcast issues"""
         args = message.text.split()
         if len(args) < 2:
             await message.edit("❌ Please specify the broadcast code to debug")
             return
-            
         code_name = args[1]
         debug_result = await self.manager.debug_broadcast(code_name)
         await message.edit(debug_result)
