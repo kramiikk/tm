@@ -183,7 +183,7 @@ class BroadcastMod(loader.Module):
     • .br addchat <код> - добавить текущий чат
     • .br rmchat <код> - удалить текущий чат
     • .br int <код> <мин> <макс> - установить интервал
-    • .br mode <код> <режим> - установить режим (auto/normal/schedule)
+    • .br mode <код> <режим> - установить режим (auto/normal/forward)
     • .br allmsgs <код> <on/off> - отправлять все сообщения/одно
     • .br start <код> - запустить рассылку
     • .br stop <код> - остановить рассылку
@@ -323,7 +323,6 @@ class BroadcastManager:
 
     NOTIFY_GROUP_SIZE = 30
     OFFSET_MULTIPLIER = 2
-    COMMAND_PARTS_COUNT = 2
     INTERVAL_PADDING = 1
 
     def __init__(self, client, db):
@@ -646,12 +645,12 @@ class BroadcastManager:
     ):
         """Обработчик команды mode"""
         if len(args) < 3:
-            await message.edit("❌ Укажите режим отправки (auto/normal/schedule)")
+            await message.edit("❌ Укажите режим отправки (auto/normal/forward)")
             return
         mode = args[2].lower()
-        if mode not in ["auto", "normal", "schedule"]:
+        if mode not in ["auto", "normal", "forward"]:
             await message.edit(
-                "❌ Неверный режим. Доступные режимы: auto, normal, schedule"
+                "❌ Неверный режим. Доступные режимы: auto, normal, forward"
             )
             return
         code.send_mode = mode
@@ -834,7 +833,7 @@ class BroadcastManager:
             await self.minute_limiter.acquire()
             await self.hour_limiter.acquire()
 
-            await asyncio.sleep(self.MIN_DELAY_BETWEEN_MESSAGES)
+            await asyncio.sleep(1)
 
             if send_mode == "forward":
                 await forward_messages(messages_to_send)
@@ -940,6 +939,9 @@ class BroadcastManager:
                         await asyncio.sleep(self.NOTIFY_DELAY)
                     except Exception as e:
                         logger.error(f"Ошибка отправки уведомления: {e}")
+        except FloodWaitError as e:
+            await asyncio.sleep(e.seconds)
+            logger.error(f"FloodWaitError: {e}")
         except Exception as e:
             logger.error(f"Ошибка обработки неудачных чатов для {code_name}: {e}")
 
@@ -1010,16 +1012,16 @@ class BroadcastManager:
 
     async def _broadcast_loop(self, code_name: str):
         """Main broadcast loop."""
-        retry_count = 0
-
         while self._active:
+            retry_count = 0
+            deleted_messages = []
+            messages_to_send = []
+
             try:
                 code = self.codes.get(code_name)
                 if not self._should_continue(code, code_name):
                     await asyncio.sleep(self.RETRY_DELAY_SHORT)
                     continue
-                messages_to_send = []
-                deleted_messages = []
                 current_messages = code.messages.copy()
 
                 batches = self._chunk_messages(
@@ -1103,7 +1105,7 @@ class BroadcastManager:
             if message.sender_id != self.me_id:
                 return
             parts = message.text.split()
-            if len(parts) != self.COMMAND_PARTS_COUNT:
+            if len(parts) != 2:
                 return
             code_name = parts[0][1:]
             if not code_name:
@@ -1177,7 +1179,7 @@ class BroadcastManager:
                 return messages[0] if len(messages) == 1 else messages
             return None
         except (ConnectionError, TimeoutError) as e:
-            logger.error(f"Ошибка сети при получении сообщений: {e}")
+            logger.error(f"Сетевая ошибка при получении сообщений: {e}")
             return None
         except Exception as e:
             logger.error(f"Непредвиденная ошибка при получении сообщений: {e}")
