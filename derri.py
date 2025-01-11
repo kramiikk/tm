@@ -279,18 +279,21 @@ class Broadcast:
             "interval": list(self.interval),
             "send_mode": self.send_mode,
             "batch_mode": self.batch_mode,
+            "active": self._active
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Broadcast":
         """Создает объект из словаря"""
-        return cls(
+        instance = cls(
             chats=set(data.get("chats", [])),
             messages=data.get("messages", []),
             interval=tuple(data.get("interval", (10, 13))),
             send_mode=data.get("send_mode", "auto"),
             batch_mode=data.get("batch_mode", False),
         )
+        instance._active = data.get("active", False)
+        return instance
 
 
 class BroadcastManager:
@@ -384,6 +387,11 @@ class BroadcastManager:
                 return
             for code_name, code_data in config.get("codes", {}).items():
                 self.codes[code_name] = Broadcast.from_dict(code_data)
+                # Восстанавливаем активные задачи
+                if self.codes[code_name]._active:
+                    self.broadcast_tasks[code_name] = asyncio.create_task(
+                        self._broadcast_loop(code_name)
+                    )
             saved_times = self.db.get("broadcast", "last_broadcast_times", {})
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
@@ -1098,30 +1106,52 @@ class BroadcastManager:
     async def watcher(self, message: Message):
         """Автоматически добавляет чаты в рассылку."""
         try:
+            logger.info(f"Watcher triggered. Message: {message.text}")
+            
             if not self.watcher_enabled:
+                logger.info("Watcher disabled")
                 return
+                
             if not (message and message.text and message.text.startswith("!")):
+                logger.info("Message format check failed")
                 return
+                
             if message.sender_id != self.me_id:
+                logger.info(f"Sender ID mismatch. Expected: {self.me_id}, Got: {message.sender_id}")
                 return
+                
             parts = message.text.split()
             if len(parts) != 2:
+                logger.info(f"Parts length check failed. Got {len(parts)} parts: {parts}")
                 return
+                
             code_name = parts[0][1:]
             if not code_name:
+                logger.info("Empty code name")
                 return
+                
             chat_id = message.chat_id
+            logger.info(f"Processing code: {code_name}, chat_id: {chat_id}")
 
             code = self.codes.get(code_name)
             if not code:
+                logger.info(f"Code {code_name} not found in self.codes")
                 return
+                
             if len(code.chats) >= self.MAX_CHATS_PER_CODE:
+                logger.info(f"Max chats limit reached for code {code_name}")
                 return
+                
             if chat_id not in code.chats:
+                logger.info(f"Adding chat {chat_id} to code {code_name}")
                 code.chats.add(chat_id)
                 await self.save_config()
+                logger.info(f"Successfully added chat {chat_id} to code {code_name}")
+            else:
+                logger.info(f"Chat {chat_id} already in code {code_name}")
+                
         except Exception as e:
-            logger.error(f"Error in watcher: {e}")
+            logger.error(f"Error in watcher: {e}", exc_info=True)
 
     async def on_unload(self):
         """Cleanup on module unload."""
@@ -1138,46 +1168,45 @@ class BroadcastManager:
             with suppress(asyncio.CancelledError):
                 await task
 
-    async def _fetch_messages(
-        self, msg_data: dict
-    ) -> Optional[Union[Message, List[Message]]]:
-        """Получает сообщения с учетом ограничений размера медиа."""
+    async def _fetch_messages(self, msg_data: dict) -> Optional[Union[Message, List[Message]]]:
+        """Получает сообщения с улучшенной обработкой ошибок"""
         key = (msg_data["chat_id"], msg_data["message_id"])
-
+        
         try:
             cached = await self._message_cache.get(key)
             if cached:
                 return cached
-            message_ids = msg_data.get("grouped_ids", [msg_data["message_id"]])
 
-            messages = []
-            for i in range(0, len(message_ids), 100):
-                batch = message_ids[i : i + 100]
-                batch_messages = await self.client.get_messages(
-                    msg_data["chat_id"], ids=batch
-                )
-                messages.extend(m for m in batch_messages if m)
-            if not messages:
-                logger.warning(
-                    f"Не удалось получить сообщение {msg_data['message_id']} из чата {msg_data['chat_id']}"
-                )
-                return None
-            for msg in messages:
-                if hasattr(msg, "media") and msg.media:
-                    if hasattr(msg.media, "document") and hasattr(
-                        msg.media.document, "size"
-                    ):
-                        if msg.media.document.size > 10 * 1024 * 1024:
-                            logger.warning(
-                                f"Медиа в сообщении {msg.id} превышает лимит размера (10MB)"
-                            )
-                            return None
-            if len(message_ids) > 1:
-                messages.sort(key=lambda x: message_ids.index(x.id))
-            if messages:
-                await self._message_cache.set(key, messages)
-                return messages[0] if len(messages) == 1 else messages
+            # Попытка получить сообщение напрямую
+            message = await self.client.get_messages(
+                msg_data["chat_id"],
+                ids=msg_data["message_id"]
+            )
+            
+            if message:
+                # Проверяем, есть ли grouped_ids
+                if msg_data.get("grouped_ids"):
+                    messages = []
+                    for msg_id in msg_data["grouped_ids"]:
+                        grouped_msg = await self.client.get_messages(
+                            msg_data["chat_id"],
+                            ids=msg_id
+                        )
+                        if grouped_msg:
+                            messages.append(grouped_msg)
+                    
+                    if messages:
+                        await self._message_cache.set(key, messages)
+                        return messages[0] if len(messages) == 1 else messages
+                else:
+                    await self._message_cache.set(key, message)
+                    return message
+                    
+            logger.warning(
+                f"Сообщение {msg_data['message_id']} существует, но не удалось получить из чата {msg_data['chat_id']}"
+            )
             return None
+
         except (ConnectionError, TimeoutError) as e:
             logger.error(f"Сетевая ошибка при получении сообщений: {e}")
             return None
@@ -1198,3 +1227,62 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Ошибка получения chat_id: {e}")
             return None
+
+    async def debug_broadcast(self, code_name: str):
+        """Debug function to check broadcast issues"""
+        code = self.codes.get(code_name)
+        if not code:
+            return f"❌ Code {code_name} not found"
+        
+        debug_info = []
+        
+        # Check basic configuration
+        debug_info.append("📊 Basic Configuration:")
+        debug_info.append(f"- Active status: {code._active}")
+        debug_info.append(f"- Number of chats: {len(code.chats)}")
+        debug_info.append(f"- Number of messages: {len(code.messages)}")
+        debug_info.append(f"- Interval: {code.interval}")
+        debug_info.append(f"- Send mode: {code.send_mode}")
+        debug_info.append(f"- Batch mode: {code.batch_mode}")
+        
+        # Check message data
+        debug_info.append("\n📝 Message Check:")
+        for idx, msg in enumerate(code.messages):
+            try:
+                message = await self._fetch_messages(msg)
+                status = "✅" if message else "❌"
+                debug_info.append(f"- Message {idx + 1}: {status} (ID: {msg['message_id']})")
+            except Exception as e:
+                debug_info.append(f"- Message {idx + 1}: ❌ Error: {str(e)}")
+        
+        # Check chat permissions
+        debug_info.append("\n👥 Chat Permissions:")
+        for chat_id in code.chats:
+            try:
+                chat = await self.client.get_entity(chat_id)
+                permissions = await self.client.get_permissions(chat_id, self.me_id)
+                can_send = "✅" if permissions.send_messages else "❌"
+                debug_info.append(f"- Chat {chat_id}: {can_send}")
+            except Exception as e:
+                debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
+        
+        # Check rate limits
+        debug_info.append("\n⏱️ Rate Limits:")
+        minute_stats = await self.minute_limiter.get_stats()
+        hour_stats = await self.hour_limiter.get_stats()
+        debug_info.append(f"- Minute usage: {minute_stats['usage_percent']}%")
+        debug_info.append(f"- Hour usage: {hour_stats['usage_percent']}%")
+        
+        return "\n".join(debug_info)
+
+    # Add this to BroadcastMod class methods
+    async def debugcmd(self, message):
+        """Debug command for broadcast issues"""
+        args = message.text.split()
+        if len(args) < 2:
+            await message.edit("❌ Please specify the broadcast code to debug")
+            return
+            
+        code_name = args[1]
+        debug_result = await self.manager.debug_broadcast(code_name)
+        await message.edit(debug_result)
