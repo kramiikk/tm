@@ -466,8 +466,13 @@ class ProfileChangerMod(loader.Module):
         )
 
         if delay == self.config[CONFIG_MIN_DELAY]:
-            delay += random.uniform(61, 337)
+            delay += random.uniform(61, 661)
             logger.info(f"Задержка на минимальном значении. Увеличена до {delay:.1f} секунд.")
+        
+        if delay == self.config[CONFIG_MAX_DELAY]:
+            random_increase = random.uniform(0, self.config[CONFIG_MAX_DELAY] * 0.1)
+            delay += random_increase
+            logger.info(f"Задержка достигла максимума. Увеличена на {random_increase:.1f} секунд, итого {delay:.1f}.")
 
         return delay
 
