@@ -276,10 +276,8 @@ class BroadcastMod(loader.Module):
 
         for task_name in ["_cleanup_task", "_periodic_task"]:
             await cancel_task(getattr(self, task_name, None))
-
-        tasks = [t for t in self.manager.broadcast_tasks.values() if t]
+        tasks = [t for t in self.broadcast_tasks.values() if t]
         await asyncio.gather(*map(cancel_task, tasks), return_exceptions=True)
-
 
     async def brcmd(self, message):
         """Команда для управления рассылкой. Используйте .help Broadcast для справки."""
@@ -429,7 +427,7 @@ class BroadcastManager:
 
     MAX_MESSAGES_PER_CODE = 100
     MAX_MESSAGES_PER_MINUTE = 20
-    MAX_MESSAGES_PER_HOUR = 300
+    MAX_MESSAGES_PER_HOUR = 250
     MAX_CODES = 50
 
     MAX_FLOOD_WAIT_COUNT = 3
@@ -873,7 +871,10 @@ class BroadcastManager:
                 minute_stats = await self.minute_limiter.get_stats()
                 hour_stats = await self.hour_limiter.get_stats()
 
-                if minute_stats["usage_percent"] > 80 or hour_stats["usage_percent"] > 80:
+                if (
+                    minute_stats["usage_percent"] > 80
+                    or hour_stats["usage_percent"] > 80
+                ):
                     return max(self.BATCH_SIZE_SMALL // 2, 1)
                 if total_chats <= self.BATCH_THRESHOLD_SMALL:
                     return self.BATCH_SIZE_SMALL
@@ -886,7 +887,10 @@ class BroadcastManager:
 
                 try:
                     error_key = f"{chat_id}_general"
-                    if self.error_counts.get(error_key, 0) >= self.MAX_CONSECUTIVE_ERRORS:
+                    if (
+                        self.error_counts.get(error_key, 0)
+                        >= self.MAX_CONSECUTIVE_ERRORS
+                    ):
                         last_error = self.last_error_time.get(error_key, 0)
                         if time.time() - last_error < 300:
                             failed_chats.add(chat_id)
@@ -904,7 +908,9 @@ class BroadcastManager:
                 except FloodWaitError as e:
                     flood_wait_count += 1
                     if flood_wait_count >= self.MAX_FLOOD_WAIT_COUNT:
-                        logger.error("Слишком много FloodWaitError, останавливаем рассылку")
+                        logger.error(
+                            "Слишком много FloodWaitError, останавливаем рассылку"
+                        )
                         code._active = False
                     failed_chats.add(chat_id)
                 except Exception as e:
@@ -930,7 +936,7 @@ class BroadcastManager:
 
                 min_interval, max_interval = code.interval
                 sleep_time = random.uniform(min_interval * 60, max_interval * 60)
-                await asyncio.sleep(max(3.0, sleep_time))
+                await asyncio.sleep(max(60, sleep_time))
             return failed_chats
 
     async def _send_message(
@@ -1057,8 +1063,7 @@ class BroadcastManager:
                         await self.client.send_message(
                             me.id,
                             base_message + group,
-                            schedule=datetime.now()
-                            + timedelta(seconds=60),
+                            schedule=datetime.now() + timedelta(seconds=60),
                         )
                         await asyncio.sleep(self.NOTIFY_DELAY)
                     except Exception as e:
@@ -1168,7 +1173,6 @@ class BroadcastManager:
                 if not self._should_continue(code, code_name) or not messages_to_send:
                     logger.error(f"Ошибка получения сообщений для {code_name}")
                     await asyncio.sleep(60)
-
                 if not code.batch_mode:
                     async with self._lock:
                         next_index = code.get_next_message_index()
