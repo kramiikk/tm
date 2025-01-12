@@ -682,10 +682,8 @@ class BroadcastManager:
         self, message: Message, code: Broadcast, code_name: str, args: list
     ):
         """Обработчик команды delete"""
-        if (
-            code_name in self.broadcast_tasks
-            and not self.broadcast_tasks[code_name].done()
-        ):
+        task = self.broadcast_tasks.get(code_name)
+        if task and not task.done():
             self.broadcast_tasks[code_name].cancel()
         del self.codes[code_name]
         await self.save_config()
