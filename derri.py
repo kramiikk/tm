@@ -164,52 +164,56 @@ class SimpleCache:
                 }
 
 
-def register(cb):
-    """Регистрация модуля"""
-    cb(BroadcastMod())
-    return []
-
-
 @loader.tds
 class BroadcastMod(loader.Module):
     """
-    **Модуль для управления рассылками**
+    Используйте <code>.br</code> для управления рассылками.
 
-    Используйте `.br` для управления рассылками.
+    <strong>Команды:</strong>
+    <code>.br add <код></code> - <strong>Создать или добавить сообщение в рассылку.</strong> Ответьте этой командой на сообщение, которое хотите добавить. Если рассылка с указанным <code><код></code> не существует, она будет создана.
+        <code>.br my_broadcast</code> (в ответ на сообщение)
 
-    **Команды:**
+    <code>.br delete <код></code> - <strong>Удалить рассылку.</strong>  Удаляет рассылку с указанным <code><код></code> вместе со всеми ее сообщениями и настройками.
+        <code>.br delete my_broadcast</code>
 
-    - `.br add <код>` - **Создать или добавить сообщение в рассылку.** Ответьте этой командой на сообщение, которое хотите добавить. Если рассылка с указанным `<код>` не существует, она будет создана.
-        + Пример: `.br my_broadcast` (в ответ на сообщение)
-    - `.br delete <код>` - **Удалить рассылку.**  Удаляет рассылку с указанным `<код>` вместе со всеми ее сообщениями и настройками.
-        + Пример: `.br delete my_broadcast`
-    - `.br remove <код>` - **Удалить сообщение из рассылки.** Ответьте этой командой на сообщение, которое хотите удалить из указанной рассылки.
-        + Пример: `.br remove my_broadcast` (в ответ на сообщение)
-    - `.br addchat <код> [ссылка/юзернейм/ID]` - **Добавить чат в рассылку.** Добавляет текущий чат или указанный чат (по ссылке, юзернейму или ID) в список получателей рассылки.
-        + Пример (добавить текущий чат): `.br addchat my_broadcast`
-        + Пример (добавить по ссылке): `.br addchat my_broadcast t.me/b`
-        + Пример (добавить по ID): `.br addchat my_broadcast 123456789`
-    - `.br rmchat <код> [ссылка/юзернейм/ID]` - **Удалить чат из рассылки.** Удаляет текущий чат или указанный чат из списка получателей рассылки.
-        + Пример (удалить текущий чат): `.br rmchat my_broadcast`
-        + Пример (удалить по юзернейму): `.br rmchat my_broadcast my_channel`
-    - `.br int <код> <мин> <макс>` - **Установить интервал отправки.** Задает случайный интервал в минутах между отправкой сообщений в рассылке (минимальное и максимальное значения).
-        + Пример: `.br int my_broadcast 5 10` (интервал от 5 до 10 минут)
-    - `.br mode <код> <режим>` - **Установить режим отправки.** Определяет способ отправки сообщений в рассылке.
-        + `auto`: Автоматически выбирает режим (пересылка для медиа, отправка текста для текста).
-        + `normal`: Отправляет сообщения как обычный текст (может не работать для медиа).
-        + `forward`: Пересылает сообщения (работает для медиа и текста).
-        + Пример: `.br mode my_broadcast forward`
-    - `.br allmsgs <код> <on/off>` - **Управлять отправкой всех сообщений.**
-        + `on`: Отправлять все сообщения из рассылки по очереди в каждый чат.
-        + `off`: Отправлять только одно, случайно выбранное сообщение из рассылки в каждый чат.
-        + Пример: `.br allmsgs my_broadcast on`
-    - `.br start <код>` - **Запустить рассылку.** Начинает отправку сообщений в соответствии с настройками рассылки.
-        + Пример: `.br start my_broadcast`
-    - `.br stop <код>` - **Остановить рассылку.** Прекращает активную отправку сообщений.
-        + Пример: `.br stop my_broadcast`
-    - `.br watcher` <on/off> - **Включить/выключить автоматическое добавление чатов.** Когда включено, чаты, в которых вы отправляете сообщение, начинающееся с !код_рассылки, будут автоматически добавлены в эту рассылку.
-        + Пример использования (в чате, который нужно добавить в рассылку с кодом `road`): `!road`
-    - `.br list` - **Показать список рассылок.**
+    <code>.br remove <код></code> - <strong>Удалить сообщение из рассылки.</strong> Ответьте этой командой на сообщение, которое хотите удалить из указанной рассылки.
+        <code>.br remove my_broadcast</code> (в ответ на сообщение)
+
+    <code>.br addchat <код> [ссылка/юзернейм/ID]</code> - <strong>Добавить чат в рассылку.</strong> Добавляет текущий чат или указанный чат (по ссылке, юзернейму или ID) в список получателей рассылки.
+        (добавить текущий чат): <code>.br addchat my_broadcast</code>
+        (добавить по ссылке): <code>.br addchat my_broadcast t.me/usr</code>
+        (добавить по ID): <code>.br addchat my_broadcast 123456789</code>
+
+    <code>.br rmchat <код> [ссылка/юзернейм/ID]</code> - <strong>Удалить чат из рассылки.</strong> Удаляет текущий чат или указанный чат из списка получателей рассылки.
+        (удалить текущий чат): <code>.br rmchat my_broadcast</code>
+        (удалить по юзернейму): <code>.br rmchat my_broadcast my_channel</code>
+
+    <code>.br int <код> <мин> <макс></code> - <strong>Установить интервал отправки.</strong> Задает случайный интервал в минутах между отправкой сообщений в рассылке (минимальное и максимальное значения).
+        <code>.br int my_broadcast 5 10</code> (интервал от 5 до 10 минут)
+
+    <code>.br mode <код> <режим></code> - <strong>Установить режим отправки.</strong> Определяет способ отправки сообщений в рассылке.
+
+    <code>auto</code>: Автоматически выбирает режим (пересылка для медиа, отправка текста для текста).
+
+    <code>normal</code>: Отправляет сообщения как обычный текст (может не работать для медиа).
+
+    <code>forward</code>: Пересылает сообщения (работает для медиа и текста).
+        <code>.br mode my_broadcast forward</code>
+
+    <code>.br allmsgs <код> <on/off></code> - <strong>Управлять отправкой всех сообщений.</strong>
+        <code>on</code>: Отправлять все сообщения из рассылки по очереди в каждый чат.
+        <code>off</code>: Отправлять только одно, случайно выбранное сообщение из рассылки в каждый чат.
+
+    <code>.br start <код></code> - <strong>Запустить рассылку.</strong> Начинает отправку сообщений в соответствии с настройками рассылки.
+        <code>.br start my_broadcast</code>
+
+    <code>.br stop <код></code> - <strong>Остановить рассылку.</strong> Прекращает активную отправку сообщений.
+        <code>.br stop my_broadcast</code>
+
+    <code>.br watcher</code> <on/off> - <strong>Включить/выключить автоматическое добавление чатов.</strong> Когда включено, чаты, в которых вы отправляете сообщение, начинающееся с !код_рассылки, будут автоматически добавлены в эту рассылку.
+        (в чате, который нужно добавить в рассылку с кодом <code>road</code>): <code>!road</code>
+
+    <code>.br list</code> - <strong>Показать список рассылок.</strong>
     """
 
     strings = {"name": "Broadcast"}
@@ -298,8 +302,6 @@ class BroadcastMod(loader.Module):
         debug_info.append(f"- Send mode: {code.send_mode}")
         debug_info.append(f"- Batch mode: {code.batch_mode}")
 
-        # Check message data
-
         debug_info.append("\n📝 Message Check:")
         for idx, msg in enumerate(code.messages):
             try:
@@ -310,8 +312,6 @@ class BroadcastMod(loader.Module):
                 )
             except Exception as e:
                 debug_info.append(f"- Message {idx + 1}: ❌ Error: {str(e)}")
-        # Check chat permissions
-
         debug_info.append("\n👥 Chat Permissions:")
         for chat_id in code.chats:
             try:
@@ -320,8 +320,6 @@ class BroadcastMod(loader.Module):
                 debug_info.append(f"- Chat {chat_id}: {can_send}")
             except Exception as e:
                 debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
-        # Check rate limits
-
         debug_info.append("\n⏱️ Rate Limits:")
         minute_stats = await self.manager.minute_limiter.get_stats()
         hour_stats = await self.manager.hour_limiter.get_stats()
@@ -448,7 +446,6 @@ class BroadcastManager:
     NOTIFY_DELAY = 1
 
     NOTIFY_GROUP_SIZE = 30
-    OFFSET_MULTIPLIER = 2
     INTERVAL_PADDING = 1
 
     def __init__(self, client, db):
@@ -505,7 +502,6 @@ class BroadcastManager:
                 return
             for code_name, code_data in config.get("codes", {}).items():
                 self.codes[code_name] = Broadcast.from_dict(code_data)
-                # Restore active broadcasts
 
                 if self.codes[code_name]._active:
                     self.broadcast_tasks[code_name] = asyncio.create_task(
@@ -516,8 +512,6 @@ class BroadcastManager:
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
             )
-
-            # Verify loaded states
 
             for code_name, code in self.codes.items():
                 if code._active and code_name not in self.broadcast_tasks:
@@ -887,12 +881,7 @@ class BroadcastManager:
                 return self.BATCH_SIZE_MEDIUM
             return self.BATCH_SIZE_LARGE
 
-        async def send_to_chat(
-            chat_id: int,
-            base_time: datetime,
-            position_in_batch: int,
-            current_batch_size: int,
-        ):
+        async def send_to_chat(chat_id: int):
             nonlocal success_count, flood_wait_count
 
             try:
@@ -902,18 +891,12 @@ class BroadcastManager:
                     if time.time() - last_error < self.RETRY_DELAY_LONG:
                         failed_chats.add(chat_id)
                         return
-                offset_minutes = (
-                    position_in_batch * self.OFFSET_MULTIPLIER
-                ) // current_batch_size
-                schedule_time = base_time + timedelta(minutes=offset_minutes)
-
                 for message in messages_to_send:
                     success = await self._send_message(
                         code_name,
                         chat_id,
                         message,
                         code.send_mode,
-                        schedule_time,
                     )
                     if not success:
                         raise Exception("Ошибка отправки сообщения")
@@ -938,11 +921,10 @@ class BroadcastManager:
             if not self._active or not code._active:
                 break
             current_batch = chats[i : i + batch_size]
-            current_time = datetime.now()
 
             tasks = []
-            for idx, chat_id in enumerate(current_batch):
-                task = send_to_chat(chat_id, current_time, idx, len(current_batch))
+            for chat_id in current_batch:
+                task = send_to_chat(chat_id)
                 tasks.append(task)
             await asyncio.gather(*tasks)
 
@@ -957,7 +939,6 @@ class BroadcastManager:
         chat_id: int,
         messages_to_send: Union[Message, List[Message]],
         send_mode: str = "auto",
-        schedule_time: Optional[datetime] = None,
     ) -> bool:
         try:
 
@@ -967,14 +948,12 @@ class BroadcastManager:
                         entity=chat_id,
                         messages=messages,
                         from_peer=messages[0].chat_id,
-                        schedule=schedule_time,
                     )
                 else:
                     await self.client.forward_messages(
                         entity=chat_id,
                         messages=[messages],
                         from_peer=messages.chat_id,
-                        schedule=schedule_time,
                     )
 
             await self.minute_limiter.acquire()
@@ -990,13 +969,11 @@ class BroadcastManager:
                         await self.client.send_message(
                             entity=chat_id,
                             message=self._get_message_content(msg),
-                            schedule=schedule_time,
                         )
                 else:
                     await self.client.send_message(
                         entity=chat_id,
                         message=self._get_message_content(messages_to_send),
-                        schedule=schedule_time,
                     )
             elif send_mode == "auto":
 
@@ -1005,11 +982,10 @@ class BroadcastManager:
                 elif hasattr(messages_to_send, "media") and messages_to_send.media:
                     await forward_messages(messages_to_send)
                 else:
-                    logger.info(f"Sending text message to {chat_id} with schedule_time: {schedule_time}")
+                    logger.info(f"Sending text message to {chat_id}")
                     await self.client.send_message(
                         entity=chat_id,
                         message=self._get_message_content(messages_to_send),
-                        schedule=schedule_time,
                     )
             self.error_counts[chat_id] = 0
             return True
@@ -1253,15 +1229,11 @@ class BroadcastManager:
             cached = await self._message_cache.get(key)
             if cached:
                 return cached
-            # Попытка получить сообщение напрямую
-
             message = await self.client.get_messages(
                 msg_data["chat_id"], ids=msg_data["message_id"]
             )
 
             if message:
-                # Проверяем, есть ли grouped_ids
-
                 if msg_data.get("grouped_ids"):
                     messages = []
                     for msg_id in msg_data["grouped_ids"]:
