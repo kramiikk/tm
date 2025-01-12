@@ -191,13 +191,8 @@ class BroadcastMod(loader.Module):
         <code>.br int my_broadcast 5 10</code> (интервал от 5 до 10 минут)
 
     <code>.br mode <код> <режим></code> - <strong>Установить режим отправки.</strong> Определяет способ отправки сообщений в рассылке.
-
-    <code>auto</code>: Автоматически выбирает режим (пересылка для медиа, отправка текста для текста).
-
-    <code>normal</code>: Отправляет сообщения как обычный текст (может не работать для медиа).
-
-    <code>forward</code>: Пересылает сообщения (работает для медиа и текста).
-        <code>.br mode my_broadcast forward</code>
+        <code>auto</code>: Автоматически выбирает режим (пересылка для медиа, отправка текста для текста).
+        <code>forward</code>: Пересылает сообщения (работает для медиа и текста).
 
     <code>.br allmsgs <код> <on/off></code> - <strong>Управлять отправкой всех сообщений.</strong>
         <code>on</code>: Отправлять все сообщения из рассылки по очереди в каждый чат.
@@ -782,13 +777,11 @@ class BroadcastManager:
     ):
         """Обработчик команды mode"""
         if len(args) < 3:
-            await message.edit("❌ Укажите режим отправки (auto/normal/forward)")
+            await message.edit("❌ Укажите режим отправки (auto/forward)")
             return
         mode = args[2].lower()
-        if mode not in ["auto", "normal", "forward"]:
-            await message.edit(
-                "❌ Неверный режим. Доступные режимы: auto, normal, forward"
-            )
+        if mode not in ["auto", "forward"]:
+            await message.edit("❌ Неверный режим.")
             return
         code.send_mode = mode
         await self.save_config()
@@ -967,32 +960,16 @@ class BroadcastManager:
 
             await asyncio.sleep(1)
 
-            if send_mode == "forward":
-                await forward_messages(messages_to_send)
-            elif send_mode == "normal":
-                if isinstance(messages_to_send, list):
-                    for msg in messages_to_send:
-                        await self.client.send_message(
-                            entity=chat_id,
-                            message=self._get_message_content(msg),
-                        )
-                else:
-                    await self.client.send_message(
-                        entity=chat_id,
-                        message=self._get_message_content(messages_to_send),
-                    )
-            elif send_mode == "auto":
+            is_auto_mode = send_mode == "auto"
+            is_forwardable = isinstance(messages_to_send, list) or (hasattr(messages_to_send, "media") and messages_to_send.media)
 
-                if isinstance(messages_to_send, list):
-                    await forward_messages(messages_to_send)
-                elif hasattr(messages_to_send, "media") and messages_to_send.media:
-                    await forward_messages(messages_to_send)
-                else:
-                    logger.info(f"Sending text message to {chat_id}")
-                    await self.client.send_message(
-                        entity=chat_id,
-                        message=self._get_message_content(messages_to_send),
-                    )
+            if not is_auto_mode or is_forwardable:
+                await forward_messages(messages_to_send)
+            else:
+                await self.client.send_message(
+                    entity=chat_id,
+                    message=self._get_message_content(messages_to_send),
+                )
             self.error_counts[chat_id] = 0
             return True
         except FloodWaitError as e:
