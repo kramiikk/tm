@@ -461,8 +461,6 @@ class ProfileChangerMod(loader.Module):
             )
             success_multiplier *= random.uniform(0.95, 1.05)
             base_delay *= success_multiplier
-        # Rest of the function remains the same, just ensure all datetime comparisons use timezone-aware objects
-
         if (
             self.last_error_time
             and (now - self.last_error_time).total_seconds()
@@ -596,28 +594,52 @@ class ProfileChangerMod(loader.Module):
             )
         return "\n".join(details) if details else "  • Нет активных факторов адаптации"
 
-    def _get_stats(self) -> Dict[str, Union[str, float]]:
-        """Получение статистики работы модуля."""
-        stats = super()._get_stats()
+    def _get_stats(self) -> Dict[str, Union[str, float, int]]:
+        """Get comprehensive statistics about the module's operation."""
+        now = datetime.now()
 
-        if self.config[CONFIG_NIGHT_MODE]:
-            local_time = self._get_local_time()
-            current_hour = local_time.hour
-            night_start = self.config[CONFIG_NIGHT_START]
-            night_end = self.config[CONFIG_NIGHT_END]
+        status = "🟢 Работает" if self.running else "🔴 Остановлен"
+        if self.pfpdir_running:
+            status = "📁 Загрузка из директории"
+        uptime = "0с"
+        if self.start_time:
+            uptime_seconds = (now - self.start_time).total_seconds()
+            uptime = self._format_time(uptime_seconds)
+        updates_per_hour = 0
+        if self.start_time and self.update_count > 0:
+            hours = (now - self.start_time).total_seconds() / 3600
+            if hours > 0:
+                updates_per_hour = round(self.update_count / hours, 1)
+        last_update = "нет"
+        if self.last_update:
+            seconds_ago = (now - self.last_update).total_seconds()
+            last_update = f"{self._format_time(seconds_ago)} назад"
+        current_delay = self.delay
+        if self.config[CONFIG_JITTER] > 0:
+            jitter_range = self.delay * self.config[CONFIG_JITTER]
+            current_delay += random.uniform(-jitter_range, jitter_range)
+        delay_details = "\n" + self._get_delay_details()
 
-            is_night_time = False
-            if night_start > night_end:
-                is_night_time = current_hour >= night_start or current_hour < night_end
-            else:
-                is_night_time = night_start <= current_hour < night_end
-            night_status = "🌙 Активен" if is_night_time else "🌙 Неактивен"
-            stats["night_mode"] = (
-                f"Ночной режим: {night_status}\n"
-                f"  • Период: {night_start:02d}:00 - {night_end:02d}:00 "
-                f"(UTC+{self.config[CONFIG_TIMEZONE_OFFSET]})\n"
-                f"  • Текущее время: {local_time.strftime('%H:%M')}"
-            )
+        wait_time = None
+        if self.running and self.last_update:
+            next_update = self.last_update + timedelta(seconds=current_delay)
+            if next_update > now:
+                wait_seconds = (next_update - now).total_seconds()
+                wait_time = self._format_time(wait_seconds)
+        stats = {
+            "status": status,
+            "uptime": uptime,
+            "count": f"{self.update_count}",
+            "hourly": f"{updates_per_hour}/час",
+            "delay": f"{round(current_delay / 60, 1)}",
+            "last": last_update,
+            "errors": f"{self.error_count} (флуд: {self.flood_count})",
+            "floods": str(self.flood_count),
+            "delay_details": delay_details,
+        }
+
+        if wait_time:
+            stats["wait"] = wait_time
         return stats
 
     def _save_state(self):
