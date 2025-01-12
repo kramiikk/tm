@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from collections import deque
 from typing import Optional, Dict, Union, List
 from telethon import functions, types, errors
@@ -29,6 +29,11 @@ CONFIG_SUCCESS_REDUCTION = "success_reduction"
 CONFIG_DELAY_MULTIPLIER = "delay_multiplier"
 CONFIG_RECENT_MULTIPLIER_HISTORY_SIZE = "recent_multiplier_history_size"
 CONFIG_PFPDIR_PATH = "pfpdir_path"
+CONFIG_TIMEZONE_OFFSET = "timezone_offset"
+CONFIG_NIGHT_MODE = "night_mode"
+CONFIG_NIGHT_START = "night_start"
+CONFIG_NIGHT_END = "night_end"
+CONFIG_NIGHT_DELAY_MULTIPLIER = "night_delay"
 
 
 @loader.tds
@@ -129,6 +134,21 @@ class ProfileChangerMod(loader.Module):
             CONFIG_PFPDIR_PATH,
             "/root/Heroku/new",
             "Путь к директории для загрузки фото",
+            CONFIG_TIMEZONE_OFFSET,
+            5,
+            "Смещение часового пояса относительно UTC (например: 5 для UTC+5)",
+            CONFIG_NIGHT_MODE,
+            True,
+            "Включить ночной режим (True/False)",
+            CONFIG_NIGHT_START,
+            23,
+            "Час начала ночного режима по местному времени (0-23)",
+            CONFIG_NIGHT_END,
+            7,
+            "Час окончания ночного режима по местному времени (0-23)",
+            CONFIG_NIGHT_DELAY_MULTIPLIER,
+            5.0,
+            "Множитель задержки для ночного режима",
         )
 
         self.multiplier_ranges = [
@@ -381,11 +401,41 @@ class ProfileChangerMod(loader.Module):
         except Exception as e:
             return await self._handle_operation_result(e, "upload")
 
-    def _calculate_delay(self) -> float:
-        """Расчет задержки с улучшенной рандомизацией и более широким разбросом."""
-        base_delay = self.delay
-        now = datetime.now()
+    def _get_local_hour(self) -> int:
+        """Получение текущего часа в локальном часовом поясе"""
+        utc_now = datetime.now(timezone.utc)
+        local_offset = timedelta(hours=self.config[CONFIG_TIMEZONE_OFFSET])
+        local_time = utc_now + local_offset
+        return local_time.hour
 
+    def _get_local_time(self) -> datetime:
+        """Получение текущего времени в локальном часовом поясе"""
+        utc_now = datetime.now(timezone.utc)
+        local_offset = timedelta(hours=self.config[CONFIG_TIMEZONE_OFFSET])
+        return utc_now + local_offset
+
+    def _calculate_delay(self) -> float:
+        """Расчет задержки с учетом ночного режима."""
+        base_delay = self.delay
+        now = self._get_local_time()
+
+        if self.config[CONFIG_NIGHT_MODE]:
+            current_hour = now.hour
+            night_start = self.config[CONFIG_NIGHT_START]
+            night_end = self.config[CONFIG_NIGHT_END]
+
+            is_night_time = False
+            if night_start > night_end:
+                is_night_time = current_hour >= night_start or current_hour < night_end
+            else:
+                is_night_time = night_start <= current_hour < night_end
+            if is_night_time:
+                night_multiplier = self.config[CONFIG_NIGHT_DELAY_MULTIPLIER]
+                night_multiplier *= random.uniform(0.8, 1.2)
+                base_delay *= night_multiplier
+                logger.info(
+                    f"Ночной режим активен (UTC+{self.config[CONFIG_TIMEZONE_OFFSET]}). Задержка увеличена в {night_multiplier:.2f} раз"
+                )
         if self.success_streak >= 5:
             success_multiplier = max(
                 0.85,
@@ -467,13 +517,15 @@ class ProfileChangerMod(loader.Module):
 
         if delay == self.config[CONFIG_MIN_DELAY]:
             delay += random.uniform(61, 661)
-            logger.info(f"Задержка на минимальном значении. Увеличена до {delay:.1f} секунд.")
-        
+            logger.info(
+                f"Задержка на минимальном значении. Увеличена до {delay:.1f} секунд."
+            )
         if delay == self.config[CONFIG_MAX_DELAY]:
             random_increase = random.uniform(0, self.config[CONFIG_MAX_DELAY] * 0.1)
             delay += random_increase
-            logger.info(f"Задержка достигла максимума. Увеличена на {random_increase:.1f} секунд, итого {delay:.1f}.")
-
+            logger.info(
+                f"Задержка достигла максимума. Увеличена на {random_increase:.1f} секунд, итого {delay:.1f}."
+            )
         return delay
 
     async def _loop(self) -> None:
@@ -585,50 +637,26 @@ class ProfileChangerMod(loader.Module):
 
     def _get_stats(self) -> Dict[str, Union[str, float]]:
         """Получение статистики работы модуля."""
-        stats = {}
-        now = datetime.now()
-        uptime_seconds = (
-            (now - self.start_time).total_seconds() if self.start_time else 0
-        )
-        last_update_seconds = (
-            (now - self.last_update).total_seconds() if self.last_update else 0
-        )
+        stats = super()._get_stats()
 
-        stats = {
-            "status": (
-                "✅ Работает"
-                if self.running or self.pfpdir_running
-                else "🛑 Остановлен"
-            ),
-            "uptime": self._format_time(uptime_seconds),
-            "count": self.update_count,
-            "hourly": (
-                f"{(self.update_count / (uptime_seconds/3600)):.1f}"
-                if uptime_seconds > 0
-                else "0"
-            ),
-            "delay": f"{self.delay / 60:.1f}",
-            "last": (
-                self._format_time(last_update_seconds)
-                if self.last_update
-                else "никогда"
-            ),
-            "errors": self.error_count,
-            "floods": self.flood_count,
-        }
+        if self.config[CONFIG_NIGHT_MODE]:
+            local_time = self._get_local_time()
+            current_hour = local_time.hour
+            night_start = self.config[CONFIG_NIGHT_START]
+            night_end = self.config[CONFIG_NIGHT_END]
 
-        if self.running:
-            calculated_delay = self._calculate_delay()
-            if self.last_update:
-                remaining_wait = (
-                    calculated_delay - (now - self.last_update).total_seconds()
-                )
-                stats["wait"] = self._format_time(max(0, remaining_wait))
+            is_night_time = False
+            if night_start > night_end:
+                is_night_time = current_hour >= night_start or current_hour < night_end
             else:
-                stats["wait"] = self._format_time(calculated_delay)
-        delay_details = self._get_delay_details()
-        stats["delay_details"] = f"\n{delay_details}"
-
+                is_night_time = night_start <= current_hour < night_end
+            night_status = "🌙 Активен" if is_night_time else "🌙 Неактивен"
+            stats["night_mode"] = (
+                f"Ночной режим: {night_status}\n"
+                f"  • Период: {night_start:02d}:00 - {night_end:02d}:00 "
+                f"(UTC+{self.config[CONFIG_TIMEZONE_OFFSET]})\n"
+                f"  • Текущее время: {local_time.strftime('%H:%M')}"
+            )
         return stats
 
     def _save_state(self):
@@ -904,4 +932,44 @@ class ProfileChangerMod(loader.Module):
                     error_type="Ошибка установки аватарки",
                     error=result,
                 ),
+            )
+
+    @loader.command()
+    async def pfpnight(self, message):
+        """Включить/выключить ночной режим или изменить его настройки.
+
+        Использование:
+        .pfpnight - переключить ночной режим
+        .pfpnight <start> <end> - установить время (например: .pfpnight 23 7)
+        """
+        args = utils.get_args_raw(message)
+
+        if not args:
+            self.config[CONFIG_NIGHT_MODE] = not self.config[CONFIG_NIGHT_MODE]
+            status = "включен ✅" if self.config[CONFIG_NIGHT_MODE] else "выключен ❌"
+            local_time = self._get_local_time()
+            await utils.answer(
+                message,
+                f"🌙 Ночной режим {status}\n"
+                f"Текущее время: {local_time.strftime('%H:%M')} (UTC+{self.config[CONFIG_TIMEZONE_OFFSET]})",
+            )
+            return
+        try:
+            start, end = map(int, args.split())
+            if not (0 <= start <= 23 and 0 <= end <= 23):
+                raise ValueError
+            self.config[CONFIG_NIGHT_START] = start
+            self.config[CONFIG_NIGHT_END] = end
+
+            local_time = self._get_local_time()
+            await utils.answer(
+                message,
+                f"🌙 Установлен период ночного режима:\n"
+                f"• {start:02d}:00 - {end:02d}:00 (UTC+{self.config[CONFIG_TIMEZONE_OFFSET]})\n"
+                f"Текущее время: {local_time.strftime('%H:%M')}",
+            )
+        except ValueError:
+            await utils.answer(
+                message,
+                "❌ Неверный формат. Используйте: .pfpnight <час_начала> <час_конца> (0-23)",
             )
