@@ -6,7 +6,6 @@ import logging
 import random
 import time
 from collections import OrderedDict
-from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Tuple, Union
@@ -267,18 +266,20 @@ class BroadcastMod(loader.Module):
         """Cleanup on module unload."""
         self._active = False
 
-        for task_name in ["_cleanup_task", "_periodic_task"]:
-            task = getattr(self, task_name, None)
-            if task:
+        async def cancel_task(task):
+            if task and not task.done():
                 task.cancel()
-                with suppress(asyncio.CancelledError):
+                try:
                     await task
-        for task in [
-            t for t in self.manager.broadcast_tasks.values() if t and not t.done()
-        ]:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
+                except asyncio.CancelledError:
+                    pass
+
+        for task_name in ["_cleanup_task", "_periodic_task"]:
+            await cancel_task(getattr(self, task_name, None))
+
+        tasks = [t for t in self.manager.broadcast_tasks.values() if t]
+        await asyncio.gather(*map(cancel_task, tasks), return_exceptions=True)
+
 
     async def brcmd(self, message):
         """Команда для управления рассылкой. Используйте .help Broadcast для справки."""
@@ -430,7 +431,7 @@ class BroadcastManager:
     MAX_MESSAGES_PER_MINUTE = 20
     MAX_MESSAGES_PER_HOUR = 300
     MAX_CODES = 50
-    MAX_RETRY_COUNT = 3
+
     MAX_FLOOD_WAIT_COUNT = 3
     MAX_CONSECUTIVE_ERRORS = 5
     MAX_MEDIA_SIZE = 10 * 1024 * 1024
@@ -439,9 +440,6 @@ class BroadcastManager:
     BATCH_THRESHOLD_MEDIUM = 50
     BATCH_THRESHOLD_LARGE = 100
 
-    RETRY_DELAY_LONG = 300
-    RETRY_DELAY_SHORT = 60
-    RETRY_DELAY_MINI = 3
     EXPONENTIAL_DELAY_BASE = 10
     NOTIFY_DELAY = 1
 
@@ -461,6 +459,7 @@ class BroadcastManager:
         self._periodic_task = None
         self._authorized_users = self._load_authorized_users()
         self.watcher_enabled = False
+        self._semaphore = asyncio.Semaphore(10)
 
         self.minute_limiter = RateLimiter(self.MAX_MESSAGES_PER_MINUTE, 60)
         self.hour_limiter = RateLimiter(self.MAX_MESSAGES_PER_HOUR, 3600)
@@ -863,75 +862,76 @@ class BroadcastManager:
         messages_to_send: List[Union[Message, List[Message]]],
     ) -> Set[int]:
         """Обновленный метод отправки сообщений в чаты"""
-        if not code:
-            return set()
-        failed_chats: Set[int] = set()
-        success_count: int = 0
-        flood_wait_count: int = 0
+        async with self._semaphore:
+            if not code:
+                return set()
+            failed_chats: Set[int] = set()
+            success_count: int = 0
+            flood_wait_count: int = 0
 
-        async def get_optimal_batch_size(total_chats: int) -> int:
-            minute_stats = await self.minute_limiter.get_stats()
-            hour_stats = await self.hour_limiter.get_stats()
+            async def get_optimal_batch_size(total_chats: int) -> int:
+                minute_stats = await self.minute_limiter.get_stats()
+                hour_stats = await self.hour_limiter.get_stats()
 
-            if minute_stats["usage_percent"] > 80 or hour_stats["usage_percent"] > 80:
-                return max(self.BATCH_SIZE_SMALL // 2, 1)
-            if total_chats <= self.BATCH_THRESHOLD_SMALL:
-                return self.BATCH_SIZE_SMALL
-            elif total_chats <= self.BATCH_THRESHOLD_MEDIUM:
-                return self.BATCH_SIZE_MEDIUM
-            return self.BATCH_SIZE_LARGE
+                if minute_stats["usage_percent"] > 80 or hour_stats["usage_percent"] > 80:
+                    return max(self.BATCH_SIZE_SMALL // 2, 1)
+                if total_chats <= self.BATCH_THRESHOLD_SMALL:
+                    return self.BATCH_SIZE_SMALL
+                elif total_chats <= self.BATCH_THRESHOLD_MEDIUM:
+                    return self.BATCH_SIZE_MEDIUM
+                return self.BATCH_SIZE_LARGE
 
-        async def send_to_chat(chat_id: int):
-            nonlocal success_count, flood_wait_count
+            async def send_to_chat(chat_id: int):
+                nonlocal success_count, flood_wait_count
 
-            try:
-                error_key = f"{chat_id}_general"
-                if self.error_counts.get(error_key, 0) >= self.MAX_CONSECUTIVE_ERRORS:
-                    last_error = self.last_error_time.get(error_key, 0)
-                    if time.time() - last_error < self.RETRY_DELAY_LONG:
-                        failed_chats.add(chat_id)
-                        return
-                for message in messages_to_send:
-                    success = await self._send_message(
-                        code_name,
-                        chat_id,
-                        message,
-                        code.send_mode,
-                    )
-                    if not success:
-                        raise Exception("Ошибка отправки сообщения")
-                success_count += 1
-            except FloodWaitError as e:
-                flood_wait_count += 1
-                if flood_wait_count >= self.MAX_FLOOD_WAIT_COUNT:
-                    logger.error("Слишком много FloodWaitError, останавливаем рассылку")
-                    code._active = False
-                failed_chats.add(chat_id)
-            except Exception as e:
-                failed_chats.add(chat_id)
-                logger.error(f"Ошибка отправки в чат {chat_id}: {str(e)}")
+                try:
+                    error_key = f"{chat_id}_general"
+                    if self.error_counts.get(error_key, 0) >= self.MAX_CONSECUTIVE_ERRORS:
+                        last_error = self.last_error_time.get(error_key, 0)
+                        if time.time() - last_error < 300:
+                            failed_chats.add(chat_id)
+                            return
+                    for message in messages_to_send:
+                        success = await self._send_message(
+                            code_name,
+                            chat_id,
+                            message,
+                            code.send_mode,
+                        )
+                        if not success:
+                            raise Exception("Ошибка отправки сообщения")
+                    success_count += 1
+                except FloodWaitError as e:
+                    flood_wait_count += 1
+                    if flood_wait_count >= self.MAX_FLOOD_WAIT_COUNT:
+                        logger.error("Слишком много FloodWaitError, останавливаем рассылку")
+                        code._active = False
+                    failed_chats.add(chat_id)
+                except Exception as e:
+                    failed_chats.add(chat_id)
+                    logger.error(f"Ошибка отправки в чат {chat_id}: {str(e)}")
 
-        chats = list(code.chats)
-        random.shuffle(chats)
-        total_chats = len(chats)
+            chats = list(code.chats)
+            random.shuffle(chats)
+            total_chats = len(chats)
 
-        batch_size = await get_optimal_batch_size(total_chats)
+            batch_size = await get_optimal_batch_size(total_chats)
 
-        for i in range(0, total_chats, batch_size):
-            if not self._active or not code._active:
-                break
-            current_batch = chats[i : i + batch_size]
+            for i in range(0, total_chats, batch_size):
+                if not self._active or not code._active:
+                    break
+                current_batch = chats[i : i + batch_size]
 
-            tasks = []
-            for chat_id in current_batch:
-                task = send_to_chat(chat_id)
-                tasks.append(task)
-            await asyncio.gather(*tasks)
+                tasks = []
+                for chat_id in current_batch:
+                    task = send_to_chat(chat_id)
+                    tasks.append(task)
+                await asyncio.gather(*tasks)
 
-            min_interval, max_interval = code.interval
-            sleep_time = random.uniform(min_interval * 60, max_interval * 60)
-            await asyncio.sleep(max(3.0, sleep_time))
-        return failed_chats
+                min_interval, max_interval = code.interval
+                sleep_time = random.uniform(min_interval * 60, max_interval * 60)
+                await asyncio.sleep(max(3.0, sleep_time))
+            return failed_chats
 
     async def _send_message(
         self,
@@ -1008,7 +1008,7 @@ class BroadcastManager:
             self.last_error_time[error_key] = time.time()
 
             if self.error_counts[error_key] >= self.MAX_CONSECUTIVE_ERRORS:
-                wait_time = self.RETRY_DELAY_SHORT * (
+                wait_time = 60 * (
                     2 ** (self.error_counts[error_key] - self.MAX_CONSECUTIVE_ERRORS)
                 )
                 logger.warning(
@@ -1058,7 +1058,7 @@ class BroadcastManager:
                             me.id,
                             base_message + group,
                             schedule=datetime.now()
-                            + timedelta(seconds=self.RETRY_DELAY_SHORT),
+                            + timedelta(seconds=60),
                         )
                         await asyncio.sleep(self.NOTIFY_DELAY)
                     except Exception as e:
@@ -1137,14 +1137,13 @@ class BroadcastManager:
     async def _broadcast_loop(self, code_name: str):
         """Main broadcast loop."""
         while self._active:
-            retry_count = 0
             deleted_messages = []
             messages_to_send = []
 
             try:
                 code = self.codes.get(code_name)
                 if not self._should_continue(code, code_name):
-                    await asyncio.sleep(self.RETRY_DELAY_SHORT)
+                    await asyncio.sleep(60)
                     continue
                 current_messages = code.messages.copy()
 
@@ -1167,17 +1166,8 @@ class BroadcastManager:
                         ]
                         await self.save_config()
                 if not self._should_continue(code, code_name) or not messages_to_send:
-                    retry_count += 1
-                    if retry_count >= self.MAX_RETRY_COUNT:
-                        logger.error(
-                            f"Достигнут лимит попыток получения сообщений для {code_name}"
-                        )
-                        await asyncio.sleep(self.RETRY_DELAY_LONG)
-                        retry_count = 0
-                    else:
-                        await asyncio.sleep(self.RETRY_DELAY_SHORT)
-                    continue
-                retry_count = 0
+                    logger.error(f"Ошибка получения сообщений для {code_name}")
+                    await asyncio.sleep(60)
 
                 if not code.batch_mode:
                     async with self._lock:
@@ -1209,15 +1199,7 @@ class BroadcastManager:
                 break
             except Exception as e:
                 logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
-                retry_count += 1
-                if retry_count >= self.MAX_RETRY_COUNT:
-                    logger.error(
-                        f"Достигнут лимит попыток выполнения рассылки {code_name}"
-                    )
-                    await asyncio.sleep(self.RETRY_DELAY_LONG)
-                    retry_count = 0
-                else:
-                    await asyncio.sleep(self.RETRY_DELAY_SHORT)
+                await asyncio.sleep(300)
 
     async def _fetch_messages(
         self, msg_data: dict
