@@ -596,36 +596,46 @@ class ProfileChangerMod(loader.Module):
 
     def _get_stats(self) -> Dict[str, Union[str, float, int]]:
         """Get comprehensive statistics about the module's operation."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         status = "🟢 Работает" if self.running else "🔴 Остановлен"
         if self.pfpdir_running:
             status = "📁 Загрузка из директории"
+        
         uptime = "0с"
         if self.start_time:
-            uptime_seconds = (now - self.start_time).total_seconds()
+            start_time_utc = self.start_time if self.start_time.tzinfo else self.start_time.replace(tzinfo=timezone.utc)
+            uptime_seconds = (now - start_time_utc).total_seconds()
             uptime = self._format_time(uptime_seconds)
+        
         updates_per_hour = 0
         if self.start_time and self.update_count > 0:
-            hours = (now - self.start_time).total_seconds() / 3600
+            start_time_utc = self.start_time if self.start_time.tzinfo else self.start_time.replace(tzinfo=timezone.utc)
+            hours = (now - start_time_utc).total_seconds() / 3600
             if hours > 0:
                 updates_per_hour = round(self.update_count / hours, 1)
+        
         last_update = "нет"
         if self.last_update:
-            seconds_ago = (now - self.last_update).total_seconds()
+            last_update_utc = self.last_update if self.last_update.tzinfo else self.last_update.replace(tzinfo=timezone.utc)
+            seconds_ago = (now - last_update_utc).total_seconds()
             last_update = f"{self._format_time(seconds_ago)} назад"
+        
         current_delay = self.delay
         if self.config[CONFIG_JITTER] > 0:
             jitter_range = self.delay * self.config[CONFIG_JITTER]
             current_delay += random.uniform(-jitter_range, jitter_range)
+        
         delay_details = "\n" + self._get_delay_details()
 
         wait_time = None
         if self.running and self.last_update:
-            next_update = self.last_update + timedelta(seconds=current_delay)
+            last_update_utc = self.last_update if self.last_update.tzinfo else self.last_update.replace(tzinfo=timezone.utc)
+            next_update = last_update_utc + timedelta(seconds=current_delay)
             if next_update > now:
                 wait_seconds = (next_update - now).total_seconds()
                 wait_time = self._format_time(wait_seconds)
+        
         stats = {
             "status": status,
             "uptime": uptime,
