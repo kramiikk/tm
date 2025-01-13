@@ -250,7 +250,7 @@ class BroadcastMod(loader.Module):
             if chat_id not in code.chats:
                 logger.info(f"Adding chat {chat_id} to code {code_name}")
                 code.chats.add(chat_id)
-                await self.save_config()
+                await self.manager.save_config()
                 logger.info(f"Successfully added chat {chat_id} to code {code_name}")
             else:
                 logger.info(f"Chat {chat_id} already in code {code_name}")
@@ -889,6 +889,33 @@ class BroadcastManager:
         await self.save_config()
         await message.edit(f"✅ Рассылка {code_name} остановлена")
 
+    async def _get_chat_permissions(self, chat_id: int) -> bool:
+        """Checks if the bot can send messages to the chat"""
+        try:
+            permissions = await self.client.get_permissions(chat_id, self.me_id)
+
+            # Handle different permission object structures
+
+            if hasattr(permissions, "chat"):
+                # New structure
+
+                return bool(permissions.chat.send_messages)
+            # Check if permissions have nested permission object
+
+            if hasattr(permissions, "permissions"):
+                if hasattr(permissions.permissions, "send_messages"):
+                    return bool(permissions.permissions.send_messages)
+            # Default to True if we can't determine permissions
+            # The actual send attempt will fail if we don't have permission
+
+            logger.warning(
+                f"Could not determine permissions structure for chat {chat_id}"
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Error checking permissions for chat {chat_id}: {e}")
+            return False
+
     async def _send_messages_to_chats(
         self,
         code: Optional[Broadcast],
@@ -931,6 +958,12 @@ class BroadcastManager:
                         if time.time() - last_error < 300:
                             failed_chats.add(chat_id)
                             return
+                    # Check permissions before sending
+
+                    if not await self._get_chat_permissions(chat_id):
+                        logger.warning(f"No send permissions for chat {chat_id}")
+                        failed_chats.add(chat_id)
+                        return
                     for message in messages_to_send:
                         success = await self._send_message(
                             code_name,
