@@ -5,6 +5,7 @@ import json
 import logging
 import random
 import time
+import traceback
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -890,30 +891,49 @@ class BroadcastManager:
         await message.edit(f"✅ Рассылка {code_name} остановлена")
 
     async def _get_chat_permissions(self, chat_id: int) -> bool:
-        """Checks if the bot can send messages to the chat"""
+        """Проверяет, может ли бот отправлять сообщения в чат"""
         try:
-            permissions = await self.client.get_permissions(chat_id, (await self.client.get_me()).id)
-
-            # Handle different permission object structures
-
+            me = await self.client.get_me()
+            permissions = await self.client.get_permissions(chat_id, me.id)
+            
+            # Добавляем детальное логирование
+            logger.debug(f"Получен объект разрешений: {permissions}")
+            logger.debug(f"Тип объекта: {type(permissions)}")
+            logger.debug(f"Доступные атрибуты: {dir(permissions)}")
+            
             if hasattr(permissions, "chat"):
-                # New structure
-
+                logger.debug(f"Атрибуты chat: {dir(permissions.chat)}")
                 return bool(permissions.chat.send_messages)
-            # Check if permissions have nested permission object
-
+                
             if hasattr(permissions, "permissions"):
-                if hasattr(permissions.permissions, "send_messages"):
-                    return bool(permissions.permissions.send_messages)
-            # Default to True if we can't determine permissions
-            # The actual send attempt will fail if we don't have permission
+                logger.debug(f"Атрибуты permissions: {dir(permissions.permissions)}")
+                return bool(permissions.permissions.send_messages)
+                
+            if hasattr(permissions, "send_messages"):
+                return bool(permissions.send_messages)
 
+            # Если мы здесь, значит структура неизвестна
             logger.warning(
-                f"Could not determine permissions structure for chat {chat_id}"
+                f"Неизвестная структура разрешений для чата {chat_id}:\n"
+                f"ID бота: {me.id}\n"
+                f"Объект permissions: {permissions}\n"
+                f"Тип объекта: {type(permissions)}\n"
+                f"Атрибуты: {dir(permissions)}"
             )
+            
+            # Попробуем получить информацию о чате
+            chat = await self.client.get_entity(chat_id)
+            logger.debug(f"Информация о чате: {chat}")
+            
             return True
+            
         except Exception as e:
-            logger.error(f"Error checking permissions for chat {chat_id}: {e}")
+            logger.error(
+                f"Ошибка при проверке разрешений для чата {chat_id}:\n"
+                f"Ошибка: {str(e)}\n"
+                f"Тип ошибки: {type(e).__name__}\n"
+                f"Traceback: {traceback.format_exc()}"
+            )
             return False
 
     async def _send_messages_to_chats(
