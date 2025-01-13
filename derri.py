@@ -299,7 +299,7 @@ class BroadcastMod(loader.Module):
         debug_info.append("\n📝 Message Check:")
         for idx, msg in enumerate(code.messages):
             try:
-                message = await self._fetch_messages(msg)
+                message = await self.manager._fetch_messages(msg)
                 status = "✅" if message else "❌"
                 debug_info.append(
                     f"- Message {idx + 1}: {status} (ID: {msg['message_id']})"
@@ -310,8 +310,15 @@ class BroadcastMod(loader.Module):
         for chat_id in code.chats:
             try:
                 permissions = await self._client.get_permissions(chat_id, self.me_id)
-                can_send = "✅" if permissions.send_messages else "❌"
-                debug_info.append(f"- Chat {chat_id}: {can_send}")
+                can_send = "✅"
+                if hasattr(permissions, 'permissions') and hasattr(permissions.permissions, 'send_messages'):
+                    can_send = "✅" if permissions.permissions.send_messages else "❌"
+                elif hasattr(permissions, 'send_messages'):
+                    can_send = "✅" if permissions.send_messages else "❌"
+                else:
+                    can_send = "❓ (Unable to check)"
+                    logger.warning(f"Could not check send_messages for chat {chat_id}. Permissions object structure changed.")
+                    debug_info.append(f"- Chat {chat_id}: {can_send}")
             except Exception as e:
                 debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
         debug_info.append("\n⏱️ Rate Limits:")
