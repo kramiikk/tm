@@ -5,7 +5,6 @@ import json
 import logging
 import random
 import time
-import traceback
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -167,48 +166,64 @@ class SimpleCache:
 @loader.tds
 class BroadcastMod(loader.Module):
     """
-    Используйте <code>.br</code> для управления рассылками.
+    Управление рассылками с помощью .br
 
-    <strong>Команды:</strong>
-    <code>.br add <код></code> - <strong>Создать или добавить сообщение в рассылку.</strong> Ответьте этой командой на сообщение, которое хотите добавить. Если рассылка с указанным <code><код></code> не существует, она будет создана.
-        <code>.br my_broadcast</code> (в ответ на сообщение)
+    Используйте команду .br для управления массовыми рассылками.
 
-    <code>.br delete <код></code> - <strong>Удалить рассылку.</strong>  Удаляет рассылку с указанным <code><код></code> вместе со всеми ее сообщениями и настройками.
-        <code>.br delete my_broadcast</code>
+    Основные команды:
 
-    <code>.br remove <код></code> - <strong>Удалить сообщение из рассылки.</strong> Ответьте этой командой на сообщение, которое хотите удалить из указанной рассылки.
-        <code>.br remove my_broadcast</code> (в ответ на сообщение)
+    .br add <код> (в ответ на сообщение): Создать или добавить сообщение в рассылку с указанным <код>. Если рассылки нет, она будет создана.
 
-    <code>.br addchat <код> [ссылка/юзернейм/ID]</code> - <strong>Добавить чат в рассылку.</strong> Добавляет текущий чат или указанный чат (по ссылке, юзернейму или ID) в список получателей рассылки.
-        (добавить текущий чат): <code>.br addchat my_broadcast</code>
-        (добавить по ссылке): <code>.br addchat my_broadcast t.me/usr</code>
-        (добавить по ID): <code>.br addchat my_broadcast 123456789</code>
+    .br delete <код>: Удалить рассылку с кодом <код> (вместе со всем содержимым).
 
-    <code>.br rmchat <код> [ссылка/юзернейм/ID]</code> - <strong>Удалить чат из рассылки.</strong> Удаляет текущий чат или указанный чат из списка получателей рассылки.
-        (удалить текущий чат): <code>.br rmchat my_broadcast</code>
-        (удалить по юзернейму): <code>.br rmchat my_broadcast my_channel</code>
+    .br remove <код> (в ответ на сообщение): Удалить сообщение из рассылки с кодом <код>.
 
-    <code>.br int <код> <мин> <макс></code> - <strong>Установить интервал отправки.</strong> Задает случайный интервал в минутах между отправкой сообщений в рассылке (минимальное и максимальное значения).
-        <code>.br int my_broadcast 5 10</code> (интервал от 5 до 10 минут)
+    .br addchat <код> [чат]: Добавить чат в рассылку <код>. Чат можно указать ссылкой, юзернеймом, ID или оставить пустым для текущего чата.
 
-    <code>.br mode <код> <режим></code> - <strong>Установить режим отправки.</strong> Определяет способ отправки сообщений в рассылке.
-        <code>auto</code>: Автоматически выбирает режим (пересылка для медиа, отправка текста для текста).
-        <code>forward</code>: Пересылает сообщения (работает для медиа и текста).
+    .br addchat my_broadcast (текущий чат)
+    .br addchat my_broadcast t.me/usr
+    .br addchat my_broadcast 123456789
 
-    <code>.br allmsgs <код> <on/off></code> - <strong>Управлять отправкой всех сообщений.</strong>
-        <code>on</code>: Отправлять все сообщения из рассылки по очереди в каждый чат.
-        <code>off</code>: Отправлять только одно, случайно выбранное сообщение из рассылки в каждый чат.
+    .br rmchat <код> [чат]: Удалить чат из рассылки <код>. Аналогично addchat, чат можно указать разными способами.
 
-    <code>.br start <код></code> - <strong>Запустить рассылку.</strong> Начинает отправку сообщений в соответствии с настройками рассылки.
-        <code>.br start my_broadcast</code>
+    .br int <код> <мин> <макс>: Установить случайный интервал (в минутах) между отправками сообщений в рассылке <код>.
 
-    <code>.br stop <код></code> - <strong>Остановить рассылку.</strong> Прекращает активную отправку сообщений.
-        <code>.br stop my_broadcast</code>
+    .br int my_broadcast 5 10
 
-    <code>.br watcher</code> <on/off> - <strong>Включить/выключить автоматическое добавление чатов.</strong> Когда включено, чаты, в которых вы отправляете сообщение, начинающееся с !код_рассылки, будут автоматически добавлены в эту рассылку.
-        (в чате, который нужно добавить в рассылку с кодом <code>road</code>): <code>!road</code>
+    .br mode <код> <режим>: Установить режим отправки для рассылки <код>.
 
-    <code>.br list</code> - <strong>Показать список рассылок.</strong>
+    auto: Автоматически (пересылка медиа, отправка текста).
+
+    forward: Пересылать сообщения.
+
+    .br allmsgs <код> <on/off>: Управлять отправкой всех сообщений в рассылке <код>.
+
+    on: Отправлять все сообщения по очереди.
+
+    off: Отправлять одно случайное сообщение.
+
+    .br start <код>: Запустить рассылку с кодом <код>.
+
+    .br stop <код>: Остановить активную рассылку с кодом <код>.
+
+    .br watcher <on/off>: Включить/выключить автоматическое добавление чатов в рассылку. Если включено, чаты, где вы напишете !код_рассылки, будут добавлены.
+
+    Пример добавления чата через watcher (в нужном чате):
+
+    !road rash
+
+    .br list: Показать список всех существующих рассылок.
+
+    Ключевые моменты:
+
+    Команды вводятся с префиксом .br.
+
+    <код> - уникальный идентификатор вашей рассылки.
+
+    Команды add и remove требуют ответа на сообщение, которое нужно добавить/удалить.
+
+    При добавлении/удалении чатов можно использовать ссылку, юзернейм или ID.
+
     """
 
     strings = {"name": "Broadcast"}
@@ -311,19 +326,26 @@ class BroadcastMod(loader.Module):
         for chat_id in code.chats:
             try:
                 permissions = await self._client.get_permissions(chat_id, self.me_id)
-                can_send = "✅"
-                if hasattr(permissions, "permissions") and hasattr(
+                can_send = "❓"
+
+                # Check for hikkatl ParticipantPermissions (post_messages)
+
+                if hasattr(permissions, "post_messages"):
+                    can_send = "✅" if permissions.post_messages else "❌"
+                # Fallback checks for other permission structures
+
+                elif hasattr(permissions, "permissions") and hasattr(
                     permissions.permissions, "send_messages"
                 ):
                     can_send = "✅" if permissions.permissions.send_messages else "❌"
                 elif hasattr(permissions, "send_messages"):
                     can_send = "✅" if permissions.send_messages else "❌"
                 else:
-                    can_send = "❓ (Unable to check)"
                     logger.warning(
-                        f"Could not check send_messages for chat {chat_id}. Permissions object structure changed."
+                        f"Could not check message permissions for chat {chat_id}. "
+                        f"Available attributes: {dir(permissions)}"
                     )
-                    debug_info.append(f"- Chat {chat_id}: {can_send}")
+                debug_info.append(f"- Chat {chat_id}: {can_send}")
             except Exception as e:
                 debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
         debug_info.append("\n⏱️ Rate Limits:")
@@ -895,45 +917,31 @@ class BroadcastManager:
         try:
             me = await self.client.get_me()
             permissions = await self.client.get_permissions(chat_id, me.id)
-            
-            # Добавляем детальное логирование
-            logger.debug(f"Получен объект разрешений: {permissions}")
-            logger.debug(f"Тип объекта: {type(permissions)}")
-            logger.debug(f"Доступные атрибуты: {dir(permissions)}")
-            
-            if hasattr(permissions, "chat"):
-                logger.debug(f"Атрибуты chat: {dir(permissions.chat)}")
+
+            # Проверка для hikkatl ParticipantPermissions
+
+            if hasattr(permissions, "post_messages"):
+                return bool(permissions.post_messages)
+            # Оставляем существующие проверки как fallback
+
+            if hasattr(permissions, "chat") and hasattr(
+                permissions.chat, "send_messages"
+            ):
                 return bool(permissions.chat.send_messages)
-                
-            if hasattr(permissions, "permissions"):
-                logger.debug(f"Атрибуты permissions: {dir(permissions.permissions)}")
+            if hasattr(permissions, "permissions") and hasattr(
+                permissions.permissions, "send_messages"
+            ):
                 return bool(permissions.permissions.send_messages)
-                
             if hasattr(permissions, "send_messages"):
                 return bool(permissions.send_messages)
-
-            # Если мы здесь, значит структура неизвестна
             logger.warning(
-                f"Неизвестная структура разрешений для чата {chat_id}:\n"
-                f"ID бота: {me.id}\n"
-                f"Объект permissions: {permissions}\n"
-                f"Тип объекта: {type(permissions)}\n"
-                f"Атрибуты: {dir(permissions)}"
+                f"Неизвестная структура разрешений для чата {chat_id}. "
+                f"Объект: {permissions}, "
+                f"Доступные атрибуты: {dir(permissions)}"
             )
-            
-            # Попробуем получить информацию о чате
-            chat = await self.client.get_entity(chat_id)
-            logger.debug(f"Информация о чате: {chat}")
-            
             return True
-            
         except Exception as e:
-            logger.error(
-                f"Ошибка при проверке разрешений для чата {chat_id}:\n"
-                f"Ошибка: {str(e)}\n"
-                f"Тип ошибки: {type(e).__name__}\n"
-                f"Traceback: {traceback.format_exc()}"
-            )
+            logger.error(f"Ошибка при проверке разрешений для чата {chat_id}: {str(e)}")
             return False
 
     async def _send_messages_to_chats(
