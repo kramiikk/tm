@@ -271,7 +271,7 @@ class BroadcastMod(loader.Module):
 
         for task_name in ["_cleanup_task", "_periodic_task"]:
             await cancel_task(getattr(self, task_name, None))
-        tasks = [t for t in self.broadcast_tasks.values() if t]
+        tasks = [t for t in self.manager.broadcast_tasks.values() if t]
         await asyncio.gather(*map(cancel_task, tasks), return_exceptions=True)
 
     async def brcmd(self, message):
