@@ -240,9 +240,9 @@ class BroadcastMod(loader.Module):
             chat_id = message.chat_id
             logger.info(f"Processing code: {code_name}, chat_id: {chat_id}")
 
-            code = self.codes.get(code_name)
+            code = self.manager.codes.get(code_name)
             if not code:
-                logger.info(f"Code {code_name} not found in self.codes")
+                logger.info(f"Code {code_name} not found in self.manager.codes")
                 return
             if len(code.chats) >= 500:
                 logger.info(f"Max chats limit reached for code {code_name}")
@@ -329,7 +329,7 @@ class BroadcastMod(loader.Module):
             await message.edit("❌ Please specify the broadcast code to debug")
             return
         code_name = args[1]
-        debug_result = await self.manager.debug_broadcast(code_name)
+        debug_result = await self.debug_broadcast(code_name)
         await message.edit(debug_result)
 
 
@@ -959,7 +959,9 @@ class BroadcastManager:
             await asyncio.sleep(1)
 
             is_auto_mode = send_mode == "auto"
-            is_forwardable = isinstance(messages_to_send, list) or (hasattr(messages_to_send, "media") and messages_to_send.media)
+            is_forwardable = isinstance(messages_to_send, list) or (
+                hasattr(messages_to_send, "media") and messages_to_send.media
+            )
 
             if not is_auto_mode or is_forwardable:
                 await forward_messages(messages_to_send)
