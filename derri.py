@@ -498,28 +498,55 @@ class BroadcastManager:
         try:
             config = self.db.get("broadcast", "config", {})
             if not config:
+                logger.info("No configuration found")
                 return
-            for code_name, code_data in config.get("codes", {}).items():
-                self.codes[code_name] = Broadcast.from_dict(code_data)
 
-                if self.codes[code_name]._active:
+            # Загружаем базовую конфигурацию
+            for code_name, code_data in config.get("codes", {}).items():
+                try:
+                    broadcast = Broadcast.from_dict(code_data)
+                    self.codes[code_name] = broadcast
+                    
+                    # Сбрасываем начальное состояние
+                    broadcast._active = False
+                    
+                    logger.info(f"Loaded broadcast configuration: {code_name}")
+                except Exception as e:
+                    logger.error(f"Error loading broadcast {code_name}: {e}")
+                    continue
+
+            # Восстанавливаем активные рассылки
+            active_broadcasts = config.get("active_broadcasts", [])
+            for code_name in active_broadcasts:
+                try:
+                    if code_name not in self.codes:
+                        logger.warning(f"Active broadcast {code_name} not found in configuration")
+                        continue
+                        
+                    code = self.codes[code_name]
+                    
+                    # Проверяем валидность рассылки перед восстановлением
+                    if not code.messages or not code.chats:
+                        logger.warning(f"Skipping empty broadcast {code_name}")
+                        continue
+                    
+                    # Создаем новую задачу для рассылки
+                    code._active = True
                     self.broadcast_tasks[code_name] = asyncio.create_task(
                         self._broadcast_loop(code_name)
                     )
                     logger.info(f"Restored active broadcast: {code_name}")
+                except Exception as e:
+                    logger.error(f"Error restoring broadcast {code_name}: {e}")
+                    continue
+
+            # Загружаем времена последних рассылок
             saved_times = self.db.get("broadcast", "last_broadcast_times", {})
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
             )
-
-            for code_name, code in self.codes.items():
-                if code._active and code_name not in self.broadcast_tasks:
-                    logger.warning(
-                        f"Inconsistent state detected for {code_name}, restarting broadcast"
-                    )
-                    self.broadcast_tasks[code_name] = asyncio.create_task(
-                        self._broadcast_loop(code_name)
-                    )
+            
+            logger.info(f"Configuration loaded successfully. Active broadcasts: {active_broadcasts}")
         except Exception as e:
             logger.error(f"Error loading configuration: {e}")
 
@@ -527,16 +554,21 @@ class BroadcastManager:
         """Saves configuration to database with improved state handling"""
         async with self._lock:
             try:
+                # Обновляем статус active на основе реального состояния задач
                 for code_name, code in self.codes.items():
                     task = self.broadcast_tasks.get(code_name)
-                    if task:
-                        code._active = not task.done()
+                    code._active = bool(task and not task.done())
+                
                 config = {
                     "version": 1,
                     "last_save": int(time.time()),
                     "codes": {
                         name: code.to_dict() for name, code in self.codes.items()
                     },
+                    "active_broadcasts": [  # Добавляем список активных рассылок
+                        name for name, code in self.codes.items() 
+                        if code._active
+                    ]
                 }
 
                 self.db.set("broadcast", "config", config)
@@ -546,7 +578,7 @@ class BroadcastManager:
                     self.last_broadcast_time,
                 )
 
-                logger.info("Configuration saved successfully")
+                logger.info(f"Configuration saved successfully. Active broadcasts: {config['active_broadcasts']}")
             except Exception as e:
                 logger.error(f"Error saving configuration: {e}")
 
@@ -644,7 +676,7 @@ class BroadcastManager:
         )
 
     async def _handle_add_command(
-        self, message: Message, code: Optional[Broadcast], code_name: str, args: list
+        self, message: Message, code: Optional[Broadcast], code_name: str
     ):
         """Обработчик команды add"""
         reply = await message.get_reply_message()
@@ -686,7 +718,7 @@ class BroadcastManager:
             await message.edit("❌ Это сообщение уже есть в рассылке")
 
     async def _handle_delete_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code_name: str
     ):
         """Обработчик команды delete"""
         task = self.broadcast_tasks.get(code_name)
@@ -697,7 +729,7 @@ class BroadcastManager:
         await message.edit(f"✅ Рассылка {code_name} удалена")
 
     async def _handle_remove_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code: Broadcast
     ):
         """Обработчик команды remove"""
         reply = await message.get_reply_message()
@@ -713,7 +745,7 @@ class BroadcastManager:
             await message.edit("❌ Это сообщение не найдено в рассылке")
 
     async def _handle_addchat_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code: Broadcast, args: list
     ):
         """Обработчик команды addchat"""
         if len(args) > 2:
@@ -736,7 +768,7 @@ class BroadcastManager:
         await message.edit("✅ Чат добавлен в рассылку")
 
     async def _handle_rmchat_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code: Broadcast, args: list
     ):
         """Обработчик команды rmchat"""
         if len(args) > 2:
@@ -756,7 +788,7 @@ class BroadcastManager:
         await message.edit("✅ Чат удален из рассылки")
 
     async def _handle_interval_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code: Broadcast, args: list
     ):
         """Обработчик команды int"""
         if len(args) < 4:
@@ -778,7 +810,7 @@ class BroadcastManager:
         await message.edit(f"✅ Установлен интервал {min_val}-{max_val} минут")
 
     async def _handle_mode_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code: Broadcast, args: list
     ):
         """Обработчик команды mode"""
         if len(args) < 3:
@@ -793,7 +825,7 @@ class BroadcastManager:
         await message.edit(f"✅ Установлен режим отправки: {mode}")
 
     async def _handle_allmsgs_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code: Broadcast, args: list
     ):
         """Обработчик команды allmsgs"""
         if len(args) < 3:
@@ -810,7 +842,7 @@ class BroadcastManager:
         )
 
     async def _handle_start_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code: Broadcast, code_name: str
     ):
         """Обработчик команды start"""
         if not code.messages:
@@ -833,10 +865,11 @@ class BroadcastManager:
         self.broadcast_tasks[code_name] = asyncio.create_task(
             self._broadcast_loop(code_name)
         )
+        await self.save_config()
         await message.edit(f"✅ Рассылка {code_name} запущена")
 
     async def _handle_stop_command(
-        self, message: Message, code: Broadcast, code_name: str, args: list
+        self, message: Message, code: Broadcast, code_name: str
     ):
         """Обработчик команды stop"""
         code._active = False
@@ -849,6 +882,7 @@ class BroadcastManager:
                 await self.broadcast_tasks[code_name]
             except asyncio.CancelledError:
                 pass
+        await self.save_config()
         await message.edit(f"✅ Рассылка {code_name} остановлена")
 
     async def _send_messages_to_chats(
