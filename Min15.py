@@ -3,15 +3,13 @@ import asyncio
 import random
 import json
 import logging
-import socket
 import time
 import numpy as np
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, Optional, Union
 import gc
 
-import aiohttp
 from telethon import TelegramClient
-from telethon.tl.types import Chat, Message
+from telethon.tl.types import Chat
 from aiohttp import web
 
 from .. import utils, loader

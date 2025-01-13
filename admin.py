@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import List, Union
+from typing import Union
 
 from .. import loader, utils
 from telethon.tl.types import Message
