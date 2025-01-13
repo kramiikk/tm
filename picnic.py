@@ -1,10 +1,6 @@
 """ Author: kramiikk - Telegram: @ilvij """
 
-import asyncio
-import logging
-import random
 from datetime import datetime, timezone, timedelta
-from collections import deque
 from typing import Optional, Dict, Union, List
 from telethon import functions, types, errors
 from telethon.errors.rpcerrorlist import (
@@ -13,10 +9,17 @@ from telethon.errors.rpcerrorlist import (
     PhotoCropSizeSmallError,
     PhotoSaveFileInvalidError,
 )
+from collections import deque
 from .. import loader, utils
+import tempfile
+import logging
+import zipfile
+import asyncio
+import random
+import shutil
 import json
-import os
 import re
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -975,4 +978,57 @@ class ProfileChangerMod(loader.Module):
             await utils.answer(
                 message,
                 "❌ Неверный формат. Используйте: .pfpnight <час_начала> <час_конца> (0-23)",
+            )
+
+    @loader.command()
+    async def pfpzip(self, message):
+        """Загрузить фотографии из zip архива. Ответьте на сообщение с zip файлом."""
+        try:
+            reply = await message.get_reply_message()
+            if (
+                not reply
+                or not reply.document
+                or not reply.document.mime_type == "application/zip"
+            ):
+                return await utils.answer(
+                    message, "❌ <b>Ответьте на сообщение с zip архивом</b>"
+                )
+            with tempfile.TemporaryDirectory() as temp_dir:
+                zip_path = os.path.join(temp_dir, "photos.zip")
+                await reply.download_media(file=zip_path)
+
+                with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                    photo_files = [
+                        f
+                        for f in zip_ref.namelist()
+                        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+                        and not f.startswith("__MACOSX")
+                        and not f.startswith(".")
+                    ]
+
+                    if not photo_files:
+                        return await utils.answer(
+                            message, "❌ <b>В архиве нет подходящих фотографий</b>"
+                        )
+                    pfp_dir = self.config[CONFIG_PFPDIR_PATH]
+                    os.makedirs(pfp_dir, exist_ok=True)
+
+                    for photo in photo_files:
+                        zip_ref.extract(photo, temp_dir)
+                        photo_path = os.path.join(temp_dir, photo)
+                        photo_name = os.path.basename(photo)
+                        destination = os.path.join(pfp_dir, photo_name)
+                        shutil.move(photo_path, destination)
+            await utils.answer(
+                message,
+                f"✅ <b>Успешно распаковано {len(photo_files)} фото в директорию аватарок</b>",
+            )
+
+            if photo_files:
+                await self._process_pfpdir()
+        except zipfile.BadZipFile:
+            await utils.answer(message, "❌ <b>Ошибка: Поврежденный zip архив</b>")
+        except Exception as e:
+            await utils.answer(
+                message, f"❌ <b>Ошибка при обработке архива:</b> {str(e)}"
             )
