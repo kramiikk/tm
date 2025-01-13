@@ -311,13 +311,17 @@ class BroadcastMod(loader.Module):
             try:
                 permissions = await self._client.get_permissions(chat_id, self.me_id)
                 can_send = "✅"
-                if hasattr(permissions, 'permissions') and hasattr(permissions.permissions, 'send_messages'):
+                if hasattr(permissions, "permissions") and hasattr(
+                    permissions.permissions, "send_messages"
+                ):
                     can_send = "✅" if permissions.permissions.send_messages else "❌"
-                elif hasattr(permissions, 'send_messages'):
+                elif hasattr(permissions, "send_messages"):
                     can_send = "✅" if permissions.send_messages else "❌"
                 else:
                     can_send = "❓ (Unable to check)"
-                    logger.warning(f"Could not check send_messages for chat {chat_id}. Permissions object structure changed.")
+                    logger.warning(
+                        f"Could not check send_messages for chat {chat_id}. Permissions object structure changed."
+                    )
                     debug_info.append(f"- Chat {chat_id}: {can_send}")
             except Exception as e:
                 debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
@@ -500,37 +504,40 @@ class BroadcastManager:
             if not config:
                 logger.info("No configuration found")
                 return
-
             # Загружаем базовую конфигурацию
+
             for code_name, code_data in config.get("codes", {}).items():
                 try:
                     broadcast = Broadcast.from_dict(code_data)
                     self.codes[code_name] = broadcast
-                    
+
                     # Сбрасываем начальное состояние
+
                     broadcast._active = False
-                    
+
                     logger.info(f"Loaded broadcast configuration: {code_name}")
                 except Exception as e:
                     logger.error(f"Error loading broadcast {code_name}: {e}")
                     continue
-
             # Восстанавливаем активные рассылки
+
             active_broadcasts = config.get("active_broadcasts", [])
             for code_name in active_broadcasts:
                 try:
                     if code_name not in self.codes:
-                        logger.warning(f"Active broadcast {code_name} not found in configuration")
+                        logger.warning(
+                            f"Active broadcast {code_name} not found in configuration"
+                        )
                         continue
-                        
                     code = self.codes[code_name]
-                    
+
                     # Проверяем валидность рассылки перед восстановлением
+
                     if not code.messages or not code.chats:
                         logger.warning(f"Skipping empty broadcast {code_name}")
                         continue
-                    
                     # Создаем новую задачу для рассылки
+
                     code._active = True
                     self.broadcast_tasks[code_name] = asyncio.create_task(
                         self._broadcast_loop(code_name)
@@ -539,14 +546,16 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Error restoring broadcast {code_name}: {e}")
                     continue
-
             # Загружаем времена последних рассылок
+
             saved_times = self.db.get("broadcast", "last_broadcast_times", {})
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
             )
-            
-            logger.info(f"Configuration loaded successfully. Active broadcasts: {active_broadcasts}")
+
+            logger.info(
+                f"Configuration loaded successfully. Active broadcasts: {active_broadcasts}"
+            )
         except Exception as e:
             logger.error(f"Error loading configuration: {e}")
 
@@ -555,10 +564,10 @@ class BroadcastManager:
         async with self._lock:
             try:
                 # Обновляем статус active на основе реального состояния задач
+
                 for code_name, code in self.codes.items():
                     task = self.broadcast_tasks.get(code_name)
                     code._active = bool(task and not task.done())
-                
                 config = {
                     "version": 1,
                     "last_save": int(time.time()),
@@ -566,9 +575,8 @@ class BroadcastManager:
                         name: code.to_dict() for name, code in self.codes.items()
                     },
                     "active_broadcasts": [  # Добавляем список активных рассылок
-                        name for name, code in self.codes.items() 
-                        if code._active
-                    ]
+                        name for name, code in self.codes.items() if code._active
+                    ],
                 }
 
                 self.db.set("broadcast", "config", config)
@@ -578,7 +586,9 @@ class BroadcastManager:
                     self.last_broadcast_time,
                 )
 
-                logger.info(f"Configuration saved successfully. Active broadcasts: {config['active_broadcasts']}")
+                logger.info(
+                    f"Configuration saved successfully. Active broadcasts: {config['active_broadcasts']}"
+                )
             except Exception as e:
                 logger.error(f"Error saving configuration: {e}")
 
@@ -606,21 +616,21 @@ class BroadcastManager:
                 await message.edit(f"❌ Код рассылки {code_name} не найден")
                 return
             command_handlers = {
-                "add": self._handle_add_command,
-                "delete": self._handle_delete_command,
-                "remove": self._handle_remove_command,
-                "addchat": self._handle_addchat_command,
-                "rmchat": self._handle_rmchat_command,
-                "int": self._handle_interval_command,
-                "mode": self._handle_mode_command,
-                "allmsgs": self._handle_allmsgs_command,
-                "start": self._handle_start_command,
-                "stop": self._handle_stop_command,
+                "add": lambda: self._handle_add_command(message, code, code_name),
+                "delete": lambda: self._handle_delete_command(message, code_name),
+                "remove": lambda: self._handle_remove_command(message, code),
+                "addchat": lambda: self._handle_addchat_command(message, code, args),
+                "rmchat": lambda: self._handle_rmchat_command(message, code, args),
+                "int": lambda: self._handle_interval_command(message, code, args),
+                "mode": lambda: self._handle_mode_command(message, code, args),
+                "allmsgs": lambda: self._handle_allmsgs_command(message, code, args),
+                "start": lambda: self._handle_start_command(message, code, code_name),
+                "stop": lambda: self._handle_stop_command(message, code, code_name),
             }
 
             handler = command_handlers.get(action)
             if handler:
-                await handler(message, code, code_name, args)
+                await handler()
             else:
                 await message.edit("❌ Неизвестное действие")
         except Exception as e:
@@ -717,9 +727,7 @@ class BroadcastManager:
         else:
             await message.edit("❌ Это сообщение уже есть в рассылке")
 
-    async def _handle_delete_command(
-        self, message: Message, code_name: str
-    ):
+    async def _handle_delete_command(self, message: Message, code_name: str):
         """Обработчик команды delete"""
         task = self.broadcast_tasks.get(code_name)
         if task and not task.done():
@@ -728,9 +736,7 @@ class BroadcastManager:
         await self.save_config()
         await message.edit(f"✅ Рассылка {code_name} удалена")
 
-    async def _handle_remove_command(
-        self, message: Message, code: Broadcast
-    ):
+    async def _handle_remove_command(self, message: Message, code: Broadcast):
         """Обработчик команды remove"""
         reply = await message.get_reply_message()
         if not reply:
@@ -809,9 +815,7 @@ class BroadcastManager:
         await self.save_config()
         await message.edit(f"✅ Установлен интервал {min_val}-{max_val} минут")
 
-    async def _handle_mode_command(
-        self, message: Message, code: Broadcast, args: list
-    ):
+    async def _handle_mode_command(self, message: Message, code: Broadcast, args: list):
         """Обработчик команды mode"""
         if len(args) < 3:
             await message.edit("❌ Укажите режим отправки (auto/forward)")
