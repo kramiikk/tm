@@ -892,7 +892,7 @@ class BroadcastManager:
     async def _get_chat_permissions(self, chat_id: int) -> bool:
         """Checks if the bot can send messages to the chat"""
         try:
-            permissions = await self.client.get_permissions(chat_id, self.me_id)
+            permissions = await self.client.get_permissions(chat_id, (await self.client.get_me()).id)
 
             # Handle different permission object structures
 
