@@ -118,7 +118,7 @@ class SimpleCache:
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """Используйте команду .br для управления массовыми рассылками."""
+    """Модуль для массовой рассылки."""
 
     strings = {"name": "Broadcast"}
 
@@ -138,30 +138,19 @@ class BroadcastMod(loader.Module):
             if message.sender_id != self.me_id:
                 return
             parts = message.text.split()
-            if len(parts) != 2:
-                logger.info(
-                    f"Parts length check failed. Got {len(parts)} parts: {parts}"
-                )
-                return
             code_name = parts[0][1:]
             if not code_name:
-                logger.info("Empty code name")
                 return
             chat_id = message.chat_id
-            logger.info(f"Processing code: {code_name}, chat_id: {chat_id}")
-
             code = self.manager.codes.get(code_name)
             if not code:
-                logger.info(f"Code {code_name} not found in self.manager.codes")
                 return
             if len(code.chats) >= 500:
                 logger.info(f"Max chats limit reached for code {code_name}")
                 return
             if chat_id not in code.chats:
-                logger.info(f"Adding chat {chat_id} to code {code_name}")
                 code.chats.add(chat_id)
                 await self.manager.save_config()
-                logger.info(f"Successfully added chat {chat_id} to code {code_name}")
             else:
                 logger.info(f"Chat {chat_id} already in code {code_name}")
         except Exception as e:
@@ -183,7 +172,7 @@ class BroadcastMod(loader.Module):
         await asyncio.gather(*map(cancel_task, tasks), return_exceptions=True)
 
     async def brcmd(self, message):
-        """Команда для управления рассылкой. Используйте .help Broadcast для справки."""
+        """Команда для управления рассылкой."""
         if not message.sender_id in self.manager._authorized_users:
             await message.edit("❌ У вас нет доступа к этой команде")
             return
@@ -283,7 +272,7 @@ class BroadcastManager:
     MAX_CODES = 50
 
     MAX_FLOOD_WAIT_COUNT = 3
-    MAX_CONSECUTIVE_ERRORS = 5
+    MAX_CONSECUTIVE_ERRORS = 7
 
     BATCH_THRESHOLD_SMALL = 20
     BATCH_THRESHOLD_MEDIUM = 50
@@ -333,16 +322,12 @@ class BroadcastManager:
         try:
             config = self.db.get("broadcast", "config", {})
             if not config:
-                logger.info("No configuration found")
                 return
             for code_name, code_data in config.get("codes", {}).items():
                 try:
                     broadcast = Broadcast.from_dict(code_data)
                     self.codes[code_name] = broadcast
-
                     broadcast._active = False
-
-                    logger.info(f"Loaded broadcast configuration: {code_name}")
                 except Exception as e:
                     logger.error(f"Error loading broadcast {code_name}: {e}")
                     continue
@@ -350,30 +335,21 @@ class BroadcastManager:
             for code_name in active_broadcasts:
                 try:
                     if code_name not in self.codes:
-                        logger.warning(
-                            f"Active broadcast {code_name} not found in configuration"
-                        )
                         continue
                     code = self.codes[code_name]
 
                     if not code.messages or not code.chats:
-                        logger.warning(f"Skipping empty broadcast {code_name}")
                         continue
                     code._active = True
                     self.broadcast_tasks[code_name] = asyncio.create_task(
                         self._broadcast_loop(code_name)
                     )
-                    logger.info(f"Restored active broadcast: {code_name}")
                 except Exception as e:
                     logger.error(f"Error restoring broadcast {code_name}: {e}")
                     continue
             saved_times = self.db.get("broadcast", "last_broadcast_times", {})
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
-            )
-
-            logger.info(
-                f"Configuration loaded successfully. Active broadcasts: {active_broadcasts}"
             )
         except Exception as e:
             logger.error(f"Error loading configuration: {e}")
@@ -401,10 +377,6 @@ class BroadcastManager:
                     "broadcast",
                     "last_broadcast_times",
                     self.last_broadcast_time,
-                )
-
-                logger.info(
-                    f"Configuration saved successfully. Active broadcasts: {config['active_broadcasts']}"
                 )
             except Exception as e:
                 logger.error(f"Error saving configuration: {e}")
@@ -452,7 +424,6 @@ class BroadcastManager:
                 await message.edit("❌ Неизвестное действие")
         except Exception as e:
             logger.error(f"Error handling command: {e}")
-            await message.edit(f"❌ Произошла ошибка: {str(e)}")
 
     async def _handle_list_command(self, message: Message):
         """Обработчик команды list"""
@@ -724,11 +695,6 @@ class BroadcastManager:
                 return bool(permissions.permissions.send_messages)
             if hasattr(permissions, "send_messages"):
                 return bool(permissions.send_messages)
-            logger.warning(
-                f"Неизвестная структура разрешений для чата {chat_id}. "
-                f"Объект: {permissions}, "
-                f"Доступные атрибуты: {dir(permissions)}"
-            )
             return True
         except Exception as e:
             logger.error(f"Ошибка при проверке разрешений для чата {chat_id}: {str(e)}")
@@ -767,6 +733,7 @@ class BroadcastManager:
                 nonlocal success_count, flood_wait_count
 
                 try:
+                    logger.info(f"Начинаем отправку сообщения в чат {chat_id}")
                     error_key = f"{chat_id}_general"
                     if (
                         self.error_counts.get(error_key, 0)
@@ -865,6 +832,8 @@ class BroadcastManager:
                     message=self._get_message_content(messages_to_send),
                 )
             self.error_counts[chat_id] = 0
+            self.error_counts[f"{chat_id}_general"] = 0
+            self.last_error_time[f"{chat_id}_general"] = 0
             return True
         except FloodWaitError as e:
             error_key = f"{chat_id}_flood"
@@ -892,6 +861,14 @@ class BroadcastManager:
                     f"Превышен лимит ошибок для {code_name}  чата {chat_id}, ждем {wait_time} секунд"
                 )
                 await asyncio.sleep(wait_time)
+            logger.error(
+                f"""
+            Ошибка при отправке в чат {chat_id}:
+            - Тип ошибки: {type(e).__name__}
+            - Текст ошибки: {str(e)}
+            - Текущие счетчики ошибок: {self.error_counts}
+            """
+            )
             raise
 
     async def _handle_failed_chats(
@@ -1012,6 +989,17 @@ class BroadcastManager:
                 batches = self._chunk_messages(
                     current_messages, batch_size=self.BATCH_SIZE_LARGE
                 )
+                logger.info(
+                    f"""
+                Состояние рассылки {code_name}:
+                - Global active: {self._active}
+                - Code active: {code._active}
+                - Messages count: {len(code.messages)}
+                - Chats count: {len(code.chats)}
+                - Error counts: {self.error_counts}
+                - Last error times: {self.last_error_time}
+                """
+                )
 
                 for batch in batches:
                     batch_messages, deleted = await self._process_message_batch(
@@ -1085,7 +1073,7 @@ class BroadcastManager:
             )
             return None
         except Exception as e:
-            logger.error(f"Непредвиденная ошибка при получении сообщений: {e}")
+            logger.error(f"Непредвиденная ошибка при получении сообщения: {e}")
             return None
 
     async def _get_chat_id(self, chat_identifier: str) -> Optional[int]:
