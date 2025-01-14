@@ -1,5 +1,3 @@
-""" Author: @kramiikk """
-
 import asyncio
 import json
 import logging
@@ -117,114 +115,10 @@ class SimpleCache:
         finally:
             self._cleaning = False
 
-    async def get_stats(self) -> dict:
-        """Получение статистики кэша"""
-        async with self._lock:
-            try:
-                current_time = time.time()
-                active_entries = {
-                    k: (t, v)
-                    for k, (t, v) in self.cache.items()
-                    if current_time - t <= self.ttl
-                }
-                expired_entries = len(self.cache) - len(active_entries)
-
-                stats = {
-                    "total_entries": len(self.cache),
-                    "active_entries": len(active_entries),
-                    "expired_entries": expired_entries,
-                    "max_size": self.max_size,
-                    "ttl_seconds": self.ttl,
-                    "usage_percent": round(len(self.cache) / self.max_size * 100, 1),
-                }
-
-                if active_entries:
-                    timestamps = [t for t, _ in active_entries.values()]
-                    stats.update(
-                        {
-                            "oldest_entry_age": round(
-                                (current_time - min(timestamps)) / 60, 1
-                            ),
-                            "newest_entry_age": round(
-                                (current_time - max(timestamps)) / 60, 1
-                            ),
-                        }
-                    )
-                return stats
-            except Exception as e:
-                logger.error(f"Error getting cache stats: {e}")
-                return {
-                    "total_entries": 0,
-                    "active_entries": 0,
-                    "expired_entries": 0,
-                    "max_size": self.max_size,
-                    "ttl_seconds": self.ttl,
-                    "usage_percent": 0,
-                }
-
 
 @loader.tds
 class BroadcastMod(loader.Module):
-    """
-    Управление рассылками с помощью .br
-
-    Используйте команду .br для управления массовыми рассылками.
-
-    Основные команды:
-
-    .br add <код> (в ответ на сообщение): Создать или добавить сообщение в рассылку с указанным <код>. Если рассылки нет, она будет создана.
-
-    .br delete <код>: Удалить рассылку с кодом <код> (вместе со всем содержимым).
-
-    .br remove <код> (в ответ на сообщение): Удалить сообщение из рассылки с кодом <код>.
-
-    .br addchat <код> [чат]: Добавить чат в рассылку <код>. Чат можно указать ссылкой, юзернеймом, ID или оставить пустым для текущего чата.
-
-    .br addchat my_broadcast (текущий чат)
-    .br addchat my_broadcast t.me/usr
-    .br addchat my_broadcast 123456789
-
-    .br rmchat <код> [чат]: Удалить чат из рассылки <код>. Аналогично addchat, чат можно указать разными способами.
-
-    .br int <код> <мин> <макс>: Установить случайный интервал (в минутах) между отправками сообщений в рассылке <код>.
-
-    .br int my_broadcast 5 10
-
-    .br mode <код> <режим>: Установить режим отправки для рассылки <код>.
-
-    auto: Автоматически (пересылка медиа, отправка текста).
-
-    forward: Пересылать сообщения.
-
-    .br allmsgs <код> <on/off>: Управлять отправкой всех сообщений в рассылке <код>.
-
-    on: Отправлять все сообщения по очереди.
-
-    off: Отправлять одно случайное сообщение.
-
-    .br start <код>: Запустить рассылку с кодом <код>.
-
-    .br stop <код>: Остановить активную рассылку с кодом <код>.
-
-    .br watcher <on/off>: Включить/выключить автоматическое добавление чатов в рассылку. Если включено, чаты, где вы напишете !код_рассылки, будут добавлены.
-
-    Пример добавления чата через watcher (в нужном чате):
-
-    !road rash
-
-    .br list: Показать список всех существующих рассылок.
-
-    Ключевые моменты:
-
-    Команды вводятся с префиксом .br.
-
-    <код> - уникальный идентификатор вашей рассылки.
-
-    Команды add и remove требуют ответа на сообщение, которое нужно добавить/удалить.
-
-    При добавлении/удалении чатов можно использовать ссылку, юзернейм или ID.
-
-    """
+    """Используйте команду .br для управления массовыми рассылками."""
 
     strings = {"name": "Broadcast"}
 
@@ -296,75 +190,6 @@ class BroadcastMod(loader.Module):
             await message.edit("❌ У вас нет доступа к этой команде")
             return
         await self.manager.handle_command(message)
-
-    async def debug_broadcast(self, code_name: str):
-        """Debug function to check broadcast issues"""
-        code = self.manager.codes.get(code_name)
-        if not code:
-            return f"❌ Code {code_name} not found"
-        debug_info = []
-
-        debug_info.append("📊 Basic Configuration:")
-        debug_info.append(f"- Active status: {code._active}")
-        debug_info.append(f"- Number of chats: {len(code.chats)}")
-        debug_info.append(f"- Number of messages: {len(code.messages)}")
-        debug_info.append(f"- Interval: {code.interval}")
-        debug_info.append(f"- Send mode: {code.send_mode}")
-        debug_info.append(f"- Batch mode: {code.batch_mode}")
-
-        debug_info.append("\n📝 Message Check:")
-        for idx, msg in enumerate(code.messages):
-            try:
-                message = await self.manager._fetch_messages(msg)
-                status = "✅" if message else "❌"
-                debug_info.append(
-                    f"- Message {idx + 1}: {status} (ID: {msg['message_id']})"
-                )
-            except Exception as e:
-                debug_info.append(f"- Message {idx + 1}: ❌ Error: {str(e)}")
-        debug_info.append("\n👥 Chat Permissions:")
-        for chat_id in code.chats:
-            try:
-                permissions = await self._client.get_permissions(chat_id, self.me_id)
-                can_send = "❓"
-
-                # Check for hikkatl ParticipantPermissions (post_messages)
-
-                if hasattr(permissions, "post_messages"):
-                    can_send = "✅" if permissions.post_messages else "❌"
-                # Fallback checks for other permission structures
-
-                elif hasattr(permissions, "permissions") and hasattr(
-                    permissions.permissions, "send_messages"
-                ):
-                    can_send = "✅" if permissions.permissions.send_messages else "❌"
-                elif hasattr(permissions, "send_messages"):
-                    can_send = "✅" if permissions.send_messages else "❌"
-                else:
-                    logger.warning(
-                        f"Could not check message permissions for chat {chat_id}. "
-                        f"Available attributes: {dir(permissions)}"
-                    )
-                debug_info.append(f"- Chat {chat_id}: {can_send}")
-            except Exception as e:
-                debug_info.append(f"- Chat {chat_id}: ❌ Error: {str(e)}")
-        debug_info.append("\n⏱️ Rate Limits:")
-        minute_stats = await self.manager.minute_limiter.get_stats()
-        hour_stats = await self.manager.hour_limiter.get_stats()
-        debug_info.append(f"- Minute usage: {minute_stats['usage_percent']}%")
-        debug_info.append(f"- Hour usage: {hour_stats['usage_percent']}%")
-
-        return "\n".join(debug_info)
-
-    async def debugcmd(self, message):
-        """Debug command for broadcast issues"""
-        args = message.text.split()
-        if len(args) < 2:
-            await message.edit("❌ Please specify the broadcast code to debug")
-            return
-        code_name = args[1]
-        debug_result = await self.debug_broadcast(code_name)
-        await message.edit(debug_result)
 
 
 @dataclass
@@ -527,14 +352,10 @@ class BroadcastManager:
             if not config:
                 logger.info("No configuration found")
                 return
-            # Загружаем базовую конфигурацию
-
             for code_name, code_data in config.get("codes", {}).items():
                 try:
                     broadcast = Broadcast.from_dict(code_data)
                     self.codes[code_name] = broadcast
-
-                    # Сбрасываем начальное состояние
 
                     broadcast._active = False
 
@@ -542,8 +363,6 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Error loading broadcast {code_name}: {e}")
                     continue
-            # Восстанавливаем активные рассылки
-
             active_broadcasts = config.get("active_broadcasts", [])
             for code_name in active_broadcasts:
                 try:
@@ -554,13 +373,9 @@ class BroadcastManager:
                         continue
                     code = self.codes[code_name]
 
-                    # Проверяем валидность рассылки перед восстановлением
-
                     if not code.messages or not code.chats:
                         logger.warning(f"Skipping empty broadcast {code_name}")
                         continue
-                    # Создаем новую задачу для рассылки
-
                     code._active = True
                     self.broadcast_tasks[code_name] = asyncio.create_task(
                         self._broadcast_loop(code_name)
@@ -569,8 +384,6 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Error restoring broadcast {code_name}: {e}")
                     continue
-            # Загружаем времена последних рассылок
-
             saved_times = self.db.get("broadcast", "last_broadcast_times", {})
             self.last_broadcast_time.update(
                 {code: float(time_) for code, time_ in saved_times.items()}
@@ -586,8 +399,6 @@ class BroadcastManager:
         """Saves configuration to database with improved state handling"""
         async with self._lock:
             try:
-                # Обновляем статус active на основе реального состояния задач
-
                 for code_name, code in self.codes.items():
                     task = self.broadcast_tasks.get(code_name)
                     code._active = bool(task and not task.done())
@@ -597,7 +408,7 @@ class BroadcastManager:
                     "codes": {
                         name: code.to_dict() for name, code in self.codes.items()
                     },
-                    "active_broadcasts": [  # Добавляем список активных рассылок
+                    "active_broadcasts": [
                         name for name, code in self.codes.items() if code._active
                     ],
                 }
@@ -918,12 +729,8 @@ class BroadcastManager:
             me = await self.client.get_me()
             permissions = await self.client.get_permissions(chat_id, me.id)
 
-            # Проверка для hikkatl ParticipantPermissions
-
             if hasattr(permissions, "post_messages"):
                 return bool(permissions.post_messages)
-            # Оставляем существующие проверки как fallback
-
             if hasattr(permissions, "chat") and hasattr(
                 permissions.chat, "send_messages"
             ):
@@ -986,8 +793,6 @@ class BroadcastManager:
                         if time.time() - last_error < 300:
                             failed_chats.add(chat_id)
                             return
-                    # Check permissions before sending
-
                     if not await self._get_chat_permissions(chat_id):
                         logger.warning(f"No send permissions for chat {chat_id}")
                         failed_chats.add(chat_id)
