@@ -334,17 +334,6 @@ class BroadcastManager:
             logger.error(f"Ошибка загрузки авторизованных пользователей: {e}")
             return {7175372340}
 
-    async def _save_authorized_users(self):
-        """Сохраняет список авторизованных пользователей в JSON файл"""
-        try:
-            with open("/root/Heroku/loll.json", "r") as f:
-                data = json.load(f)
-            data["authorized_users"] = list(self._authorized_users)
-            with open("/root/Heroku/loll.json", "w") as f:
-                json.dump(data, f, indent=4)
-        except Exception as e:
-            logger.error(f"Ошибка сохранения авторизованных пользователей: {e}")
-
     async def _load_config(self):
         """Loads configuration from database with improved state handling"""
         try:
@@ -947,15 +936,12 @@ class BroadcastManager:
                 )
 
                 for group in chat_groups:
-                    try:
-                        await self.client.send_message(
-                            me.id,
-                            base_message + group,
-                            schedule=datetime.now() + timedelta(seconds=60),
-                        )
-                        await asyncio.sleep(self.NOTIFY_DELAY)
-                    except Exception as e:
-                        logger.error(f"Ошибка отправки уведомления: {e}")
+                    await self.client.send_message(
+                        me.id,
+                        base_message + group,
+                        schedule=datetime.now() + timedelta(seconds=60),
+                    )
+                    await asyncio.sleep(self.NOTIFY_DELAY)
         except FloodWaitError as e:
             await asyncio.sleep(e.seconds)
             logger.error(f"FloodWaitError: {e}")
@@ -1028,86 +1014,63 @@ class BroadcastManager:
         return True
 
     async def _broadcast_loop(self, code_name: str):
-        """Main broadcast loop with improved error handling and logging."""
+        """Main broadcast loop."""
         while self._active:
+            deleted_messages = []
+            messages_to_send = []
+
             try:
                 code = self.codes.get(code_name)
                 if not self._should_continue(code, code_name):
-                    logger.info(f"Broadcast {code_name} paused - conditions not met")
                     await asyncio.sleep(60)
                     continue
-
-                # Reset for new iteration
-                deleted_messages = []
-                messages_to_send = []
-                
-                # Process messages in batches
                 current_messages = code.messages.copy()
-                batches = self._chunk_messages(current_messages, batch_size=self.BATCH_SIZE_LARGE)
-                
+
+                batches = self._chunk_messages(
+                    current_messages, batch_size=self.BATCH_SIZE_LARGE
+                )
+
                 for batch in batches:
                     if not self._should_continue(code, code_name):
                         break
-                    batch_messages, deleted = await self._process_message_batch(code, batch)
+                    batch_messages, deleted = await self._process_message_batch(
+                        code, batch
+                    )
                     messages_to_send.extend(batch_messages)
                     deleted_messages.extend(deleted)
-
-                # Handle deleted messages
                 if deleted_messages:
                     async with self._lock:
-                        code.messages = [m for m in code.messages if m not in deleted_messages]
+                        code.messages = [
+                            m for m in code.messages if m not in deleted_messages
+                        ]
                         await self.save_config()
-                        logger.info(f"Removed {len(deleted_messages)} invalid messages from {code_name}")
-
-                # Verify we have messages to send
-                if not messages_to_send:
-                    logger.error(f"No valid messages to send for {code_name}")
-                    code._active = False  # Stop the broadcast if no valid messages
-                    await self.save_config()
-                    continue
-
-                # Handle single message mode
+                if not self._should_continue(code, code_name) or not messages_to_send:
+                    logger.error(f"Ошибка получения сообщений для {code_name}")
+                    await asyncio.sleep(60)
                 if not code.batch_mode:
                     async with self._lock:
                         next_index = code.get_next_message_index()
-                        messages_to_send = [messages_to_send[next_index % len(messages_to_send)]]
 
-                # Send messages and handle failures
-                logger.info(f"Attempting to send {len(messages_to_send)} messages to {len(code.chats)} chats for {code_name}")
-                failed_chats = await self._send_messages_to_chats(code, code_name, messages_to_send)
+                        messages_to_send = [
+                            messages_to_send[next_index % len(messages_to_send)]
+                        ]
+                failed_chats = await self._send_messages_to_chats(
+                    code, code_name, messages_to_send
+                )
 
                 if failed_chats:
                     await self._handle_failed_chats(code_name, failed_chats)
-                
-                # Update timestamp
                 current_time = time.time()
                 self.last_broadcast_time[code_name] = current_time
-                
-                try:
-                    async with self._lock:
-                        saved_times = self.db.get("broadcast", "last_broadcast_times", {})
-                        saved_times[code_name] = current_time
-                        self.db.set("broadcast", "last_broadcast_times", saved_times)
-                except Exception as e:
-                    logger.error(f"Error saving broadcast time: {e}")
-
-                # Calculate and log success rate
-                success_chats = len(code.chats) - len(failed_chats)
-                if len(code.chats) > 0:
-                    success_rate = (success_chats / len(code.chats)) * 100
-                    logger.info(f"Broadcast {code_name} completed with {success_rate:.1f}% success rate")
-
-                # Sleep before next iteration
-                min_val, max_val = code.interval
-                sleep_time = random.uniform(min_val * 60, max_val * 60)
-                logger.info(f"Broadcast {code_name} sleeping for {sleep_time/60:.1f} minutes")
-                await asyncio.sleep(sleep_time)
-
+                async with self._lock:
+                    saved_times = self.db.get("broadcast", "last_broadcast_times", {})
+                    saved_times[code_name] = current_time
+                    self.db.set("broadcast", "last_broadcast_times", saved_times)
             except asyncio.CancelledError:
-                logger.info(f"Broadcast {code_name} cancelled")
+                logger.info(f"Рассылка {code_name} остановлена")
                 break
             except Exception as e:
-                logger.error(f"Critical error in broadcast loop {code_name}: {e}", exc_info=True)
+                logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
                 await asyncio.sleep(300)
 
     async def _fetch_messages(
@@ -1142,9 +1105,6 @@ class BroadcastManager:
             logger.warning(
                 f"Сообщение {msg_data['message_id']} существует, но не удалось получить из чата {msg_data['chat_id']}"
             )
-            return None
-        except (ConnectionError, TimeoutError) as e:
-            logger.error(f"Сетевая ошибка при получении сообщений: {e}")
             return None
         except Exception as e:
             logger.error(f"Непредвиденная ошибка при получении сообщений: {e}")
