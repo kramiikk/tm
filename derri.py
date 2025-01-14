@@ -979,6 +979,7 @@ class BroadcastManager:
     async def _broadcast_loop(self, code_name: str):
         """Main broadcast loop."""
         while self._active:
+            logger.info(f"Рассылка {code_name}: начало итерации цикла")
             deleted_messages = []
             messages_to_send = []
 
@@ -1020,8 +1021,12 @@ class BroadcastManager:
                         messages_to_send = [
                             messages_to_send[next_index % len(messages_to_send)]
                         ]
+                logger.info(f"Рассылка {code_name}: перед отправкой сообщений")
                 failed_chats = await self._send_messages_to_chats(
                     code, code_name, messages_to_send
+                )
+                logger.info(
+                    f"Рассылка {code_name}: после отправки сообщений, неуспешных чатов: {len(failed_chats)}"
                 )
 
                 if failed_chats:
@@ -1038,6 +1043,7 @@ class BroadcastManager:
             except Exception as e:
                 logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
                 await asyncio.sleep(300)
+            logger.info(f"Рассылка {code_name}: конец итерации цикла")
 
     async def _fetch_messages(
         self, msg_data: dict
