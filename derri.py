@@ -179,8 +179,6 @@ class BroadcastMod(loader.Module):
                 except asyncio.CancelledError:
                     pass
 
-        for task_name in ["_cleanup_task", "_periodic_task"]:
-            await cancel_task(getattr(self, task_name, None))
         tasks = [t for t in self.manager.broadcast_tasks.values() if t]
         await asyncio.gather(*map(cancel_task, tasks), return_exceptions=True)
 
@@ -286,7 +284,6 @@ class BroadcastManager:
 
     MAX_FLOOD_WAIT_COUNT = 3
     MAX_CONSECUTIVE_ERRORS = 5
-    MAX_MEDIA_SIZE = 10 * 1024 * 1024
 
     BATCH_THRESHOLD_SMALL = 20
     BATCH_THRESHOLD_MEDIUM = 50
@@ -296,7 +293,6 @@ class BroadcastManager:
     NOTIFY_DELAY = 1
 
     NOTIFY_GROUP_SIZE = 30
-    INTERVAL_PADDING = 1
 
     def __init__(self, client, db):
         self.client = client
@@ -307,8 +303,6 @@ class BroadcastManager:
         self._message_cache = SimpleCache(ttl=7200, max_size=50)
         self._active = True
         self._lock = asyncio.Lock()
-        self._cleanup_task = None
-        self._periodic_task = None
         self._authorized_users = self._load_authorized_users()
         self.watcher_enabled = False
         self._semaphore = asyncio.Semaphore(10)
@@ -1005,14 +999,6 @@ class BroadcastManager:
                 return message.media.document.size <= 10 * 1024 * 1024
         return True
 
-    def _should_continue(self, code: Optional[Broadcast], code_name: str) -> bool:
-        """Проверяет, нужно ли продолжать рассылку."""
-        if not self._active or not code or not code._active:
-            return False
-        if not code.chats or not code.messages:
-            return False
-        return True
-
     async def _broadcast_loop(self, code_name: str):
         """Main broadcast loop."""
         while self._active:
@@ -1021,9 +1007,6 @@ class BroadcastManager:
 
             try:
                 code = self.codes.get(code_name)
-                if not self._should_continue(code, code_name):
-                    await asyncio.sleep(60)
-                    continue
                 current_messages = code.messages.copy()
 
                 batches = self._chunk_messages(
@@ -1031,8 +1014,6 @@ class BroadcastManager:
                 )
 
                 for batch in batches:
-                    if not self._should_continue(code, code_name):
-                        break
                     batch_messages, deleted = await self._process_message_batch(
                         code, batch
                     )
@@ -1044,9 +1025,6 @@ class BroadcastManager:
                             m for m in code.messages if m not in deleted_messages
                         ]
                         await self.save_config()
-                if not self._should_continue(code, code_name) or not messages_to_send:
-                    logger.error(f"Ошибка получения сообщений для {code_name}")
-                    await asyncio.sleep(60)
                 if not code.batch_mode:
                     async with self._lock:
                         next_index = code.get_next_message_index()
