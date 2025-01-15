@@ -65,18 +65,15 @@ class SimpleCache:
         """Получает значение из кэша с обязательной проверкой TTL"""
         async with self._lock:
             if key not in self.cache:
-                logger.debug(f"Cache miss for key {key}")
                 return None
             timestamp, value = self.cache[key]
             if time.time() - timestamp > self.ttl:
-                logger.info(f"Cache entry {key} expired, removing")
                 del self.cache[key]
                 return None
             # Обновляем timestamp при каждом доступе
 
             self.cache[key] = (time.time(), value)
             self.cache.move_to_end(key)
-            logger.debug(f"Cache hit for key {key}")
             return value
 
     async def set(self, key, value):
@@ -89,18 +86,13 @@ class SimpleCache:
             if key in self.cache:
                 self.cache[key] = (time.time(), value)
                 self.cache.move_to_end(key)
-                logger.debug(f"Updated existing cache entry {key}")
                 return
             # Проверяем размер кэша и удаляем старые записи при необходимости
 
             while len(self.cache) >= self.max_size:
                 oldest_key = next(iter(self.cache))
                 del self.cache[oldest_key]
-                logger.info(
-                    f"Removed oldest cache entry {oldest_key} due to size limit"
-                )
             self.cache[key] = (time.time(), value)
-            logger.debug(f"Added new cache entry {key}")
 
     async def _maybe_cleanup(self):
         """Проверяет необходимость очистки устаревших записей"""
@@ -123,9 +115,6 @@ class SimpleCache:
 
                 for key in expired_keys:
                     del self.cache[key]
-                    logger.info(f"Cleaned expired cache entry {key}")
-                if expired_keys:
-                    logger.info(f"Cleaned {len(expired_keys)} expired cache entries")
         finally:
             self._cleaning = False
 
@@ -169,13 +158,13 @@ class BroadcastMod(loader.Module):
             if not code:
                 return
             if len(code.chats) >= 500:
-                logger.info(f"Max chats limit reached for code {code_name}")
+                logger.warning(f"Max chats limit reached for code {code_name}")
                 return
             if chat_id not in code.chats:
                 code.chats.add(chat_id)
                 await self.manager.save_config()
             else:
-                logger.info(f"Chat {chat_id} already in code {code_name}")
+                logger.warning(f"Chat {chat_id} already in code {code_name}")
         except Exception as e:
             logger.error(f"Error in watcher: {e}", exc_info=True)
 
@@ -726,9 +715,10 @@ class BroadcastManager:
     ) -> Set[int]:
         """Обновленный метод отправки сообщений в чаты"""
         async with self._semaphore:
-            logger.info(f"[{code_name}][send_messages] Starting message distribution")
             if not code:
-                logger.error(f"[{code_name}][send_messages] No broadcast code provided")
+                logger.warning(
+                    f"[{code_name}][send_messages] No broadcast code provided"
+                )
                 return set()
             failed_chats: Set[int] = set()
             success_count: int = 0
@@ -752,9 +742,6 @@ class BroadcastManager:
                 nonlocal success_count, flood_wait_count
 
                 try:
-                    logger.info(
-                        f"[{code_name}][send_messages] Attempting send to chat {chat_id}"
-                    )
                     error_key = f"{chat_id}_general"
 
                     if (
@@ -763,15 +750,9 @@ class BroadcastManager:
                     ):
                         last_error = self.last_error_time.get(error_key, 0)
                         if time.time() - last_error < 300:
-                            logger.warning(
-                                f"[{code_name}][send_messages] Chat {chat_id} in error cooldown"
-                            )
                             failed_chats.add(chat_id)
                             return
                     if not await self._get_chat_permissions(chat_id):
-                        logger.warning(
-                            f"[{code_name}][send_messages] No permissions for chat {chat_id}"
-                        )
                         failed_chats.add(chat_id)
                         return
                     for message in messages_to_send:
@@ -783,16 +764,10 @@ class BroadcastManager:
                                 f"[{code_name}][send_messages] Failed to send message to {chat_id}"
                             )
                     success_count += 1
-                    logger.info(
-                        f"[{code_name}][send_messages] Successfully sent to chat {chat_id}"
-                    )
                 except FloodWaitError as e:
                     flood_wait_count += 1
-                    logger.warning(
-                        f"[{code_name}][send_messages] FloodWaitError in chat {chat_id}: {e}"
-                    )
                     if flood_wait_count >= self.MAX_FLOOD_WAIT_COUNT:
-                        logger.error(
+                        logger.warning(
                             f"[{code_name}][send_messages] Max flood wait exceeded"
                         )
                         code._active = False
@@ -835,10 +810,8 @@ class BroadcastManager:
         send_mode: str = "auto",
     ) -> bool:
         try:
-            logger.info(f"[{code_name}][send_message] Starting send to {chat_id}")
 
             async def forward_messages(messages: Union[Message, List[Message]]) -> None:
-                logger.info(f"[{code_name}][forward] Forwarding to {chat_id}")
                 if isinstance(messages, list):
                     await self.client.forward_messages(
                         entity=chat_id,
@@ -851,9 +824,6 @@ class BroadcastManager:
                         messages=[messages],
                         from_peer=messages.chat_id,
                     )
-                logger.info(
-                    f"[{code_name}][forward] Successfully forwarded to {chat_id}"
-                )
 
             await self.minute_limiter.acquire()
             await self.hour_limiter.acquire()
@@ -864,16 +834,12 @@ class BroadcastManager:
             is_forwardable = isinstance(msg, list) or (
                 hasattr(msg, "media") and msg.media
             )
-            logger.info(
-                f"[{code_name}][send_message] Mode: {'forward' if not is_auto_mode or is_forwardable else 'auto'}"
-            )
             if not is_auto_mode or is_forwardable:
                 await forward_messages(msg)
             else:
                 await self.client.send_message(
                     entity=chat_id, message=msg.text if msg.text else msg
                 )
-            logger.info(f"[{code_name}][send_message] Successfully sent to {chat_id}")
             self.error_counts[chat_id] = 0
             self.error_counts[f"{chat_id}_general"] = 0
             self.last_error_time[f"{chat_id}_general"] = 0
@@ -884,9 +850,6 @@ class BroadcastManager:
             self.last_error_time[error_key] = time.time()
 
             wait_time = e.seconds * (2 ** self.error_counts[error_key])
-            logger.warning(
-                f"FloodWaitError {code_name} для чата {chat_id}: ждем {wait_time} секунд"
-            )
             await asyncio.sleep(wait_time)
             raise
         except (ChatWriteForbiddenError, UserBannedInChannelError):
@@ -903,18 +866,7 @@ class BroadcastManager:
                 wait_time = 60 * (
                     2 ** (self.error_counts[error_key] - self.MAX_CONSECUTIVE_ERRORS)
                 )
-                logger.warning(
-                    f"Превышен лимит ошибок для {code_name}  чата {chat_id}, ждем {wait_time} секунд"
-                )
                 await asyncio.sleep(wait_time)
-            logger.error(
-                f"""
-            Ошибка при отправке в чат {chat_id}:
-            - Тип ошибки: {type(e).__name__}
-            - Текст ошибки: {str(e)}
-            - Текущие счетчики ошибок: {self.error_counts}
-            """
-            )
             raise
 
     async def _handle_failed_chats(
@@ -927,7 +879,7 @@ class BroadcastManager:
             async with self._lock:
                 code = self.codes.get(code_name)
                 if not code:
-                    logger.error(
+                    logger.warning(
                         f"Код рассылки {code_name} не найден при обработке ошибок"
                     )
                     return
@@ -981,7 +933,7 @@ class BroadcastManager:
     ) -> Tuple[List[Union[Message, List[Message]]], List[dict]]:
         """Обрабатывает пакет сообщений с оптимизированной загрузкой."""
         if not code:
-            logger.error("Получен пустой объект рассылки при обработке сообщений")
+            logger.warning("Получен пустой объект рассылки при обработке сообщений")
             return [], messages
         messages_to_send = []
         deleted_messages = []
@@ -1008,9 +960,6 @@ class BroadcastManager:
                     deleted_messages.append(msg_data)
             else:
                 deleted_messages.append(msg_data)
-        logger.info(
-            f"[batch] Processed batch: {len(messages_to_send)} valid, {len(deleted_messages)} deleted"
-        )
         return messages_to_send, deleted_messages
 
     @staticmethod
@@ -1028,7 +977,6 @@ class BroadcastManager:
     async def _broadcast_loop(self, code_name: str):
         """Main broadcast loop with enhanced debug logging"""
         while self._active:
-            logger.info(f"[{code_name}] Starting broadcast cycle")
             deleted_messages = []
             messages_to_send = []
 
@@ -1042,36 +990,17 @@ class BroadcastManager:
                     logger.warning(f"[{code_name}] No messages to send")
                     await asyncio.sleep(300)
                     continue
-                logger.info(
-                    f"[{code_name}] Processing {len(current_messages)} messages"
-                )
-
                 try:
                     batches = self._chunk_messages(
                         current_messages, batch_size=self.BATCH_SIZE_LARGE
                     )
 
-                    for batch_idx, batch in enumerate(batches):
+                    for batch in batches:
                         if not self._active or not code._active:
-                            logger.info(
-                                f"[{code_name}] Stopped during batch processing"
-                            )
                             return
-                        logger.info(
-                            f"[{code_name}] Processing batch {batch_idx + 1}/{len(batches)}"
-                        )
                         batch_messages, deleted = await self._process_message_batch(
                             code, batch
                         )
-
-                        if batch_messages:
-                            logger.info(
-                                f"[{code_name}] Batch {batch_idx + 1} processed: {len(batch_messages)} valid messages"
-                            )
-                        else:
-                            logger.warning(
-                                f"[{code_name}] Batch {batch_idx + 1} processing failed"
-                            )
                         messages_to_send.extend(batch_messages)
                         deleted_messages.extend(deleted)
                     if not messages_to_send:
@@ -1095,9 +1024,6 @@ class BroadcastManager:
                         code.messages = [
                             m for m in code.messages if m not in deleted_messages
                         ]
-                        logger.info(
-                            f"[{code_name}] Removed {original_count - len(code.messages)} deleted messages"
-                        )
                         await self.save_config()
                 # Handle batch mode
 
@@ -1107,22 +1033,13 @@ class BroadcastManager:
                         messages_to_send = [
                             messages_to_send[next_index % len(messages_to_send)]
                         ]
-                        logger.info(
-                            f"[{code_name}] Single message mode: selected message {next_index}"
-                        )
                 # Send messages
 
-                logger.info(
-                    f"[{code_name}] Starting message broadcast to {len(code.chats)} chats"
-                )
                 failed_chats = await self._send_messages_to_chats(
                     code, code_name, messages_to_send
                 )
 
                 if failed_chats:
-                    logger.info(
-                        f"[{code_name}] Handling {len(failed_chats)} failed chats"
-                    )
                     await self._handle_failed_chats(code_name, failed_chats)
                 # Update timestamp
 
@@ -1133,22 +1050,15 @@ class BroadcastManager:
                     saved_times = self.db.get("broadcast", "last_broadcast_times", {})
                     saved_times[code_name] = current_time
                     self.db.set("broadcast", "last_broadcast_times", saved_times)
-                    logger.info(f"[{code_name}] Updated broadcast timestamp")
-                logger.info(f"[{code_name}] Cycle completed successfully")
                 await asyncio.sleep(60)
             except asyncio.CancelledError:
-                logger.info(f"[{code_name}] Broadcast cancelled")
                 break
             except Exception as e:
                 logger.error(
                     f"[{code_name}] Critical error in broadcast loop: {e}",
                     exc_info=True,
                 )
-                # Add stack trace
-
-                logger.exception("Full traceback:")
                 await asyncio.sleep(300)
-            logger.info(f"[{code_name}] Cycle iteration complete")
 
     async def _fetch_messages(self, msg_data: dict):
         """Получает сообщения с улучшенной обработкой ошибок"""
@@ -1159,14 +1069,7 @@ class BroadcastManager:
 
             cached = await self._message_cache.get(key)
             if cached:
-                logger.info(
-                    f"[fetch] Retrieved message {msg_data['message_id']} from cache"
-                )
                 return cached
-            logger.info(
-                f"[fetch] Message {msg_data['message_id']} not in cache, fetching from Telegram"
-            )
-
             # Если нет в кэше - загружаем из Telegram
 
             message = await self.client.get_messages(
@@ -1184,17 +1087,10 @@ class BroadcastManager:
                             messages.append(grouped_msg)
                     if messages:
                         await self._message_cache.set(key, messages)
-                        logger.info(
-                            f"[fetch] Cached album with {len(messages)} messages"
-                        )
                         return messages[0] if len(messages) == 1 else messages
                 else:
                     await self._message_cache.set(key, message)
-                    logger.info(f"[fetch] Cached new message {msg_data['message_id']}")
                     return message
-            logger.warning(
-                f"Message {msg_data['message_id']} exists but couldn't be fetched from chat {msg_data['chat_id']}"
-            )
             return None
         except Exception as e:
             logger.error(f"Error fetching message {msg_data['message_id']}: {e}")
