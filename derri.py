@@ -726,21 +726,17 @@ class BroadcastManager:
     ) -> Set[int]:
         """Обновленный метод отправки сообщений в чаты"""
         async with self._semaphore:
-            """Обновленный метод отправки сообщений в чаты с расширенным логгированием"""
-            async with self._semaphore:
-                logger.info(
-                    f"[{code_name}][send_messages] Starting message distribution"
-                )
-                if not code:
-                    logger.error(
-                        f"[{code_name}][send_messages] No broadcast code provided"
-                    )
-                    return set()
+            logger.info(f"[{code_name}][send_messages] Starting message distribution")
+            if not code:
+                logger.error(f"[{code_name}][send_messages] No broadcast code provided")
+                return set()
             failed_chats: Set[int] = set()
             success_count: int = 0
             flood_wait_count: int = 0
 
-            async def get_optimal_batch_size(self, total_chats: int) -> int:
+            # Fix: Remove self parameter from the nested function
+
+            async def get_optimal_batch_size(total_chats: int) -> int:
                 minute_usage_percent = await self.minute_limiter.get_stats()
                 hour_usage_percent = await self.hour_limiter.get_stats()
 
@@ -810,6 +806,8 @@ class BroadcastManager:
             chats = list(code.chats)
             random.shuffle(chats)
             total_chats = len(chats)
+
+            # Fix: Call get_optimal_batch_size without self
 
             batch_size = await get_optimal_batch_size(total_chats)
 
