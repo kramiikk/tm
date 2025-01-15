@@ -977,7 +977,7 @@ class BroadcastManager:
         return True
 
     async def _broadcast_loop(self, code_name: str):
-        """Main broadcast loop."""
+        """Main broadcast loop with improved error handling and logging"""
         while self._active:
             logger.info(f"Рассылка {code_name}: начало итерации цикла")
             deleted_messages = []
@@ -985,29 +985,44 @@ class BroadcastManager:
 
             try:
                 code = self.codes.get(code_name)
-                current_messages = code.messages.copy()
-
-                batches = self._chunk_messages(
-                    current_messages, batch_size=self.BATCH_SIZE_LARGE
-                )
-                logger.info(
-                    f"""
-                Состояние рассылки {code_name}:
-                - Global active: {self._active}
-                - Code active: {code._active}
-                - Messages count: {len(code.messages)}
-                - Chats count: {len(code.chats)}
-                - Error counts: {self.error_counts}
-                - Last error times: {self.last_error_time}
-                """
-                )
-
-                for batch in batches:
-                    batch_messages, deleted = await self._process_message_batch(
-                        code, batch
+                if not code or not code._active:
+                    logger.warning(
+                        f"Рассылка {code_name}: код не активен или не найден"
                     )
-                    messages_to_send.extend(batch_messages)
-                    deleted_messages.extend(deleted)
+                    break
+                current_messages = code.messages.copy()
+                if not current_messages:
+                    logger.warning(f"Рассылка {code_name}: нет сообщений для отправки")
+                    await asyncio.sleep(300)
+                    continue
+                try:
+                    batches = self._chunk_messages(
+                        current_messages, batch_size=self.BATCH_SIZE_LARGE
+                    )
+
+                    for batch in batches:
+                        if not self._active or not code._active:
+                            logger.info(
+                                f"Рассылка {code_name}: остановлена во время обработки batch"
+                            )
+                            return
+                        batch_messages, deleted = await self._process_message_batch(
+                            code, batch
+                        )
+                        messages_to_send.extend(batch_messages)
+                        deleted_messages.extend(deleted)
+                    if not messages_to_send:
+                        logger.error(
+                            f"Рассылка {code_name}: не удалось получить сообщения после обработки"
+                        )
+                        await asyncio.sleep(300)
+                        continue
+                except Exception as batch_error:
+                    logger.error(
+                        f"Рассылка {code_name}: ошибка при обработке batch: {batch_error}"
+                    )
+                    await asyncio.sleep(300)
+                    continue
                 if deleted_messages:
                     async with self._lock:
                         code.messages = [
@@ -1017,14 +1032,15 @@ class BroadcastManager:
                 if not code.batch_mode:
                     async with self._lock:
                         next_index = code.get_next_message_index()
-
                         messages_to_send = [
                             messages_to_send[next_index % len(messages_to_send)]
                         ]
                 logger.info(f"Рассылка {code_name}: перед отправкой сообщений")
+
                 failed_chats = await self._send_messages_to_chats(
                     code, code_name, messages_to_send
                 )
+
                 logger.info(
                     f"Рассылка {code_name}: после отправки сообщений, неуспешных чатов: {len(failed_chats)}"
                 )
@@ -1037,11 +1053,15 @@ class BroadcastManager:
                     saved_times = self.db.get("broadcast", "last_broadcast_times", {})
                     saved_times[code_name] = current_time
                     self.db.set("broadcast", "last_broadcast_times", saved_times)
+                await asyncio.sleep(60)
             except asyncio.CancelledError:
                 logger.info(f"Рассылка {code_name} остановлена")
                 break
             except Exception as e:
-                logger.error(f"Критическая ошибка в цикле рассылки {code_name}: {e}")
+                logger.error(
+                    f"Критическая ошибка в цикле рассылки {code_name}: {e}",
+                    exc_info=True,
+                )
                 await asyncio.sleep(300)
             logger.info(f"Рассылка {code_name}: конец итерации цикла")
 
