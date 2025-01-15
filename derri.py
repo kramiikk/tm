@@ -47,18 +47,11 @@ class RateLimiter:
         async with self._lock:
             now = time.time()
             active_requests = [t for t in self.requests if now - t < self.time_window]
-            return {
-                "current_requests": len(active_requests),
-                "max_requests": self.max_requests,
-                "time_window": self.time_window,
-                "usage_percent": round(
-                    len(active_requests) / self.max_requests * 100, 1
-                ),
-            }
+            return round(len(active_requests) / self.max_requests * 100, 1)
 
 
 class SimpleCache:
-    """Улучшенный кэш с автоочисткой"""
+    """Улучшенный кэш с более надежной очисткой"""
 
     def __init__(self, ttl: int = 3600, max_size: int = 50):
         self.cache = OrderedDict()
@@ -66,54 +59,84 @@ class SimpleCache:
         self.max_size = max_size
         self._lock = asyncio.Lock()
         self._last_cleanup = time.time()
-        self._cleanup_interval = 3000
         self._cleaning = False
 
     async def get(self, key):
-        """Получает значение из кэша с проверкой на очистку"""
+        """Получает значение из кэша с обязательной проверкой TTL"""
         async with self._lock:
-            await self._maybe_cleanup()
             if key not in self.cache:
+                logger.debug(f"Cache miss for key {key}")
                 return None
             timestamp, value = self.cache[key]
             if time.time() - timestamp > self.ttl:
+                logger.info(f"Cache entry {key} expired, removing")
                 del self.cache[key]
                 return None
+            # Обновляем timestamp при каждом доступе
+
+            self.cache[key] = (time.time(), value)
             self.cache.move_to_end(key)
+            logger.debug(f"Cache hit for key {key}")
             return value
 
     async def set(self, key, value):
-        """Устанавливает значение в кэш с оптимизированной очисткой"""
+        """Устанавливает значение в кэш с проверкой размера"""
         async with self._lock:
             await self._maybe_cleanup()
-            if len(self.cache) >= self.max_size:
-                to_remove = max(1, len(self.cache) // 4)
-                for _ in range(to_remove):
-                    self.cache.popitem(last=False)
+
+            # Если ключ уже существует, обновляем его
+
+            if key in self.cache:
+                self.cache[key] = (time.time(), value)
+                self.cache.move_to_end(key)
+                logger.debug(f"Updated existing cache entry {key}")
+                return
+            # Проверяем размер кэша и удаляем старые записи при необходимости
+
+            while len(self.cache) >= self.max_size:
+                oldest_key = next(iter(self.cache))
+                del self.cache[oldest_key]
+                logger.info(
+                    f"Removed oldest cache entry {oldest_key} due to size limit"
+                )
             self.cache[key] = (time.time(), value)
+            logger.debug(f"Added new cache entry {key}")
 
     async def _maybe_cleanup(self):
         """Проверяет необходимость очистки устаревших записей"""
         current_time = time.time()
-        if current_time - self._last_cleanup > self._cleanup_interval:
+        if current_time - self._last_cleanup > self.ttl:
             await self.clean_expired()
             self._last_cleanup = current_time
 
     async def clean_expired(self):
-        """Оптимизированная очистка устаревших записей"""
+        """Очищает устаревшие записи"""
         if self._cleaning:
             return
         try:
             self._cleaning = True
             async with self._lock:
                 current_time = time.time()
-                self.cache = OrderedDict(
-                    (k, v)
-                    for k, v in self.cache.items()
-                    if current_time - v[0] <= self.ttl
-                )
+                expired_keys = [
+                    k for k, (t, _) in self.cache.items() if current_time - t > self.ttl
+                ]
+
+                for key in expired_keys:
+                    del self.cache[key]
+                    logger.info(f"Cleaned expired cache entry {key}")
+                if expired_keys:
+                    logger.info(f"Cleaned {len(expired_keys)} expired cache entries")
         finally:
             self._cleaning = False
+
+    def get_stats(self):
+        """Возвращает статистику кэша"""
+        return {
+            "size": len(self.cache),
+            "max_size": self.max_size,
+            "ttl": self.ttl,
+            "usage_percent": round(len(self.cache) / self.max_size * 100, 1),
+        }
 
 
 @loader.tds
@@ -301,11 +324,6 @@ class BroadcastManager:
 
         self.error_counts = {}
         self.last_error_time = {}
-
-    @staticmethod
-    def _get_message_content(msg: Message) -> Union[str, Message]:
-        """Получает контент сообщения для отправки."""
-        return msg.text if msg.text else msg
 
     def _load_authorized_users(self) -> Set[int]:
         """Загружает список авторизованных пользователей из JSON файла"""
@@ -722,14 +740,11 @@ class BroadcastManager:
             success_count: int = 0
             flood_wait_count: int = 0
 
-            async def get_optimal_batch_size(total_chats: int) -> int:
-                minute_stats = await self.minute_limiter.get_stats()
-                hour_stats = await self.hour_limiter.get_stats()
+            async def get_optimal_batch_size(self, total_chats: int) -> int:
+                minute_usage_percent = await self.minute_limiter.get_stats()
+                hour_usage_percent = await self.hour_limiter.get_stats()
 
-                if (
-                    minute_stats["usage_percent"] > 80
-                    or hour_stats["usage_percent"] > 80
-                ):
+                if minute_usage_percent > 80 or hour_usage_percent > 80:
                     return max(self.BATCH_SIZE_SMALL // 2, 1)
                 if total_chats <= self.BATCH_THRESHOLD_SMALL:
                     return self.BATCH_SIZE_SMALL
@@ -818,7 +833,7 @@ class BroadcastManager:
         self,
         code_name: str,
         chat_id: int,
-        messages_to_send: Union[Message, List[Message]],
+        msg: Union[Message, List[Message]],
         send_mode: str = "auto",
     ) -> bool:
         try:
@@ -848,18 +863,17 @@ class BroadcastManager:
             await asyncio.sleep(1)
 
             is_auto_mode = send_mode == "auto"
-            is_forwardable = isinstance(messages_to_send, list) or (
-                hasattr(messages_to_send, "media") and messages_to_send.media
+            is_forwardable = isinstance(msg, list) or (
+                hasattr(msg, "media") and msg.media
             )
             logger.info(
                 f"[{code_name}][send_message] Mode: {'forward' if not is_auto_mode or is_forwardable else 'auto'}"
             )
             if not is_auto_mode or is_forwardable:
-                await forward_messages(messages_to_send)
+                await forward_messages(msg)
             else:
                 await self.client.send_message(
-                    entity=chat_id,
-                    message=self._get_message_content(messages_to_send),
+                    entity=chat_id, message=msg.text if msg.text else msg
                 )
             logger.info(f"[{code_name}][send_message] Successfully sent to {chat_id}")
             self.error_counts[chat_id] = 0
@@ -1138,22 +1152,25 @@ class BroadcastManager:
                 await asyncio.sleep(300)
             logger.info(f"[{code_name}] Cycle iteration complete")
 
-    async def _fetch_messages(
-        self, msg_data: dict
-    ) -> Optional[Union[Message, List[Message]]]:
+    async def _fetch_messages(self, msg_data: dict):
         """Получает сообщения с улучшенной обработкой ошибок"""
         key = (msg_data["chat_id"], msg_data["message_id"])
 
         try:
-            logger.info(
-                f"[fetch] Attempting to fetch message {msg_data['message_id']} from {msg_data['chat_id']}"
-            )
+            # Проверяем кэш
+
             cached = await self._message_cache.get(key)
             if cached:
                 logger.info(
                     f"[fetch] Retrieved message {msg_data['message_id']} from cache"
                 )
                 return cached
+            logger.info(
+                f"[fetch] Message {msg_data['message_id']} not in cache, fetching from Telegram"
+            )
+
+            # Если нет в кэше - загружаем из Telegram
+
             message = await self.client.get_messages(
                 msg_data["chat_id"], ids=msg_data["message_id"]
             )
@@ -1170,21 +1187,19 @@ class BroadcastManager:
                     if messages:
                         await self._message_cache.set(key, messages)
                         logger.info(
-                            f"[fetch] Successfully cached album with {len(messages)} messages"
+                            f"[fetch] Cached album with {len(messages)} messages"
                         )
                         return messages[0] if len(messages) == 1 else messages
                 else:
                     await self._message_cache.set(key, message)
-                    logger.info(
-                        f"[fetch] Successfully cached single message {msg_data['message_id']}"
-                    )
+                    logger.info(f"[fetch] Cached new message {msg_data['message_id']}")
                     return message
             logger.warning(
-                f"Сообщение {msg_data['message_id']} существует, но не удалось получить из чата {msg_data['chat_id']}"
+                f"Message {msg_data['message_id']} exists but couldn't be fetched from chat {msg_data['chat_id']}"
             )
             return None
         except Exception as e:
-            logger.error(f"Непредвиденная ошибка при получении сообщения: {e}")
+            logger.error(f"Error fetching message {msg_data['message_id']}: {e}")
             return None
 
     async def _get_chat_id(self, chat_identifier: str) -> Optional[int]:
