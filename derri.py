@@ -708,8 +708,16 @@ class BroadcastManager:
     ) -> Set[int]:
         """Обновленный метод отправки сообщений в чаты"""
         async with self._semaphore:
-            if not code:
-                return set()
+            """Обновленный метод отправки сообщений в чаты с расширенным логгированием"""
+            async with self._semaphore:
+                logger.info(
+                    f"[{code_name}][send_messages] Starting message distribution"
+                )
+                if not code:
+                    logger.error(
+                        f"[{code_name}][send_messages] No broadcast code provided"
+                    )
+                    return set()
             failed_chats: Set[int] = set()
             success_count: int = 0
             flood_wait_count: int = 0
@@ -733,41 +741,56 @@ class BroadcastManager:
                 nonlocal success_count, flood_wait_count
 
                 try:
-                    logger.info(f"Начинаем отправку сообщения в чат {chat_id}")
+                    logger.info(
+                        f"[{code_name}][send_messages] Attempting send to chat {chat_id}"
+                    )
                     error_key = f"{chat_id}_general"
+
                     if (
                         self.error_counts.get(error_key, 0)
                         >= self.MAX_CONSECUTIVE_ERRORS
                     ):
                         last_error = self.last_error_time.get(error_key, 0)
                         if time.time() - last_error < 300:
+                            logger.warning(
+                                f"[{code_name}][send_messages] Chat {chat_id} in error cooldown"
+                            )
                             failed_chats.add(chat_id)
                             return
                     if not await self._get_chat_permissions(chat_id):
-                        logger.warning(f"No send permissions for chat {chat_id}")
+                        logger.warning(
+                            f"[{code_name}][send_messages] No permissions for chat {chat_id}"
+                        )
                         failed_chats.add(chat_id)
                         return
                     for message in messages_to_send:
                         success = await self._send_message(
-                            code_name,
-                            chat_id,
-                            message,
-                            code.send_mode,
+                            code_name, chat_id, message, code.send_mode
                         )
                         if not success:
-                            raise Exception("Ошибка отправки сообщения")
+                            raise Exception(
+                                f"[{code_name}][send_messages] Failed to send message to {chat_id}"
+                            )
                     success_count += 1
+                    logger.info(
+                        f"[{code_name}][send_messages] Successfully sent to chat {chat_id}"
+                    )
                 except FloodWaitError as e:
                     flood_wait_count += 1
+                    logger.warning(
+                        f"[{code_name}][send_messages] FloodWaitError in chat {chat_id}: {e}"
+                    )
                     if flood_wait_count >= self.MAX_FLOOD_WAIT_COUNT:
                         logger.error(
-                            "Слишком много FloodWaitError, останавливаем рассылку"
+                            f"[{code_name}][send_messages] Max flood wait exceeded"
                         )
                         code._active = False
                     failed_chats.add(chat_id)
                 except Exception as e:
                     failed_chats.add(chat_id)
-                    logger.error(f"Ошибка отправки в чат {chat_id}: {str(e)}")
+                    logger.error(
+                        f"[{code_name}][send_messages] Error in chat {chat_id}: {str(e)}"
+                    )
 
             chats = list(code.chats)
             random.shuffle(chats)
@@ -799,8 +822,10 @@ class BroadcastManager:
         send_mode: str = "auto",
     ) -> bool:
         try:
+            logger.info(f"[{code_name}][send_message] Starting send to {chat_id}")
 
             async def forward_messages(messages: Union[Message, List[Message]]) -> None:
+                logger.info(f"[{code_name}][forward] Forwarding to {chat_id}")
                 if isinstance(messages, list):
                     await self.client.forward_messages(
                         entity=chat_id,
@@ -813,6 +838,9 @@ class BroadcastManager:
                         messages=[messages],
                         from_peer=messages.chat_id,
                     )
+                logger.info(
+                    f"[{code_name}][forward] Successfully forwarded to {chat_id}"
+                )
 
             await self.minute_limiter.acquire()
             await self.hour_limiter.acquire()
@@ -823,7 +851,9 @@ class BroadcastManager:
             is_forwardable = isinstance(messages_to_send, list) or (
                 hasattr(messages_to_send, "media") and messages_to_send.media
             )
-
+            logger.info(
+                f"[{code_name}][send_message] Mode: {'forward' if not is_auto_mode or is_forwardable else 'auto'}"
+            )
             if not is_auto_mode or is_forwardable:
                 await forward_messages(messages_to_send)
             else:
@@ -831,6 +861,7 @@ class BroadcastManager:
                     entity=chat_id,
                     message=self._get_message_content(messages_to_send),
                 )
+            logger.info(f"[{code_name}][send_message] Successfully sent to {chat_id}")
             self.error_counts[chat_id] = 0
             self.error_counts[f"{chat_id}_general"] = 0
             self.last_error_time[f"{chat_id}_general"] = 0
@@ -849,6 +880,9 @@ class BroadcastManager:
         except (ChatWriteForbiddenError, UserBannedInChannelError):
             raise
         except Exception as e:
+            logger.error(
+                f"[{code_name}][send_message] Error sending to {chat_id}: {str(e)}"
+            )
             error_key = f"{chat_id}_general"
             self.error_counts[error_key] = self.error_counts.get(error_key, 0) + 1
             self.last_error_time[error_key] = time.time()
@@ -962,6 +996,9 @@ class BroadcastManager:
                     deleted_messages.append(msg_data)
             else:
                 deleted_messages.append(msg_data)
+        logger.info(
+            f"[batch] Processed batch: {len(messages_to_send)} valid, {len(deleted_messages)} deleted"
+        )
         return messages_to_send, deleted_messages
 
     @staticmethod
@@ -977,93 +1014,129 @@ class BroadcastManager:
         return True
 
     async def _broadcast_loop(self, code_name: str):
-        """Main broadcast loop with improved error handling and logging"""
+        """Main broadcast loop with enhanced debug logging"""
         while self._active:
-            logger.info(f"Рассылка {code_name}: начало итерации цикла")
+            logger.info(f"[{code_name}] Starting broadcast cycle")
             deleted_messages = []
             messages_to_send = []
 
             try:
                 code = self.codes.get(code_name)
                 if not code or not code._active:
-                    logger.warning(
-                        f"Рассылка {code_name}: код не активен или не найден"
-                    )
+                    logger.warning(f"[{code_name}] Code inactive or not found")
                     break
                 current_messages = code.messages.copy()
                 if not current_messages:
-                    logger.warning(f"Рассылка {code_name}: нет сообщений для отправки")
+                    logger.warning(f"[{code_name}] No messages to send")
                     await asyncio.sleep(300)
                     continue
+                logger.info(
+                    f"[{code_name}] Processing {len(current_messages)} messages"
+                )
+
                 try:
                     batches = self._chunk_messages(
                         current_messages, batch_size=self.BATCH_SIZE_LARGE
                     )
 
-                    for batch in batches:
+                    for batch_idx, batch in enumerate(batches):
                         if not self._active or not code._active:
                             logger.info(
-                                f"Рассылка {code_name}: остановлена во время обработки batch"
+                                f"[{code_name}] Stopped during batch processing"
                             )
                             return
+                        logger.info(
+                            f"[{code_name}] Processing batch {batch_idx + 1}/{len(batches)}"
+                        )
                         batch_messages, deleted = await self._process_message_batch(
                             code, batch
                         )
+
+                        if batch_messages:
+                            logger.info(
+                                f"[{code_name}] Batch {batch_idx + 1} processed: {len(batch_messages)} valid messages"
+                            )
+                        else:
+                            logger.warning(
+                                f"[{code_name}] Batch {batch_idx + 1} processing failed"
+                            )
                         messages_to_send.extend(batch_messages)
                         deleted_messages.extend(deleted)
                     if not messages_to_send:
                         logger.error(
-                            f"Рассылка {code_name}: не удалось получить сообщения после обработки"
+                            f"[{code_name}] Failed to retrieve any valid messages"
                         )
                         await asyncio.sleep(300)
                         continue
                 except Exception as batch_error:
                     logger.error(
-                        f"Рассылка {code_name}: ошибка при обработке batch: {batch_error}"
+                        f"[{code_name}] Batch processing error: {batch_error}",
+                        exc_info=True,
                     )
                     await asyncio.sleep(300)
                     continue
+                # Remove deleted messages
+
                 if deleted_messages:
                     async with self._lock:
+                        original_count = len(code.messages)
                         code.messages = [
                             m for m in code.messages if m not in deleted_messages
                         ]
+                        logger.info(
+                            f"[{code_name}] Removed {original_count - len(code.messages)} deleted messages"
+                        )
                         await self.save_config()
+                # Handle batch mode
+
                 if not code.batch_mode:
                     async with self._lock:
                         next_index = code.get_next_message_index()
                         messages_to_send = [
                             messages_to_send[next_index % len(messages_to_send)]
                         ]
-                logger.info(f"Рассылка {code_name}: перед отправкой сообщений")
+                        logger.info(
+                            f"[{code_name}] Single message mode: selected message {next_index}"
+                        )
+                # Send messages
 
+                logger.info(
+                    f"[{code_name}] Starting message broadcast to {len(code.chats)} chats"
+                )
                 failed_chats = await self._send_messages_to_chats(
                     code, code_name, messages_to_send
                 )
 
-                logger.info(
-                    f"Рассылка {code_name}: после отправки сообщений, неуспешных чатов: {len(failed_chats)}"
-                )
-
                 if failed_chats:
+                    logger.info(
+                        f"[{code_name}] Handling {len(failed_chats)} failed chats"
+                    )
                     await self._handle_failed_chats(code_name, failed_chats)
+                # Update timestamp
+
                 current_time = time.time()
                 self.last_broadcast_time[code_name] = current_time
+
                 async with self._lock:
                     saved_times = self.db.get("broadcast", "last_broadcast_times", {})
                     saved_times[code_name] = current_time
                     self.db.set("broadcast", "last_broadcast_times", saved_times)
+                    logger.info(f"[{code_name}] Updated broadcast timestamp")
+                logger.info(f"[{code_name}] Cycle completed successfully")
                 await asyncio.sleep(60)
             except asyncio.CancelledError:
-                logger.info(f"Рассылка {code_name} остановлена")
+                logger.info(f"[{code_name}] Broadcast cancelled")
                 break
             except Exception as e:
                 logger.error(
-                    f"Критическая ошибка в цикле рассылки {code_name}: {e}",
+                    f"[{code_name}] Critical error in broadcast loop: {e}",
                     exc_info=True,
                 )
+                # Add stack trace
+
+                logger.exception("Full traceback:")
                 await asyncio.sleep(300)
-            logger.info(f"Рассылка {code_name}: конец итерации цикла")
+            logger.info(f"[{code_name}] Cycle iteration complete")
 
     async def _fetch_messages(
         self, msg_data: dict
@@ -1072,8 +1145,14 @@ class BroadcastManager:
         key = (msg_data["chat_id"], msg_data["message_id"])
 
         try:
+            logger.info(
+                f"[fetch] Attempting to fetch message {msg_data['message_id']} from {msg_data['chat_id']}"
+            )
             cached = await self._message_cache.get(key)
             if cached:
+                logger.info(
+                    f"[fetch] Retrieved message {msg_data['message_id']} from cache"
+                )
                 return cached
             message = await self.client.get_messages(
                 msg_data["chat_id"], ids=msg_data["message_id"]
@@ -1090,9 +1169,15 @@ class BroadcastManager:
                             messages.append(grouped_msg)
                     if messages:
                         await self._message_cache.set(key, messages)
+                        logger.info(
+                            f"[fetch] Successfully cached album with {len(messages)} messages"
+                        )
                         return messages[0] if len(messages) == 1 else messages
                 else:
                     await self._message_cache.set(key, message)
+                    logger.info(
+                        f"[fetch] Successfully cached single message {msg_data['message_id']}"
+                    )
                     return message
             logger.warning(
                 f"Сообщение {msg_data['message_id']} существует, но не удалось получить из чата {msg_data['chat_id']}"
