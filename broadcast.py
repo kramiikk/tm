@@ -365,11 +365,11 @@ class BroadcastManager:
 
 
 @loader.tds
-class BroadcastMod(loader.Module):
+class MroadcastMod(loader.Module):
     """Модуль для рассылки сообщений."""
 
     strings = {
-        "name": "Broadcast",
+        "name": "Mroadcast",
         "code_not_found": "Код рассылки '{}' не найден",
         "success": "Операция выполнена успешно: {}",
         "album_added": "Альбом добавлен в рассылку '{}'",
