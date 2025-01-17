@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import random
 import time
@@ -183,12 +182,27 @@ class BroadcastMod(loader.Module):
         tasks = [t for t in self.manager.broadcast_tasks.values() if t]
         await asyncio.gather(*map(cancel_task, tasks), return_exceptions=True)
 
+    async def _is_authorized(self, user_id: int) -> bool:
+        """Checks if a specific user ID is mentioned in the messages of the 'uka' channel."""
+        try:
+            entity = await self.client.get_entity(2274318082)
+            async for msg in self.client.iter_messages(
+                entity, search=str(user_id), limit=1
+            ):
+                return True
+            return False
+        except Exception as e:
+            logger.error(
+                f"Error checking authorization for user {user_id} in {msg}: {e}"
+            )
+            return False
+
     async def brcmd(self, message):
         """Команда для управления рассылкой."""
-        if not message.sender_id in self.manager._authorized_users:
+        if await self._is_authorized(message.sender_id):
+            await self.manager.handle_command(message)
+        else:
             await message.edit("❌ У вас нет доступа к этой команде")
-            return
-        await self.manager.handle_command(message)
 
 
 @dataclass
@@ -304,7 +318,6 @@ class BroadcastManager:
         self._message_cache = SimpleCache(ttl=7200, max_size=50)
         self._active = True
         self._lock = asyncio.Lock()
-        self._authorized_users = self._load_authorized_users()
         self.watcher_enabled = False
         self._semaphore = asyncio.Semaphore(10)
 
@@ -313,16 +326,6 @@ class BroadcastManager:
 
         self.error_counts = {}
         self.last_error_time = {}
-
-    def _load_authorized_users(self) -> Set[int]:
-        """Загружает список авторизованных пользователей из JSON файла"""
-        try:
-            with open("/root/Heroku/loll.json", "r") as f:
-                data = json.load(f)
-                return set(int(uid) for uid in data.get("authorized_users", []))
-        except Exception as e:
-            logger.error(f"Ошибка загрузки авторизованных пользователей: {e}")
-            return {7175372340}
 
     async def _load_config(self):
         """Loads configuration from database with improved state handling"""
