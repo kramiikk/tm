@@ -1,4 +1,0 @@
-import inspect
-from hikka.tl.types import Message
-
-inspect.signature(Message)
