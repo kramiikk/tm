@@ -1,4 +1,4 @@
-""" Author: kramiikk - Telegram: @ilvij """
+""" Author: kramiikk - Telegram: @kramiikk """
 
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Union, List
