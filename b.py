@@ -224,12 +224,10 @@ class BroadcastManager:
         self.adaptive_interval_task = None
 
     async def _broadcast_loop(self, code_name: str):
-        """Основной цикл рассылки"""
+        """Основной цикл рассылки с разделением на группы"""
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
-        chat_ring = deque(code.chats)
-        last_sent = defaultdict(float)
 
         while self._active and code._active and not self.pause_event.is_set():
             try:
@@ -239,27 +237,54 @@ class BroadcastManager:
                     code.messages.remove(msg_tuple)
                     await self.save_config()
                     continue
-                chat_id = await self._get_next_chat(
-                    chat_ring, last_sent, code.interval[0]
-                )
-                if not chat_id:
-                    await asyncio.sleep(60)
-                    continue
-                if await self._send_message(chat_id, message):
-                    last_sent[chat_id] = time.time()
-                    code.last_sent = time.time()
-                    code.total_sent += 1
-                    chat_ring.append(chat_id)
-                else:
-                    code.total_failed += 1
-                    code.chats.remove(chat_id)
-                    await self.save_config()
-                delay = random.uniform(code.interval[0] * 60, code.interval[1] * 60)
+
+                # Разделение чатов на группы по 25
+                group_size = 25
+                chats = list(code.chats)
+                random.shuffle(chats)
+                groups = [chats[i:i + group_size] for i in range(0, len(chats), group_size)]
+
+                total_groups = len(groups)
+                logger.debug(f"[{code_name}] Начало рассылки. Групп: {total_groups}")
+
+                for group_num, group in enumerate(groups):
+                    random.shuffle(group)
+                    tasks = [self._send_message(chat_id, message) for chat_id in group]
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                    # Обработка результатов
+                    failed = []
+                    for chat_id, result in zip(group, results):
+                        if isinstance(result, Exception):
+                            logger.error(f"Ошибка в {chat_id}: {result}")
+                            failed.append(chat_id)
+                            code.total_failed += 1
+                        elif not result:
+                            failed.append(chat_id)
+                            code.total_failed += 1
+                        else:
+                            code.total_sent += 1
+
+                    # Удаление проблемных чатов
+                    if failed:
+                        async with self._lock:
+                            code.chats.difference_update(failed)
+                        await self.save_config()
+
+                    # Пауза между группами
+                    if group_num < total_groups - 1:
+                        await asyncio.sleep(5 * 60)  # 5 минут
+
+                # Расчет задержки до следующего цикла
+                interval = random.uniform(*code.interval) * 60
+                spent_time = (total_groups - 1) * 5 * 60  # время между группами
+                delay = max(0, interval - spent_time)
                 await asyncio.sleep(delay)
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"[{code_name}] Ошибка: {str(e)}")
+                logger.error(f"[{code_name}] Ошибка: {e}")
                 await asyncio.sleep(30)
 
     async def _check_and_adjust_intervals(self):
