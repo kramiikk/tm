@@ -117,7 +117,7 @@ class BroadcastMod(loader.Module):
         self.manager = None
 
     @loader.command()
-    async def bcmd(self, message):
+    async def b(self, message):
         """Команда для управления рассылкой."""
         await self.manager.handle_command(message)
 
