@@ -4,7 +4,7 @@ import asyncio
 import logging
 import random
 import time
-from collections import deque, OrderedDict, defaultdict
+from collections import deque, OrderedDict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Dict, Optional, Set, Tuple
