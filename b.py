@@ -1,4 +1,4 @@
-""" Author: kramiikk - Telegram: @kramiikk """
+"""Author: kramiikk - Telegram: @kramiikk"""
 
 import asyncio
 import logging
@@ -52,7 +52,7 @@ class RateLimiter:
 
 
 class SimpleCache:
-    def __init__(self, ttl: int = 7200, max_size: int = 50):
+    def __init__(self, ttl: int = 3600, max_size: int = 30):
         self.cache = OrderedDict()
         self.ttl = ttl
         self.max_size = max_size
@@ -210,7 +210,7 @@ class BroadcastManager:
         self.db = db
         self.codes: Dict[str, Broadcast] = {}
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
-        self._message_cache = SimpleCache(ttl=7200, max_size=50)
+        self._message_cache = SimpleCache(ttl=3600, max_size=30)
         self._active = True
         self._lock = asyncio.Lock()
         self.watcher_enabled = False
@@ -228,8 +228,11 @@ class BroadcastManager:
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
+        min_interval, max_interval = code.interval
+        await asyncio.sleep(random.uniform(min_interval, max_interval) * 60)
 
         while self._active and code._active and not self.pause_event.is_set():
+            cycle_start_time = time.monotonic()
             try:
                 msg_tuple = random.choice(tuple(code.messages))
                 message = await self._fetch_message(*msg_tuple)
@@ -237,12 +240,9 @@ class BroadcastManager:
                     code.messages.remove(msg_tuple)
                     await self.save_config()
                     continue
-
-                # Разделение чатов на группы по 25
-                group_size = 25
                 chats = list(code.chats)
                 random.shuffle(chats)
-                groups = [chats[i:i + group_size] for i in range(0, len(chats), group_size)]
+                groups = [chats[i : i + 25] for i in range(0, len(chats), 25)]
 
                 total_groups = len(groups)
                 logger.debug(f"[{code_name}] Начало рассылки. Групп: {total_groups}")
@@ -252,7 +252,6 @@ class BroadcastManager:
                     tasks = [self._send_message(chat_id, message) for chat_id in group]
                     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                    # Обработка результатов
                     failed = []
                     for chat_id, result in zip(group, results):
                         if isinstance(result, Exception):
@@ -264,23 +263,15 @@ class BroadcastManager:
                             code.total_failed += 1
                         else:
                             code.total_sent += 1
-
-                    # Удаление проблемных чатов
                     if failed:
                         async with self._lock:
                             code.chats.difference_update(failed)
                         await self.save_config()
-
-                    # Пауза между группами
                     if group_num < total_groups - 1:
-                        await asyncio.sleep(5 * 60)  # 5 минут
-
-                # Расчет задержки до следующего цикла
+                        await asyncio.sleep(210)
                 interval = random.uniform(*code.interval) * 60
-                spent_time = (total_groups - 1) * 5 * 60  # время между группами
-                delay = max(0, interval - spent_time)
-                await asyncio.sleep(delay)
-
+                cycle_duration = time.monotonic() - cycle_start_time
+                await asyncio.sleep(max(interval * 0.1, interval - cycle_duration, 60))
             except asyncio.CancelledError:
                 break
             except Exception as e:
