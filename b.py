@@ -12,8 +12,8 @@ from typing import Dict, Optional, Set, Tuple
 from hikkatl.tl.types import Message
 from hikkatl.errors import (
     ChatWriteForbiddenError,
-    UserBannedInChannelError,
     FloodWaitError,
+    UserBannedInChannelError,
 )
 
 from .. import loader, utils
@@ -72,9 +72,7 @@ class SimpleCache:
                 del self.cache[key]
 
     async def get(self, key: tuple):
-        """
-        Get a value from cache using a tuple key
-        """
+        """Get a value from cache using a tuple key"""
         async with self._lock:
             entry = self.cache.get(key)
             if not entry:
@@ -87,9 +85,7 @@ class SimpleCache:
             return value
 
     async def set(self, key: tuple, value, expire: Optional[int] = None):
-        """
-        Set a value in cache using a tuple key
-        """
+        """Set a value in cache using a tuple key"""
         async with self._lock:
             if expire is not None and expire <= 0:
                 return
@@ -224,7 +220,6 @@ class BroadcastManager:
         self.adaptive_interval_task = None
 
     async def _broadcast_loop(self, code_name: str):
-        """Основной цикл рассылки с разделением на группы"""
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
@@ -232,8 +227,9 @@ class BroadcastManager:
         await asyncio.sleep(random.uniform(min_interval, max_interval) * 60)
 
         while self._active and code._active and not self.pause_event.is_set():
-            cycle_start_time = time.monotonic()
             try:
+                cycle_start_time = time.monotonic()
+
                 msg_tuple = random.choice(tuple(code.messages))
                 message = await self._fetch_message(*msg_tuple)
                 if not message:
@@ -243,37 +239,33 @@ class BroadcastManager:
                 chats = list(code.chats)
                 random.shuffle(chats)
                 groups = [chats[i : i + 25] for i in range(0, len(chats), 25)]
-
                 total_groups = len(groups)
-                logger.debug(f"[{code_name}] Начало рассылки. Групп: {total_groups}")
+
+                target_interval = random.uniform(*code.interval) * 60
+                available_time = target_interval * 0.67
+                group_interval = (
+                    available_time / (total_groups - 1) if total_groups > 1 else 0
+                )
 
                 for group_num, group in enumerate(groups):
-                    random.shuffle(group)
                     tasks = [self._send_message(chat_id, message) for chat_id in group]
                     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                    failed = []
                     for chat_id, result in zip(group, results):
                         if isinstance(result, Exception):
                             logger.error(f"Ошибка в {chat_id}: {result}")
-                            failed.append(chat_id)
                             code.total_failed += 1
                         elif not result:
-                            failed.append(chat_id)
+                            code.total_failed += 1
+                        elif result is False:
                             code.total_failed += 1
                         else:
                             code.total_sent += 1
-                    if failed:
-                        async with self._lock:
-                            code.chats.difference_update(failed)
-                        await self.save_config()
                     if group_num < total_groups - 1:
-                        await asyncio.sleep(210)
-                interval = random.uniform(*code.interval) * 60
-                cycle_duration = time.monotonic() - cycle_start_time
-                await asyncio.sleep(max(interval * 0.1, interval - cycle_duration, 60))
-            except asyncio.CancelledError:
-                break
+                        await asyncio.sleep(group_interval)
+                elapsed = time.monotonic() - cycle_start_time
+                remaining = max(target_interval - elapsed, 1)
+                await asyncio.sleep(remaining)
             except Exception as e:
                 logger.error(f"[{code_name}] Ошибка: {e}")
                 await asyncio.sleep(30)
@@ -561,24 +553,20 @@ class BroadcastManager:
                     logger.info(f"Перезапуск рассылки: {code_name}")
 
     async def _send_message(self, chat_id: int, msg: Message) -> bool:
-        """Отправка сообщения с базовой обработкой ошибок"""
-        if self.pause_event.is_set():
-            return False
-        try:
-            await self.GLOBAL_LIMITER.acquire()
-            await self.client.forward_messages(
-                entity=chat_id, messages=msg.id, from_peer=msg.chat_id
-            )
-            return True
-        except FloodWaitError as e:
-            await self._handle_flood_wait(e, chat_id)
-            return False
-        except (ChatWriteForbiddenError, UserBannedInChannelError):
-            await self._handle_permanent_error(chat_id)
-            return False
-        except Exception as e:
-            logger.error(f"Ошибка отправки в {chat_id}: {repr(e)}")
-            return False
+        if not self.pause_event.is_set():
+            try:
+                await self.GLOBAL_LIMITER.acquire()
+                await self.client.forward_messages(
+                    entity=chat_id, messages=msg.id, from_peer=msg.chat_id
+                )
+                return True
+            except FloodWaitError as e:
+                await self._handle_flood_wait(e, chat_id)
+            except (ChatWriteForbiddenError, UserBannedInChannelError):
+                await self._handle_permanent_error(chat_id)
+            except Exception as e:
+                logger.error(f"In {chat_id}: {repr(e)}")
+        return False
 
     def _toggle_watcher(self, args) -> str:
         """Переключение авто-добавления: .br w [on/off]"""
