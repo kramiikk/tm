@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Dict, Optional, Set, Tuple
 
-from telethon.tl.types import Message
-from telethon.errors import (
+from hikkatl.tl.types import Message
+from hikkatl.errors import (
     ChatWriteForbiddenError,
     UserBannedInChannelError,
     FloodWaitError,

@@ -2,8 +2,8 @@
 
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Union, List
-from telethon import functions, types, errors
-from telethon.errors.rpcerrorlist import (
+from hikkatl import functions, types, errors
+from hikkatl.errors.rpcerrorlist import (
     MessageIdInvalidError,
     PhotoInvalidDimensionsError,
     PhotoCropSizeSmallError,
