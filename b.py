@@ -219,11 +219,10 @@ class BroadcastManager:
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
-        min_interval, max_interval = code.interval
-        await asyncio.sleep(random.uniform(min_interval, max_interval) * 60)
 
         while self._active and code._active and not self.pause_event.is_set():
             try:
+                min_interval, max_interval = code.interval
                 safe_min, safe_max = self.calculate_safe_interval(len(code.chats))
 
                 if min_interval < safe_min:
@@ -233,6 +232,9 @@ class BroadcastManager:
                         self.tg_id,
                         f"⚠️ Интервал для {code_name} автоматически скорректирован до {safe_min}-{safe_max} мин",
                     )
+
+                await asyncio.sleep(random.uniform(min_interval, max_interval) * 60)
+
                 if code.last_group_chats != code.chats:
                     chats_list = list(code.chats)
                     random.shuffle(chats_list)
