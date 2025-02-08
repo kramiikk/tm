@@ -178,9 +178,9 @@ class BroadcastMod(loader.Module):
 class Broadcast:
     chats: Set[int] = field(default_factory=set)
     messages: Set[Tuple[int, int]] = field(default_factory=set)
-    interval: Tuple[int, int] = (10, 13)
+    interval: Tuple[int, int] = (11, 13)
     _active: bool = field(default=False, init=False)
-    original_interval: Tuple[int, int] = (10, 13)
+    original_interval: Tuple[int, int] = (11, 13)
     start_time: float = field(default_factory=time.time)
     last_sent: float = 0
     total_sent: int = 0
@@ -219,7 +219,6 @@ class BroadcastManager:
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
-
         while self._active and code._active and not self.pause_event.is_set():
             try:
                 min_interval, max_interval = code.interval
@@ -232,8 +231,8 @@ class BroadcastManager:
                         self.tg_id,
                         f"⚠️ Интервал для {code_name} автоматически скорректирован до {safe_min}-{safe_max} мин",
                     )
-
-                await asyncio.sleep(random.uniform(min_interval, max_interval) * 60)
+                total_seconds = random.uniform(min_interval, max_interval) * 60
+                await asyncio.sleep(total_seconds)
 
                 if code.last_group_chats != code.chats:
                     chats_list = list(code.chats)
@@ -244,15 +243,9 @@ class BroadcastManager:
                     code.last_group_chats = code.chats.copy()
                 groups = code.groups
                 if not groups:
-                    await asyncio.sleep(13)
+                    await asyncio.sleep(10)
                     continue
-                total_seconds = random.uniform(min_interval, max_interval) * 60
-
                 total_groups = len(groups)
-                time_between_groups = (
-                    total_seconds * 0.3 / (total_groups - 1) if total_groups > 1 else 0
-                )
-
                 msg_tuple = random.choice(tuple(code.messages))
                 message = await self._fetch_message(*msg_tuple)
                 if not message:
@@ -274,23 +267,28 @@ class BroadcastManager:
                                 max(
                                     (
                                         total_seconds
-                                        * (1 - 0.3)
+                                        * (1 - 0.2)
                                         / total_groups
                                         / len(group)
                                         if group
                                         else 0
                                     ),
-                                    3.5,
+                                    2.0,
                                 )
                                 - time.monotonic()
                                 - send_start,
                             )
                         )
                     if group_index < total_groups - 1:
+                        time_between_groups = (
+                            total_seconds * 0.2 / (total_groups - 1)
+                            if total_groups > 1
+                            else 0
+                        )
                         await asyncio.sleep(time_between_groups)
             except Exception as e:
                 logger.error(f"[{code_name}] Error in broadcast loop: {e}")
-                await asyncio.sleep(13)
+                await asyncio.sleep(10)
 
     async def _check_and_adjust_intervals(self):
         """Проверка условий для восстановления интервалов"""
@@ -301,7 +299,7 @@ class BroadcastManager:
                 for code in self.codes.values():
                     code.interval = code.original_interval
                     if not code.is_valid_interval():
-                        code.interval = (10, 13)
+                        code.interval = (11, 13)
                 self.flood_wait_times = []
                 await self.client.send_message(
                     self.tg_id,
@@ -598,19 +596,15 @@ class BroadcastManager:
                 code._active = False
             if not (0 < code.interval[0] < code.interval[1] <= 1440):
                 logger.warning(f"Сброс интервала для {code_name}")
-                code.interval = (10, 13)
-                code.original_interval = (10, 13)
+                code.interval = (11, 13)
+                code.original_interval = (11, 13)
 
     def calculate_safe_interval(self, total_chats: int) -> Tuple[int, int]:
         """Рассчитывает безопасный интервал на основе количества чатов"""
-        total_groups = (total_chats + 20 - 1) // 20
-        min_group_time = 20 * 3.5
-        total_min_time = (min_group_time * total_groups) / (1 - 0.3)
-
-        min_interval = max(10, int(total_min_time / 60) + 1)
-        max_interval = min_interval + max(2, min_interval // 10)
-
-        return min_interval, max_interval
+        min_interval = max(
+            5, int((20 * 2.0 * ((total_chats + 20 - 1) // 20)) / (1 - 0.2) / 60) + 1
+        )
+        return min_interval, min_interval + max(1, min_interval // 15)
 
     async def handle_command(self, message: Message):
         """Обработчик команд управления рассылкой"""
@@ -670,9 +664,9 @@ class BroadcastManager:
                             (int(msg["chat_id"]), int(msg["message_id"]))
                             for msg in code_data.get("messages", [])
                         },
-                        interval=tuple(map(int, code_data.get("interval", (10, 13)))),
+                        interval=tuple(map(int, code_data.get("interval", (11, 13)))),
                         original_interval=tuple(
-                            map(int, code_data.get("original_interval", (10, 13)))
+                            map(int, code_data.get("original_interval", (11, 13)))
                         ),
                     )
 
