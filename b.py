@@ -19,7 +19,6 @@ from hikkatl.errors import (
 from .. import loader, utils
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class RateLimiter:
