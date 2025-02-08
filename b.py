@@ -383,7 +383,7 @@ class BroadcastManager:
                 self.tg_id,
                 f"🚨 Обнаружен FloodWait {e.seconds}s! Все рассылки приостановлены на {wait_time}s",
             )
-            logger.warning(
+            logger.error(
                 f"🚨 FloodWait {e.seconds} сек. в чате {chat_id}. Среднее время ожидания: {avg_wait:.1f} сек. "
                 f"Всего FloodWait за последние 12 часов: {len(self.flood_wait_times)}"
             )
@@ -415,7 +415,7 @@ class BroadcastManager:
         async with self._lock:
             for code in self.codes.values():
                 code.chats.discard(chat_id)
-                logger.warning(f"🚫 Ошибка в чате {chat_id}. Удален из рассылок.")
+                logger.error(f"🚫 Ошибка в чате {chat_id}. Удален из рассылок.")
         await self.save_config()
 
     async def _handle_add(self, message, code, code_name, args) -> str:
@@ -591,10 +591,10 @@ class BroadcastManager:
         """Базовая проверка загруженных данных"""
         for code_name, code in self.codes.items():
             if code._active and (not code.messages or not code.chats):
-                logger.warning(f"Отключение {code_name}: нет сообщений/чатов")
+                logger.info(f"Отключение {code_name}: нет сообщений/чатов")
                 code._active = False
             if not (0 < code.interval[0] < code.interval[1] <= 1440):
-                logger.warning(f"Сброс интервала для {code_name}")
+                logger.info(f"Сброс интервала для {code_name}")
                 code.interval = (11, 13)
                 code.original_interval = (11, 13)
 
