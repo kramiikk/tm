@@ -470,6 +470,7 @@ class BroadcastManager:
         safe_min, safe_max = self.calculate_safe_interval(len(code.chats))
 
         if requested_min < safe_min:
+            await self.save_config()
             return (
                 f"⚠️ Для {len(code.chats)} чатов минимальный безопасный интервал: "
                 f"{safe_min}-{safe_max} мин\n"
