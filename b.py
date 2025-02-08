@@ -52,7 +52,7 @@ class RateLimiter:
 
 
 class SimpleCache:
-    def __init__(self, ttl: int = 3600, max_size: int = 30):
+    def __init__(self, ttl: int = 3600, max_size: int = 25):
         self.cache = OrderedDict()
         self.ttl = ttl
         self.max_size = max_size
@@ -198,14 +198,14 @@ class Broadcast:
 class BroadcastManager:
     """Manages broadcast operations and state."""
 
-    GLOBAL_LIMITER = RateLimiter(max_requests=20, time_window=60)
+    GLOBAL_LIMITER = RateLimiter(max_requests=25, time_window=60)
 
     def __init__(self, client, db, tg_id):
         self.client = client
         self.db = db
         self.codes: Dict[str, Broadcast] = {}
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
-        self._message_cache = SimpleCache(ttl=3600, max_size=30)
+        self._message_cache = SimpleCache(ttl=3600, max_size=25)
         self._active = True
         self._lock = asyncio.Lock()
         self.watcher_enabled = False
@@ -359,20 +359,6 @@ class BroadcastManager:
                 f"└ Отправлено: 🎐{code.total_sent} ⛓‍💥{code.total_failed}"
             )
         return "".join(report)
-
-    async def _get_next_chat(
-        self, chat_ring: deque, last_sent: dict, min_interval: int
-    ) -> Optional[int]:
-        """Получение следующего чата для рассылки"""
-        now = time.time()
-        min_interval *= 60
-
-        for _ in range(len(chat_ring)):
-            chat_id = chat_ring.popleft()
-            if now - last_sent[chat_id] >= min_interval:
-                return chat_id
-            chat_ring.append(chat_id)
-        return None
 
     async def _handle_flood_wait(self, e: FloodWaitError, chat_id: int):
         """Глобальная обработка FloodWait с остановкой всех рассылок"""
@@ -665,6 +651,11 @@ class BroadcastManager:
                         original_interval=tuple(
                             map(int, code_data.get("original_interval", (10, 13)))
                         ),
+                        groups=[
+                            [chat for chat in group if chat in code.chats] 
+                            for group in code_data.get("groups", [])
+                        ],
+                        last_group_chats=set(code_data.get("last_group_chats", [])),
                     )
 
                     code._active = status.get("active", False)
@@ -702,6 +693,8 @@ class BroadcastManager:
                             "total_sent": code.total_sent,
                             "total_failed": code.total_failed,
                         },
+                        "groups": code.groups,
+                        "last_group_chats": list(code.last_group_chats),
                     }
                     for name, code in self.codes.items()
                 }
@@ -720,3 +713,4 @@ class BroadcastManager:
                 break
             except Exception as e:
                 logger.error(f"Ошибка в адаптивной регулировке: {e}", exc_info=True)
+                
