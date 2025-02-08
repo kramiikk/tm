@@ -181,7 +181,6 @@ class Broadcast:
     _active: bool = field(default=False, init=False)
     original_interval: Tuple[int, int] = (11, 13)
     start_time: float = field(default_factory=time.time)
-    last_sent: float = 0
     total_sent: int = 0
     total_failed: int = 0
     groups: List[List[int]] = field(default_factory=list)
@@ -693,7 +692,6 @@ class BroadcastManager:
                     status = code_data.get("status", {})
                     code._active = status.get("active", False)
                     code.start_time = float(status.get("start_time", time.time()))
-                    code.last_sent = float(status.get("last_sent", 0))
                     code.total_sent = int(status.get("total_sent", 0))
                     code.total_failed = int(status.get("total_failed", 0))
 
@@ -722,7 +720,6 @@ class BroadcastManager:
                         "status": {
                             "active": code._active,
                             "start_time": code.start_time,
-                            "last_sent": code.last_sent,
                             "total_sent": code.total_sent,
                             "total_failed": code.total_failed,
                         },
