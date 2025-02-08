@@ -422,7 +422,7 @@ class BroadcastManager:
         """Добавление сообщения в рассылку: .br a [code]"""
         reply = await message.get_reply_message()
         if not reply:
-            return "🚫 Ответьте на сообщение"
+            return "🫵 Ответьте на сообщение"
         if not code:
             code = Broadcast()
             self.codes[code_name] = code
@@ -441,11 +441,11 @@ class BroadcastManager:
         chat_id = await self._parse_chat_identifier(target)
 
         if not chat_id:
-            return "🚫 Неверный формат чата"
+            return "🫵 Неверный формат чата"
         if chat_id in code.chats:
             return "ℹ️ Чат уже добавлен"
         if len(code.chats) >= 500:
-            return "🚫 Лимит 500 чатов"
+            return "🫵 Лимит 500 чатов"
         code.chats.add(chat_id)
         await self.save_config()
         return f"🪴 +1 чат | Всего: {len(code.chats)}"
@@ -461,37 +461,40 @@ class BroadcastManager:
     async def _handle_interval(self, message, code, code_name, args) -> str:
         """Установка интервала с проверкой безопасности: .br i [code] [min] [max]"""
         if len(args) < 4:
-            return "🚫 Укажите мин/макс интервалы"
+            return "🫵 Укажите мин/макс интервалы"
         try:
             requested_min = int(args[2])
             requested_max = int(args[3])
         except ValueError:
-            return "🚫 Некорректные значения"
+            return "🫵 Некорректные значения"
+        if not (0 < requested_min < requested_max <= 1440):
+            return "🫵 Интервал 1-1440 мин (min < max)"
         safe_min, safe_max = self.calculate_safe_interval(len(code.chats))
 
         if requested_min < safe_min:
-            await self.save_config()
-            return (
+            new_interval = (safe_min, safe_max)
+            response = (
                 f"⚠️ Для {len(code.chats)} чатов минимальный безопасный интервал: "
                 f"{safe_min}-{safe_max} мин\n"
                 f"Установлено: {safe_min}-{safe_max} мин"
             )
-        if not (0 < requested_min < requested_max <= 1440):
-            return "🚫 Интервал 1-1440 мин (min < max)"
-        code.interval = (requested_min, requested_max)
-        code.original_interval = code.interval
+        else:
+            new_interval = (requested_min, requested_max)
+            response = f"⏱️ {code_name}: {requested_min}-{requested_max} мин"
+        code.interval = new_interval
+        code.original_interval = new_interval
         await self.save_config()
 
-        return f"⏱ {code_name}: {requested_min}-{requested_max} мин"
+        return response
 
     async def _handle_remove(self, message, code, code_name, args) -> str:
         """Удаление сообщения: .br r [code]"""
         reply = await message.get_reply_message()
         if not reply:
-            return "🚫 Ответьте на сообщение"
+            return "🫵 Ответьте на сообщение"
         key = (reply.chat_id, reply.id)
         if key not in code.messages:
-            return "🚫 Сообщение не найдено"
+            return "🫵 Сообщение не найдено"
         code.messages.remove(key)
         await self._message_cache.set(key, None)
         await self.save_config()
@@ -503,7 +506,7 @@ class BroadcastManager:
         chat_id = await self._parse_chat_identifier(target)
 
         if not chat_id:
-            return "🚫 Неверный формат чата"
+            return "🫵 Неверный формат чата"
         if chat_id not in code.chats:
             return "ℹ️ Чат не найден"
         code.chats.remove(chat_id)
@@ -513,9 +516,9 @@ class BroadcastManager:
     async def _handle_start(self, message, code, code_name, args) -> str:
         """Запуск рассылки: .br s [code]"""
         if not code.messages:
-            return "🚫 Нет сообщений для отправки"
+            return "🫵 Нет сообщений для отправки"
         if not code.chats:
-            return "🚫 Нет чатов для рассылки"
+            return "🫵 Нет чатов для рассылки"
         if code._active:
             return "ℹ️ Рассылка уже активна"
         code._active = True
@@ -621,7 +624,7 @@ class BroadcastManager:
         args = message.text.split()[1:]
 
         if not args:
-            response = "🚫 Недостаточно аргументов"
+            response = "🫵 Недостаточно аргументов"
         else:
             action = args[0].lower()
             code_name = args[1] if len(args) > 1 else None
@@ -632,7 +635,7 @@ class BroadcastManager:
                 response = self._toggle_watcher(args)
             else:
                 if not code_name:
-                    response = "🚫 Укажите код рассылки"
+                    response = "🫵 Укажите код рассылки"
                 else:
                     code = self.codes.get(code_name)
                     handler_map = {
@@ -647,9 +650,9 @@ class BroadcastManager:
                     }
 
                     if action not in handler_map:
-                        response = "🚫 Неизвестная команда"
+                        response = "🫵 Неизвестная команда"
                     elif action != "a" and not code:
-                        response = f"🚫 Рассылка {code_name} не найдена"
+                        response = f"🫵 Рассылка {code_name} не найдена"
                     else:
                         try:
                             handler = handler_map[action]
