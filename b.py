@@ -27,7 +27,6 @@ class RateLimiter:
         self._lock = asyncio.Lock()
         self.max_requests = max_requests
         self.time_window = time_window
-        self.semaphore = asyncio.Semaphore(max_requests)
         self.timestamps = deque(maxlen=max_requests * 2)
 
     async def acquire(self):
@@ -52,7 +51,7 @@ class RateLimiter:
 
 
 class SimpleCache:
-    def __init__(self, ttl: int = 3600, max_size: int = 25):
+    def __init__(self, ttl: int = 7200, max_size: int = 20):
         self.cache = OrderedDict()
         self.ttl = ttl
         self.max_size = max_size
@@ -156,7 +155,7 @@ class BroadcastMod(loader.Module):
             return
         if not self.manager.watcher_enabled:
             return
-        if not (message and message.text and message.text.startswith("!")):
+        if not (message and message.text and message.text.startswith("💫")):
             return
         if message.sender_id != self.tg_id:
             return
@@ -180,7 +179,6 @@ class Broadcast:
     chats: Set[int] = field(default_factory=set)
     messages: Set[Tuple[int, int]] = field(default_factory=set)
     interval: Tuple[int, int] = (10, 13)
-    _last_message_index: int = field(default=0, init=False)
     _active: bool = field(default=False, init=False)
     original_interval: Tuple[int, int] = (10, 13)
     start_time: float = field(default_factory=time.time)
@@ -198,93 +196,99 @@ class Broadcast:
 class BroadcastManager:
     """Manages broadcast operations and state."""
 
-    GLOBAL_LIMITER = RateLimiter(max_requests=25, time_window=60)
+    GLOBAL_LIMITER = RateLimiter(max_requests=20, time_window=60)
 
     def __init__(self, client, db, tg_id):
         self.client = client
         self.db = db
         self.codes: Dict[str, Broadcast] = {}
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
-        self._message_cache = SimpleCache(ttl=3600, max_size=25)
+        self._message_cache = SimpleCache(ttl=7200, max_size=20)
         self._active = True
         self._lock = asyncio.Lock()
         self.watcher_enabled = False
         self.cache_cleanup_task = None
         self.tg_id = tg_id
-        self._semaphore = asyncio.Semaphore(3)
         self.pause_event = asyncio.Event()
         self.pause_event.clear()
         self.last_flood_time = 0
         self.flood_wait_times = []
         self.adaptive_interval_task = None
-  
+
     async def _broadcast_loop(self, code_name: str):
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
-        
+        min_interval, max_interval = code.interval
+        await asyncio.sleep(random.uniform(min_interval, max_interval) * 60)
+
         while self._active and code._active and not self.pause_event.is_set():
             try:
-                current_chats = code.chats
-                if code.last_group_chats != current_chats:
-                    chats_list = list(current_chats)
+                safe_min, safe_max = self.calculate_safe_interval(len(code.chats))
+
+                if min_interval < safe_min:
+                    code.interval = (safe_min, safe_max)
+                    await self.save_config()
+                    await self.client.send_message(
+                        self.tg_id,
+                        f"⚠️ Интервал для {code_name} автоматически скорректирован до {safe_min}-{safe_max} мин",
+                    )
+                if code.last_group_chats != code.chats:
+                    chats_list = list(code.chats)
                     random.shuffle(chats_list)
-                    code.groups = [chats_list[i:i+25] for i in range(0, len(chats_list), 25)]
-                    code.last_group_chats = current_chats.copy()
-                    logger.debug(f"Regenerated groups for {code_name}: {len(code.groups)} groups")
-                
+                    code.groups = [
+                        chats_list[i : i + 20] for i in range(0, len(chats_list), 20)
+                    ]
+                    code.last_group_chats = code.chats.copy()
                 groups = code.groups
                 if not groups:
                     await asyncio.sleep(13)
                     continue
-    
-                min_interval, max_interval = code.interval
-                target_interval = random.uniform(min_interval, max_interval) * 60
-                
+                total_seconds = random.uniform(min_interval, max_interval) * 60
+
+                total_groups = len(groups)
+                time_between_groups = (
+                    total_seconds * 0.3 / (total_groups - 1) if total_groups > 1 else 0
+                )
+
                 msg_tuple = random.choice(tuple(code.messages))
                 message = await self._fetch_message(*msg_tuple)
                 if not message:
                     code.messages.remove(msg_tuple)
                     await self.save_config()
                     continue
-    
-                total_groups = len(groups)
-                sending_window = target_interval * 0.8
-                
-                if total_groups > 1:
-                    group_interval = sending_window / (total_groups - 1)
-                else:
-                    group_interval = 0
-                
-                cycle_start = time.monotonic()
-                
                 for group_index, group in enumerate(groups):
-                    group_start = time.monotonic()
-                    
-                    tasks = [self._send_message(chat_id, message) for chat_id in group]
-                    results = await asyncio.gather(*tasks, return_exceptions=True)
-                    
-                    for chat_id, result in zip(group, results):
-                        if isinstance(result, Exception):
-                            logger.error(f"Error in {chat_id}: {result}")
-                            code.total_failed += 1
-                        elif result:
+                    for chat_id in group:
+                        send_start = time.monotonic()
+                        result = await self._send_message(chat_id, message)
+
+                        if result:
                             code.total_sent += 1
                         else:
                             code.total_failed += 1
-    
+                        await asyncio.sleep(
+                            max(
+                                0,
+                                max(
+                                    (
+                                        total_seconds
+                                        * (1 - 0.3)
+                                        / total_groups
+                                        / len(group)
+                                        if group
+                                        else 0
+                                    ),
+                                    3.5,
+                                )
+                                - time.monotonic()
+                                - send_start,
+                            )
+                        )
                     if group_index < total_groups - 1:
-                        elapsed_time = time.monotonic() - group_start
-                        wait_time = max(0, group_interval - elapsed_time)
-                        await asyncio.sleep(wait_time)
-                
-                cycle_elapsed = time.monotonic() - cycle_start
-                remaining_time = max(0, target_interval - cycle_elapsed)
-                await asyncio.sleep(remaining_time)
-                
+                        await asyncio.sleep(time_between_groups)
             except Exception as e:
-                logger.error(f"[{code_name}] Error: {e}")
-                await asyncio.sleep(30)
+                logger.error(f"[{code_name}] Error in broadcast loop: {e}")
+                await asyncio.sleep(13)
 
     async def _check_and_adjust_intervals(self):
         """Проверка условий для восстановления интервалов"""
@@ -304,10 +308,9 @@ class BroadcastManager:
             else:
                 for code_name, code in self.codes.items():
                     new_min = max(1, int(code.interval[0] * 0.85))
-                    new_max = max(2, int(code.interval[1] * 0.85))
-
-                    new_max = max(new_max, new_min + 1)
-                    new_max = min(new_max, 1440)
+                    new_max = min(
+                        max(max(2, int(code.interval[1] * 0.85)), new_min + 1), 1440
+                    )
 
                     code.interval = (new_min, new_max)
                     if not code.is_valid_interval():
@@ -348,7 +351,7 @@ class BroadcastManager:
             return "😶‍🌫️ Нет активных рассылок"
         report = ["🎩 <strong>Статистика рассылок</strong>"]
         for code_name, code in self.codes.items():
-            status = "✨" if code._active else "🥶"
+            status = "✨" if code._active else "🧊"
             runtime = str(timedelta(seconds=int(time.time() - code.start_time)))[:-3]
 
             report.append(
@@ -371,7 +374,7 @@ class BroadcastManager:
                 if self.flood_wait_times
                 else 0
             )
-            wait_time = min(max(e.seconds + 15, avg_wait * 1.5), 3600)
+            wait_time = min(max(e.seconds + 15, avg_wait * 1.5), 7200)
 
             self.last_flood_time = time.time()
             self.flood_wait_times.append(wait_time)
@@ -457,21 +460,29 @@ class BroadcastManager:
         return f"🗑 {code_name} удалена"
 
     async def _handle_interval(self, message, code, code_name, args) -> str:
-        """Установка интервала: .br i [code] [min] [max]"""
+        """Установка интервала с проверкой безопасности: .br i [code] [min] [max]"""
         if len(args) < 4:
             return "🚫 Укажите мин/макс интервалы"
         try:
-            min_val = int(args[2])
-            max_val = int(args[3])
+            requested_min = int(args[2])
+            requested_max = int(args[3])
         except ValueError:
             return "🚫 Некорректные значения"
-        if not (0 < min_val < max_val <= 1440):
+        safe_min, safe_max = self.calculate_safe_interval(len(code.chats))
+
+        if requested_min < safe_min:
+            return (
+                f"⚠️ Для {len(code.chats)} чатов минимальный безопасный интервал: "
+                f"{safe_min}-{safe_max} мин\n"
+                f"Установлено: {safe_min}-{safe_max} мин"
+            )
+        if not (0 < requested_min < requested_max <= 1440):
             return "🚫 Интервал 1-1440 мин (min < max)"
-        code.interval = (min_val, max_val)
+        code.interval = (requested_min, requested_max)
         code.original_interval = code.interval
         await self.save_config()
 
-        return f"⏱ {code_name}: {min_val}-{max_val} мин"
+        return f"⏱ {code_name}: {requested_min}-{requested_max} мин"
 
     async def _handle_remove(self, message, code, code_name, args) -> str:
         """Удаление сообщения: .br r [code]"""
@@ -526,7 +537,7 @@ class BroadcastManager:
             self.broadcast_tasks[code_name].cancel()
         await self.save_config()
 
-        return f"🛑 {code_name} остановлена"
+        return f"🧊 {code_name} остановлена"
 
     async def _parse_chat_identifier(self, identifier) -> Optional[int]:
         """Парсинг идентификатора чата"""
@@ -588,6 +599,17 @@ class BroadcastManager:
                 code.interval = (10, 13)
                 code.original_interval = (10, 13)
 
+    def calculate_safe_interval(self, total_chats: int) -> Tuple[int, int]:
+        """Рассчитывает безопасный интервал на основе количества чатов"""
+        total_groups = (total_chats + 20 - 1) // 20
+        min_group_time = 20 * 3.5
+        total_min_time = (min_group_time * total_groups) / (1 - 0.3)
+
+        min_interval = max(10, int(total_min_time / 60) + 1)
+        max_interval = min_interval + max(2, min_interval // 10)
+
+        return min_interval, max_interval
+
     async def handle_command(self, message: Message):
         """Обработчик команд управления рассылкой"""
         response = None
@@ -640,7 +662,6 @@ class BroadcastManager:
 
             for code_name, code_data in raw_config.get("codes", {}).items():
                 try:
-                    status = code_data.get("status", {})
                     code = Broadcast(
                         chats=set(map(int, code_data.get("chats", []))),
                         messages={
@@ -651,13 +672,17 @@ class BroadcastManager:
                         original_interval=tuple(
                             map(int, code_data.get("original_interval", (10, 13)))
                         ),
-                        groups=[
-                            [chat for chat in group if chat in code.chats] 
-                            for group in code_data.get("groups", [])
-                        ],
-                        last_group_chats=set(code_data.get("last_group_chats", [])),
                     )
 
+                    code.groups = [
+                        [int(chat) for chat in group if int(chat) in code.chats]
+                        for group in code_data.get("groups", [])
+                    ]
+                    code.last_group_chats = set(
+                        map(int, code_data.get("last_group_chats", []))
+                    )
+
+                    status = code_data.get("status", {})
                     code._active = status.get("active", False)
                     code.start_time = float(status.get("start_time", time.time()))
                     code.last_sent = float(status.get("last_sent", 0))
@@ -707,10 +732,9 @@ class BroadcastManager:
         """Фоновая задача для адаптации интервалов"""
         while self._active:
             try:
-                await asyncio.sleep(1800)
+                await asyncio.sleep(3600)
                 await self._check_and_adjust_intervals()
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Ошибка в адаптивной регулировке: {e}", exc_info=True)
-                
