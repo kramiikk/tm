@@ -7,7 +7,7 @@ import time
 from collections import deque, OrderedDict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Dict, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from hikkatl.tl.types import Message
 from hikkatl.errors import (
