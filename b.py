@@ -569,7 +569,7 @@ class BroadcastManager:
         if not self.pause_event.is_set():
             try:
                 await self.GLOBAL_LIMITER.acquire()
-                
+
                 if msg.media:
                     await self.client.send_file(
                         entity=chat_id,
@@ -582,7 +582,6 @@ class BroadcastManager:
                         message=msg.text,
                     )
                 return True
-                
             except FloodWaitError as e:
                 await self._handle_flood_wait(e, chat_id)
             except (ChatWriteForbiddenError, UserBannedInChannelError):
