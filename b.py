@@ -177,8 +177,6 @@ class BroadcastMod(loader.Module):
 
 @dataclass
 class Broadcast:
-    """Основной класс для управления рассылкой"""
-
     chats: Set[int] = field(default_factory=set)
     messages: Set[Tuple[int, int]] = field(default_factory=set)
     interval: Tuple[int, int] = (10, 13)
@@ -189,9 +187,10 @@ class Broadcast:
     last_sent: float = 0
     total_sent: int = 0
     total_failed: int = 0
+    groups: List[List[int]] = field(default_factory=list)
+    last_group_chats: Set[int] = field(default_factory=set)
 
     def is_valid_interval(self) -> bool:
-        """Проверяет корректность интервала"""
         min_val, max_val = self.interval
         return 0 < min_val < max_val <= 1440
 
@@ -218,56 +217,73 @@ class BroadcastManager:
         self.last_flood_time = 0
         self.flood_wait_times = []
         self.adaptive_interval_task = None
-
+  
     async def _broadcast_loop(self, code_name: str):
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
-        min_interval, max_interval = code.interval
-        await asyncio.sleep(random.uniform(min_interval, max_interval) * 60)
-
+        
         while self._active and code._active and not self.pause_event.is_set():
             try:
-                cycle_start_time = time.monotonic()
-
+                current_chats = code.chats
+                if code.last_group_chats != current_chats:
+                    chats_list = list(current_chats)
+                    random.shuffle(chats_list)
+                    code.groups = [chats_list[i:i+25] for i in range(0, len(chats_list), 25)]
+                    code.last_group_chats = current_chats.copy()
+                    logger.debug(f"Regenerated groups for {code_name}: {len(code.groups)} groups")
+                
+                groups = code.groups
+                if not groups:
+                    await asyncio.sleep(13)
+                    continue
+    
+                min_interval, max_interval = code.interval
+                target_interval = random.uniform(min_interval, max_interval) * 60
+                
                 msg_tuple = random.choice(tuple(code.messages))
                 message = await self._fetch_message(*msg_tuple)
                 if not message:
                     code.messages.remove(msg_tuple)
                     await self.save_config()
                     continue
-                chats = list(code.chats)
-                random.shuffle(chats)
-                groups = [chats[i : i + 25] for i in range(0, len(chats), 25)]
+    
                 total_groups = len(groups)
-
-                target_interval = random.uniform(*code.interval) * 60
-                available_time = target_interval * 0.67
-                group_interval = (
-                    available_time / (total_groups - 1) if total_groups > 1 else 0
-                )
-
-                for group_num, group in enumerate(groups):
+                sending_window = target_interval * 0.8
+                
+                if total_groups > 1:
+                    group_interval = sending_window / (total_groups - 1)
+                else:
+                    group_interval = 0
+                
+                cycle_start = time.monotonic()
+                
+                for group_index, group in enumerate(groups):
+                    group_start = time.monotonic()
+                    
                     tasks = [self._send_message(chat_id, message) for chat_id in group]
                     results = await asyncio.gather(*tasks, return_exceptions=True)
-
+                    
                     for chat_id, result in zip(group, results):
                         if isinstance(result, Exception):
-                            logger.error(f"Ошибка в {chat_id}: {result}")
+                            logger.error(f"Error in {chat_id}: {result}")
                             code.total_failed += 1
-                        elif not result:
-                            code.total_failed += 1
-                        elif result is False:
-                            code.total_failed += 1
-                        else:
+                        elif result:
                             code.total_sent += 1
-                    if group_num < total_groups - 1:
-                        await asyncio.sleep(group_interval)
-                elapsed = time.monotonic() - cycle_start_time
-                remaining = max(target_interval - elapsed, 1)
-                await asyncio.sleep(remaining)
+                        else:
+                            code.total_failed += 1
+    
+                    if group_index < total_groups - 1:
+                        elapsed_time = time.monotonic() - group_start
+                        wait_time = max(0, group_interval - elapsed_time)
+                        await asyncio.sleep(wait_time)
+                
+                cycle_elapsed = time.monotonic() - cycle_start
+                remaining_time = max(0, target_interval - cycle_elapsed)
+                await asyncio.sleep(remaining_time)
+                
             except Exception as e:
-                logger.error(f"[{code_name}] Ошибка: {e}")
+                logger.error(f"[{code_name}] Error: {e}")
                 await asyncio.sleep(30)
 
     async def _check_and_adjust_intervals(self):
