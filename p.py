@@ -39,7 +39,6 @@ CONFIG_NIGHT_END = "night_end"
 CONFIG_NIGHT_DELAY_MULTIPLIER = "night_delay"
 
 
-@loader.tds
 class ProfileChangerMod(loader.Module):
     """Автоматическое обновление фото профиля с адаптивной системой защиты."""
 
@@ -174,7 +173,7 @@ class ProfileChangerMod(loader.Module):
     async def client_ready(self, client, db):
         self._client = client
         self._db = db
-        self._me = await client.get_me()
+        self._me = self.tg_id
         self._load_state()
         if self.running:
             self._task = asyncio.create_task(self._loop())
