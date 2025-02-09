@@ -109,6 +109,8 @@ class BroadcastMod(loader.Module):
 
     def __init__(self):
         self.manager = None
+        self.answered_users = set()
+        self.answer_lock = asyncio.Lock()
 
     @loader.command()
     async def b(self, message):
@@ -149,29 +151,34 @@ class BroadcastMod(loader.Module):
         await self.manager._message_cache.clean_expired(force=True)
 
     async def watcher(self, message: Message):
-        """Автоматически добавляет чаты в рассылку."""
+        """Автоматически добавляет чаты в рассылку и отвечает на первое сообщение."""
+        if not isinstance(message, Message):
+            return
+        
+        if (
+            message.is_private
+            and not message.out
+        ):
+            async with self.answer_lock:
+                user_id = message.sender_id
+                if user_id not in self.answered_users:
+                    await utils.answer(message, "Привет! Это автоответчик, скоро обязательно отвечу. 🌕")
+                    self.answered_users.add(user_id)
+
         if not hasattr(self, "manager") or self.manager is None:
             return
-        if not self.manager.watcher_enabled:
-            return
-        if not (message and message.text and message.text.startswith("💫")):
-            return
-        if message.sender_id != self.tg_id:
-            return
-        parts = message.text.split()
-        code_name = parts[0][1:]
-        if not code_name.isalnum():
-            return
-        chat_id = message.chat_id
-        code = self.manager.codes.get(code_name)
-        if not code:
-            return
-        if len(code.chats) >= 500:
-            return
-        if chat_id not in code.chats:
-            code.chats.add(chat_id)
-            await self.manager.save_config()
 
+        if self.manager.watcher_enabled:
+            if message.text and message.text.startswith("💫"):
+                if message.sender_id == self.tg_id:
+                    parts = message.text.split()
+                    code_name = parts[0][1:]
+                    if code_name.isalnum():
+                        chat_id = message.chat_id
+                        code = self.manager.codes.get(code_name)
+                        if code and len(code.chats) < 500 and chat_id not in code.chats:
+                            code.chats.add(chat_id)
+                            await self.manager.save_config()
 
 @dataclass
 class Broadcast:
