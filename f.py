@@ -166,8 +166,7 @@ class BroadcastMod(loader.Module):
             return
         if (
             message.is_private
-            and message.sender
-            and not message.sender.bot
+            and not message.out
         ):
             await message.reply("xj")
             async with self.answer_lock:
