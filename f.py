@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
-from hikkatl.tl.types import Message
+from hikkatl.tl.types import Message, PeerUser
 from hikkatl.errors import (
     ChatWriteForbiddenError,
     FloodWaitError,
