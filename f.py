@@ -344,7 +344,7 @@ class BroadcastManager:
                     )
             await self.save_config()
 
-    async def _fetch_message(self, chat_id: int, message_id: int) -> Optional[Message]:
+    async def _fetch_message(self, chat_id: int, message_id: int):
         """Fetch a message from cache or Telegram"""
         cache_key = (chat_id, message_id)
 
