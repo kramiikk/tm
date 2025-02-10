@@ -109,6 +109,12 @@ class BroadcastMod(loader.Module):
         self.manager = None
         self._answered_users = set()
         self.answer_lock = asyncio.Lock()
+        self._auto_config = {
+            "enabled": False,
+            "photo_url": "https://flawlessend.com/wp-content/uploads/2019/03/BEAUTY-LIFE-HACKS.jpg",
+            "text": "Привет! Это автоответчик, скоро обязательно отвечу. 🌕",
+        }
+        
 
     @loader.command()
     async def b(self, message):
@@ -120,11 +126,7 @@ class BroadcastMod(loader.Module):
         self._auto_config = self.db.get(
             "auto_responder",
             "config",
-            {
-                "enabled": False,
-                "photo_url": "https://flawlessend.com/wp-content/uploads/2019/03/BEAUTY-LIFE-HACKS.jpg",
-                "text": "Привет! Это автоответчик, скоро обязательно отвечу. 🌕",
-            },
+            self._auto_config,
         )
         self.db.set("auto_responder", "config", self._auto_config)
 
