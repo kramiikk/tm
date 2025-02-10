@@ -160,7 +160,7 @@ class BroadcastMod(loader.Module):
 
         await self.manager._message_cache.clean_expired(force=True)
 
-    async def watcher(self, message: Message):
+    async def watcher(self, message):
         """Автоматически отвечает на первое сообщение."""
         if not isinstance(message, Message):
             return
