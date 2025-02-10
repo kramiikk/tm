@@ -376,6 +376,38 @@ class BroadcastManager:
             )
         return "".join(report)
 
+    async def _handle_add(self, message, code, code_name, args) -> str:
+        """Добавление сообщения в рассылку: .br a [code]"""
+        reply = await message.get_reply_message()
+        if not reply:
+            return "🫵 Ответьте на сообщение"
+        if not code:
+            code = Broadcast()
+            self.codes[code_name] = code
+        key = (reply.chat_id, reply.id)
+        if key in code.messages:
+            return "ℹ️ Сообщение уже добавлено"
+        code.messages.add(key)
+        await self._message_cache.set(key, reply)
+        await self.save_config()
+
+        return f"🍑 <code>{code_name}</code> | Сообщений: {len(code.messages)}"
+
+    async def _handle_add_chat(self, message, code, code_name, args) -> str:
+        """Добавление чата: .br ac [code] [@chat]"""
+        target = args[2] if len(args) > 2 else message.chat_id
+        chat_id = await self._parse_chat_identifier(target)
+
+        if not chat_id:
+            return "🫵 Неверный формат чата"
+        if chat_id in code.chats:
+            return "ℹ️ Чат уже добавлен"
+        if len(code.chats) >= 500:
+            return "🫵 Лимит 500 чатов"
+        code.chats.add(chat_id)
+        await self.save_config()
+        return f"🪴 +1 чат | Всего: {len(code.chats)}"
+
     async def _handle_auto(self, args) -> str:
         """Обработчик команд автоответчика: .b auto [on/off/text/photo]"""
         auto_config = self.db.get("auto_responder", "config")
@@ -413,6 +445,43 @@ class BroadcastManager:
         else:
             return "❌ Неизвестная подкоманда. Доступно: on, off, text, photo"
         self.db.set("auto_responder", "config", new_config)
+        return response
+
+    async def _handle_delete(self, message, code, code_name, args) -> str:
+        """Удаление рассылки: .br d [code]"""
+        if code_name in self.broadcast_tasks:
+            self.broadcast_tasks[code_name].cancel()
+        del self.codes[code_name]
+        await self.save_config()
+        return f"🗑 {code_name} удалена"
+
+    async def _handle_interval(self, message, code, code_name, args) -> str:
+        """Установка интервала с проверкой безопасности: .br i [code] [min] [max]"""
+        if len(args) < 4:
+            return "🫵 Укажите мин/макс интервалы"
+        try:
+            requested_min = int(args[2])
+            requested_max = int(args[3])
+        except ValueError:
+            return "🫵 Некорректные значения"
+        if not (0 < requested_min < requested_max <= 1440):
+            return "🫵 Интервал 1-1440 мин (min < max)"
+        safe_min, safe_max = self.calculate_safe_interval(len(code.chats))
+
+        if requested_min < safe_min:
+            new_interval = (safe_min, safe_max)
+            response = (
+                f"⚠️ Для {len(code.chats)} чатов минимальный безопасный интервал: "
+                f"{safe_min}-{safe_max} мин\n"
+                f"Установлено: {safe_min}-{safe_max} мин"
+            )
+        else:
+            new_interval = (requested_min, requested_max)
+            response = f"⏱️ {code_name}: {requested_min}-{requested_max} мин"
+        code.interval = new_interval
+        code.original_interval = new_interval
+        await self.save_config()
+
         return response
 
     async def _handle_flood_wait(self, e: FloodWaitError, chat_id: int):
@@ -470,75 +539,6 @@ class BroadcastManager:
                 code.chats.discard(chat_id)
                 logger.error(f"🚫 Ошибка в чате {chat_id}. Удален из рассылок.")
         await self.save_config()
-
-    async def _handle_add(self, message, code, code_name, args) -> str:
-        """Добавление сообщения в рассылку: .br a [code]"""
-        reply = await message.get_reply_message()
-        if not reply:
-            return "🫵 Ответьте на сообщение"
-        if not code:
-            code = Broadcast()
-            self.codes[code_name] = code
-        key = (reply.chat_id, reply.id)
-        if key in code.messages:
-            return "ℹ️ Сообщение уже добавлено"
-        code.messages.add(key)
-        await self._message_cache.set(key, reply)
-        await self.save_config()
-
-        return f"🍑 <code>{code_name}</code> | Сообщений: {len(code.messages)}"
-
-    async def _handle_add_chat(self, message, code, code_name, args) -> str:
-        """Добавление чата: .br ac [code] [@chat]"""
-        target = args[2] if len(args) > 2 else message.chat_id
-        chat_id = await self._parse_chat_identifier(target)
-
-        if not chat_id:
-            return "🫵 Неверный формат чата"
-        if chat_id in code.chats:
-            return "ℹ️ Чат уже добавлен"
-        if len(code.chats) >= 500:
-            return "🫵 Лимит 500 чатов"
-        code.chats.add(chat_id)
-        await self.save_config()
-        return f"🪴 +1 чат | Всего: {len(code.chats)}"
-
-    async def _handle_delete(self, message, code, code_name, args) -> str:
-        """Удаление рассылки: .br d [code]"""
-        if code_name in self.broadcast_tasks:
-            self.broadcast_tasks[code_name].cancel()
-        del self.codes[code_name]
-        await self.save_config()
-        return f"🗑 {code_name} удалена"
-
-    async def _handle_interval(self, message, code, code_name, args) -> str:
-        """Установка интервала с проверкой безопасности: .br i [code] [min] [max]"""
-        if len(args) < 4:
-            return "🫵 Укажите мин/макс интервалы"
-        try:
-            requested_min = int(args[2])
-            requested_max = int(args[3])
-        except ValueError:
-            return "🫵 Некорректные значения"
-        if not (0 < requested_min < requested_max <= 1440):
-            return "🫵 Интервал 1-1440 мин (min < max)"
-        safe_min, safe_max = self.calculate_safe_interval(len(code.chats))
-
-        if requested_min < safe_min:
-            new_interval = (safe_min, safe_max)
-            response = (
-                f"⚠️ Для {len(code.chats)} чатов минимальный безопасный интервал: "
-                f"{safe_min}-{safe_max} мин\n"
-                f"Установлено: {safe_min}-{safe_max} мин"
-            )
-        else:
-            new_interval = (requested_min, requested_max)
-            response = f"⏱️ {code_name}: {requested_min}-{requested_max} мин"
-        code.interval = new_interval
-        code.original_interval = new_interval
-        await self.save_config()
-
-        return response
 
     async def _handle_remove(self, message, code, code_name, args) -> str:
         """Удаление сообщения: .br r [code]"""
