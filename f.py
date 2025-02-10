@@ -104,6 +104,8 @@ class SimpleCache:
 
 class BroadcastMod(loader.Module):
     """Модуль для массовой рассылки."""
+    
+    strings = {"name": "Broadcast"}
 
     def __init__(self):
         self.manager = None
@@ -160,6 +162,7 @@ class BroadcastMod(loader.Module):
 
         await self.manager._message_cache.clean_expired(force=True)
 
+    @loader.watcher()
     async def watcher(self, message):
         """Автоматически отвечает на первое сообщение."""
         if not isinstance(message, Message):
