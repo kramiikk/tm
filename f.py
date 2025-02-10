@@ -166,8 +166,7 @@ class BroadcastMod(loader.Module):
         if not isinstance(message, Message):
             return
         if (
-            self._auto_config.get("enabled", False)
-            and message.is_private
+            message.is_private
             and not message.out
             and not message.sender.bot
             and message.sender_id not in self._answered_users
