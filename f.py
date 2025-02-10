@@ -173,15 +173,14 @@ class BroadcastMod(loader.Module):
         ):
             await utils.answer(message, "xj")
             async with self.answer_lock:
-                user_id = message.sender_id
-                if user_id not in self._answered_users:
+                if message.sender_id not in self._answered_users:
                     try:
                         await message.client.send_file(
-                            message.chat_id,
+                            message.sender_id,
                             self._auto_config["photo_url"],
                             caption=self._auto_config["text"],
                         )
-                        self._answered_users.add(user_id)
+                        self._answered_users.add(message.sender_id)
                     except Exception as e:
                         logger.error(f"Auto-responder error: {e}")
 
