@@ -170,6 +170,7 @@ class BroadcastMod(loader.Module):
             and message.is_private
             and not message.out
             and not message.sender.bot
+            and message.sender_id not in self._answered_users
         ):
             await utils.answer(message, "xj")
             async with self.answer_lock:
