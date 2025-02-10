@@ -628,7 +628,7 @@ class BroadcastManager:
                     )
                     logger.info(f"Перезапуск рассылки: {code_name}")
 
-    async def _send_message(self, chat_id: int, msg: Message) -> bool:
+    async def _send_message(self, chat_id: int, msg) -> bool:
         if not self.pause_event.is_set():
             try:
                 await self.GLOBAL_LIMITER.acquire()
@@ -669,7 +669,7 @@ class BroadcastManager:
         )
         return min_interval, min_interval + max(1, min_interval // 15)
 
-    async def handle_command(self, message: Message):
+    async def handle_command(self, message):
         """Обработчик команд управления рассылкой"""
         response = None
         args = message.text.split()[1:]
