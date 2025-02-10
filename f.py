@@ -172,7 +172,7 @@ class BroadcastMod(loader.Module):
             and not message.sender.bot
             and message.sender_id not in self._answered_users
         ):
-            await utils.answer(message, "xj")
+            await message.reply("xj")
             async with self.answer_lock:
                 if message.sender_id not in self._answered_users:
                     try:
