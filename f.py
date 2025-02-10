@@ -165,7 +165,7 @@ class BroadcastMod(loader.Module):
         if not isinstance(message, Message):
             return
         if (
-            message.is_private
+            isinstance(message.peer_id, PeerUser)
             and not message.out
         ):
             await message.reply("xj")
