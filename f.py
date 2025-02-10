@@ -110,7 +110,7 @@ class BroadcastMod(loader.Module):
         self._answered_users = set()
         self.answer_lock = asyncio.Lock()
         self._auto_config = {
-            "enabled": False,
+            "enabled": True,
             "photo_url": "https://flawlessend.com/wp-content/uploads/2019/03/BEAUTY-LIFE-HACKS.jpg",
             "text": "Привет! Это автоответчик, скоро обязательно отвечу. 🌕",
         }
@@ -166,10 +166,10 @@ class BroadcastMod(loader.Module):
         if not isinstance(message, Message):
             return
         if (
-            message.is_private
+            self._auto_config.get("enabled", False)
+            and message.is_private
             and not message.out
             and not message.sender.bot
-            and self._auto_config.get("enabled", False)
         ):
             await utils.answer(message, "xj")
             async with self.answer_lock:
