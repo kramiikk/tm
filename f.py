@@ -167,7 +167,6 @@ class BroadcastMod(loader.Module):
         if (
             self._auto_config.get("enabled", False)
             and isinstance(message.peer_id, PeerUser)
-            and not message.out
         ):
             await message.reply("xj")
             async with self.answer_lock:
