@@ -107,7 +107,7 @@ class BroadcastMod(loader.Module):
 
     def __init__(self):
         self.manager = None
-        self.answered_users = set()
+        self._answered_users = set()
         self.answer_lock = asyncio.Lock()
 
     @loader.command()
@@ -117,12 +117,16 @@ class BroadcastMod(loader.Module):
 
     async def client_ready(self):
         """Инициализация модуля при загрузке"""
-        auto_config = self.db.get("auto_responder", "config") or {
-            "enabled": False,
-            "photo_url": "https://flawlessend.com/wp-content/uploads/2019/03/BEAUTY-LIFE-HACKS.jpg",
-            "text": "Привет! Это автоответчик, скоро обязательно отвечу. 🌕",
-        }
-        self.db.set("auto_responder", "config", auto_config)
+        self._auto_config = self.db.get(
+            "auto_responder",
+            "config",
+            {
+                "enabled": False,
+                "photo_url": "https://flawlessend.com/wp-content/uploads/2019/03/BEAUTY-LIFE-HACKS.jpg",
+                "text": "Привет! Это автоответчик, скоро обязательно отвечу. 🌕",
+            },
+        )
+        self.db.set("auto_responder", "config", self._auto_config)
 
         self.manager = BroadcastManager(self.client, self.db, self.tg_id)
         await self.manager.load_config()
@@ -156,36 +160,28 @@ class BroadcastMod(loader.Module):
         await self.manager._message_cache.clean_expired(force=True)
 
     async def watcher(self, message: Message):
-        """Автоматически добавляет чаты в рассылку и отвечает на первое сообщение."""
+        """Автоматически отвечает на первое сообщение."""
         if not isinstance(message, Message):
             return
-        auto_config = self.db.get("auto_responder", "config")
-        if auto_config.get("enabled", False) and message.is_private and not message.out:
+        if (
+            message.is_private
+            and not message.out
+            and not message.sender.bot
+            and self._auto_config.get("enabled", False)
+        ):
+
             async with self.answer_lock:
                 user_id = message.sender_id
-                if user_id not in self.answered_users:
-                    self.answered_users.add(user_id)
+                if user_id not in self._answered_users:
                     try:
                         await message.client.send_file(
                             message.chat_id,
-                            auto_config["photo_url"],
-                            caption=auto_config["text"],
+                            self._auto_config["photo_url"],
+                            caption=self._auto_config["text"],
                         )
+                        self._answered_users.add(user_id)
                     except Exception as e:
-                        logger.error(f"Ошибка отправки автоответа: {e}")
-        if not hasattr(self, "manager") or self.manager is None:
-            return
-        if self.manager.watcher_enabled:
-            if message.text and message.text.startswith("💫"):
-                if message.sender_id == self.tg_id:
-                    parts = message.text.split()
-                    code_name = parts[0][1:]
-                    if code_name.isalnum():
-                        chat_id = message.chat_id
-                        code = self.manager.codes.get(code_name)
-                        if code and len(code.chats) < 500 and chat_id not in code.chats:
-                            code.chats.add(chat_id)
-                            await self.manager.save_config()
+                        logger.error(f"Auto-responder error: {e}")
 
 
 @dataclass
