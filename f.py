@@ -114,7 +114,6 @@ class BroadcastMod(loader.Module):
             "photo_url": "https://flawlessend.com/wp-content/uploads/2019/03/BEAUTY-LIFE-HACKS.jpg",
             "text": "Привет! Это автоответчик, скоро обязательно отвечу. 🌕",
         }
-        
 
     @loader.command()
     async def b(self, message):
@@ -183,7 +182,6 @@ class BroadcastMod(loader.Module):
                         self._answered_users.add(message.sender_id)
                     except Exception as e:
                         logger.error(f"Auto-responder error: {e}")
-
         if not hasattr(self, "manager") or self.manager is None:
             return
         if self.manager.watcher_enabled:
