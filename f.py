@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Dict, List, Optional, Set, Tuple
 
-from hikkatl.tl.types import Message, PeerUser
+from hikkatl.tl.types import Message
 from hikkatl.errors import (
     ChatWriteForbiddenError,
     FloodWaitError,
@@ -166,7 +166,10 @@ class BroadcastMod(loader.Module):
             return
         if (
             self._auto_config.get("enabled", False)
-            and isinstance(message.peer_id, PeerUser)
+            and message.is_private
+            and message.sender
+            and not message.sender.bot
+            and message.sender_id not in self._answered_users
         ):
             await message.reply("xj")
             async with self.answer_lock:
