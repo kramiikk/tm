@@ -165,7 +165,7 @@ class BroadcastMod(loader.Module):
         if not isinstance(message, Message):
             return
         if (
-            auto_config.get("enabled", False)
+            self._auto_config.get("enabled", False)
             and isinstance(message.peer_id, PeerUser)
             and not message.out
         ):
