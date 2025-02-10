@@ -166,6 +166,7 @@ class BroadcastMod(loader.Module):
             return
         if (
             message.is_private
+            and message.sender
             and not message.sender.bot
         ):
             await message.reply("xj")
