@@ -171,7 +171,7 @@ class BroadcastMod(loader.Module):
             and not message.sender.bot
             and self._auto_config.get("enabled", False)
         ):
-
+            await utils.answer(message, "xj")
             async with self.answer_lock:
                 user_id = message.sender_id
                 if user_id not in self._answered_users:
@@ -184,6 +184,20 @@ class BroadcastMod(loader.Module):
                         self._answered_users.add(user_id)
                     except Exception as e:
                         logger.error(f"Auto-responder error: {e}")
+
+        if not hasattr(self, "manager") or self.manager is None:
+            return
+        if self.manager.watcher_enabled:
+            if message.text and message.text.startswith("💫"):
+                if message.sender_id == self.tg_id:
+                    parts = message.text.split()
+                    code_name = parts[0][1:]
+                    if code_name.isalnum():
+                        chat_id = message.chat_id
+                        code = self.manager.codes.get(code_name)
+                        if code and len(code.chats) < 500 and chat_id not in code.chats:
+                            code.chats.add(chat_id)
+                            await self.manager.save_config()
 
 
 @dataclass
