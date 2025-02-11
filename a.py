@@ -12,85 +12,133 @@ logger = logging.getLogger(__name__)
 
 
 class AutoMod(loader.Module):
-    """Автоматически отвечает на личные сообщения"""
+    """Автоматически отвечает на личные сообщения с изображением и текстом"""
 
     strings = {"name": "Auto"}
 
     def __init__(self):
-        self.go = False
-        self.msg = (
-            "Mon esprit s'absente un instant, mais mes mots vous reviendront bientôt."
-        )
+        self.go = {
+            "enabled": False,
+            "message": "Mon esprit s'absente un instant, mais mes mots vous reviendront bientôt.",
+            "photo_url": "https://wallpapercave.com/wp/wp5418096.jpg",
+            "last": {},
+        }
         self.lock = asyncio.Lock()
-        self.last = {}
 
     async def client_ready(self, client: CustomTelegramClient, db):
         """Инициализация клиента и загрузка данных из БД"""
         self._client = client
         self.db = db
-        self.last = self.db.get("Auto", "last", {})
-        saved_enabled = self.db.get("Auto", "enabled", None)
-        if saved_enabled is not None:
-            self.go = saved_enabled
-        saved_message = self.db.get("Auto", "message", None)
-        if saved_message is not None:
-            self.msg = saved_message
+
+        for key in self.go:
+            self.go[key] = self.db.get("Auto", key, self.go[key])
 
     async def watcher(self, message: Message):
         """Обработчик входящих сообщений"""
-        if not self.go or not message.is_private or message.out or message.reply_markup:
+        if (
+            not self.go["enabled"]
+            or not message.is_private
+            or message.out
+            or message.reply_markup
+        ):
             return
         user = message.sender_id
         now = time.time()
 
         async with self.lock:
             logger.info(f"{user}_{now}_msg: {message.text}")
-            last_time = self.last.get(str(user), 0)
+            last_time = self.go["last"].get(str(user), 0)
+
             if now - last_time < 1800:
                 return
             try:
                 await self._send_safe_message(user)
-                self.last[str(user)] = now
-                self.db.set("Auto", "last", self.last)
+                self.go["last"][str(user)] = now
+                self.db.set("Auto", "last", self.go["last"])
             except Exception as e:
-                logger.error(f"Ошибка отправки сообщения: {e}", exc_info=True)
+                logger.error(f"Ошибка отправки: {e}", exc_info=True)
             finally:
-                self.last = {k: v for k, v in self.last.items() if now - v < 1800}
+                self.go["last"] = {
+                    k: v for k, v in self.go["last"].items() if now - v < 1800
+                }
 
     async def _send_safe_message(self, user_id: int):
         """Безопасная отправка сообщения с обработкой ошибок"""
         try:
             await self._client.dispatcher.safe_api_call(
-                self._client.send_message(user_id, self.msg)
+                self._client.send_file(
+                    user_id,
+                    self.go["photo_url"],
+                    caption=self.go["message"],
+                )
             )
         except FloodWaitError as e:
-            logger.warning(f"Обнаружен FloodWait: {e.seconds} сек")
+            logger.warning(f"FloodWait: {e.seconds} сек")
             await asyncio.sleep(e.seconds + 5)
         except Exception as e:
             raise
 
     @loader.command()
-    async def aa(self, message: Message):
-        """Переключить автоответчик"""
-        self.go = not self.go
-        self.db.set("Auto", "enabled", self.go)
-        state = "🟢 Включен" if self.go else "🔴 Выключен"
+    async def a(self, message: Message):
+        """Управление автоответчиком"""
+        args = utils.get_args_raw(message)
+
+        if not args:
+            return await self._show_help(message)
+        parts = args.split(maxsplit=2)
+        command = parts[0].lower()
+
+        handlers = {
+            "tg": self._toggle,
+            "tt": self._set_text,
+            "pt": self._set_photo,
+            "st": self._show_status,
+        }
+
+        if command not in handlers:
+            return await utils.answer(message, "❌ Неизвестная команда")
+        await handlers[command](message, parts[1:] if len(parts) > 1 else [])
+
+    async def _toggle(self, message: Message, args: list):
+        """Переключение состояния"""
+        self.go["enabled"] = not self.go["enabled"]
+        self.db.set("Auto", "enabled", self.go["enabled"])
+        state = "🟢 Включен" if self.go["enabled"] else "🔴 Выключен"
         await utils.answer(message, f"{state}")
 
-    @loader.command()
-    async def at(self, message: Message):
-        """Установить текст ответа"""
-        args = utils.get_args_raw(message)
+    async def _set_text(self, message: Message, args: list):
+        """Установка текста"""
         if not args:
-            await utils.answer(message, "❌ Укажите текст")
-            return
-        self.msg = args
-        self.db.set("Auto", "message", args)
-        await utils.answer(message, f"✅ Новый текст:\n{args}")
+            return await utils.answer(message, "❌ Укажите текст")
+        self.go["message"] = args[0]
+        self.db.set("Auto", "message", self.go["message"])
+        await utils.answer(message, f"✅ Новый текст:\n{self.go['message']}")
 
-    @loader.command()
-    async def a(self, message: Message):
-        """Показать текущие настройки"""
-        status = "🟢 Активен" if self.go else "🔴 Выключен"
-        text = f"{status}\n⏱ Задержка: 30 мин\n✉️ Текст ответа:\n{self.msg}"
+    async def _set_photo(self, message: Message, args: list):
+        """Установка фото"""
+        if not args:
+            return await utils.answer(message, "❌ Укажите URL изображения")
+        self.go["photo_url"] = args[0]
+        self.db.set("Auto", "photo_url", self.go["photo_url"])
+        await utils.answer(message, f"✅ Новая ссылка на фото:\n{self.go['photo_url']}")
+
+    async def _show_status(self, message: Message, args: list):
+        """Показать статус"""
+        status = "🟢 Активен" if self.go["enabled"] else "🔴 Выключен"
+        text = (
+            f"{status}\n⏱ Задержка: 30 мин\n"
+            f"✉️ Текст: {self.go['message']}\n"
+            f"🖼 Изображение: {self.go['photo_url']}"
+        )
         await utils.answer(message, text)
+
+    async def _show_help(self, message: Message):
+        """Показать справку"""
+        help_text = (
+            "📚 Доступные команды:\n\n"
+            ".a tg - Переключить статус\n"
+            ".a tt новый текст - Изменить текст\n"
+            ".a pt url - Изменить изображение\n"
+            ".a st - Показать настройки"
+        )
+        await utils.answer(message, help_text)
