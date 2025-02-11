@@ -36,6 +36,7 @@ class AutoMod(loader.Module):
 
     async def watcher(self, message: Message):
         """Обработчик входящих сообщений"""
+        logger.info(f"Получено сообщение")
         if (
             not self.go
             or not message.is_private
@@ -47,8 +48,10 @@ class AutoMod(loader.Module):
         
         user = message.sender_id
         now = time.time()
+        logger.info(f"Получено {now} сообщение от {message.sender_id}")
         
         async with self.lock:
+            logger.info(f"lock")
             last_time = self.last.get(str(user), 0)
             if now - last_time < 1800:
                 return
