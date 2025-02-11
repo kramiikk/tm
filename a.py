@@ -18,7 +18,9 @@ class AutoMod(loader.Module):
 
     def __init__(self):
         self.go = False
-        self.msg = "Mon esprit s'absente un instant, mais mes mots vous reviendront bientôt."
+        self.msg = (
+            "Mon esprit s'absente un instant, mais mes mots vous reviendront bientôt."
+        )
         self.lock = asyncio.Lock()
         self.last = {}
 
@@ -36,13 +38,13 @@ class AutoMod(loader.Module):
 
     async def watcher(self, message: Message):
         """Обработчик входящих сообщений"""
-        if not self.go or not message.is_private or message.out:
+        if not self.go or not message.is_private or message.out or message.reply_markup:
             return
         user = message.sender_id
         now = time.time()
 
         async with self.lock:
-            logger.info(f"msg_{int(time.time())}_{user}: {message.text}")
+            logger.info(f"{user}_{now}_msg: {message.text}")
             last_time = self.last.get(str(user), 0)
             if now - last_time < 1800:
                 return
