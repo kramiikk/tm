@@ -56,10 +56,7 @@ class AutoResponderMod(loader.Module):
 
     async def _send_safe_message(self, user_id: int):
         try:
-            dispatcher = self._client.hikka_dispatcher
-            await dispatcher.safe_api_call(
-                self._client.send_message(user_id, self.config["message"])
-            )
+            await self._client.send_message(user_id, self.config["message"])
         except FloodWaitError as e:
             logger.warning(f"Обнаружен FloodWait: {e.seconds} сек")
             await asyncio.sleep(e.seconds + 5)
