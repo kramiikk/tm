@@ -110,7 +110,7 @@ class AutoMod(loader.Module):
         """Установка текста"""
         if not args:
             return await utils.answer(message, "❌ Укажите текст")
-        self.go["message"] = args[0]
+        self.go["message"] = " ".join(args)
         self.db.set("Auto", "message", self.go["message"])
         await utils.answer(message, f"✅ Новый текст:\n{self.go['message']}")
 
