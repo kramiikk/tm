@@ -36,13 +36,10 @@ class AutoMod(loader.Module):
 
     async def watcher(self, message: Message):
         """Обработчик входящих сообщений"""
-        logger.info(f"Получено сообщение")
         if (
             not self.go
             or not message.is_private
             or message.out
-            or not message.sender
-            or message.sender.bot
         ):
             return
         
