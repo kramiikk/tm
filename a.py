@@ -10,8 +10,6 @@ from ..tl_cache import CustomTelegramClient
 
 logger = logging.getLogger(__name__)
 
-
-@loader.tds
 class AutoResponderMod(loader.Module):
     """Автоматически отвечает на личные сообщения"""
 
