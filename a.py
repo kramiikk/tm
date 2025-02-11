@@ -26,13 +26,11 @@ class AutoMod(loader.Module):
         """Инициализация клиента и загрузка данных из БД"""
         self._client = client
         self.db = db
-
-        self.last = await self.db.get(self.strings["name"], "last", {})
-
-        saved_enabled = await self.db.get(self.strings["name"], "enabled", None)
+        self.last = self.db.get("Auto", "last", {})
+        saved_enabled = self.db.get("Auto", "enabled", None)
         if saved_enabled is not None:
             self.go = saved_enabled
-        saved_message = await self.db.get(self.strings["name"], "message", None)
+        saved_message = self.db.get("Auto", "message", None)
         if saved_message is not None:
             self.msg = saved_message
 
@@ -46,17 +44,17 @@ class AutoMod(loader.Module):
             or message.sender.bot
         ):
             return
+        
         user = message.sender_id
-        if user == self.tg_id:
-            return
         now = time.time()
+        
         async with self.lock:
             last_time = self.last.get(str(user), 0)
-
             if now - last_time < 1800:
                 return
-            await self.db.set(
-                self.strings["name"],
+            
+            self.db.set(
+                "Auto",
                 f"msg_{int(time.time())}_{user}",
                 {"user_id": user, "text": message.text, "time": time.time()},
             )
@@ -64,8 +62,7 @@ class AutoMod(loader.Module):
             try:
                 await self._send_safe_message(user)
                 self.last[str(user)] = now
-
-                await self.db.set(self.strings["name"], "last", self.last)
+                self.db.set("Auto", "last", self.last)
             except Exception as e:
                 logger.error(f"Ошибка отправки сообщения: {e}", exc_info=True)
             finally:
@@ -85,9 +82,7 @@ class AutoMod(loader.Module):
     async def aa(self, message: Message):
         """Переключить автоответчик"""
         self.go = not self.go
-
-        await self.db.set(self.strings["name"], "enabled", self.go)
-
+        self.db.set("Auto", "enabled", self.go)
         state = "🟢 Включен" if self.go else "🔴 Выключен"
         await utils.answer(message, f"{state}")
 
@@ -99,9 +94,7 @@ class AutoMod(loader.Module):
             await utils.answer(message, "❌ Укажите текст")
             return
         self.msg = args
-
-        await self.db.set(self.strings["name"], "message", args)
-
+        self.db.set("Auto", "message", args)
         await utils.answer(message, f"✅ Новый текст:\n{args}")
 
     @loader.command
