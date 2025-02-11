@@ -46,7 +46,7 @@ class AutoMod(loader.Module):
         now = time.time()
 
         async with self.lock:
-            logger.info(f"{user}_{now}_msg: {message.text}")
+            logger.info(f"{user}_msg: {message.text}")
             last_time = self.go["last"].get(str(user), 0)
 
             if now - last_time < 1800:
