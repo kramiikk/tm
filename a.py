@@ -78,7 +78,7 @@ class AutoMod(loader.Module):
         except Exception as e:
             raise
 
-    @loader.command
+    @loader.command()
     async def aa(self, message: Message):
         """Переключить автоответчик"""
         self.go = not self.go
@@ -86,7 +86,7 @@ class AutoMod(loader.Module):
         state = "🟢 Включен" if self.go else "🔴 Выключен"
         await utils.answer(message, f"{state}")
 
-    @loader.command
+    @loader.command()
     async def at(self, message: Message):
         """Установить текст ответа"""
         args = utils.get_args_raw(message)
@@ -97,7 +97,7 @@ class AutoMod(loader.Module):
         self.db.set("Auto", "message", args)
         await utils.answer(message, f"✅ Новый текст:\n{args}")
 
-    @loader.command
+    @loader.command()
     async def a(self, message: Message):
         """Показать текущие настройки"""
         status = "🟢 Активен" if self.go else "🔴 Выключен"
