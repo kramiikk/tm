@@ -32,7 +32,7 @@ class AutoResponderMod(loader.Module):
         )
         self.last_responses = {}
 
-    async def client_ready(self, client: CustomTelegramClient):
+    async def client_ready(self, client: CustomTelegramClient, db):
         self._client = client
 
     async def watcher(self, message: Message):
