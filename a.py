@@ -18,7 +18,7 @@ class AutoMod(loader.Module):
 
     def __init__(self):
         self.go = False
-        self.msg = "Я временно недоступен, обязательно отвечу."
+        self.msg = "Mon esprit s'absente un instant, mais mes mots vous reviendront bientôt."
         self.lock = asyncio.Lock()
         self.last = {}
 
@@ -36,29 +36,16 @@ class AutoMod(loader.Module):
 
     async def watcher(self, message: Message):
         """Обработчик входящих сообщений"""
-        if (
-            not self.go
-            or not message.is_private
-            or message.out
-        ):
+        if not self.go or not message.is_private or message.out:
             return
-        
         user = message.sender_id
         now = time.time()
-        logger.info(f"Получено {now} сообщение от {message.sender_id}")
-        
+
         async with self.lock:
-            logger.info(f"lock")
+            logger.info(f"msg_{int(time.time())}_{user}: {message.text}")
             last_time = self.last.get(str(user), 0)
             if now - last_time < 1800:
                 return
-            
-            self.db.set(
-                "Auto",
-                f"msg_{int(time.time())}_{user}",
-                {"user_id": user, "text": message.text, "time": time.time()},
-            )
-
             try:
                 await self._send_safe_message(user)
                 self.last[str(user)] = now
