@@ -5,7 +5,7 @@ import time
 from hikkatl.errors import FloodWaitError
 from hikkatl.tl.types import Message
 
-from .. import loader, utils, dispatcher
+from .. import loader, utils
 from ..tl_cache import CustomTelegramClient
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,9 @@ class AutoMod(loader.Module):
     async def _send_safe_message(self, user_id: int):
         """Безопасная отправка сообщения с обработкой ошибок"""
         try:
-            await dispatcher.safe_api_call(self._client.send_message(user_id, self.msg))
+            await self._client.dispatcher.safe_api_call(
+                self._client.send_message(user_id, self.msg)
+            )
         except FloodWaitError as e:
             logger.warning(f"Обнаружен FloodWait: {e.seconds} сек")
             await asyncio.sleep(e.seconds + 5)
