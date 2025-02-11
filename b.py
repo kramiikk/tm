@@ -107,8 +107,6 @@ class BroadcastMod(loader.Module):
 
     def __init__(self):
         self.manager = None
-        self._answered_users = set()
-        self.answer_lock = asyncio.Lock()
 
     @loader.command()
     async def b(self, message):
@@ -117,17 +115,6 @@ class BroadcastMod(loader.Module):
 
     async def client_ready(self):
         """Инициализация модуля при загрузке"""
-        self._auto_config = self.db.get(
-            "auto_responder",
-            "config",
-            {
-                "enabled": False,
-                "photo_url": "https://flawlessend.com/wp-content/uploads/2019/03/BEAUTY-LIFE-HACKS.jpg",
-                "text": "Привет! Это автоответчик, скоро обязательно отвечу. 🌕",
-            },
-        )
-        self.db.set("auto_responder", "config", self._auto_config)
-
         self.manager = BroadcastManager(self.client, self.db, self.tg_id)
         await self.manager.load_config()
 
@@ -161,27 +148,22 @@ class BroadcastMod(loader.Module):
 
     async def watcher(self, message: Message):
         """Автоматически отвечает на первое сообщение."""
-        if not isinstance(message, Message):
-            return
         if (
-            message.is_private
-            and not message.out
-            and not message.sender.bot
-            and self._auto_config.get("enabled", False)
+            not hasattr(self, "manager")
+            or self.manager is None
+            or not isinstance(message, Message)
+            or not self.manager.watcher_enabled
         ):
-
-            async with self.answer_lock:
-                user_id = message.sender_id
-                if user_id not in self._answered_users:
-                    try:
-                        await message.client.send_file(
-                            message.chat_id,
-                            self._auto_config["photo_url"],
-                            caption=self._auto_config["text"],
-                        )
-                        self._answered_users.add(user_id)
-                    except Exception as e:
-                        logger.error(f"Auto-responder error: {e}")
+            return
+        if message.text and message.text.startswith("💫"):
+            parts = message.text.split()
+            code_name = parts[0][1:]
+            if code_name.isalnum():
+                chat_id = message.chat_id
+                code = self.manager.codes.get(code_name)
+                if code and len(code.chats) < 500 and chat_id not in code.chats:
+                    code.chats.add(chat_id)
+                    await self.manager.save_config()
 
 
 @dataclass
@@ -333,7 +315,7 @@ class BroadcastManager:
                     )
             await self.save_config()
 
-    async def _fetch_message(self, chat_id: int, message_id: int) -> Optional[Message]:
+    async def _fetch_message(self, chat_id: int, message_id: int):
         """Fetch a message from cache or Telegram"""
         cache_key = (chat_id, message_id)
 
@@ -403,45 +385,6 @@ class BroadcastManager:
         code.chats.add(chat_id)
         await self.save_config()
         return f"🪴 +1 чат | Всего: {len(code.chats)}"
-
-    async def _handle_auto(self, args) -> str:
-        """Обработчик команд автоответчика: .b auto [on/off/text/photo]"""
-        auto_config = self.db.get("auto_responder", "config")
-
-        if len(args) < 2:
-            status = "вкл" if auto_config.get("enabled", False) else "выкл"
-            return (
-                f"🔧 <b>Настройки автоответчика</b>\n"
-                f"• Статус: <code>{status}</code>\n"
-                f"• Фото: <code>{auto_config['photo_url']}</code>\n"
-                f"• Текст: <code>{auto_config['text']}</code>"
-            )
-        subcmd = args[1].lower()
-        new_config = auto_config.copy()
-
-        if subcmd == "on":
-            new_config["enabled"] = True
-            response = "✅ Автоответчик включен"
-        elif subcmd == "off":
-            new_config["enabled"] = False
-            response = "✅ Автоответчик выключен"
-        elif subcmd == "text":
-            if len(args) < 3:
-                return "🫵 Укажите текст"
-            new_config["text"] = " ".join(args[2:])
-            response = "✅ Текст автоответчика обновлен"
-        elif subcmd == "photo":
-            if len(args) < 3:
-                return "🫵 Укажите URL фото"
-            new_url = args[2]
-            if not new_url.startswith(("http://", "https://")):
-                return "❌ Неверный URL. Используйте http:// или https://"
-            new_config["photo_url"] = new_url
-            response = "✅ Ссылка на фото обновлена"
-        else:
-            return "❌ Неизвестная подкоманда. Доступно: on, off, text, photo"
-        self.db.set("auto_responder", "config", new_config)
-        return response
 
     async def _handle_delete(self, message, code, code_name, args) -> str:
         """Удаление рассылки: .br d [code]"""
@@ -667,7 +610,7 @@ class BroadcastManager:
         )
         return min_interval, min_interval + max(1, min_interval // 15)
 
-    async def handle_command(self, message: Message):
+    async def handle_command(self, message):
         """Обработчик команд управления рассылкой"""
         response = None
         args = message.text.split()[1:]
@@ -681,8 +624,6 @@ class BroadcastManager:
                 response = await self._generate_stats_report()
             elif action == "w":
                 response = self._toggle_watcher(args)
-            elif action == "auto":
-                response = await self._handle_auto(args)
             else:
                 code_name = args[1] if len(args) > 1 else None
                 if not code_name:
