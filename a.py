@@ -19,7 +19,7 @@ class AutoMod(loader.Module):
     def __init__(self):
         self.go = {
             "enabled": False,
-            "message": "Mon esprit s'absente un instant, mais mes mots vous reviendront bientôt.",
+            "message": "<i>Mon esprit s'absente un instant, mais mes mots vous reviendront bientôt.</i>",
             "photo_url": "https://wallpapercave.com/wp/wp5418096.jpg",
             "last": {},
         }
