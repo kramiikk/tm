@@ -23,6 +23,7 @@ class AutoMod(loader.Module):
             "photo_url": "https://wallpapercave.com/wp/wp5418096.jpg",
             "last": {},
         }
+        self.bot_cache = {}
         self.lock = asyncio.Lock()
 
     async def client_ready(self, client: CustomTelegramClient, db):
@@ -40,21 +41,18 @@ class AutoMod(loader.Module):
             or not message.is_private
             or message.out
             or message.chat_id == self.tg_id
-            or getattr(await message.get_sender(), "bot", False)
         ):
+            return
+        if await self._is_bot(message.sender_id):
             return
         async with self.lock:
             now = time.time()
-            user = message.sender_id
-            logger.info(f"{user}_msg_{message.text}")
-            if user == 1271266957:
-                return
-            last_time = self.go["last"].get(str(user), 0)
+            last_time = self.go["last"].get(str(message.sender_id), 0)
             if now - last_time < 1800:
                 return
             try:
-                await self._send_safe_message(user)
-                self.go["last"][str(user)] = now
+                await self._send_safe_message(message.sender_id)
+                self.go["last"][str(message.sender_id)] = now
                 self.db.set("Auto", "last", self.go["last"])
             except Exception as e:
                 logger.error(f"Ошибка отправки: {e}", exc_info=True)
@@ -62,6 +60,22 @@ class AutoMod(loader.Module):
                 self.go["last"] = {
                     k: v for k, v in self.go["last"].items() if now - v < 1800
                 }
+
+    async def _is_bot(self, user_id: int) -> bool:
+        """Проверяет, является ли пользователь ботом (с кешированием)"""
+        if user_id in self.bot_cache:
+            return self.bot_cache[user_id]
+        try:
+            user = await self._client.dispatcher.safe_api_call(
+                self._client.get_entity(user_id)
+            )
+            is_bot = user.bot
+            self.bot_cache[user_id] = is_bot
+            return is_bot
+        except Exception as e:
+            logger.error(f"Ошибка проверки бота {user_id}: {e}")
+            self.bot_cache[user_id] = False
+            return False
 
     async def _send_safe_message(self, user_id: int):
         """Безопасная отправка сообщения с обработкой ошибок"""
