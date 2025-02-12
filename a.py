@@ -114,7 +114,7 @@ class AutoMod(loader.Module):
             return await utils.answer(message, "❌ Неизвестная команда")
         await handlers[command](message, parts[1:] if len(parts) > 1 else [])
 
-    async def _toggle(self, message: Message, args: list):
+    async def _toggle(self, message: Message, _args):
         """Переключение состояния"""
         self.go["enabled"] = not self.go["enabled"]
         self.db.set("Auto", "enabled", self.go["enabled"])
@@ -137,7 +137,7 @@ class AutoMod(loader.Module):
         self.db.set("Auto", "photo_url", self.go["photo_url"])
         await utils.answer(message, f"✅ Новая ссылка на фото:\n{self.go['photo_url']}")
 
-    async def _show_status(self, message: Message, args: list):
+    async def _show_status(self, message: Message, _args):
         """Показать статус"""
         status = "🟢 Активен" if self.go["enabled"] else "🔴 Выключен"
         text = (
