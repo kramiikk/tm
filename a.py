@@ -39,16 +39,17 @@ class AutoMod(loader.Module):
             not self.go["enabled"]
             or not message.is_private
             or message.out
-            or message.reply_markup
+            or message.chat_id == self.tg_id
+            or getattr(await message.get_sender(), "bot", False)
         ):
             return
-        user = message.sender_id
-        now = time.time()
-
         async with self.lock:
-            logger.info(f"{user}_msg: {message.text}")
+            now = time.time()
+            user = message.sender_id
+            logger.info(f"{user}_msg_{message.text}")
+            if user == 1271266957:
+                return
             last_time = self.go["last"].get(str(user), 0)
-
             if now - last_time < 1800:
                 return
             try:
@@ -137,7 +138,7 @@ class AutoMod(loader.Module):
         help_text = (
             "📚 Доступные команды:\n\n"
             ".a tg - Переключить статус\n"
-            ".a tt новый текст - Изменить текст\n"
+            ".a tt текст - Изменить текст\n"
             ".a pt url - Изменить изображение\n"
             ".a st - Показать настройки"
         )
