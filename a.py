@@ -34,11 +34,12 @@ class AutoMod(loader.Module):
         for key in self.go:
             self.go[key] = self.db.get("Auto", key, self.go[key])
 
-    async def watcher(self, message: Message):
+    async def watcher(self, message):
         """Обработчик входящих сообщений"""
         if (
             not self.go["enabled"]
             or not message.is_private
+             or not isinstance(message, Message)
             or message.out
             or message.chat_id == self.tg_id
         ):

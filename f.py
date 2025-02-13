@@ -154,9 +154,9 @@ class BroadcastMod(loader.Module):
         if hasattr(self.manager, "_message_cache"):
             await self.manager._message_cache.clean_expired(force=True)
 
-    async def watcher(self, message: Message):
+    async def watcher(self, message):
         """Автоматически отвечает на первое сообщение."""
-        if not self.manager.watcher_enabled or not message.text or not message.out:
+        if not self.manager.watcher_enabled or not isinstance(message, Message) or not message.out or not message.text:
             return
         if message.text.startswith("💫"):
             parts = message.text.split()
@@ -398,7 +398,7 @@ class BroadcastManager:
         except ValueError:
             return "Некорректные значения"
         safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
-        if requested_min > safe_min:
+        if requested_min < safe_min:
             return f"⚠️ Указанные значения недопустимы. Безопасный интервал {safe_min}-{safe_max}."
         code.interval = (requested_min, requested_max)
         code.original_interval = code.interval
