@@ -180,10 +180,6 @@ class Broadcast:
     groups: List[List[int]] = field(default_factory=list)
     last_group_chats: Set[int] = field(default_factory=set)
 
-    def is_valid_interval(self) -> bool:
-        min_val, max_val = self.interval
-        return 1 < min_val < max_val <= 1440
-
 
 class BroadcastManager:
     """Manages broadcast operations and state."""
@@ -285,19 +281,19 @@ class BroadcastManager:
 
     def _calculate_safe_interval(self, total_chats: int) -> Tuple[int, int]:
         base = max(2, int(math.log(total_chats + 10, 1.5)))
-        variance = max(1, int(base * 0.3))
-        return base, base + variance
+        variance = max(2, int(base * 0.3))
+        safe_min = min(base, 1438)
+        safe_max = min(base + variance, 1440)
+        return (safe_min, safe_max) if safe_min < safe_max else (safe_min, safe_min + 2)
 
     async def _check_and_adjust_intervals(self):
         """Проверка условий для восстановления интервалов"""
         async with self._lock:
             if not self.flood_wait_times:
                 return
-            if (time.time() - self.last_flood_time) > 3600:
+            if (time.time() - self.last_flood_time) > 43200:
                 for code in self.codes.values():
                     code.interval = code.original_interval
-                    if not code.is_valid_interval():
-                        code.interval = (5, 6)
                 self.flood_wait_times = []
                 await self.client.send_message(
                     self.tg_id,
@@ -306,16 +302,8 @@ class BroadcastManager:
             else:
                 for code_name, code in self.codes.items():
                     new_min = max(2, int(code.interval[0] * 0.85))
-                    new_max = min(
-                        max(max(3, int(code.interval[1] * 0.85)), new_min + 1), 1440
-                    )
-
+                    new_max = max(min(int(code.interval[1] * 0.85), 1440), new_min + 2)
                     code.interval = (new_min, new_max)
-                    if not code.is_valid_interval():
-                        code.interval = code.original_interval
-                        logger.error(
-                            f"Invalid interval for {code_name}, reset to original"
-                        )
                     await self.client.send_message(
                         self.tg_id,
                         f"⏱ Автокоррекция интервалов для {code_name}: {new_min}-{new_max} минут",
@@ -350,7 +338,7 @@ class BroadcastManager:
         report = ["🎩 <strong>Статистика рассылок</strong>"]
         for code_name, code in self.codes.items():
             report.append(
-                f"\n▸ <code>{code_name}</code> {"✨" if code._active else "🧊"}\n"
+                f"\n▸ <code>{code_name}</code> {'✨' if code._active else '🧊'}\n"
                 f"├ Чатов: {len(code.chats)}\n"
                 f"├ Интервал: {code.interval[0]}-{code.interval[1]} мин\n"
                 f"└ Сообщений: {len(code.messages)}\n"
@@ -398,33 +386,25 @@ class BroadcastManager:
         return f"🗑 {code_name} удалена"
 
     async def _handle_interval(self, message, code, code_name, args) -> str:
-        """Установка интервала с проверкой безопасности: .br i [code] [min] [max]"""
         if len(args) < 4:
-            return "🫵 Укажите мин/макс интервалы"
+            return "Укажите мин/макс"
         try:
             requested_min = int(args[2])
             requested_max = int(args[3])
+            if requested_min >= requested_max:
+                return "🛑 Минимум должен быть меньше максимума"
         except ValueError:
-            return "🫵 Некорректные значения"
-        if not (1 < requested_min < requested_max <= 1440):
-            return "🫵 Интервал 2-1440 мин (min < max)"
+            return "Некорректные значения"
         safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
+        new_min = max(requested_min, safe_min)
+        new_max = min(requested_max, safe_max)
 
-        if requested_min < safe_min:
-            new_interval = (safe_min, safe_max)
-            response = (
-                f"⚠️ Для {len(code.chats)} чатов минимальный безопасный интервал: "
-                f"{safe_min}-{safe_max} мин\n"
-                f"Установлено: {safe_min}-{safe_max} мин"
-            )
-        else:
-            new_interval = (requested_min, requested_max)
-            response = f"⏱️ {code_name}: {requested_min}-{requested_max} мин"
-        code.interval = new_interval
-        code.original_interval = new_interval
+        if new_min >= new_max:
+            return f"⚠️ Безопасный интервал {safe_min}-{safe_max}. Указанные значения недопустимы"
+        code.interval = (new_min, new_max)
+        code.original_interval = (new_min, new_max)
         await self.save_config()
-
-        return response
+        return f"⏱️ Интервал для {code_name}: {new_min}-{new_max} мин"
 
     async def _handle_flood_wait(self, e: FloodWaitError, chat_id: int):
         """Глобальная обработка FloodWait с остановкой всех рассылок"""
@@ -598,8 +578,8 @@ class BroadcastManager:
                 code._active = False
             if not (0 < code.interval[0] < code.interval[1] <= 1440):
                 logger.info(f"Сброс интервала для {code_name}")
-                code.interval = (11, 13)
-                code.original_interval = (11, 13)
+                code.interval = (5, 6)
+                code.original_interval = (5, 6)
 
     async def handle_command(self, message):
         """Обработчик команд управления рассылкой"""
@@ -659,9 +639,9 @@ class BroadcastManager:
                             (int(msg["chat_id"]), int(msg["message_id"]))
                             for msg in code_data.get("messages", [])
                         },
-                        interval=tuple(map(int, code_data.get("interval", (11, 13)))),
+                        interval=tuple(map(int, code_data.get("interval", (5, 6)))),
                         original_interval=tuple(
-                            map(int, code_data.get("original_interval", (11, 13)))
+                            map(int, code_data.get("original_interval", (5, 6)))
                         ),
                     )
 
