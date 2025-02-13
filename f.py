@@ -408,7 +408,6 @@ class BroadcastManager:
             return "🫵 Некорректные значения"
         if not (1 < requested_min < requested_max <= 1440):
             return "🫵 Интервал 2-1440 мин (min < max)"
-        
         safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
 
         if requested_min < safe_min:
