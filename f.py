@@ -215,11 +215,7 @@ class BroadcastManager:
                 if not code.messages or not code.chats:
                     return
                 try:
-                    safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
-                    code.interval = (
-                        max(code.interval[0], safe_min),
-                        min(code.interval[1], safe_max),
-                    )
+                    code.interval = self._calculate_safe_interval(len(code.chats))
 
                     await asyncio.sleep(
                         random.uniform(code.interval[0], code.interval[1]) * 60
@@ -280,11 +276,17 @@ class BroadcastManager:
                     logger.error(f"[{code_name}] Critical error: {e}")
 
     def _calculate_safe_interval(self, total_chats: int) -> Tuple[int, int]:
-        base = max(2, int(math.log(total_chats + 10, 1.5)))
-        variance = max(2, int(base * 0.3))
-        safe_min = min(base, 1438)
-        safe_max = min(base + variance, 1440)
-        return (safe_min, safe_max) if safe_min < safe_max else (safe_min, safe_min + 2)
+        if total_chats <= 2:
+            safe_min = 2
+        elif total_chats >= 250:
+            safe_min = 10
+        else:
+            safe_min = 2 + (total_chats - 2) * 8 / 248
+            safe_min = int(round(safe_min))
+        variance = max(2, int(safe_min * 0.2))
+        safe_max = safe_min + variance
+        safe_max = min(safe_max, 1440)
+        return (safe_min, safe_max)
 
     async def _check_and_adjust_intervals(self):
         """Проверка условий для восстановления интервалов"""
@@ -396,15 +398,12 @@ class BroadcastManager:
         except ValueError:
             return "Некорректные значения"
         safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
-        new_min = max(requested_min, safe_min)
-        new_max = min(requested_max, safe_max)
-
-        if new_min >= new_max:
-            return f"⚠️ Безопасный интервал {safe_min}-{safe_max}. Указанные значения недопустимы"
-        code.interval = (new_min, new_max)
-        code.original_interval = (new_min, new_max)
+        if requested_min > safe_min:
+            return f"⚠️ Указанные значения недопустимы. Безопасный интервал {safe_min}-{safe_max}."
+        code.interval = (requested_min, requested_max)
+        code.original_interval = code.interval
         await self.save_config()
-        return f"⏱️ Интервал для {code_name}: {new_min}-{new_max} мин"
+        return f"⏱️ Интервал для {code_name}: {requested_min}-{requested_max} мин"
 
     async def _handle_flood_wait(self, e: FloodWaitError, chat_id: int):
         """Глобальная обработка FloodWait с остановкой всех рассылок"""
