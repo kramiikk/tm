@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import math
 import random
 import time
 from collections import deque, OrderedDict
@@ -283,8 +284,8 @@ class BroadcastManager:
                     logger.error(f"[{code_name}] Critical error: {e}")
 
     def _calculate_safe_interval(self, total_chats: int) -> Tuple[int, int]:
-        base = max(2, int((total_chats**0.4) / 0.9))
-        variance = max(1, int(base * 0.25))
+        base = max(2, int(math.log(total_chats + 10, 1.5)))
+        variance = max(1, int(base * 0.3))
         return base, base + variance
 
     async def _check_and_adjust_intervals(self):
@@ -407,6 +408,7 @@ class BroadcastManager:
             return "🫵 Некорректные значения"
         if not (1 < requested_min < requested_max <= 1440):
             return "🫵 Интервал 2-1440 мин (min < max)"
+        
         safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
 
         if requested_min < safe_min:
