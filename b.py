@@ -154,7 +154,7 @@ class BroadcastMod(loader.Module):
     async def watcher(self, message):
         """Автоматически отвечает на первое сообщение."""
         if (
-            not self.manager.watcher_enabled
+            not self.watcher_enabled
             or not isinstance(message, Message)
             or not message.out
             or not message.text
@@ -167,8 +167,13 @@ class BroadcastMod(loader.Module):
                 chat_id = message.chat_id
                 code = self.manager.codes.get(code_name)
                 if code and len(code.chats) < 250 and chat_id not in code.chats:
+                    new_chat_count = len(code.chats) + 1
+                    safe_min, safe_max = self._calculate_safe_interval(new_chat_count)
+                    if code.interval[0] < safe_min:
+                        code.interval = (safe_min, safe_max)
+                        code.original_interval = code.interval
                     code.chats.add(chat_id)
-                    await self.manager.save_config()
+                    await self.save_config()
 
 
 @dataclass
@@ -178,9 +183,9 @@ class Broadcast:
     interval: Tuple[int, int] = (5, 6)
     _active: bool = field(default=False, init=False)
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-    original_interval: Tuple[int, int] = (5, 6)
     groups: List[List[int]] = field(default_factory=list)
     last_group_chats: Set[int] = field(default_factory=set)
+    original_interval: Tuple[int, int] = (5, 6)
 
 
 class BroadcastManager:
@@ -191,37 +196,35 @@ class BroadcastManager:
     def __init__(self, client: CustomTelegramClient, db, tg_id):
         self.client = client
         self.db = db
+        self.tg_id = tg_id
+        self._active = True
+        self.adaptive_interval_task = None
         self.codes: Dict[str, Broadcast] = {}
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
         self._message_cache = SimpleCache(ttl=7200, max_size=20)
-        self._active = True
-        self._lock = asyncio.Lock()
-        self.watcher_enabled = False
-        self.cache_cleanup_task = None
-        self.tg_id = tg_id
         self.pause_event = asyncio.Event()
+        self.cache_cleanup_task = None
+        self.watcher_enabled = False
+        self._lock = asyncio.Lock()
         self.pause_event.clear()
         self.last_flood_time = 0
-        self.flood_wait_times = []
         self.group_last_sent = {}
+        self.flood_wait_times = []
         self.adaptive_multiplier = 1.0
-        self.adaptive_interval_task = None
 
     async def _broadcast_loop(self, code_name: str):
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
+        await asyncio.sleep(random.uniform(code.interval[0], code.interval[1]) * 60)
         while self._active and code._active and not self.pause_event.is_set():
             async with code._lock:
                 if not code.messages or not code.chats:
                     return
                 try:
-                    code.interval = self._calculate_safe_interval(len(code.chats))
-
-                    await asyncio.sleep(
+                    interval_seconds = (
                         random.uniform(code.interval[0], code.interval[1]) * 60
                     )
-
                     loop_start = time.monotonic()
 
                     if code.last_group_chats != code.chats:
@@ -242,15 +245,39 @@ class BroadcastManager:
                         code.messages.remove(msg_tuple)
                         await self.save_config()
                         continue
-                    for group_idx, group in enumerate(code.groups):
+                    num_groups = len(groups)
+                    reserved_end_pause = 63
+                    available_time = interval_seconds - reserved_end_pause
+
+                    for group_idx, group in enumerate(groups):
+                        group_start = time.monotonic()
+
                         tasks = []
                         for chat_id in group:
                             tasks.append(self._send_message(chat_id, message))
                         await asyncio.gather(*tasks)
+
+                        group_time = time.monotonic() - group_start
                         self.group_last_sent[group_idx] = time.monotonic()
-                        await asyncio.sleep(63)
+
+                        if group_idx < num_groups - 1:
+                            elapsed_total = time.monotonic() - loop_start
+                            remaining_groups = num_groups - (group_idx + 1)
+
+                            remaining_time = available_time - elapsed_total
+
+                            time_per_remaining_segment = remaining_time / (
+                                remaining_groups * 2
+                            )
+
+                            pause_time = max(63, time_per_remaining_segment)
+
+                            await asyncio.sleep(pause_time)
+                    total_elapsed = time.monotonic() - loop_start
+                    if total_elapsed < interval_seconds:
+                        await asyncio.sleep(interval_seconds - total_elapsed)
                     elapsed = time.monotonic() - loop_start
-                    if elapsed > code.interval[1] * 60:
+                    if elapsed > interval_seconds:
                         self.adaptive_multiplier *= 0.9
                     else:
                         self.adaptive_multiplier *= 1.1
@@ -378,6 +405,7 @@ class BroadcastManager:
         return f"🗑 {code_name} удалена"
 
     async def _handle_interval(self, message, code, code_name, args) -> str:
+        """Handle interval setting with safe interval check"""
         if len(args) < 4:
             return "Укажите мин/макс"
         try:
@@ -385,13 +413,18 @@ class BroadcastManager:
             requested_max = int(args[3])
             if requested_min >= requested_max:
                 return "🛑 Минимум должен быть меньше максимума"
+            if requested_max > 1440:
+                return "🛑 Максимальный интервал не может превышать 1440 минут"
+            safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
+
+            if requested_min < safe_min:
+                requested_min = safe_min
+                requested_max = safe_max
         except ValueError:
             return "Некорректные значения"
-        safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
-        if requested_min < safe_min:
-            return f"⚠️ Указанные значения недопустимы. Безопасный интервал {safe_min}-{safe_max}."
         code.interval = (requested_min, requested_max)
         code.original_interval = code.interval
+        self.flood_wait_times = []
         await self.save_config()
         return f"⏱️ Интервал для {code_name}: {requested_min}-{requested_max} мин"
 
@@ -534,7 +567,7 @@ class BroadcastManager:
                         self._broadcast_loop(code_name)
                     )
                     logger.info(f"Перезапуск рассылки: {code_name}")
-
+    
     async def _send_message(self, chat_id: int, msg: Message) -> bool:
         if not self.pause_event.is_set():
             try:
@@ -572,17 +605,6 @@ class BroadcastManager:
             return f"🔍 Автодобавление: {'ON' if self.watcher_enabled else 'OFF'}"
         self.watcher_enabled = args[1].lower() == "on"
         return f"🐺 Автодобавление: {'ВКЛ' if self.watcher_enabled else 'ВЫКЛ'}"
-
-    async def _validate_loaded_data(self):
-        """Базовая проверка загруженных данных"""
-        for code_name, code in self.codes.items():
-            if code._active and (not code.messages or not code.chats):
-                logger.info(f"Отключение {code_name}: нет сообщений/чатов")
-                code._active = False
-            if not (0 < code.interval[0] < code.interval[1] <= 1440):
-                logger.info(f"Сброс интервала для {code_name}")
-                code.interval = (5, 6)
-                code.original_interval = (5, 6)
 
     async def handle_command(self, message):
         """Обработчик команд управления рассылкой"""
@@ -662,7 +684,10 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Ошибка загрузки {code_name}: {str(e)}")
                     continue
-            await self._validate_loaded_data()
+            for code_name, code in self.codes.items():
+                if code._active and (not code.messages or not code.chats):
+                    logger.info(f"Отключение {code_name}: нет сообщений/чатов")
+                    code._active = False
         except Exception as e:
             logger.error(f"Критическая ошибка загрузки: {str(e)}", exc_info=True)
             self.codes = {}
