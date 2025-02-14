@@ -475,9 +475,11 @@ class BroadcastManager:
 
     async def _handle_remove_chat(self, message, code, code_name, args) -> str:
         """Удаление чата: .br rc [code] [@chat]"""
-        target = args[2] if len(args) > 2 else message.chat_id
+        if len(args) < 3:
+            return "🫵 Укажите чат для удаления"
+        target = args[2]
         chat_id = await self._parse_chat_identifier(target)
-
+        
         if not chat_id:
             return "🫵 Неверный формат чата"
         if chat_id not in code.chats:
@@ -517,7 +519,15 @@ class BroadcastManager:
     async def _parse_chat_identifier(self, identifier) -> Optional[int]:
         """Парсинг идентификатора чата"""
         try:
-            return (await self.client.get_entity(identifier, exp=3600)).id
+            if isinstance(identifier, str):
+                identifier = identifier.strip()
+                if identifier.startswith(('https://t.me/', 't.me/')):
+                    parts = identifier.rstrip('/').split('/')
+                    identifier = parts[-1]
+                if identifier.lstrip('-').isdigit():
+                    return int(identifier)
+            entity = await self.client.get_entity(identifier, exp=3600)
+            return entity.id
         except Exception:
             return None
 
