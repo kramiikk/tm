@@ -165,7 +165,7 @@ class BroadcastMod(loader.Module):
                 code = self.manager.codes.get(code_name)
                 if code and len(code.chats) < 250 and chat_id not in code.chats:
                     new_chat_count = len(code.chats) + 1
-                    safe_min, safe_max = self._calculate_safe_interval(new_chat_count)
+                    safe_min, safe_max = self.manager._calculate_safe_interval(new_chat_count)
                     if code.interval[0] < safe_min:
                         code.interval = (safe_min, safe_max)
                         code.original_interval = code.interval
