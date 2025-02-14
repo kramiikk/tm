@@ -9,7 +9,14 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
 from hikkatl.tl.types import Message
-from hikkatl.errors import FloodWaitError, RPCError, TopicDeletedError
+from hikkatl.errors import (
+    FloodWaitError,
+    RPCError,
+    TopicDeletedError,
+    ChatWriteForbiddenError,
+    ChannelPrivateError,
+    UserBannedInChannelError,
+)
 
 from .. import loader, utils
 from ..tl_cache import CustomTelegramClient
@@ -159,18 +166,20 @@ class BroadcastMod(loader.Module):
             return
         if message.text.startswith("💫"):
             parts = message.text.split()
-            code_name = parts[0][1:]
+            code_name = parts[0][1:].lower()
             if code_name.isalnum():
                 chat_id = message.chat_id
                 code = self.manager.codes.get(code_name)
                 if code and len(code.chats) < 250 and chat_id not in code.chats:
+                    code.chats.add(chat_id)
                     new_chat_count = len(code.chats) + 1
-                    safe_min, safe_max = self._calculate_safe_interval(new_chat_count)
+                    safe_min, safe_max = self.manager._calculate_safe_interval(
+                        new_chat_count
+                    )
                     if code.interval[0] < safe_min:
                         code.interval = (safe_min, safe_max)
                         code.original_interval = code.interval
-                    code.chats.add(chat_id)
-                    await self.save_config()
+                    await self.manager.save_config()
 
 
 @dataclass
@@ -228,7 +237,9 @@ class BroadcastManager:
                     interval = random.uniform(code.interval[0], code.interval[1]) * 60
 
                     if total_groups > 1:
-                        pause_between = (interval - total_groups * 0.2) / (total_groups - 1)
+                        pause_between = (interval - total_groups * 0.2) / (
+                            total_groups - 1
+                        )
                     else:
                         pause_between = 0
                     msg_tuple = random.choice(tuple(code.messages))
@@ -475,7 +486,9 @@ class BroadcastManager:
 
     async def _handle_remove_chat(self, message, code, code_name, args) -> str:
         """Удаление чата: .br rc [code] [@chat]"""
-        target = args[2] if len(args) > 2 else message.chat_id
+        if len(args) < 3:
+            return "🫵 Укажите чат для удаления"
+        target = args[2]
         chat_id = await self._parse_chat_identifier(target)
 
         if not chat_id:
@@ -517,7 +530,15 @@ class BroadcastManager:
     async def _parse_chat_identifier(self, identifier) -> Optional[int]:
         """Парсинг идентификатора чата"""
         try:
-            return (await self.client.get_entity(identifier, exp=3600)).id
+            if isinstance(identifier, str):
+                identifier = identifier.strip()
+                if identifier.startswith(("https://t.me/", "t.me/")):
+                    parts = identifier.rstrip("/").split("/")
+                    identifier = parts[-1]
+                if identifier.lstrip("-").isdigit():
+                    return int(identifier)
+            entity = await self.client.get_entity(identifier, exp=3600)
+            return entity.id
         except Exception:
             return None
 
@@ -541,12 +562,6 @@ class BroadcastManager:
         if not self.pause_event.is_set():
             try:
                 await self.GLOBAL_LIMITER.acquire()
-
-                chat = await self.client.get_entity(chat_id, exp=3600)
-                perms = await self.client.get_perms_cached(chat, self.tg_id)
-                if not perms.post_messages:
-                    logger.error(f"In {chat_id} no permissions to send messages")
-                    return False
                 if msg.media:
                     await self.client.send_file(
                         entity=chat_id,
@@ -561,11 +576,18 @@ class BroadcastManager:
                 return True
             except FloodWaitError as e:
                 await self._handle_flood_wait(e, chat_id)
-            except (RPCError, TopicDeletedError) as e:
-                logger.error(f"In {chat_id}: {repr(e)}")
+            except (
+                ChatWriteForbiddenError,
+                ChannelPrivateError,
+                UserBannedInChannelError,
+                TopicDeletedError,
+            ) as e:
+                logger.error(f"Permanent error in {chat_id}: {repr(e)}")
                 await self._handle_permanent_error(chat_id)
+            except RPCError as e:
+                logger.error(f"RPC Error in {chat_id}: {repr(e)}")
             except Exception as e:
-                logger.error(f"In {chat_id}: {repr(e)}")
+                logger.error(f"Unexpected error in {chat_id}: {repr(e)}")
         return False
 
     def _toggle_watcher(self, args) -> str:
@@ -590,7 +612,7 @@ class BroadcastManager:
             elif action == "w":
                 response = self._toggle_watcher(args)
             else:
-                code_name = args[1] if len(args) > 1 else None
+                code_name = args[1].lower() if len(args) > 1 else None
                 if not code_name:
                     response = "🫵 Укажите код рассылки"
                 else:

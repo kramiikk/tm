@@ -9,7 +9,14 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
 from hikkatl.tl.types import Message
-from hikkatl.errors import FloodWaitError, RPCError, TopicDeletedError
+from hikkatl.errors import (
+    FloodWaitError,
+    RPCError,
+    TopicDeletedError,
+    ChatWriteForbiddenError,
+    ChannelPrivateError,
+    UserBannedInChannelError,
+)
 
 from .. import loader, utils
 from ..tl_cache import CustomTelegramClient
@@ -556,22 +563,24 @@ class BroadcastManager:
             try:
                 await self.GLOBAL_LIMITER.acquire()
 
-                chat = await self.client.get_entity(chat_id, exp=3600)
-                perms = await self.client.get_perms_cached(chat, self.tg_id)
-                if not perms.post_messages:
-                    logger.error(f"In {chat_id} no permissions to send messages")
-                    return False
                 await self.client.forward_messages(
                     entity=chat_id, messages=msg.id, from_peer=msg.chat_id
                 )
                 return True
             except FloodWaitError as e:
                 await self._handle_flood_wait(e, chat_id)
-            except (RPCError, TopicDeletedError) as e:
-                logger.error(f"In {chat_id}: {repr(e)}")
+            except (
+                ChatWriteForbiddenError,
+                ChannelPrivateError,
+                UserBannedInChannelError,
+                TopicDeletedError,
+            ) as e:
+                logger.error(f"Permanent error in {chat_id}: {repr(e)}")
                 await self._handle_permanent_error(chat_id)
+            except RPCError as e:
+                logger.error(f"RPC Error in {chat_id}: {repr(e)}")
             except Exception as e:
-                logger.error(f"In {chat_id}: {repr(e)}")
+                logger.error(f"Unexpected error in {chat_id}: {repr(e)}")
         return False
 
     def _toggle_watcher(self, args) -> str:
