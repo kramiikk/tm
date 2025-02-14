@@ -9,11 +9,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
 from hikkatl.tl.types import Message
-from hikkatl.errors import (
-    ChatWriteForbiddenError,
-    FloodWaitError,
-    UserBannedInChannelError,
-)
+from hikkatl.errors import FloodWaitError, RPCError, TopicDeletedError
 
 from .. import loader, utils
 from ..tl_cache import CustomTelegramClient
@@ -71,8 +67,9 @@ class SimpleCache:
                 del self.cache[key]
 
     async def get(self, key: tuple):
-        """Get a value from cache using a tuple key"""
         async with self._lock:
+            if key in self.cache:
+                self.cache.move_to_end(key)
             entry = self.cache.get(key)
             if not entry:
                 return None
@@ -206,7 +203,6 @@ class BroadcastManager:
         self.pause_event.clear()
         self.last_flood_time = 0
         self.flood_wait_times = []
-        self.chat_last_sent = {}
         self.group_last_sent = {}
         self.adaptive_multiplier = 1.0
         self.adaptive_interval_task = None
@@ -247,27 +243,12 @@ class BroadcastManager:
                         await self.save_config()
                         continue
                     for group_idx, group in enumerate(code.groups):
-                        last_group = self.group_last_sent.get(group_idx, 0)
-                        if (
-                            wait := (
-                                code.interval[0] * 60 - (time.monotonic() - last_group)
-                            )
-                        ) > 0:
-                            await asyncio.sleep(wait * self.adaptive_multiplier)
+                        tasks = []
                         for chat_id in group:
-                            last_chat = self.chat_last_sent.get(chat_id, 0)
-                            if (
-                                wait := (
-                                    code.interval[0] * 60
-                                    - (time.monotonic() - last_chat)
-                                )
-                            ) > 0:
-                                await asyncio.sleep(wait * self.adaptive_multiplier)
-                            await self.GLOBAL_LIMITER.acquire()
-                            if await self._send_message(chat_id, message):
-                                self.chat_last_sent[chat_id] = time.monotonic()
-                            await asyncio.sleep(3)
+                            tasks.append(self._send_message(chat_id, message))
+                        await asyncio.gather(*tasks)
                         self.group_last_sent[group_idx] = time.monotonic()
+                        await asyncio.sleep(63)
                     elapsed = time.monotonic() - loop_start
                     if elapsed > code.interval[1] * 60:
                         self.adaptive_multiplier *= 0.9
@@ -448,6 +429,7 @@ class BroadcastManager:
             await asyncio.gather(*tasks, return_exceptions=True)
             await asyncio.sleep(wait_time)
 
+            await self.client.get_perms_cached(chat_id, self.tg_id, force=True)
             self.pause_event.clear()
             await self._restart_all_broadcasts()
             await self.client.dispatcher.safe_api_call(
@@ -533,12 +515,7 @@ class BroadcastManager:
     async def _parse_chat_identifier(self, identifier) -> Optional[int]:
         """Парсинг идентификатора чата"""
         try:
-            if identifier is None:
-                return None
-            if isinstance(identifier, int) or str(identifier).lstrip("-").isdigit():
-                return int(identifier)
-            entity = await self.client.get_entity(identifier)
-            return entity.id
+            return (await self.client.get_entity(identifier, exp=3600)).id
         except Exception:
             return None
 
@@ -558,17 +535,24 @@ class BroadcastManager:
                     )
                     logger.info(f"Перезапуск рассылки: {code_name}")
 
-    async def _send_message(self, chat_id: int, msg) -> bool:
+    async def _send_message(self, chat_id: int, msg: Message) -> bool:
         if not self.pause_event.is_set():
             try:
                 await self.GLOBAL_LIMITER.acquire()
+
+                chat = await self.client.get_entity(chat_id, exp=3600)
+                perms = await self.client.get_perms_cached(chat, self.tg_id)
+                if not perms.post_messages:
+                    logger.error(f"In {chat_id} no permissions to send messages")
+                    return False
                 await self.client.forward_messages(
                     entity=chat_id, messages=msg.id, from_peer=msg.chat_id
                 )
                 return True
             except FloodWaitError as e:
                 await self._handle_flood_wait(e, chat_id)
-            except (ChatWriteForbiddenError, UserBannedInChannelError):
+            except (RPCError, TopicDeletedError) as e:
+                logger.error(f"In {chat_id}: {repr(e)}")
                 await self._handle_permanent_error(chat_id)
             except Exception as e:
                 logger.error(f"In {chat_id}: {repr(e)}")
