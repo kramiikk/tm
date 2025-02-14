@@ -216,8 +216,8 @@ class BroadcastManager:
                 if not code.messages or not code.chats:
                     return
                 try:
-                    code.interval = self._calculate_safe_interval(len(code.chats))
-
+                    if code.interval == code.original_interval:
+                        code.interval = self._calculate_safe_interval(len(code.chats))
                     await asyncio.sleep(
                         random.uniform(code.interval[0], code.interval[1]) * 60
                     )
@@ -385,13 +385,13 @@ class BroadcastManager:
             requested_max = int(args[3])
             if requested_min >= requested_max:
                 return "🛑 Минимум должен быть меньше максимума"
+            if not (0 < requested_min < requested_max <= 1440):
+                return "🛑 Интервал должен быть между 1 и 1440 минут"
         except ValueError:
             return "Некорректные значения"
-        safe_min, safe_max = self._calculate_safe_interval(len(code.chats))
-        if requested_min < safe_min:
-            return f"⚠️ Указанные значения недопустимы. Безопасный интервал {safe_min}-{safe_max}."
         code.interval = (requested_min, requested_max)
-        code.original_interval = code.interval
+        code.original_interval = (requested_min, requested_max)
+        self.flood_wait_times = []
         await self.save_config()
         return f"⏱️ Интервал для {code_name}: {requested_min}-{requested_max} мин"
 
@@ -565,17 +565,6 @@ class BroadcastManager:
         self.watcher_enabled = args[1].lower() == "on"
         return f"🐺 Автодобавление: {'ВКЛ' if self.watcher_enabled else 'ВЫКЛ'}"
 
-    async def _validate_loaded_data(self):
-        """Базовая проверка загруженных данных"""
-        for code_name, code in self.codes.items():
-            if code._active and (not code.messages or not code.chats):
-                logger.info(f"Отключение {code_name}: нет сообщений/чатов")
-                code._active = False
-            if not (0 < code.interval[0] < code.interval[1] <= 1440):
-                logger.info(f"Сброс интервала для {code_name}")
-                code.interval = (5, 6)
-                code.original_interval = (5, 6)
-
     async def handle_command(self, message):
         """Обработчик команд управления рассылкой"""
         response = None
@@ -654,7 +643,10 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Ошибка загрузки {code_name}: {str(e)}")
                     continue
-            await self._validate_loaded_data()
+            for code_name, code in self.codes.items():
+                if code._active and (not code.messages or not code.chats):
+                    logger.info(f"Отключение {code_name}: нет сообщений/чатов")
+                    code._active = False
         except Exception as e:
             logger.error(f"Критическая ошибка загрузки: {str(e)}", exc_info=True)
             self.codes = {}
