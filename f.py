@@ -55,8 +55,6 @@ class SimpleCache:
 
     async def clean_expired(self, force: bool = False):
         async with self._lock:
-            if not force and len(self.cache) < self.max_size // 2:
-                return
             current_time = time.time()
             expired = [
                 k
@@ -65,11 +63,11 @@ class SimpleCache:
             ]
             for key in expired:
                 del self.cache[key]
+            while len(self.cache) > self.max_size:
+                self.cache.popitem(last=False)
 
     async def get(self, key: tuple):
         async with self._lock:
-            if key in self.cache:
-                self.cache.move_to_end(key)
             entry = self.cache.get(key)
             if not entry:
                 return None
@@ -81,15 +79,14 @@ class SimpleCache:
             return value
 
     async def set(self, key: tuple, value, expire: Optional[int] = None):
-        """Set a value in cache using a tuple key"""
         async with self._lock:
-            if expire is not None and expire <= 0:
-                return
             ttl = expire if expire is not None else self.ttl
             expire_time = time.time() + ttl
+
             if key in self.cache:
                 del self.cache[key]
             self.cache[key] = (expire_time, value)
+
             while len(self.cache) > self.max_size:
                 self.cache.popitem(last=False)
 
@@ -208,9 +205,7 @@ class BroadcastManager:
         self._lock = asyncio.Lock()
         self.pause_event.clear()
         self.last_flood_time = 0
-        self.group_last_sent = {}
         self.flood_wait_times = []
-        self.adaptive_multiplier = 1.0
 
     async def _broadcast_loop(self, code_name: str):
         code = self.codes.get(code_name)
@@ -222,11 +217,6 @@ class BroadcastManager:
                 if not code.messages or not code.chats:
                     return
                 try:
-                    interval_seconds = (
-                        random.uniform(code.interval[0], code.interval[1]) * 60
-                    )
-                    loop_start = time.monotonic()
-
                     if code.last_group_chats != code.chats:
                         chats = list(code.chats)
                         random.shuffle(chats)
@@ -234,53 +224,32 @@ class BroadcastManager:
                             chats[i : i + 20] for i in range(0, len(chats), 20)
                         ]
                         code.last_group_chats = set(code.chats)
-                        self.group_last_sent.clear()
-                    groups = code.groups
-                    if not groups:
-                        await asyncio.sleep(2)
-                        continue
+                    total_groups = len(code.groups)
+                    interval = random.uniform(code.interval[0], code.interval[1]) * 60
+
+                    if total_groups > 1:
+                        pause_between = (interval - total_groups) / (total_groups - 1)
+                    else:
+                        pause_between = 0
                     msg_tuple = random.choice(tuple(code.messages))
                     message = await self._fetch_message(*msg_tuple)
                     if not message:
                         code.messages.remove(msg_tuple)
                         await self.save_config()
                         continue
-                    num_groups = len(groups)
-                    available_time = interval_seconds - 63
+                    start_time = time.monotonic()
 
-                    for group_idx, group in enumerate(groups):
-                        group_start = time.monotonic()
-
+                    for idx, group in enumerate(code.groups):
                         tasks = []
                         for chat_id in group:
                             tasks.append(self._send_message(chat_id, message))
                         await asyncio.gather(*tasks)
 
-                        group_time = time.monotonic() - group_start
-                        self.group_last_sent[group_idx] = time.monotonic()
-
-                        if group_idx < num_groups - 1:
-                            elapsed_total = time.monotonic() - loop_start
-                            remaining_groups = num_groups - (group_idx + 1)
-
-                            remaining_time = available_time - elapsed_total
-
-                            time_per_remaining_segment = remaining_time / (
-                                remaining_groups * 2
-                            )
-
-                            pause_time = max(63, time_per_remaining_segment)
-
-                            await asyncio.sleep(pause_time)
-                    total_elapsed = time.monotonic() - loop_start
-                    if total_elapsed < interval_seconds:
-                        await asyncio.sleep(interval_seconds - total_elapsed)
-                    elapsed = time.monotonic() - loop_start
-                    if elapsed > interval_seconds:
-                        self.adaptive_multiplier *= 0.9
-                    else:
-                        self.adaptive_multiplier *= 1.1
-                    self.adaptive_multiplier = max(1, min(2, self.adaptive_multiplier))
+                        if idx < total_groups - 1:
+                            await asyncio.sleep(max(60, pause_between))
+                    elapsed = time.monotonic() - start_time
+                    if elapsed < interval:
+                        await asyncio.sleep(interval - elapsed)
                 except asyncio.CancelledError:
                     logger.info(f"Broadcast {code_name} cancelled")
                     raise
@@ -305,7 +274,8 @@ class BroadcastManager:
         async with self._lock:
             if not self.flood_wait_times:
                 return
-            if (time.time() - self.last_flood_time) > 43200:
+            time_since_last_flood = time.time() - self.last_flood_time
+            if time_since_last_flood > 43200:
                 for code in self.codes.values():
                     code.interval = code.original_interval
                 self.flood_wait_times = []
@@ -432,6 +402,7 @@ class BroadcastManager:
         async with self._lock:
             if self.pause_event.is_set():
                 return False
+            self.last_flood_time = time.time()
             self.pause_event.set()
             avg_wait = (
                 sum(self.flood_wait_times[-3:]) / len(self.flood_wait_times[-3:])
