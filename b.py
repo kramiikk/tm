@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import math
 import random
 import time
 from collections import deque, OrderedDict
@@ -17,6 +16,7 @@ from hikkatl.errors import (
 )
 
 from .. import loader, utils
+from ..tl_cache import CustomTelegramClient
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +186,7 @@ class BroadcastManager:
 
     GLOBAL_LIMITER = RateLimiter(max_requests=20, time_window=60)
 
-    def __init__(self, client, db, tg_id):
+    def __init__(self, client: CustomTelegramClient, db, tg_id):
         self.client = client
         self.db = db
         self.codes: Dict[str, Broadcast] = {}
@@ -297,18 +297,22 @@ class BroadcastManager:
                 for code in self.codes.values():
                     code.interval = code.original_interval
                 self.flood_wait_times = []
-                await self.client.send_message(
-                    self.tg_id,
-                    "🔄 12 часов без ошибок! Интервалы восстановлены до исходных",
+                await self.client.dispatcher.safe_api_call(
+                    await self.client.send_message(
+                        self.tg_id,
+                        "🔄 12 часов без ошибок! Интервалы восстановлены до исходных",
+                    )
                 )
             else:
                 for code_name, code in self.codes.items():
                     new_min = max(2, int(code.interval[0] * 0.85))
                     new_max = max(min(int(code.interval[1] * 0.85), 1440), new_min + 2)
                     code.interval = (new_min, new_max)
-                    await self.client.send_message(
-                        self.tg_id,
-                        f"⏱ Автокоррекция интервалов для {code_name}: {new_min}-{new_max} минут",
+                    await self.client.dispatcher.safe_api_call(
+                        await self.client.send_message(
+                            self.tg_id,
+                            f"⏱ Автокоррекция интервалов для {code_name}: {new_min}-{new_max} минут",
+                        )
                     )
             await self.save_config()
 
@@ -422,9 +426,11 @@ class BroadcastManager:
             self.flood_wait_times.append(wait_time)
             if len(self.flood_wait_times) > 10:
                 self.flood_wait_times = self.flood_wait_times[-10:]
-            await self.client.send_message(
-                self.tg_id,
-                f"🚨 Обнаружен FloodWait {e.seconds}s! Все рассылки приостановлены на {wait_time}s",
+            await self.client.dispatcher.safe_api_call(
+                await self.client.send_message(
+                    self.tg_id,
+                    f"🚨 Обнаружен FloodWait {e.seconds}s! Все рассылки приостановлены на {wait_time}s",
+                )
             )
             logger.error(
                 f"🚨 FloodWait {e.seconds} сек. в чате {chat_id}. Среднее время ожидания: {avg_wait:.1f} сек. "
@@ -439,10 +445,11 @@ class BroadcastManager:
 
             self.pause_event.clear()
             await self._restart_all_broadcasts()
-
-            await self.client.send_message(
-                self.tg_id,
-                "🐈 Глобальная пауза снята. Рассылки возобновлены",
+            await self.client.dispatcher.safe_api_call(
+                await self.client.send_message(
+                    self.tg_id,
+                    "🐈 Глобальная пауза снята. Рассылки возобновлены",
+                )
             )
 
             for code in self.codes.values():
