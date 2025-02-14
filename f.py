@@ -159,14 +159,16 @@ class BroadcastMod(loader.Module):
             return
         if message.text.startswith("💫"):
             parts = message.text.split()
-            code_name = parts[0][1:]
+            code_name = parts[0][1:].lower()
             if code_name.isalnum():
                 chat_id = message.chat_id
                 code = self.manager.codes.get(code_name)
                 if code and len(code.chats) < 250 and chat_id not in code.chats:
                     code.chats.add(chat_id)
                     new_chat_count = len(code.chats) + 1
-                    safe_min, safe_max = self.manager._calculate_safe_interval(new_chat_count)
+                    safe_min, safe_max = self.manager._calculate_safe_interval(
+                        new_chat_count
+                    )
                     if code.interval[0] < safe_min:
                         code.interval = (safe_min, safe_max)
                         code.original_interval = code.interval
@@ -228,7 +230,9 @@ class BroadcastManager:
                     interval = random.uniform(code.interval[0], code.interval[1]) * 60
 
                     if total_groups > 1:
-                        pause_between = (interval - total_groups * 0.2) / (total_groups - 1)
+                        pause_between = (interval - total_groups * 0.2) / (
+                            total_groups - 1
+                        )
                     else:
                         pause_between = 0
                     msg_tuple = random.choice(tuple(code.messages))
@@ -479,7 +483,7 @@ class BroadcastManager:
             return "🫵 Укажите чат для удаления"
         target = args[2]
         chat_id = await self._parse_chat_identifier(target)
-        
+
         if not chat_id:
             return "🫵 Неверный формат чата"
         if chat_id not in code.chats:
@@ -521,10 +525,10 @@ class BroadcastManager:
         try:
             if isinstance(identifier, str):
                 identifier = identifier.strip()
-                if identifier.startswith(('https://t.me/', 't.me/')):
-                    parts = identifier.rstrip('/').split('/')
+                if identifier.startswith(("https://t.me/", "t.me/")):
+                    parts = identifier.rstrip("/").split("/")
                     identifier = parts[-1]
-                if identifier.lstrip('-').isdigit():
+                if identifier.lstrip("-").isdigit():
                     return int(identifier)
             entity = await self.client.get_entity(identifier, exp=3600)
             return entity.id
@@ -592,7 +596,7 @@ class BroadcastManager:
             elif action == "w":
                 response = self._toggle_watcher(args)
             else:
-                code_name = args[1] if len(args) > 1 else None
+                code_name = args[1].lower() if len(args) > 1 else None
                 if not code_name:
                     response = "🫵 Укажите код рассылки"
                 else:
