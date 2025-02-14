@@ -228,7 +228,7 @@ class BroadcastManager:
                     interval = random.uniform(code.interval[0], code.interval[1]) * 60
 
                     if total_groups > 1:
-                        pause_between = (interval - total_groups) / (total_groups - 1)
+                        pause_between = (interval - total_groups * 0.2) / (total_groups - 1)
                     else:
                         pause_between = 0
                     msg_tuple = random.choice(tuple(code.messages))
@@ -411,7 +411,6 @@ class BroadcastManager:
             )
             wait_time = min(max(e.seconds + 15, avg_wait * 1.5), 7200)
 
-            self.last_flood_time = time.time()
             self.flood_wait_times.append(wait_time)
             if len(self.flood_wait_times) > 10:
                 self.flood_wait_times = self.flood_wait_times[-10:]
