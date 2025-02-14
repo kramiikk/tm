@@ -156,7 +156,12 @@ class BroadcastMod(loader.Module):
 
     async def watcher(self, message):
         """Автоматически отвечает на первое сообщение."""
-        if not self.manager.watcher_enabled or not isinstance(message, Message) or not message.out or not message.text:
+        if (
+            not self.manager.watcher_enabled
+            or not isinstance(message, Message)
+            or not message.out
+            or not message.text
+        ):
             return
         if message.text.startswith("💫"):
             parts = message.text.split()
