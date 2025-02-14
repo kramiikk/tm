@@ -170,7 +170,7 @@ class BroadcastMod(loader.Module):
                         code.interval = (safe_min, safe_max)
                         code.original_interval = code.interval
                     code.chats.add(chat_id)
-                    await self.save_config()
+                    await self.manager.save_config()
 
 
 @dataclass
