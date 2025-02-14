@@ -151,7 +151,7 @@ class BroadcastMod(loader.Module):
     async def watcher(self, message):
         """Автоматически отвечает на первое сообщение."""
         if (
-            not self.watcher_enabled
+            not self.manager.watcher_enabled
             or not isinstance(message, Message)
             or not message.out
             or not message.text
