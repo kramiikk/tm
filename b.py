@@ -246,8 +246,7 @@ class BroadcastManager:
                         await self.save_config()
                         continue
                     num_groups = len(groups)
-                    reserved_end_pause = 63
-                    available_time = interval_seconds - reserved_end_pause
+                    available_time = interval_seconds - 63
 
                     for group_idx, group in enumerate(groups):
                         group_start = time.monotonic()
