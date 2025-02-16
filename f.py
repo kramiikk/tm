@@ -168,24 +168,35 @@ class BroadcastMod(loader.Module):
         if message.text.startswith("💫"):
             parts = message.text.split()
             code_name = parts[0][1:].lower()
+
             if code_name.isalnum():
                 chat_id = message.chat_id
                 code = self.manager.codes.get(code_name)
 
                 if code and sum(len(v) for v in code.chats.values()) < 250:
                     topic_id = 0
-                    if message.reply_to and message.reply_to.forum_topic:
-                        topic_id = message.reply_to.reply_to_top_id
-                    code.chats[chat_id].add(topic_id)
 
-                    new_chat_count = sum(len(v) for v in code.chats.values())
-                    safe_min, safe_max = self.manager._calculate_safe_interval(
-                        new_chat_count
-                    )
-                    if code.interval[0] < safe_min:
-                        code.interval = (safe_min, safe_max)
-                        code.original_interval = code.interval
-                    await self.manager.save_config()
+                    try:
+                        chat = await self.client.get_entity(chat_id)
+                        if getattr(chat, "forum", False):
+                            if message.reply_to:
+                                topic_id = message.reply_to.reply_to_top_id or 0
+                            else:
+                                return
+                    except Exception as e:
+                        logger.error(f"Ошибка при проверке форума: {e}")
+                        return
+                    if topic_id is not None:
+                        code.chats[chat_id].add(topic_id)
+
+                        new_chat_count = sum(len(v) for v in code.chats.values())
+                        safe_min, safe_max = self.manager._calculate_safe_interval(
+                            new_chat_count
+                        )
+                        if code.interval[0] < safe_min:
+                            code.interval = (safe_min, safe_max)
+                            code.original_interval = code.interval
+                        await self.manager.save_config()
 
 
 @dataclass
@@ -196,9 +207,10 @@ class Broadcast:
     _active: bool = field(default=False, init=False)
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     groups: List[List[Tuple[int, int]]] = field(default_factory=list)
-    last_group_chats: Dict[int, Set[int]] = field(default_factory=lambda: defaultdict(set))
+    last_group_chats: Dict[int, Set[int]] = field(
+        default_factory=lambda: defaultdict(set)
+    )
     original_interval: Tuple[int, int] = (5, 6)
-
 
 
 class BroadcastManager:
@@ -703,11 +715,11 @@ class BroadcastManager:
                     chats = defaultdict(set)
                     for chat_id_str, topic_ids in code_data.get("chats", {}).items():
                         chats[int(chat_id_str)] = set(map(int, topic_ids))
-
                     last_group_chats = defaultdict(set)
-                    for chat_id_str, topic_ids in code_data.get("last_group_chats", {}).items():
+                    for chat_id_str, topic_ids in code_data.get(
+                        "last_group_chats", {}
+                    ).items():
                         last_group_chats[int(chat_id_str)] = set(map(int, topic_ids))
-
                     code = Broadcast(
                         chats=chats,
                         messages={
@@ -731,7 +743,6 @@ class BroadcastManager:
                 except Exception as e:
                     logger.error(f"Ошибка загрузки {code_name}: {str(e)}")
                     continue
-
             for code_name, code in self.codes.items():
                 if code._active and (not code.messages or not code.chats):
                     logger.info(f"Отключение {code_name}: нет сообщений/чатов")
@@ -778,7 +789,6 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Critical error during save: {e}")
             raise
-
 
     async def start_adaptive_interval_adjustment(self):
         """Фоновая задача для адаптации интервалов"""
