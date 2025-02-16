@@ -165,11 +165,11 @@ class BroadcastMod(loader.Module):
             or not message.text
         ):
             return
-            
         if message.text.startswith("💫"):
+            logger.info(f"{message}")
             parts = message.text.split()
             code_name = parts[0][1:].lower()
-            
+
             if code_name.isalnum():
                 chat_id = message.chat_id
                 code = self.manager.codes.get(code_name)
@@ -177,27 +177,13 @@ class BroadcastMod(loader.Module):
                 if code and sum(len(v) for v in code.chats.values()) < 250:
                     try:
                         chat = await self.client.get_entity(chat_id)
-                        
-                        topic_id = 0
-                        
-                        if hasattr(chat, 'forum') and chat.forum:
-                            if (message.reply_to and 
-                                getattr(message.reply_to, 'forum_topic', False) and 
-                                message.reply_to.reply_to_msg_id):
-                                
-                                replied_msg = await self.client.get_messages(
-                                    chat_id, 
-                                    ids=message.reply_to.reply_to_msg_id
-                                )
-                                
-                                if replied_msg:
-                                    for attr in ['top_msg_id', 'topic_id', 'id']:
-                                        if hasattr(replied_msg, attr) and getattr(replied_msg, attr):
-                                            topic_id = getattr(replied_msg, attr)
-                                            break
-                        
-                        logger.info(f"Добавление в рассылку {code_name}: chat_id={chat_id}, topic_id={topic_id}, is_forum={getattr(chat, 'forum', False)}")
-                        
+
+                        topic_id = utils.get_topic(message) or 0
+
+                        logger.info(
+                            f"Добавление в рассылку {code_name}: chat_id={chat_id}, topic_id={topic_id}, is_forum={getattr(chat, 'forum', False)}"
+                        )
+
                         code.chats[chat_id].add(topic_id)
 
                         new_chat_count = sum(len(v) for v in code.chats.values())
@@ -208,7 +194,6 @@ class BroadcastMod(loader.Module):
                             code.interval = (safe_min, safe_max)
                             code.original_interval = code.interval
                         await self.manager.save_config()
-                    
                     except Exception as e:
                         logger.error(f"Ошибка при обработке топика: {e}", exc_info=True)
 
