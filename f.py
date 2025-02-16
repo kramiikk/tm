@@ -177,20 +177,17 @@ class BroadcastMod(loader.Module):
                 if code and sum(len(v) for v in code.chats.values()) < 250:
                     try:
                         chat = await self.client.get_entity(chat_id)
-                        
                         if not hasattr(chat, 'forum') or not chat.forum:
                             topic_id = 0
                         else:
-                            topic_id = message.reply_to.reply_to_top_id
-                        logger.info(f"Message has reply_to: {hasattr(message, 'reply_to')}")
-                        if hasattr(message, 'reply_to') and message.reply_to:
-                            logger.info(f"reply_to attributes: {dir(message.reply_to)}")
-                        
-                        logger.info(f"Message has top_id: {hasattr(message, 'top_id')}")
-                        if hasattr(message, 'top_id'):
-                            logger.info(f"top_id value: {message.top_id}")
-                            
-                        logger.info(f"Full message attributes: {dir(message)}")
+                            if hasattr(message, 'reply_to') and message.reply_to:
+                                logger.info(f"reply_to_top_id value: {message.reply_to.reply_to_top_id}")
+                                if hasattr(message.reply_to, 'reply_to_top_id'):
+                                    topic_id = message.reply_to.reply_to_top_id
+                                else:
+                                    topic_id = 0
+                            else:
+                                topic_id = 0
                             
                         logger.info(f"Добавление в рассылку {code_name}: chat_id={chat_id}, topic_id={topic_id}, is_forum={getattr(chat, 'forum', False)}")
                         
