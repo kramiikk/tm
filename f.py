@@ -180,19 +180,7 @@ class BroadcastMod(loader.Module):
                         if not hasattr(chat, 'forum') or not chat.forum:
                             topic_id = 0
                         else:
-                            if hasattr(message, 'reply_to') and message.reply_to:
-                                if hasattr(message.reply_to, 'reply_to_top_id'):
-                                    topic_id = message.reply_to.reply_to_top_id
-                                else:
-                                    logger.error(f"Сообщение в форуме без reply_to_top_id: {chat_id}")
-                                    return
-                            else:
-                                logger.error(f"Сообщение в форуме должно быть ответом на топик: {chat_id}")
-                                return
-                                
-                        if topic_id is None:
-                            logger.error(f"Не удалось определить topic_id в чате {chat_id}")
-                            return
+                            topic_id = message.reply_to.reply_to_top_id
                             
                         logger.info(f"Добавление в рассылку {code_name}: chat_id={chat_id}, topic_id={topic_id}, is_forum={getattr(chat, 'forum', False)}")
                         
