@@ -186,17 +186,16 @@ class BroadcastMod(loader.Module):
                     except Exception as e:
                         logger.error(f"Ошибка при проверке форума: {e}")
                         return
-                    if topic_id is not None:
-                        code.chats[chat_id].add(topic_id)
+                    code.chats[chat_id].add(topic_id)
 
-                        new_chat_count = sum(len(v) for v in code.chats.values())
-                        safe_min, safe_max = self.manager._calculate_safe_interval(
-                            new_chat_count
-                        )
-                        if code.interval[0] < safe_min:
-                            code.interval = (safe_min, safe_max)
-                            code.original_interval = code.interval
-                        await self.manager.save_config()
+                    new_chat_count = sum(len(v) for v in code.chats.values())
+                    safe_min, safe_max = self.manager._calculate_safe_interval(
+                        new_chat_count
+                    )
+                    if code.interval[0] < safe_min:
+                        code.interval = (safe_min, safe_max)
+                        code.original_interval = code.interval
+                    await self.manager.save_config()
 
 
 @dataclass
