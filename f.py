@@ -166,7 +166,6 @@ class BroadcastMod(loader.Module):
         ):
             return
         if message.text.startswith("💫"):
-            logger.info(f"{message}")
             parts = message.text.split()
             code_name = parts[0][1:].lower()
 

@@ -4,7 +4,7 @@ import asyncio
 import logging
 import random
 import time
-from collections import deque, OrderedDict
+from collections import deque, OrderedDict, defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -16,6 +16,7 @@ from hikkatl.errors import (
     ChatWriteForbiddenError,
     ChannelPrivateError,
     UserBannedInChannelError,
+    BadRequestError,
 )
 
 from .. import loader, utils
@@ -156,7 +157,7 @@ class BroadcastMod(loader.Module):
             await self.manager._message_cache.clean_expired(force=True)
 
     async def watcher(self, message):
-        """Автоматически отвечает на первое сообщение."""
+        """Автоматическое добавление чата/топика при получении спец. сообщения"""
         if (
             not self.manager.watcher_enabled
             or not isinstance(message, Message)
@@ -167,30 +168,46 @@ class BroadcastMod(loader.Module):
         if message.text.startswith("💫"):
             parts = message.text.split()
             code_name = parts[0][1:].lower()
+
             if code_name.isalnum():
                 chat_id = message.chat_id
                 code = self.manager.codes.get(code_name)
-                if code and len(code.chats) < 250 and chat_id not in code.chats:
-                    code.chats.add(chat_id)
-                    new_chat_count = len(code.chats) + 1
-                    safe_min, safe_max = self.manager._calculate_safe_interval(
-                        new_chat_count
-                    )
-                    if code.interval[0] < safe_min:
-                        code.interval = (safe_min, safe_max)
-                        code.original_interval = code.interval
-                    await self.manager.save_config()
+
+                if code and sum(len(v) for v in code.chats.values()) < 250:
+                    try:
+                        chat = await self.client.get_entity(chat_id)
+
+                        topic_id = utils.get_topic(message) or 0
+
+                        logger.info(
+                            f"Добавление в рассылку {code_name}: chat_id={chat_id}, topic_id={topic_id}, is_forum={getattr(chat, 'forum', False)}"
+                        )
+
+                        code.chats[chat_id].add(topic_id)
+
+                        new_chat_count = sum(len(v) for v in code.chats.values())
+                        safe_min, safe_max = self.manager._calculate_safe_interval(
+                            new_chat_count
+                        )
+                        if code.interval[0] < safe_min:
+                            code.interval = (safe_min, safe_max)
+                            code.original_interval = code.interval
+                        await self.manager.save_config()
+                    except Exception as e:
+                        logger.error(f"Ошибка при обработке топика: {e}", exc_info=True)
 
 
 @dataclass
 class Broadcast:
-    chats: Set[int] = field(default_factory=set)
+    chats: Dict[int, Set[int]] = field(default_factory=lambda: defaultdict(set))
     messages: Set[Tuple[int, int]] = field(default_factory=set)
     interval: Tuple[int, int] = (5, 6)
     _active: bool = field(default=False, init=False)
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-    groups: List[List[int]] = field(default_factory=list)
-    last_group_chats: Set[int] = field(default_factory=set)
+    groups: List[List[Tuple[int, int]]] = field(default_factory=list)
+    last_group_chats: Dict[int, Set[int]] = field(
+        default_factory=lambda: defaultdict(set)
+    )
     original_interval: Tuple[int, int] = (5, 6)
 
 
@@ -226,13 +243,21 @@ class BroadcastManager:
                 if not code.messages or not code.chats:
                     return
                 try:
-                    if code.last_group_chats != code.chats:
-                        chats = list(code.chats)
+                    current_chats = defaultdict(
+                        set, {k: set(v) for k, v in code.chats.items()}
+                    )
+                    if code.last_group_chats != current_chats:
+                        code.last_group_chats = current_chats.copy()
+                        chats = [
+                            (chat_id, topic_id)
+                            for chat_id, topic_ids in code.chats.items()
+                            for topic_id in topic_ids
+                        ]
                         random.shuffle(chats)
                         code.groups = [
                             chats[i : i + 20] for i in range(0, len(chats), 20)
                         ]
-                        code.last_group_chats = set(code.chats)
+                        code.last_group_chats = current_chats
                     total_groups = len(code.groups)
                     interval = random.uniform(code.interval[0], code.interval[1]) * 60
 
@@ -252,8 +277,9 @@ class BroadcastManager:
 
                     for idx, group in enumerate(code.groups):
                         tasks = []
-                        for chat_id in group:
-                            tasks.append(self._send_message(chat_id, message))
+                        for chat_data in group:
+                            chat_id, topic_id = chat_data
+                            tasks.append(self._send_message(chat_id, message, topic_id))
                         await asyncio.gather(*tasks)
 
                         if idx < total_groups - 1:
@@ -310,24 +336,27 @@ class BroadcastManager:
             await self.save_config()
 
     async def _fetch_message(self, chat_id: int, message_id: int):
-        """Fetch a message from cache or Telegram"""
         cache_key = (chat_id, message_id)
 
-        cached = await self._message_cache.get(cache_key)
-        if cached:
+        if cached := await self._message_cache.get(cache_key):
             return cached
         try:
-            msg = await self.client.get_messages(entity=chat_id, ids=message_id)
-            if msg:
-                await self._message_cache.set(cache_key, msg)
-                return msg
-            logger.error(f"Сообщение {chat_id}:{message_id} не найдено")
-            return None
-        except ValueError as e:
-            logger.error(f"Чат/сообщение не существует: {chat_id} {message_id}: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Ошибка при получении сообщения: {e}", exc_info=True)
+            msg = await self.client.get_messages(
+                entity=chat_id, ids=message_id, reply_to=1, _retries=3
+            )
+
+            if not msg:
+                return None
+            if msg.reply_to and msg.reply_to.forum_topic:
+                msg.is_topic_message = True
+                msg.top_msg_id = msg.reply_to.reply_to_top_id
+            else:
+                msg.is_topic_message = False
+                msg.top_msg_id = None
+            await self._message_cache.set(cache_key, msg, expire=3600)
+            return msg
+        except (ValueError, RPCError) as e:
+            logger.error(f"Ошибка получения: {e}")
             return None
 
     async def _generate_stats_report(self) -> str:
@@ -338,9 +367,9 @@ class BroadcastManager:
         for code_name, code in self.codes.items():
             report.append(
                 f"\n▸ <code>{code_name}</code> {'✨' if code._active else '🧊'}\n"
-                f"├ Чатов: {len(code.chats)}\n"
+                f"├ Сообщений: {len(code.messages)}\n"
                 f"├ Интервал: {code.interval[0]}-{code.interval[1]} мин\n"
-                f"└ Сообщений: {len(code.messages)}\n"
+                f"└ Целей (чатов/топиков): {sum(len(v) for v in code.chats.values())}\n"
             )
         return "".join(report)
 
@@ -362,19 +391,24 @@ class BroadcastManager:
         return f"🍑 <code>{code_name}</code> | Сообщений: {len(code.messages)}"
 
     async def _handle_add_chat(self, message, code, code_name, args) -> str:
-        """Добавление чата: .br ac [code] [@chat]"""
-        target = args[2] if len(args) > 2 else message.chat_id
-        chat_id = await self._parse_chat_identifier(target)
+        """Добавление чата/топика: .br ac [code] [@chat] [topic_id]"""
+        if len(args) < 3:
+            return "🫵 Укажите чат"
+        target = args[2]
+        topic_id = int(args[3]) if len(args) > 3 else None
 
+        chat_id = await self._parse_chat_identifier(target)
         if not chat_id:
             return "🫵 Неверный формат чата"
-        if chat_id in code.chats:
-            return "ℹ️ Чат уже добавлен"
-        if len(code.chats) >= 250:
-            return "🫵 Лимит 250 чатов"
-        code.chats.add(chat_id)
+        try:
+            if topic_id:
+                await self.client.get_messages(chat_id, ids=topic_id)
+        except Exception:
+            return "🫵 Топик не существует или недоступен"
+        code.chats[chat_id].add(topic_id or 0)
+
         await self.save_config()
-        return f"🪴 +1 чат | Всего: {len(code.chats)}"
+        return f"🪴 +1 {'топик' if topic_id else 'чат'} | Всего: {sum(len(v) for v in code.chats.values())}"
 
     async def _handle_delete(self, message, code, code_name, args) -> str:
         """Удаление рассылки: .br d [code]"""
@@ -461,12 +495,23 @@ class BroadcastManager:
                     code.original_interval = code.interval
             await self.save_config()
 
-    async def _handle_permanent_error(self, chat_id: int):
+    async def _handle_permanent_error(
+        self, chat_id: int, topic_id: Optional[int] = None
+    ):
         async with self._lock:
             modified = False
             for code in self.codes.values():
-                if chat_id in code.chats:
-                    code.chats.discard(chat_id)
+                if chat_id not in code.chats:
+                    continue
+                if topic_id is not None:
+                    if topic_id in code.chats[chat_id]:
+                        code.chats[chat_id].discard(topic_id)
+                        modified = True
+
+                        if not code.chats[chat_id]:
+                            del code.chats[chat_id]
+                else:
+                    del code.chats[chat_id]
                     modified = True
             if modified:
                 await self.save_config()
@@ -495,9 +540,9 @@ class BroadcastManager:
             return "🫵 Неверный формат чата"
         if chat_id not in code.chats:
             return "ℹ️ Чат не найден"
-        code.chats.remove(chat_id)
+        del code.chats[chat_id]
         await self.save_config()
-        return f"🐲 -1 чат | Осталось: {len(code.chats)}"
+        return f"🐲 -1 чат | Осталось: {sum(len(v) for v in code.chats.values())}"
 
     async def _handle_start(self, message, code, code_name, args) -> str:
         """Запуск рассылки: .br s [code]"""
@@ -553,41 +598,71 @@ class BroadcastManager:
                                 await task
                             except asyncio.CancelledError:
                                 pass
+                            except Exception as e:
+                                logger.error(f"Ошибка задачи {code_name}: {e}")
                     self.broadcast_tasks[code_name] = asyncio.create_task(
                         self._broadcast_loop(code_name)
                     )
                     logger.info(f"Перезапуск рассылки: {code_name}")
 
-    async def _send_message(self, chat_id: int, msg: Message) -> bool:
+    async def _send_message(
+        self, chat_id: int, msg: Message, topic_id: Optional[int] = None
+    ) -> bool:
         if not self.pause_event.is_set():
             try:
                 await self.GLOBAL_LIMITER.acquire()
+
+                from hikkatl.tl import types
+
+                reply_to = None
+
+                if topic_id not in (None, 0):
+                    reply_to = types.InputReplyToMessage(reply_to_top_id=topic_id)
+                elif msg.is_topic_message and msg.top_msg_id not in (None, 0):
+                    reply_to = types.InputReplyToMessage(reply_to_top_id=msg.top_msg_id)
+
+                send_args = {
+                    "entity": chat_id,
+                    "reply_to": reply_to,
+                    "silent": True,
+                }
+
                 if msg.media:
                     await self.client.send_file(
-                        entity=chat_id,
                         file=msg.media,
-                        caption=msg.text if msg.text else None,
+                        caption=msg.text or None,
+                        **send_args,
                     )
                 else:
                     await self.client.send_message(
-                        entity=chat_id,
                         message=msg.text,
+                        **send_args,
                     )
                 return True
             except FloodWaitError as e:
                 await self._handle_flood_wait(e, chat_id)
+            except (BadRequestError, RPCError) as e:
+                if (
+                    isinstance(e, BadRequestError)
+                    and e.code == 400
+                    and "TOPIC_CLOSED" in str(e)
+                ):
+                    logger.error(
+                        f"Топик закрыт в {chat_id} (топик: {msg.top_msg_id})"
+                    )
+                    await self._handle_permanent_error(chat_id, msg.top_msg_id)
+                else:
+                    logger.error(f"Ошибка в {chat_id}: {repr(e)}")
             except (
                 ChatWriteForbiddenError,
                 ChannelPrivateError,
                 UserBannedInChannelError,
                 TopicDeletedError,
             ) as e:
-                logger.error(f"Permanent error in {chat_id}: {repr(e)}")
+                logger.error(f"Постоянная ошибка в {chat_id}: {repr(e)}")
                 await self._handle_permanent_error(chat_id)
-            except RPCError as e:
-                logger.error(f"RPC Error in {chat_id}: {repr(e)}")
             except Exception as e:
-                logger.error(f"Unexpected error in {chat_id}: {repr(e)}")
+                logger.error(f"Неожиданная ошибка в {chat_id}: {repr(e)}")
         return False
 
     def _toggle_watcher(self, args) -> str:
@@ -649,8 +724,16 @@ class BroadcastManager:
 
             for code_name, code_data in raw_config.get("codes", {}).items():
                 try:
+                    chats = defaultdict(set)
+                    for chat_id_str, topic_ids in code_data.get("chats", {}).items():
+                        chats[int(chat_id_str)] = set(map(int, topic_ids))
+                    last_group_chats = defaultdict(set)
+                    for chat_id_str, topic_ids in code_data.get(
+                        "last_group_chats", {}
+                    ).items():
+                        last_group_chats[int(chat_id_str)] = set(map(int, topic_ids))
                     code = Broadcast(
-                        chats=set(map(int, code_data.get("chats", []))),
+                        chats=chats,
                         messages={
                             (int(msg["chat_id"]), int(msg["message_id"]))
                             for msg in code_data.get("messages", [])
@@ -659,18 +742,15 @@ class BroadcastManager:
                         original_interval=tuple(
                             map(int, code_data.get("original_interval", (5, 6)))
                         ),
+                        last_group_chats=last_group_chats,
                     )
 
                     code.groups = [
-                        [int(chat) for chat in group if int(chat) in code.chats]
+                        [tuple(map(int, chat_data)) for chat_data in group]
                         for group in code_data.get("groups", [])
                     ]
-                    code.last_group_chats = set(
-                        map(int, code_data.get("last_group_chats", []))
-                    )
 
                     code._active = code_data.get("active", False)
-
                     self.codes[code_name] = code
                 except Exception as e:
                     logger.error(f"Ошибка загрузки {code_name}: {str(e)}")
@@ -690,7 +770,10 @@ class BroadcastManager:
                 config = {
                     "codes": {
                         name: {
-                            "chats": list(code.chats),
+                            "chats": {
+                                str(chat_id): list(topic_ids)
+                                for chat_id, topic_ids in dict(code.chats).items()
+                            },
                             "messages": [
                                 {"chat_id": cid, "message_id": mid}
                                 for cid, mid in code.messages
@@ -698,8 +781,14 @@ class BroadcastManager:
                             "interval": list(code.interval),
                             "original_interval": list(code.original_interval),
                             "active": code._active,
-                            "groups": code.groups,
-                            "last_group_chats": list(code.last_group_chats),
+                            "groups": [
+                                [list(chat_data) for chat_data in group]
+                                for group in code.groups
+                            ],
+                            "last_group_chats": {
+                                str(k): list(v)
+                                for k, v in dict(code.last_group_chats).items()
+                            },
                         }
                         for name, code in self.codes.items()
                     }
