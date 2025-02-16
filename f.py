@@ -195,9 +195,10 @@ class Broadcast:
     interval: Tuple[int, int] = (5, 6)
     _active: bool = field(default=False, init=False)
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-    groups: List[List[int]] = field(default_factory=list)
-    last_group_chats: Dict[int, Set[int]] = chats
+    groups: List[List[Tuple[int, int]]] = field(default_factory=list)
+    last_group_chats: Dict[int, Set[int]] = field(default_factory=lambda: defaultdict(set))
     original_interval: Tuple[int, int] = (5, 6)
+
 
 
 class BroadcastManager:
@@ -699,16 +700,16 @@ class BroadcastManager:
 
             for code_name, code_data in raw_config.get("codes", {}).items():
                 try:
+                    chats = defaultdict(set)
+                    for chat_id_str, topic_ids in code_data.get("chats", {}).items():
+                        chats[int(chat_id_str)] = set(map(int, topic_ids))
+
+                    last_group_chats = defaultdict(set)
+                    for chat_id_str, topic_ids in code_data.get("last_group_chats", {}).items():
+                        last_group_chats[int(chat_id_str)] = set(map(int, topic_ids))
+
                     code = Broadcast(
-                        chats=defaultdict(
-                            set,
-                            {
-                                int(chat_id): set(map(int, topic_ids))
-                                for chat_id, topic_ids in code_data.get(
-                                    "chats", {}
-                                ).items()
-                            },
-                        ),
+                        chats=chats,
                         messages={
                             (int(msg["chat_id"]), int(msg["message_id"]))
                             for msg in code_data.get("messages", [])
@@ -717,28 +718,20 @@ class BroadcastManager:
                         original_interval=tuple(
                             map(int, code_data.get("original_interval", (5, 6)))
                         ),
+                        last_group_chats=last_group_chats,
                     )
 
                     code.groups = [
-                        [int(chat) for chat in group if int(chat) in code.chats]
+                        [tuple(map(int, chat_data)) for chat_data in group]
                         for group in code_data.get("groups", [])
                     ]
-                    code.last_group_chats = defaultdict(
-                        set,
-                        {
-                            int(chat_id): set(map(int, topic_ids))
-                            for chat_id, topic_ids in code_data.get(
-                                "last_group_chats", {}
-                            ).items()
-                        },
-                    )
 
                     code._active = code_data.get("active", False)
-
                     self.codes[code_name] = code
                 except Exception as e:
                     logger.error(f"Ошибка загрузки {code_name}: {str(e)}")
                     continue
+
             for code_name, code in self.codes.items():
                 if code._active and (not code.messages or not code.chats):
                     logger.info(f"Отключение {code_name}: нет сообщений/чатов")
@@ -756,7 +749,7 @@ class BroadcastManager:
                         name: {
                             "chats": {
                                 str(chat_id): list(topic_ids)
-                                for chat_id, topic_ids in code.chats.items()
+                                for chat_id, topic_ids in dict(code.chats).items()
                             },
                             "messages": [
                                 {"chat_id": cid, "message_id": mid}
@@ -765,10 +758,13 @@ class BroadcastManager:
                             "interval": list(code.interval),
                             "original_interval": list(code.original_interval),
                             "active": code._active,
-                            "groups": code.groups,
+                            "groups": [
+                                [list(chat_data) for chat_data in group]
+                                for group in code.groups
+                            ],
                             "last_group_chats": {
                                 str(k): list(v)
-                                for k, v in code.last_group_chats.items()
+                                for k, v in dict(code.last_group_chats).items()
                             },
                         }
                         for name, code in self.codes.items()
@@ -782,6 +778,7 @@ class BroadcastManager:
         except Exception as e:
             logger.error(f"Critical error during save: {e}")
             raise
+
 
     async def start_adaptive_interval_adjustment(self):
         """Фоновая задача для адаптации интервалов"""
