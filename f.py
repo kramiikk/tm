@@ -165,37 +165,50 @@ class BroadcastMod(loader.Module):
             or not message.text
         ):
             return
+            
         if message.text.startswith("💫"):
             parts = message.text.split()
             code_name = parts[0][1:].lower()
-
+            
             if code_name.isalnum():
                 chat_id = message.chat_id
                 code = self.manager.codes.get(code_name)
 
                 if code and sum(len(v) for v in code.chats.values()) < 250:
-                    topic_id = 0
-
                     try:
                         chat = await self.client.get_entity(chat_id)
-                        if getattr(chat, "forum", False):
-                            if message.reply_to:
-                                topic_id = message.reply_to.reply_to_top_id or 0
+                        if not hasattr(chat, 'forum') or not chat.forum:
+                            topic_id = 0
+                        else:
+                            if hasattr(message, 'reply_to') and message.reply_to:
+                                if hasattr(message.reply_to, 'reply_to_top_id'):
+                                    topic_id = message.reply_to.reply_to_top_id
+                                else:
+                                    logger.error(f"Сообщение в форуме без reply_to_top_id: {chat_id}")
+                                    return
                             else:
+                                logger.error(f"Сообщение в форуме должно быть ответом на топик: {chat_id}")
                                 return
-                    except Exception as e:
-                        logger.error(f"Ошибка при проверке форума: {e}")
-                        return
-                    code.chats[chat_id].add(topic_id)
+                                
+                        if topic_id is None:
+                            logger.error(f"Не удалось определить topic_id в чате {chat_id}")
+                            return
+                            
+                        logger.info(f"Добавление в рассылку {code_name}: chat_id={chat_id}, topic_id={topic_id}, is_forum={getattr(chat, 'forum', False)}")
+                        
+                        code.chats[chat_id].add(topic_id)
 
-                    new_chat_count = sum(len(v) for v in code.chats.values())
-                    safe_min, safe_max = self.manager._calculate_safe_interval(
-                        new_chat_count
-                    )
-                    if code.interval[0] < safe_min:
-                        code.interval = (safe_min, safe_max)
-                        code.original_interval = code.interval
-                    await self.manager.save_config()
+                        new_chat_count = sum(len(v) for v in code.chats.values())
+                        safe_min, safe_max = self.manager._calculate_safe_interval(
+                            new_chat_count
+                        )
+                        if code.interval[0] < safe_min:
+                            code.interval = (safe_min, safe_max)
+                            code.original_interval = code.interval
+                        await self.manager.save_config()
+                        
+                    except Exception as e:
+                        logger.error(f"Ошибка при обработке топика: {e}", exc_info=True)
 
 
 @dataclass
