@@ -206,7 +206,7 @@ class BroadcastMod(loader.Module):
                             code.interval = (safe_min, safe_max)
                             code.original_interval = code.interval
                         await self.manager.save_config()
-                        
+                    
                     except Exception as e:
                         logger.error(f"Ошибка при обработке топика: {e}", exc_info=True)
 
