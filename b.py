@@ -342,7 +342,7 @@ class BroadcastManager:
             return cached
         try:
             msg = await self.client.get_messages(
-                entity=chat_id, ids=message_id, reply_to=1, _retries=3
+                entity=chat_id, ids=message_id, reply_to=1
             )
 
             if not msg:
