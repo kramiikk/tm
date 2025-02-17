@@ -267,19 +267,24 @@ class BroadcastManager:
                         )
                     else:
                         pause_between = 0
-                    msg_tuple = random.choice(tuple(code.messages))
-                    message = await self._fetch_message(*msg_tuple)
-                    if not message:
-                        code.messages.remove(msg_tuple)
+                    msg_tuple_key = random.choice(tuple(code.messages))
+                    message_data = await self._fetch_message(*msg_tuple_key)
+                    if not message_data:
+                        code.messages.remove(msg_tuple_key)
                         await self.save_config()
                         continue
+                    msg, is_topic, top_msg_id = message_data
                     start_time = time.monotonic()
 
                     for idx, group in enumerate(code.groups):
                         tasks = []
                         for chat_data in group:
                             chat_id, topic_id = chat_data
-                            tasks.append(self._send_message(chat_id, message, topic_id))
+                            tasks.append(
+                                self._send_message(
+                                    chat_id, msg, topic_id, is_topic, top_msg_id
+                                )
+                            )
                         await asyncio.gather(*tasks)
 
                         if idx < total_groups - 1:
@@ -337,24 +342,23 @@ class BroadcastManager:
 
     async def _fetch_message(self, chat_id: int, message_id: int):
         cache_key = (chat_id, message_id)
-
         if cached := await self._message_cache.get(cache_key):
-            return cached
+            return cached  # Returns (msg, is_topic, top_msg_id)
         try:
             msg = await self.client.get_messages(
                 entity=chat_id, ids=message_id, reply_to=1, _retries=3
             )
-
             if not msg:
                 return None
-            if msg.reply_to and msg.reply_to.forum_topic:
-                msg.is_topic_message = True
-                msg.top_msg_id = msg.reply_to.reply_to_top_id
-            else:
-                msg.is_topic_message = False
-                msg.top_msg_id = None
-            await self._message_cache.set(cache_key, msg, expire=3600)
-            return msg
+            is_topic = False
+            top_msg_id = None
+            if msg.reply_to and getattr(msg.reply_to, "forum_topic", False):
+                is_topic = True
+                top_msg_id = msg.reply_to.reply_to_top_id
+            await self._message_cache.set(
+                cache_key, (msg, is_topic, top_msg_id), expire=3600
+            )
+            return (msg, is_topic, top_msg_id)
         except (ValueError, RPCError) as e:
             logger.error(f"Ошибка получения: {e}")
             return None
@@ -606,21 +610,23 @@ class BroadcastManager:
                     logger.info(f"Перезапуск рассылки: {code_name}")
 
     async def _send_message(
-        self, chat_id: int, msg: Message, topic_id: Optional[int] = None
+        self,
+        chat_id: int,
+        msg: Message,
+        topic_id: Optional[int] = None,
+        is_topic_message: bool = False,
+        top_msg_id: Optional[int] = None,
     ) -> bool:
         if not self.pause_event.is_set():
             try:
                 await self.GLOBAL_LIMITER.acquire()
-
                 from hikkatl.tl import types
 
                 reply_to = None
-
                 if topic_id not in (None, 0):
                     reply_to = types.InputReplyToMessage(reply_to_top_id=topic_id)
-                elif msg.is_topic_message and msg.top_msg_id not in (None, 0):
-                    reply_to = types.InputReplyToMessage(reply_to_top_id=msg.top_msg_id)
-
+                elif is_topic_message and top_msg_id not in (None, 0):
+                    reply_to = types.InputReplyToMessage(reply_to_top_id=top_msg_id)
                 send_args = {
                     "entity": chat_id,
                     "reply_to": reply_to,
@@ -647,9 +653,7 @@ class BroadcastManager:
                     and e.code == 400
                     and "TOPIC_CLOSED" in str(e)
                 ):
-                    logger.error(
-                        f"Топик закрыт в {chat_id} (топик: {msg.top_msg_id})"
-                    )
+                    logger.error(f"Топик закрыт в {chat_id} (топик: {msg.top_msg_id})")
                     await self._handle_permanent_error(chat_id, msg.top_msg_id)
                 else:
                     logger.error(f"Ошибка в {chat_id}: {repr(e)}")
