@@ -352,7 +352,7 @@ class BroadcastManager:
         Returns tuple (Message, is_topic, top_msg_id) or None if message not found.
         """
         cache_key = (chat_id, message_id)
-        
+
         cached = await self._message_cache.get(cache_key)
         if cached is not None:
             return cached
@@ -361,13 +361,12 @@ class BroadcastManager:
             msg = await self.client.get_messages(
                 entity=chat_id, 
                 ids=message_id,
-                reply_to=1,
-                _retries=3
+                reply_to=1
             )
             
             if msg is None:
                 return None
-
+                
             if not isinstance(msg, Message):
                 logger.error(f"Unexpected message type: {type(msg)}")
                 return None
@@ -399,7 +398,7 @@ class BroadcastManager:
         """Генерация отчета: .br l"""
         if not self.codes:
             return "😶‍🌫️ Нет активных рассылок"
-        report = ["🎩 <strong>Статистика рассылок</strong>"]
+        report = ["🎩 <strong>Статистика рассылок 1</strong>"]
         for code_name, code in self.codes.items():
             report.append(
                 f"\n▸ <code>{code_name}</code> {'✨' if code._active else '🧊'}\n"
