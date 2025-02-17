@@ -267,12 +267,15 @@ class BroadcastManager:
                         )
                     else:
                         pause_between = 0
+                        
                     msg_tuple_key = random.choice(tuple(code.messages))
                     message_data = await self._fetch_message(*msg_tuple_key)
+                    
                     if not message_data:
                         code.messages.remove(msg_tuple_key)
                         await self.save_config()
                         continue
+                        
                     msg, is_topic, top_msg_id = message_data
                     start_time = time.monotonic()
 
@@ -343,22 +346,25 @@ class BroadcastManager:
     async def _fetch_message(self, chat_id: int, message_id: int):
         cache_key = (chat_id, message_id)
         if cached := await self._message_cache.get(cache_key):
-            return cached  # Returns (msg, is_topic, top_msg_id)
+            return cached
         try:
             msg = await self.client.get_messages(
                 entity=chat_id, ids=message_id, reply_to=1, _retries=3
             )
             if not msg:
                 return None
+                
             is_topic = False
             top_msg_id = None
-            if msg.reply_to and getattr(msg.reply_to, "forum_topic", False):
+            
+            if hasattr(msg, 'reply_to') and msg.reply_to and getattr(msg.reply_to, "forum_topic", False):
                 is_topic = True
                 top_msg_id = msg.reply_to.reply_to_top_id
-            await self._message_cache.set(
-                cache_key, (msg, is_topic, top_msg_id), expire=3600
-            )
-            return (msg, is_topic, top_msg_id)
+                
+            result = (msg, is_topic, top_msg_id)
+            await self._message_cache.set(cache_key, result, expire=3600)
+            return result
+            
         except (ValueError, RPCError) as e:
             logger.error(f"Ошибка получения: {e}")
             return None
