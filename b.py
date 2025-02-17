@@ -12,10 +12,6 @@ from hikkatl.tl.types import Message
 from hikkatl.errors import (
     FloodWaitError,
     RPCError,
-    TopicDeletedError,
-    ChatWriteForbiddenError,
-    ChannelPrivateError,
-    UserBannedInChannelError,
     BadRequestError,
 )
 
@@ -498,9 +494,11 @@ class BroadcastManager:
     async def _handle_permanent_error(
         self, chat_id: int, topic_id: Optional[int] = None
     ):
+        """Handle permanent errors by removing affected chats/topics and logging the action"""
         async with self._lock:
             modified = False
-            for code in self.codes.values():
+
+            for _, code in self.codes.items():
                 if chat_id not in code.chats:
                     continue
                 if topic_id is not None:
@@ -611,7 +609,7 @@ class BroadcastManager:
         if not self.pause_event.is_set():
             try:
                 await self.GLOBAL_LIMITER.acquire()
-                
+
                 send_args = {
                     "entity": chat_id,
                 }
@@ -620,7 +618,6 @@ class BroadcastManager:
                     send_args["reply_to"] = topic_id
                 elif msg.is_topic_message:
                     send_args["reply_to"] = msg.top_msg_id
-
                 if msg.media:
                     await self.client.send_file(
                         file=msg.media,
@@ -632,33 +629,43 @@ class BroadcastManager:
                         message=msg.text,
                         **send_args,
                     )
-                
                 return True
-                
             except FloodWaitError as e:
                 await self._handle_flood_wait(e, chat_id)
             except (BadRequestError, RPCError) as e:
-                if (
-                    isinstance(e, BadRequestError)
-                    and e.code == 400
-                    and "TOPIC_CLOSED" in str(e)
-                ):
-                    logger.error(
-                        f"Топик закрыт в чате {chat_id} (сообщение из топика {msg.top_msg_id})"
-                    )
-                    await self._handle_permanent_error(chat_id, msg.top_msg_id)
+                if isinstance(e, BadRequestError) and e.code == 400:
+                    error_text = str(e)
+                    if "TOPIC_CLOSED" in error_text or "TOPIC_DELETED" in error_text:
+                        logger.error(
+                            f"Топик недоступен в чате {chat_id} (сообщение из топика {msg.top_msg_id})"
+                        )
+                        await self._handle_permanent_error(chat_id, msg.top_msg_id)
+                    else:
+                        logger.error(f"Ошибка в {chat_id}: {repr(e)}")
+                        if any(
+                            text in error_text
+                            for text in [
+                                "CHANNEL_PRIVATE",
+                                "USER_BANNED",
+                                "CHAT_WRITE_FORBIDDEN",
+                            ]
+                        ):
+                            await self._handle_permanent_error(chat_id)
                 else:
                     logger.error(f"Ошибка в {chat_id}: {repr(e)}")
-            except (
-                ChatWriteForbiddenError,
-                ChannelPrivateError,
-                UserBannedInChannelError,
-                TopicDeletedError,
-            ) as e:
-                logger.error(f"Постоянная ошибка в {chat_id}: {repr(e)}")
-                await self._handle_permanent_error(chat_id)
             except Exception as e:
                 logger.error(f"Неожиданная ошибка в {chat_id}: {repr(e)}")
+                if any(
+                    error_text in str(e).upper()
+                    for error_text in [
+                        "BANNED",
+                        "RESTRICTED",
+                        "FORBIDDEN",
+                        "PRIVATE",
+                        "NOT_ACCESSIBLE",
+                    ]
+                ):
+                    await self._handle_permanent_error(chat_id)
         return False
 
     def _toggle_watcher(self, args) -> str:
