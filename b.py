@@ -237,72 +237,61 @@ class BroadcastManager:
         code = self.codes.get(code_name)
         if not code or not code.messages or not code.chats:
             return
-            
         await asyncio.sleep(random.uniform(code.interval[0], code.interval[1]) * 60)
-        
         while self._active and code._active and not self.pause_event.is_set():
             async with code._lock:
                 if not code.messages or not code.chats:
                     return
-                    
                 try:
-                    current_chats = defaultdict(set, {k: set(v) for k, v in code.chats.items()})
+                    current_chats = defaultdict(
+                        set, {k: set(v) for k, v in code.chats.items()}
+                    )
                     if code.last_group_chats != current_chats:
                         code.last_group_chats = current_chats.copy()
-                        chats = [(chat_id, topic_id)
-                                for chat_id, topic_ids in code.chats.items()
-                                for topic_id in topic_ids]
+                        chats = [
+                            (chat_id, topic_id)
+                            for chat_id, topic_ids in code.chats.items()
+                            for topic_id in topic_ids
+                        ]
                         random.shuffle(chats)
-                        code.groups = [chats[i:i + 20] for i in range(0, len(chats), 20)]
-                    
+                        code.groups = [
+                            chats[i : i + 20] for i in range(0, len(chats), 20)
+                        ]
+                        code.last_group_chats = current_chats
                     total_groups = len(code.groups)
                     interval = random.uniform(code.interval[0], code.interval[1]) * 60
-                    pause_between = (interval - total_groups * 0.2) / (total_groups - 1) if total_groups > 1 else 0
-                    
-                    msg_tuple_key = random.choice(tuple(code.messages))
-                    message_data = await self._fetch_message(*msg_tuple_key)
-                    
-                    if message_data is None:
-                        logger.warning(f"Message {msg_tuple_key} not found, removing from broadcast {code_name}")
-                        code.messages.remove(msg_tuple_key)
+
+                    if total_groups > 1:
+                        pause_between = (interval - total_groups * 0.2) / (
+                            total_groups - 1
+                        )
+                    else:
+                        pause_between = 0
+                    msg_tuple = random.choice(tuple(code.messages))
+                    message = await self._fetch_message(*msg_tuple)
+                    if not message:
+                        code.messages.remove(msg_tuple)
                         await self.save_config()
                         continue
-                    
-                    if not isinstance(message_data, tuple) or len(message_data) != 3:
-                        logger.error(f"Invalid message_data format: {message_data}")
-                        continue
-                        
-                    msg, is_topic, top_msg_id = message_data
-                    
-                    if not isinstance(msg, Message):
-                        logger.error(f"Invalid message type: {type(msg)}")
-                        continue
-                    
                     start_time = time.monotonic()
+
                     for idx, group in enumerate(code.groups):
                         tasks = []
                         for chat_data in group:
                             chat_id, topic_id = chat_data
-                            tasks.append(
-                                self._send_message(
-                                    chat_id, msg, topic_id, is_topic, top_msg_id
-                                )
-                            )
+                            tasks.append(self._send_message(chat_id, message, topic_id))
                         await asyncio.gather(*tasks)
-                        
+
                         if idx < total_groups - 1:
                             await asyncio.sleep(max(60, pause_between))
-                    
                     elapsed = time.monotonic() - start_time
                     if elapsed < interval:
                         await asyncio.sleep(interval - elapsed)
-                        
                 except asyncio.CancelledError:
                     logger.info(f"Broadcast {code_name} cancelled")
                     raise
                 except Exception as e:
-                    logger.error(f"[{code_name}] Critical error: {e}", exc_info=True)
-                    await asyncio.sleep(5)
+                    logger.error(f"[{code_name}] Critical error: {e}")
 
     def _calculate_safe_interval(self, total_chats: int) -> Tuple[int, int]:
         if total_chats <= 2:
@@ -347,58 +336,34 @@ class BroadcastManager:
             await self.save_config()
 
     async def _fetch_message(self, chat_id: int, message_id: int):
-        """
-        Fetches a message and returns it with topic information.
-        Returns tuple (Message, is_topic, top_msg_id) or None if message not found.
-        """
         cache_key = (chat_id, message_id)
 
-        cached = await self._message_cache.get(cache_key)
-        if cached is not None:
+        if cached := await self._message_cache.get(cache_key):
             return cached
-
         try:
             msg = await self.client.get_messages(
-                entity=chat_id, 
-                ids=message_id,
-                reply_to=1
+                entity=chat_id, ids=message_id, reply_to=1, _retries=3
             )
-            
-            if msg is None:
+
+            if not msg:
                 return None
-                
-            if not isinstance(msg, Message):
-                logger.error(f"Unexpected message type: {type(msg)}")
-                return None
-
-            is_topic = False
-            top_msg_id = None
-            
-            try:
-                if (hasattr(msg, 'reply_to') and 
-                    msg.reply_to is not None and 
-                    hasattr(msg.reply_to, 'forum_topic') and 
-                    msg.reply_to.forum_topic):
-                        is_topic = True
-                        top_msg_id = getattr(msg.reply_to, 'reply_to_top_id', None)
-            except Exception as e:
-                logger.error(f"Error extracting topic info: {e}")
-
-            result = (msg, is_topic, top_msg_id)
-            
-            await self._message_cache.set(cache_key, result, expire=3600)
-            
-            return result
-
-        except Exception as e:
-            logger.error(f"Error fetching message {message_id} from {chat_id}: {e}")
+            if msg.reply_to and msg.reply_to.forum_topic:
+                msg.is_topic_message = True
+                msg.top_msg_id = msg.reply_to.reply_to_top_id
+            else:
+                msg.is_topic_message = False
+                msg.top_msg_id = None
+            await self._message_cache.set(cache_key, msg, expire=3600)
+            return msg
+        except (ValueError, RPCError) as e:
+            logger.error(f"Ошибка получения: {e}")
             return None
 
     async def _generate_stats_report(self) -> str:
         """Генерация отчета: .br l"""
         if not self.codes:
             return "😶‍🌫️ Нет активных рассылок"
-        report = ["🎩 <strong>Статистика рассылок 1</strong>"]
+        report = ["🎩 <strong>Статистика рассылок</strong>"]
         for code_name, code in self.codes.items():
             report.append(
                 f"\n▸ <code>{code_name}</code> {'✨' if code._active else '🧊'}\n"
@@ -641,28 +606,20 @@ class BroadcastManager:
                     logger.info(f"Перезапуск рассылки: {code_name}")
 
     async def _send_message(
-        self,
-        chat_id: int,
-        msg: Message,
-        topic_id: Optional[int] = None,
-        is_topic_message: bool = False,
-        top_msg_id: Optional[int] = None,
+        self, chat_id: int, msg: Message, topic_id: Optional[int] = None
     ) -> bool:
         if not self.pause_event.is_set():
             try:
                 await self.GLOBAL_LIMITER.acquire()
-                from hikkatl.tl import types
-
-                reply_to = None
-                if topic_id not in (None, 0):
-                    reply_to = types.InputReplyToMessage(reply_to_top_id=topic_id)
-                elif is_topic_message and top_msg_id not in (None, 0):
-                    reply_to = types.InputReplyToMessage(reply_to_top_id=top_msg_id)
+                
                 send_args = {
                     "entity": chat_id,
-                    "reply_to": reply_to,
-                    "silent": True,
                 }
+
+                if topic_id is not None:
+                    send_args["reply_to"] = topic_id
+                elif msg.is_topic_message:
+                    send_args["reply_to"] = msg.top_msg_id
 
                 if msg.media:
                     await self.client.send_file(
@@ -675,7 +632,9 @@ class BroadcastManager:
                         message=msg.text,
                         **send_args,
                     )
+                
                 return True
+                
             except FloodWaitError as e:
                 await self._handle_flood_wait(e, chat_id)
             except (BadRequestError, RPCError) as e:
@@ -684,7 +643,9 @@ class BroadcastManager:
                     and e.code == 400
                     and "TOPIC_CLOSED" in str(e)
                 ):
-                    logger.error(f"Топик закрыт в {chat_id} (топик: {msg.top_msg_id})")
+                    logger.error(
+                        f"Топик закрыт в чате {chat_id} (сообщение из топика {msg.top_msg_id})"
+                    )
                     await self._handle_permanent_error(chat_id, msg.top_msg_id)
                 else:
                     logger.error(f"Ошибка в {chat_id}: {repr(e)}")
