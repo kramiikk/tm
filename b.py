@@ -171,13 +171,9 @@ class BroadcastMod(loader.Module):
 
                 if code and sum(len(v) for v in code.chats.values()) < 250:
                     try:
-                        chat = await self.client.get_entity(chat_id)
+                        await self.client.get_entity(chat_id)
 
                         topic_id = utils.get_topic(message) or 0
-
-                        logger.info(
-                            f"Добавление в рассылку {code_name}: chat_id={chat_id}, topic_id={topic_id}, is_forum={getattr(chat, 'forum', False)}"
-                        )
 
                         code.chats[chat_id].add(topic_id)
 
