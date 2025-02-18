@@ -602,9 +602,7 @@ class BroadcastManager:
                 await self.GLOBAL_LIMITER.acquire()
                 await asyncio.sleep(random.uniform(0.3, 0.9))
 
-                send_args = {
-                    "entity": chat_id,
-                }
+                send_args = {"entity": chat_id}
 
                 if topic_id is not None:
                     send_args["reply_to"] = topic_id

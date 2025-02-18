@@ -50,7 +50,7 @@ class RateLimiter:
 
 
 class SimpleCache:
-    def __init__(self, ttl: int = 7200, max_size: int = 20):
+    def __init__(self, ttl: int = 7200, max_size: int = 12):
         self._active = True
         self.cache = OrderedDict()
         self.ttl = ttl
@@ -172,6 +172,7 @@ class BroadcastMod(loader.Module):
                 if code and sum(len(v) for v in code.chats.values()) < 250:
                     try:
                         await self.client.get_entity(chat_id)
+                        await asyncio.sleep(random.randint(1000, 3000) / 1000)
 
                         topic_id = utils.get_topic(message) or 0
 
@@ -206,7 +207,7 @@ class Broadcast:
 class BroadcastManager:
     """Manages broadcast operations and state."""
 
-    GLOBAL_LIMITER = RateLimiter(max_requests=20, time_window=60)
+    GLOBAL_LIMITER = RateLimiter(max_requests=12, time_window=60)
 
     def __init__(self, client: CustomTelegramClient, db, tg_id):
         self.client = client
@@ -216,7 +217,7 @@ class BroadcastManager:
         self.adaptive_interval_task = None
         self.codes: Dict[str, Broadcast] = {}
         self.broadcast_tasks: Dict[str, asyncio.Task] = {}
-        self._message_cache = SimpleCache(ttl=7200, max_size=20)
+        self._message_cache = SimpleCache(ttl=7200, max_size=12)
         self.pause_event = asyncio.Event()
         self.cache_cleanup_task = None
         self.watcher_enabled = False
@@ -247,7 +248,7 @@ class BroadcastManager:
                         ]
                         random.shuffle(chats)
                         code.groups = [
-                            chats[i : i + 20] for i in range(0, len(chats), 20)
+                            chats[i : i + 12] for i in range(0, len(chats), 12)
                         ]
                         code.last_group_chats = current_chats
                     total_groups = len(code.groups)
@@ -333,18 +334,10 @@ class BroadcastManager:
         if cached := await self._message_cache.get(cache_key):
             return cached
         try:
-            msg = await self.client.get_messages(
-                entity=chat_id, ids=message_id, reply_to=1
-            )
-
+            msg = await self.client.get_messages(entity=chat_id, ids=message_id)
+            await asyncio.sleep(random.randint(1000, 3000) / 1000)
             if not msg:
                 return None
-            if msg.reply_to and msg.reply_to.forum_topic:
-                msg.is_topic_message = True
-                msg.top_msg_id = msg.reply_to.reply_to_top_id
-            else:
-                msg.is_topic_message = False
-                msg.top_msg_id = None
             await self._message_cache.set(cache_key, msg, expire=3600)
             return msg
         except (ValueError, RPCError) as e:
@@ -395,6 +388,7 @@ class BroadcastManager:
         try:
             if topic_id:
                 await self.client.get_messages(chat_id, ids=topic_id)
+                await asyncio.sleep(random.randint(1000, 3000) / 1000)
         except Exception:
             return "🫵 Топик не существует или недоступен"
         code.chats[chat_id].add(topic_id or 0)
@@ -446,7 +440,7 @@ class BroadcastManager:
                 if self.flood_wait_times
                 else 0
             )
-            wait_time = min(max(e.seconds + 15, avg_wait * 1.5), 7200)
+            wait_time = min(max(e.seconds + 12, avg_wait * 1.2), 7200)
 
             self.flood_wait_times.append(wait_time)
             if len(self.flood_wait_times) > 10:
@@ -577,6 +571,7 @@ class BroadcastManager:
                 if identifier.lstrip("-").isdigit():
                     return int(identifier)
             entity = await self.client.get_entity(identifier, exp=3600)
+            await asyncio.sleep(random.randint(1000, 3000) / 1000)
             return entity.id
         except Exception:
             return None
@@ -614,8 +609,6 @@ class BroadcastManager:
 
                 if topic_id is not None:
                     forward_args["top_msg_id"] = topic_id
-                elif msg.is_topic_message:
-                    forward_args["top_msg_id"] = msg.top_msg_id
                 await self.client.forward_messages(**forward_args)
                 return True
             except FloodWaitError as e:
